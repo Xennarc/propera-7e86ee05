@@ -1,6 +1,8 @@
 // Application types for Propera
 
 export type AppRole = 'ADMIN' | 'MANAGER' | 'FRONT_OFFICE' | 'ACTIVITIES' | 'FNB';
+export type GlobalRole = 'SUPER_ADMIN' | 'STANDARD';
+export type ResortRole = 'RESORT_ADMIN' | 'MANAGER' | 'FRONT_OFFICE' | 'ACTIVITIES' | 'FNB';
 export type ActivityCategory = 'DIVE' | 'EXCURSION' | 'WATERSPORT' | 'SPA' | 'OTHER';
 export type SessionStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
@@ -31,6 +33,7 @@ export interface Profile {
   full_name: string | null;
   department: string | null;
   resort_id: string | null;
+  global_role: GlobalRole;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +43,19 @@ export interface UserRole {
   user_id: string;
   role: AppRole;
   created_at: string;
+}
+
+export interface ResortMembership {
+  id: string;
+  user_id: string;
+  resort_id: string;
+  resort_role: ResortRole;
+  department: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  resort?: Resort;
+  profile?: Profile;
 }
 
 export interface Guest {

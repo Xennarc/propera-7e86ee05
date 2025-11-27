@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { AppRole, Profile, Resort } from '@/types/database';
+import { Profile, GlobalRole } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,76 +9,53 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, Shield, Plus, Trash2, Building2 } from 'lucide-react';
+import { Users, Shield, Crown, Search } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Input } from '@/components/ui/input';
 
-interface UserWithRoles extends Profile {
-  roles: AppRole[];
+interface UserWithProfile extends Profile {
   email?: string;
 }
 
-const ALL_ROLES: AppRole[] = ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'];
+const GLOBAL_ROLES: GlobalRole[] = ['SUPER_ADMIN', 'STANDARD'];
 
-const ROLE_COLORS: Record<AppRole, string> = {
-  ADMIN: 'bg-destructive/10 text-destructive border-destructive/20',
-  MANAGER: 'bg-primary/10 text-primary border-primary/20',
-  FRONT_OFFICE: 'bg-success/10 text-success border-success/20',
-  ACTIVITIES: 'bg-warning/10 text-warning border-warning/20',
-  FNB: 'bg-info/10 text-info border-info/20',
+const GLOBAL_ROLE_COLORS: Record<GlobalRole, string> = {
+  SUPER_ADMIN: 'bg-destructive/10 text-destructive border-destructive/20',
+  STANDARD: 'bg-muted text-muted-foreground border-border',
+};
+
+const GLOBAL_ROLE_LABELS: Record<GlobalRole, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  STANDARD: 'Standard',
 };
 
 export default function UserManagementPage() {
-  const { user, hasRole } = useAuth();
-  const [users, setUsers] = useState<UserWithRoles[]>([]);
-  const [resorts, setResorts] = useState<Resort[]>([]);
+  const { isSuperAdmin, user } = useAuth();
+  const [users, setUsers] = useState<UserWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
-  const [newRole, setNewRole] = useState<AppRole | ''>('');
+  const [newGlobalRole, setNewGlobalRole] = useState<GlobalRole>('STANDARD');
   const [saving, setSaving] = useState(false);
-
-  const isAdmin = hasRole('ADMIN');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isSuperAdmin()) {
       fetchUsers();
-      fetchResorts();
     }
-  }, [isAdmin]);
-
-  const fetchResorts = async () => {
-    const { data } = await supabase.from('resorts').select('*').order('name');
-    if (data) setResorts(data);
-  };
+  }, [isSuperAdmin()]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
         .order('full_name');
 
       if (profilesError) throw profilesError;
-
-      // Fetch all user roles
-      const { data: allRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Combine profiles with their roles
-      const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => ({
-        ...profile,
-        roles: (allRoles || [])
-          .filter(r => r.user_id === profile.id)
-          .map(r => r.role as AppRole),
-      }));
-
-      setUsers(usersWithRoles);
+      setUsers((profiles || []) as UserWithProfile[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
@@ -87,96 +64,60 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleAddRole = async () => {
-    if (!selectedUser || !newRole) return;
+  const handleUpdateGlobalRole = async () => {
+    if (!selectedUser) return;
+
+    // Prevent removing the last SUPER_ADMIN
+    if (selectedUser.global_role === 'SUPER_ADMIN' && newGlobalRole === 'STANDARD') {
+      const superAdminCount = users.filter(u => u.global_role === 'SUPER_ADMIN').length;
+      if (superAdminCount <= 1) {
+        toast.error('Cannot remove the last Super Admin');
+        return;
+      }
+    }
 
     setSaving(true);
     try {
       const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: selectedUser.id, role: newRole });
+        .from('profiles')
+        .update({ global_role: newGlobalRole })
+        .eq('id', selectedUser.id);
 
-      if (error) {
-        if (error.code === '23505') {
-          toast.error('User already has this role');
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success(`Added ${newRole} role to ${selectedUser.full_name || 'user'}`);
-        setRoleDialogOpen(false);
-        setNewRole('');
-        fetchUsers();
-      }
+      if (error) throw error;
+
+      toast.success(`Updated ${selectedUser.full_name}'s global role to ${GLOBAL_ROLE_LABELS[newGlobalRole]}`);
+      setRoleDialogOpen(false);
+      fetchUsers();
     } catch (error) {
-      console.error('Error adding role:', error);
-      toast.error('Failed to add role');
+      console.error('Error updating global role:', error);
+      toast.error('Failed to update global role');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleRemoveRole = async (userId: string, role: AppRole) => {
-    // Prevent removing the last ADMIN role
-    if (role === 'ADMIN') {
-      const adminCount = users.filter(u => u.roles.includes('ADMIN')).length;
-      if (adminCount <= 1) {
-        toast.error('Cannot remove the last admin');
-        return;
-      }
-    }
-
-    try {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
-
-      if (error) throw error;
-
-      toast.success(`Removed ${role} role`);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error removing role:', error);
-      toast.error('Failed to remove role');
-    }
-  };
-
-  const handleUpdateResort = async (userId: string, resortId: string | null) => {
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ resort_id: resortId })
-        .eq('id', userId);
-
-      if (error) throw error;
-
-      toast.success('Updated user resort assignment');
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating resort:', error);
-      toast.error('Failed to update resort');
-    }
-  };
-
-  const openRoleDialog = (userItem: UserWithRoles) => {
+  const openRoleDialog = (userItem: UserWithProfile) => {
     setSelectedUser(userItem);
-    setNewRole('');
+    setNewGlobalRole(userItem.global_role);
     setRoleDialogOpen(true);
   };
 
-  const availableRoles = (userItem: UserWithRoles): AppRole[] => {
-    return ALL_ROLES.filter(role => !userItem.roles.includes(role));
-  };
+  const filteredUsers = users.filter(u => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      u.full_name?.toLowerCase().includes(query) ||
+      u.department?.toLowerCase().includes(query)
+    );
+  });
 
-  if (!isAdmin) {
+  if (!isSuperAdmin()) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
         <EmptyState
           icon={Shield}
           title="Access Denied"
-          description="You need admin privileges to manage users"
+          description="You need Super Admin privileges to manage platform users"
         />
       </div>
     );
@@ -185,29 +126,45 @@ export default function UserManagementPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
-        title="User Management"
-        description="Manage staff roles and resort assignments"
+        title="Platform Users"
+        description="Manage global roles for all platform users"
       />
+
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <LoadingSpinner />
         </div>
-      ) : users.length === 0 ? (
+      ) : filteredUsers.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="No users yet"
-          description="Users will appear here after they sign up"
+          title="No users found"
+          description={searchQuery ? "No users match your search" : "Users will appear here after they sign up"}
         />
       ) : (
-        <div className="grid gap-4">
-          {users.map((userItem) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredUsers.map((userItem) => (
             <Card key={userItem.id} className="overflow-hidden">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
+                      {userItem.global_role === 'SUPER_ADMIN' ? (
+                        <Crown className="h-5 w-5 text-destructive" />
+                      ) : (
+                        <Users className="h-5 w-5 text-primary" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-base">
@@ -221,67 +178,23 @@ export default function UserManagementPage() {
                       </p>
                     </div>
                   </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <Badge
+                    variant="outline"
+                    className={GLOBAL_ROLE_COLORS[userItem.global_role]}
+                  >
+                    {GLOBAL_ROLE_LABELS[userItem.global_role]}
+                  </Badge>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => openRoleDialog(userItem)}
-                    disabled={availableRoles(userItem).length === 0}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Role
+                    Change Role
                   </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Roles */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Roles</p>
-                  <div className="flex flex-wrap gap-2">
-                    {userItem.roles.length === 0 ? (
-                      <span className="text-sm text-muted-foreground">No roles assigned</span>
-                    ) : (
-                      userItem.roles.map((role) => (
-                        <Badge
-                          key={role}
-                          variant="outline"
-                          className={`${ROLE_COLORS[role]} flex items-center gap-1`}
-                        >
-                          {role}
-                          <button
-                            onClick={() => handleRemoveRole(userItem.id, role)}
-                            className="ml-1 hover:text-destructive transition-colors"
-                            title="Remove role"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Resort Assignment */}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    Resort Assignment
-                  </p>
-                  <Select
-                    value={userItem.resort_id || 'none'}
-                    onValueChange={(value) => handleUpdateResort(userItem.id, value === 'none' ? null : value)}
-                  >
-                    <SelectTrigger className="w-full max-w-xs">
-                      <SelectValue placeholder="Select resort" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No resort assigned</SelectItem>
-                      {resorts.map((resort) => (
-                        <SelectItem key={resort.id} value={resort.id}>
-                          {resort.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -289,35 +202,43 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* Add Role Dialog */}
+      {/* Change Global Role Dialog */}
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Role</DialogTitle>
+            <DialogTitle>Change Global Role</DialogTitle>
             <DialogDescription>
-              Add a new role to {selectedUser?.full_name || 'this user'}
+              Update global role for {selectedUser?.full_name || 'this user'}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Select value={newRole} onValueChange={(value) => setNewRole(value as AppRole)}>
+            <Select value={newGlobalRole} onValueChange={(value) => setNewGlobalRole(value as GlobalRole)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {selectedUser && availableRoles(selectedUser).map((role) => (
+                {GLOBAL_ROLES.map((role) => (
                   <SelectItem key={role} value={role}>
-                    {role}
+                    <div className="flex items-center gap-2">
+                      {role === 'SUPER_ADMIN' && <Crown className="h-4 w-4 text-destructive" />}
+                      {GLOBAL_ROLE_LABELS[role]}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {newGlobalRole === 'SUPER_ADMIN' 
+                ? 'Super Admins have full access to all resorts and can manage the entire platform.'
+                : 'Standard users can only access resorts where they have memberships.'}
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddRole} disabled={!newRole || saving}>
-              {saving ? 'Adding...' : 'Add Role'}
+            <Button onClick={handleUpdateGlobalRole} disabled={saving}>
+              {saving ? 'Saving...' : 'Update Role'}
             </Button>
           </DialogFooter>
         </DialogContent>
