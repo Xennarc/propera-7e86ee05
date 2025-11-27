@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Restaurant, RestaurantTimeSlot } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock } from 'lucide-react';
+import { Plus, Clock, Users, Utensils, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { RestaurantSlotDialog } from './RestaurantSlotDialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
+import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
+import { DataTable } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingPage } from '@/components/ui/loading-spinner';
 
 interface SlotWithBookings extends RestaurantTimeSlot {
   restaurant?: Restaurant;
@@ -82,7 +87,6 @@ export default function RestaurantSlotsPage() {
       return;
     }
 
-    // Fetch reservation counts
     const slotIds = slotsData?.map(s => s.id) || [];
     const { data: reservationsData } = await supabase
       .from('restaurant_reservations')
@@ -100,6 +104,15 @@ export default function RestaurantSlotsPage() {
     setLoading(false);
   };
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalCovers = slots.reduce((sum, s) => sum + s.bookedCovers, 0);
+    const openSlots = slots.filter(s => s.status === 'OPEN').length;
+    const totalCapacity = slots.reduce((sum, s) => sum + s.capacity, 0);
+    const avgCovers = slots.length > 0 ? Math.round(totalCovers / slots.length) : 0;
+    return { totalCovers, openSlots, avgCovers };
+  }, [slots]);
+
   if (!currentResort) {
     return (
       <Card>
@@ -112,98 +125,149 @@ export default function RestaurantSlotsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Restaurant Time Slots</h1>
-          <p className="text-muted-foreground">Manage dining availability</p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Slot
-        </Button>
+      <PageHeader
+        title="Restaurant Time Slots"
+        description="Manage dining availability"
+        action={
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Slot
+          </Button>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Total Covers"
+          value={stats.totalCovers}
+          icon={Users}
+          variant="success"
+          description={format(parseISO(selectedDate), 'MMMM d, yyyy')}
+        />
+        <StatCard
+          title="Open Slots"
+          value={stats.openSlots}
+          icon={Clock}
+          variant="primary"
+        />
+        <StatCard
+          title="Avg. Covers/Slot"
+          value={stats.avgCovers}
+          icon={TrendingUp}
+          variant="default"
+        />
       </div>
 
+      {/* Filters and Table */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-wrap gap-3">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-40"
-            />
-            <Select value={restaurantFilter} onValueChange={setRestaurantFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All restaurants" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All restaurants</SelectItem>
-                {restaurants.map(r => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="OPEN">Open</SelectItem>
-                <SelectItem value="CLOSED">Closed</SelectItem>
-                <SelectItem value="FULL">Full</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="p-0">
+          <div className="p-4 border-b border-border/50">
+            <FilterBar>
+              <FilterBarGroup>
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-40 bg-background"
+                />
+              </FilterBarGroup>
+              <FilterBarGroup>
+                <Select value={restaurantFilter} onValueChange={setRestaurantFilter}>
+                  <SelectTrigger className="w-44 bg-background">
+                    <SelectValue placeholder="All restaurants" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Restaurants</SelectItem>
+                    {restaurants.map(r => (
+                      <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32 bg-background">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="OPEN">Open</SelectItem>
+                    <SelectItem value="CLOSED">Closed</SelectItem>
+                    <SelectItem value="FULL">Full</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FilterBarGroup>
+            </FilterBar>
           </div>
-        </CardHeader>
-        <CardContent>
+
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
+            <LoadingPage />
           ) : slots.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Clock className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No time slots for this date</p>
-            </div>
+            <EmptyState
+              icon={Utensils}
+              title="No time slots"
+              description="No time slots found for this date"
+              action={
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Slot
+                </Button>
+              }
+            />
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Restaurant</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Meal Period</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Booked</TableHead>
-                    <TableHead>Remaining</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {slots.map((slot) => {
+            <DataTable
+              data={slots}
+              onRowClick={(slot) => navigate(`/restaurants/slots/${slot.id}`)}
+              columns={[
+                {
+                  header: 'Restaurant',
+                  accessor: (slot) => (
+                    <span className="font-medium">{slot.restaurant?.name}</span>
+                  ),
+                },
+                {
+                  header: 'Time',
+                  accessor: (slot) => (
+                    <span className="text-muted-foreground">
+                      {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Meal Period',
+                  accessor: (slot) => (
+                    <Badge variant="outline">{slot.meal_period}</Badge>
+                  ),
+                },
+                {
+                  header: 'Capacity',
+                  accessor: (slot) => slot.capacity,
+                },
+                {
+                  header: 'Booked',
+                  accessor: (slot) => (
+                    <span className="text-success font-medium">{slot.bookedCovers}</span>
+                  ),
+                },
+                {
+                  header: 'Remaining',
+                  accessor: (slot) => {
                     const remaining = slot.capacity - slot.bookedCovers;
                     return (
-                      <TableRow 
-                        key={slot.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/restaurants/slots/${slot.id}`)}
-                      >
-                        <TableCell className="font-medium">{slot.restaurant?.name}</TableCell>
-                        <TableCell>{slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}</TableCell>
-                        <TableCell><Badge variant="outline">{slot.meal_period}</Badge></TableCell>
-                        <TableCell>{slot.capacity}</TableCell>
-                        <TableCell className="text-success font-medium">{slot.bookedCovers}</TableCell>
-                        <TableCell className={remaining <= 0 ? 'text-destructive' : remaining <= 10 ? 'text-warning' : ''}>
-                          {remaining}
-                        </TableCell>
-                        <TableCell><StatusBadge status={slot.status} /></TableCell>
-                      </TableRow>
+                      <span className={
+                        remaining <= 0 ? 'text-destructive font-medium' : 
+                        remaining <= 10 ? 'text-warning font-medium' : ''
+                      }>
+                        {remaining}
+                      </span>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                  },
+                },
+                {
+                  header: 'Status',
+                  accessor: (slot) => <StatusBadge status={slot.status} />,
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>

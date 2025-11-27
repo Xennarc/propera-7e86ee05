@@ -2,18 +2,23 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Activity, ActivitySession, SessionStatus } from '@/types/database';
+import { Activity, ActivitySession } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, List, CalendarDays } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, addDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
+import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/filter-bar';
+import { DataTable } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingPage } from '@/components/ui/loading-spinner';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -30,7 +35,6 @@ export default function ActivitySessionsPage() {
   const [activityFilter, setActivityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSession, setEditingSession] = useState<ActivitySession | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'agenda'>('table');
 
   const { currentResort } = useResort();
@@ -53,13 +57,9 @@ export default function ActivitySessionsPage() {
 
     setLoading(true);
     
-    // Fetch sessions with activity data
     let query = supabase
       .from('activity_sessions')
-      .select(`
-        *,
-        activity:activities(*)
-      `)
+      .select(`*, activity:activities(*)`)
       .eq('resort_id', currentResort.id)
       .gte('date', startDate)
       .lte('date', endDate)
@@ -81,7 +81,6 @@ export default function ActivitySessionsPage() {
       return;
     }
 
-    // Fetch booking counts for each session
     const sessionIds = sessionsData?.map(s => s.id) || [];
     
     const { data: bookingsData } = await supabase
@@ -90,7 +89,6 @@ export default function ActivitySessionsPage() {
       .in('session_id', sessionIds)
       .in('status', ['CONFIRMED', 'PENDING']);
 
-    // Calculate pax for each session
     const sessionsWithPax = sessionsData?.map(session => {
       const sessionBookings = bookingsData?.filter(b => b.session_id === session.id) || [];
       const confirmedPax = sessionBookings
@@ -100,11 +98,7 @@ export default function ActivitySessionsPage() {
         .filter(b => b.status === 'PENDING')
         .reduce((sum, b) => sum + b.num_adults + b.num_children, 0);
 
-      return {
-        ...session,
-        confirmedPax,
-        pendingPax,
-      };
+      return { ...session, confirmedPax, pendingPax };
     }) || [];
 
     setSessions(sessionsWithPax as SessionWithBookings[]);
@@ -118,6 +112,15 @@ export default function ActivitySessionsPage() {
   useEffect(() => {
     fetchSessions();
   }, [currentResort, startDate, endDate, activityFilter, statusFilter]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalSessions = sessions.filter(s => s.status === 'SCHEDULED').length;
+    const totalPax = sessions.reduce((sum, s) => sum + s.confirmedPax, 0);
+    const totalCapacity = sessions.filter(s => s.status === 'SCHEDULED').reduce((sum, s) => sum + s.capacity, 0);
+    const avgOccupancy = totalCapacity > 0 ? Math.round((totalPax / totalCapacity) * 100) : 0;
+    return { totalSessions, totalPax, avgOccupancy };
+  }, [sessions]);
 
   // Group sessions by date for agenda view
   const sessionsByDate = useMemo(() => {
@@ -143,139 +146,182 @@ export default function ActivitySessionsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Activity Sessions</h1>
-          <p className="text-muted-foreground">Manage scheduled activity sessions</p>
-        </div>
-        <Button onClick={() => { setEditingSession(null); setDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Session
-        </Button>
+      <PageHeader
+        title="Activity Sessions"
+        description="Manage scheduled activity sessions"
+        action={
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Session
+          </Button>
+        }
+      />
+
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+          title="Total Sessions"
+          value={stats.totalSessions}
+          icon={Calendar}
+          variant="default"
+          description="In selected period"
+        />
+        <StatCard
+          title="Total Guests"
+          value={stats.totalPax}
+          icon={Users}
+          variant="success"
+          description="Confirmed pax"
+        />
+        <StatCard
+          title="Average Occupancy"
+          value={`${stats.avgOccupancy}%`}
+          icon={TrendingUp}
+          variant="primary"
+        />
       </div>
 
+      {/* Filters and Table */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2">
+        <CardContent className="p-0">
+          <div className="p-4 border-b border-border/50">
+            <FilterBar>
+              <FilterBarGroup>
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-40"
+                  className="w-36 bg-background"
                 />
-                <span className="text-muted-foreground">to</span>
+                <span className="text-muted-foreground text-sm">to</span>
                 <Input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-40"
+                  className="w-36 bg-background"
                 />
+              </FilterBarGroup>
+              <FilterBarSeparator />
+              <FilterBarGroup>
+                <Select value={activityFilter} onValueChange={setActivityFilter}>
+                  <SelectTrigger className="w-44 bg-background">
+                    <SelectValue placeholder="All activities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Activities</SelectItem>
+                    {activities.map(a => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-36 bg-background">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FilterBarGroup>
+              <div className="ml-auto">
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'agenda')}>
+                  <TabsList className="bg-background">
+                    <TabsTrigger value="table" className="gap-1.5">
+                      <List className="h-4 w-4" />
+                      Table
+                    </TabsTrigger>
+                    <TabsTrigger value="agenda" className="gap-1.5">
+                      <CalendarDays className="h-4 w-4" />
+                      Agenda
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
               </div>
-              <Select value={activityFilter} onValueChange={setActivityFilter}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="All activities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All activities</SelectItem>
-                  {activities.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'agenda')}>
-              <TabsList>
-                <TabsTrigger value="table">
-                  <List className="h-4 w-4 mr-1" />
-                  Table
-                </TabsTrigger>
-                <TabsTrigger value="agenda">
-                  <CalendarDays className="h-4 w-4 mr-1" />
-                  Agenda
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            </FilterBar>
           </div>
-        </CardHeader>
-        <CardContent>
+
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
+            <LoadingPage />
           ) : sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No sessions found for the selected period</p>
-            </div>
+            <EmptyState
+              icon={Calendar}
+              title="No sessions found"
+              description="No sessions found for the selected period"
+              action={
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Session
+                </Button>
+              }
+            />
           ) : viewMode === 'table' ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Booked</TableHead>
-                    <TableHead>Remaining</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sessions.map((session) => {
+            <DataTable
+              data={sessions}
+              onRowClick={(session) => navigate(`/activities/sessions/${session.id}`)}
+              columns={[
+                {
+                  header: 'Date',
+                  accessor: (session) => (
+                    <span className="font-medium">
+                      {format(parseISO(session.date), 'EEE, MMM d')}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Time',
+                  accessor: (session) => (
+                    <span className="text-muted-foreground">
+                      {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Activity',
+                  accessor: (session) => session.activity?.name,
+                },
+                {
+                  header: 'Capacity',
+                  accessor: (session) => session.capacity,
+                },
+                {
+                  header: 'Booked',
+                  accessor: (session) => (
+                    <div className="flex items-center gap-1">
+                      <span className="text-success font-medium">{session.confirmedPax}</span>
+                      {session.pendingPax > 0 && (
+                        <span className="text-warning text-sm">(+{session.pendingPax})</span>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  header: 'Remaining',
+                  accessor: (session) => {
                     const remaining = session.capacity - session.confirmedPax;
                     return (
-                      <TableRow 
-                        key={session.id} 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/activities/sessions/${session.id}`)}
-                      >
-                        <TableCell className="font-medium">
-                          {format(parseISO(session.date), 'EEE, MMM d')}
-                        </TableCell>
-                        <TableCell>
-                          {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
-                        </TableCell>
-                        <TableCell>{session.activity?.name}</TableCell>
-                        <TableCell>{session.capacity}</TableCell>
-                        <TableCell>
-                          <span className="text-success font-medium">{session.confirmedPax}</span>
-                          {session.pendingPax > 0 && (
-                            <span className="text-warning ml-1">(+{session.pendingPax})</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span className={remaining <= 0 ? 'text-destructive' : remaining <= 3 ? 'text-warning' : ''}>
-                            {remaining}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge status={session.status} />
-                        </TableCell>
-                      </TableRow>
+                      <span className={
+                        remaining <= 0 ? 'text-destructive font-medium' : 
+                        remaining <= 3 ? 'text-warning font-medium' : ''
+                      }>
+                        {remaining}
+                      </span>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                  },
+                },
+                {
+                  header: 'Status',
+                  accessor: (session) => <StatusBadge status={session.status} />,
+                },
+              ]}
+            />
           ) : (
-            <div className="space-y-6">
+            <div className="p-4 space-y-6">
               {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
                 <div key={date}>
-                  <h3 className="font-semibold text-lg mb-3 sticky top-0 bg-card py-2">
+                  <h3 className="font-semibold text-lg mb-3 text-foreground">
                     {format(parseISO(date), 'EEEE, MMMM d, yyyy')}
                   </h3>
                   <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -284,28 +330,31 @@ export default function ActivitySessionsPage() {
                       return (
                         <Card 
                           key={session.id} 
-                          className="cursor-pointer hover:shadow-md transition-shadow"
+                          className="cursor-pointer hover:shadow-card-hover hover:border-primary/30 transition-all"
                           onClick={() => navigate(`/activities/sessions/${session.id}`)}
                         >
                           <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className="text-lg font-mono">
-                                {session.start_time.slice(0, 5)}
-                              </span>
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-mono font-medium">
+                                  {session.start_time.slice(0, 5)}
+                                </span>
+                              </div>
                               <StatusBadge status={session.status} />
                             </div>
-                            <h4 className="font-medium mb-1">{session.activity?.name}</h4>
+                            <h4 className="font-semibold text-foreground mb-2">{session.activity?.name}</h4>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>
+                              <span className="flex items-center gap-1">
+                                <Users className="h-3.5 w-3.5" />
                                 <span className="text-success font-medium">{session.confirmedPax}</span>
-                                /{session.capacity} pax
+                                /{session.capacity}
                               </span>
-                              {remaining > 0 && (
+                              {remaining > 0 ? (
                                 <span className={remaining <= 3 ? 'text-warning' : ''}>
                                   {remaining} spots left
                                 </span>
-                              )}
-                              {remaining <= 0 && (
+                              ) : (
                                 <span className="text-destructive font-medium">Full</span>
                               )}
                             </div>
@@ -324,7 +373,7 @@ export default function ActivitySessionsPage() {
       <ActivitySessionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        session={editingSession}
+        session={null}
         resortId={currentResort.id}
         activities={activities}
         onSuccess={fetchSessions}
