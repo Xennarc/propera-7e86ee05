@@ -6,6 +6,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
 import { CalendarDays, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export function AppLayout() {
   const { user, profile, loading } = useAuth();
@@ -47,6 +48,7 @@ export function AppLayout() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                <ThemeToggle className="text-muted-foreground hover:text-foreground" />
                 <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
                   <Bell className="h-5 w-5" />
                   <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-warning" />

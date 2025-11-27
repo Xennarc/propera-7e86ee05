@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Loader2, Waves } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -130,6 +131,11 @@ export default function Auth() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
+      {/* Theme toggle in top right */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+      </div>
+      
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/30" />
       

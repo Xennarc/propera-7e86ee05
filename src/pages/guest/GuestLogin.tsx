@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Waves, Loader2, Lock, User, Building2 } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function GuestLogin() {
   const navigate = useNavigate();
@@ -53,6 +54,11 @@ export default function GuestLogin() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+      {/* Theme toggle in top right */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+      </div>
+      
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />

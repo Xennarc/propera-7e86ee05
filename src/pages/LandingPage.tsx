@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   Waves, 
   UtensilsCrossed, 
@@ -26,12 +27,15 @@ export default function LandingPage() {
             </div>
             <span className="text-xl font-semibold text-foreground">Propera</span>
           </div>
-          <Button asChild variant="default" size="sm">
-            <Link to="/guest/login">
-              <LogIn className="h-4 w-4 mr-2" />
-              Guest Login
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+            <Button asChild variant="default" size="sm">
+              <Link to="/guest/login">
+                <LogIn className="h-4 w-4 mr-2" />
+                Guest Login
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
