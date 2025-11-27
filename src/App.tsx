@@ -31,6 +31,7 @@ import GuestBehaviourReport from "./pages/reports/GuestBehaviourReport";
 import MarketReport from "./pages/reports/MarketReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
 import GuestLogin from "./pages/guest/GuestLogin";
+import ResortGuestLogin from "./pages/guest/ResortGuestLogin";
 import GuestHome from "./pages/guest/GuestHome";
 import GuestMyBookings from "./pages/guest/GuestMyBookings";
 import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
@@ -101,6 +102,9 @@ const App = () => (
                 <Route path="/settings/users" element={<Navigate to="/staff/settings/users" replace />} />
                 <Route path="/settings/resorts" element={<Navigate to="/staff/settings/resorts" replace />} />
                 <Route path="/settings/resources" element={<Navigate to="/staff/settings/resources" replace />} />
+                
+                {/* Resort-specific guest login */}
+                <Route path="/resort/:code/guest/login" element={<ResortGuestLogin />} />
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
