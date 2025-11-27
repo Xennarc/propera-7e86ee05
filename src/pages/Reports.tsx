@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Utensils, UserCheck, Globe, ArrowRight } from 'lucide-react';
+import { Activity, Utensils, UserCheck, Globe, ArrowRight, MessageSquareHeart } from 'lucide-react';
 
 const reportLinks = [
   {
@@ -26,6 +26,12 @@ const reportLinks = [
     description: 'Booking analysis by guest nationality',
     icon: Globe,
     href: '/reports/market',
+  },
+  {
+    title: 'Stay Feedback',
+    description: 'End-of-stay guest satisfaction and feedback',
+    icon: MessageSquareHeart,
+    href: '/reports/stay-feedback',
   },
 ];
 

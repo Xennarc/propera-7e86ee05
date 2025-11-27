@@ -659,6 +659,84 @@ export type Database = {
           },
         ]
       }
+      stay_feedback: {
+        Row: {
+          check_in_date: string
+          check_out_date: string
+          created_at: string
+          guest_id: string
+          highlight_comment: string | null
+          id: string
+          improvement_comment: string | null
+          overall_rating: number
+          rating_activities: number | null
+          rating_diving: number | null
+          rating_fnb: number | null
+          rating_room: number | null
+          rating_service: number | null
+          resort_id: string
+          room_number: string
+          source: Database["public"]["Enums"]["feedback_source"]
+          updated_at: string
+          would_recommend: Database["public"]["Enums"]["recommendation_response"]
+        }
+        Insert: {
+          check_in_date: string
+          check_out_date: string
+          created_at?: string
+          guest_id: string
+          highlight_comment?: string | null
+          id?: string
+          improvement_comment?: string | null
+          overall_rating: number
+          rating_activities?: number | null
+          rating_diving?: number | null
+          rating_fnb?: number | null
+          rating_room?: number | null
+          rating_service?: number | null
+          resort_id: string
+          room_number: string
+          source?: Database["public"]["Enums"]["feedback_source"]
+          updated_at?: string
+          would_recommend: Database["public"]["Enums"]["recommendation_response"]
+        }
+        Update: {
+          check_in_date?: string
+          check_out_date?: string
+          created_at?: string
+          guest_id?: string
+          highlight_comment?: string | null
+          id?: string
+          improvement_comment?: string | null
+          overall_rating?: number
+          rating_activities?: number | null
+          rating_diving?: number | null
+          rating_fnb?: number | null
+          rating_room?: number | null
+          rating_service?: number | null
+          resort_id?: string
+          room_number?: string
+          source?: Database["public"]["Enums"]["feedback_source"]
+          updated_at?: string
+          would_recommend?: Database["public"]["Enums"]["recommendation_response"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stay_feedback_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stay_feedback_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -685,6 +763,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
         Returns: Json
@@ -743,6 +822,21 @@ export type Database = {
           room_number: string
         }[]
       }
+      guest_submit_stay_feedback: {
+        Args: {
+          p_guest_id: string
+          p_highlight_comment?: string
+          p_improvement_comment?: string
+          p_overall_rating: number
+          p_rating_activities?: number
+          p_rating_diving?: number
+          p_rating_fnb?: number
+          p_rating_room?: number
+          p_rating_service?: number
+          p_would_recommend: string
+        }
+        Returns: Json
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -785,8 +879,10 @@ export type Database = {
         | "CANCELLED"
         | "NO_SHOW"
         | "COMPLETED"
+      feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
+      recommendation_response: "YES" | "NO" | "MAYBE"
       resort_role:
         | "RESORT_ADMIN"
         | "MANAGER"
@@ -938,8 +1034,10 @@ export const Constants = {
         "NO_SHOW",
         "COMPLETED",
       ],
+      feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
+      recommendation_response: ["YES", "NO", "MAYBE"],
       resort_role: [
         "RESORT_ADMIN",
         "MANAGER",

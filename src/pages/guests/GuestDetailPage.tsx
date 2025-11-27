@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
+import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -55,6 +56,7 @@ export default function GuestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activityBookingDialogOpen, setActivityBookingDialogOpen] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE']);
 
@@ -162,12 +164,20 @@ export default function GuestDetailPage() {
             Room {guest.room_number} • {format(parseISO(guest.check_in_date), 'MMM d')} - {format(parseISO(guest.check_out_date), 'MMM d, yyyy')}
           </p>
         </div>
-        {canEdit && (
-          <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {canEdit && (
+            <Button variant="outline" onClick={() => setFeedbackDialogOpen(true)}>
+              <MessageSquareHeart className="h-4 w-4 mr-2" />
+              Record Feedback
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Guest Info */}
@@ -418,6 +428,14 @@ export default function GuestDetailPage() {
       <ActivityBookingDialog
         open={activityBookingDialogOpen}
         onOpenChange={setActivityBookingDialogOpen}
+        guest={guest}
+        onSuccess={fetchGuest}
+      />
+
+      {/* Stay Feedback Dialog */}
+      <StayFeedbackDialog
+        open={feedbackDialogOpen}
+        onOpenChange={setFeedbackDialogOpen}
         guest={guest}
         onSuccess={fetchGuest}
       />
