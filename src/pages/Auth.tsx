@@ -41,7 +41,7 @@ export default function Auth() {
 
   // Redirect if already logged in
   if (user) {
-    navigate('/dashboard', { replace: true });
+    navigate('/staff/dashboard', { replace: true });
     return null;
   }
 
@@ -75,7 +75,7 @@ export default function Auth() {
           : error.message,
       });
     } else {
-      navigate('/dashboard', { replace: true });
+      navigate('/staff/dashboard', { replace: true });
     }
   };
 
@@ -124,7 +124,7 @@ export default function Auth() {
         title: 'Account created',
         description: 'Welcome to Propera! You can now sign in.',
       });
-      navigate('/dashboard', { replace: true });
+      navigate('/staff/dashboard', { replace: true });
     }
   };
 

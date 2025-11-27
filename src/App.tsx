@@ -8,6 +8,7 @@ import { ResortProvider } from "@/contexts/ResortContext";
 import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GuestLayout } from "@/components/guest/GuestLayout";
+import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import GuestsPage from "./pages/guests/GuestsPage";
@@ -49,10 +50,13 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
+                {/* Public landing page */}
+                <Route path="/" element={<LandingPage />} />
+                
                 {/* Staff routes */}
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={<AppLayout />}>
-                  <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="/staff/auth" element={<Auth />} />
+                <Route path="/staff" element={<AppLayout />}>
+                  <Route index element={<Navigate to="/staff/dashboard" replace />} />
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="guests" element={<GuestsPage />} />
                   <Route path="guests/:id" element={<GuestDetailPage />} />
@@ -73,6 +77,29 @@ const App = () => (
                   <Route path="settings/resorts" element={<ResortsPage />} />
                   <Route path="settings/resources" element={<ResourcesPage />} />
                 </Route>
+                
+                {/* Legacy staff routes - redirect to new /staff prefix */}
+                <Route path="/auth" element={<Navigate to="/staff/auth" replace />} />
+                <Route path="/dashboard" element={<Navigate to="/staff/dashboard" replace />} />
+                <Route path="/guests" element={<Navigate to="/staff/guests" replace />} />
+                <Route path="/guests/:id" element={<Navigate to="/staff/guests/:id" replace />} />
+                <Route path="/activities" element={<Navigate to="/staff/activities" replace />} />
+                <Route path="/activities/sessions" element={<Navigate to="/staff/activities/sessions" replace />} />
+                <Route path="/activities/sessions/:id" element={<Navigate to="/staff/activities/sessions/:id" replace />} />
+                <Route path="/restaurants" element={<Navigate to="/staff/restaurants" replace />} />
+                <Route path="/restaurants/slots" element={<Navigate to="/staff/restaurants/slots" replace />} />
+                <Route path="/restaurants/slots/:id" element={<Navigate to="/staff/restaurants/slots/:id" replace />} />
+                <Route path="/reports" element={<Navigate to="/staff/reports" replace />} />
+                <Route path="/reports/activities" element={<Navigate to="/staff/reports/activities" replace />} />
+                <Route path="/reports/restaurants" element={<Navigate to="/staff/reports/restaurants" replace />} />
+                <Route path="/reports/guest-behaviour" element={<Navigate to="/staff/reports/guest-behaviour" replace />} />
+                <Route path="/reports/market" element={<Navigate to="/staff/reports/market" replace />} />
+                <Route path="/guest-requests" element={<Navigate to="/staff/guest-requests" replace />} />
+                <Route path="/settings" element={<Navigate to="/staff/settings" replace />} />
+                <Route path="/settings/users" element={<Navigate to="/staff/settings/users" replace />} />
+                <Route path="/settings/resorts" element={<Navigate to="/staff/settings/resorts" replace />} />
+                <Route path="/settings/resources" element={<Navigate to="/staff/settings/resources" replace />} />
+                
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
                 <Route path="/guest" element={<GuestLayout />}>
@@ -83,6 +110,7 @@ const App = () => (
                   <Route path="restaurants" element={<GuestRestaurantBrowser />} />
                   <Route path="restaurants/book/:slotId" element={<GuestRestaurantBookingPage />} />
                 </Route>
+                
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
