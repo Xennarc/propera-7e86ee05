@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Resort } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Copy, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, Download, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const resortSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -170,10 +171,34 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
   };
 
   const guestLoginUrl = formData.code ? `${window.location.origin}/resort/${formData.code}/guest/login` : '';
+  const qrCodeRef = useRef<SVGSVGElement>(null);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(guestLoginUrl);
     toast({ title: 'Copied!', description: 'Guest login URL copied to clipboard' });
+  };
+
+  const downloadQRCode = () => {
+    if (!qrCodeRef.current) return;
+    
+    const svg = qrCodeRef.current;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `${formData.code || 'resort'}-guest-login-qr.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   return (
@@ -258,22 +283,54 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
                 </div>
               </div>
 
-              {/* Guest Login URL */}
+              {/* Guest Login URL & QR Code */}
               {resort && guestLoginUrl && (
-                <div className="space-y-2 pt-2">
-                  <Label>Guest Login URL</Label>
-                  <div className="flex gap-2">
-                    <Input value={guestLoginUrl} readOnly className="font-mono text-sm" />
-                    <Button type="button" variant="outline" size="icon" onClick={copyToClipboard}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" variant="outline" size="icon" asChild>
-                      <a href={guestLoginUrl} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
+                <div className="space-y-4 pt-2 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-base font-medium">Guest Login Link</Label>
                   </div>
-                  <p className="text-xs text-muted-foreground">Share this URL with guests via QR codes or emails</p>
+                  
+                  <div className="grid grid-cols-[1fr,auto] gap-4">
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input value={guestLoginUrl} readOnly className="font-mono text-sm" />
+                        <Button type="button" variant="outline" size="icon" onClick={copyToClipboard} title="Copy URL">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button type="button" variant="outline" size="icon" asChild title="Open in new tab">
+                          <a href={guestLoginUrl} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Share this URL with guests via QR codes, in-room tablets, or welcome emails.
+                      </p>
+                    </div>
+                    
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-2 bg-white rounded-lg border border-border">
+                        <QRCodeSVG 
+                          ref={qrCodeRef}
+                          value={guestLoginUrl} 
+                          size={96}
+                          level="M"
+                          includeMargin={false}
+                        />
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={downloadQRCode}
+                        className="text-xs gap-1"
+                      >
+                        <Download className="h-3 w-3" />
+                        Download QR
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </TabsContent>
