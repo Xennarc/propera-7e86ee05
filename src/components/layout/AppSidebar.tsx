@@ -2,7 +2,9 @@ import {
   LayoutDashboard, 
   Users, 
   Calendar, 
+  CalendarDays,
   Utensils, 
+  Clock,
   BarChart3, 
   Settings,
   Building2,
@@ -25,7 +27,6 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -44,22 +45,34 @@ import {
 import { cn } from '@/lib/utils';
 
 const mainNavItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Guests', url: '/guests', icon: Users },
-  { title: 'Activities', url: '/activities', icon: Calendar },
-  { title: 'Restaurants', url: '/restaurants', icon: Utensils },
-  { title: 'Reports', url: '/reports', icon: BarChart3 },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, roles: null },
+  { title: 'Guests', url: '/guests', icon: Users, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+];
+
+const activitiesNavItems = [
+  { title: 'Activities', url: '/activities', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Sessions', url: '/activities/sessions', icon: CalendarDays, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+];
+
+const restaurantNavItems = [
+  { title: 'Restaurants', url: '/restaurants', icon: Utensils, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+  { title: 'Time Slots', url: '/restaurants/slots', icon: Clock, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
 ];
 
 const settingsNavItems = [
-  { title: 'Resorts', url: '/settings/resorts', icon: Building2, adminOnly: true },
-  { title: 'Resources', url: '/settings/resources', icon: Anchor },
-  { title: 'Settings', url: '/settings', icon: Settings },
+  { title: 'Resorts', url: '/settings/resorts', icon: Building2, roles: ['ADMIN'] },
+  { title: 'Resources', url: '/settings/resources', icon: Anchor, roles: ['ADMIN'] },
+  { title: 'Settings', url: '/settings', icon: Settings, roles: null },
 ];
 
 export function AppSidebar() {
-  const { user, profile, signOut, hasRole } = useAuth();
+  const { user, profile, roles, signOut, hasAnyRole, hasRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
+
+  const canViewItem = (itemRoles: string[] | null) => {
+    if (!itemRoles) return true;
+    return hasAnyRole(itemRoles as any[]);
+  };
 
   return (
     <Sidebar className="border-r border-sidebar-border">
@@ -103,23 +116,109 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-sidebar-foreground/60">Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url} 
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNavItems.map((item) => {
+                if (!canViewItem(item.roles)) return null;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url} 
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                          "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        )}
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {canViewItem(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES']) && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/60">Activities</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {activitiesNavItems.map((item) => {
+                  if (!canViewItem(item.roles)) return null;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                            "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          )}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {canViewItem(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB']) && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/60">Dining</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {restaurantNavItems.map((item) => {
+                  if (!canViewItem(item.roles)) return null;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                            "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          )}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/60">Reports</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/reports"
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                      "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    )}
+                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                    <span>Reports</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -129,11 +228,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsNavItems.map((item) => {
-                // Hide admin-only items for non-admins
-                if (item.adminOnly && !hasRole('ADMIN')) {
-                  return null;
-                }
-                
+                if (!canViewItem(item.roles)) return null;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -169,7 +264,7 @@ export function AppSidebar() {
                   {profile?.full_name || 'Staff User'}
                 </p>
                 <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {user?.email}
+                  {roles.length > 0 ? roles.join(', ') : user?.email}
                 </p>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />

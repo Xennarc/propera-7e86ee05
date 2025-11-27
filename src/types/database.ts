@@ -99,6 +99,10 @@ export interface ActivitySession {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  activity?: Activity;
+  resource?: Resource;
+  lead_staff?: Profile;
 }
 
 export interface ActivityBooking {
@@ -118,6 +122,9 @@ export interface ActivityBooking {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  guest?: Guest;
+  session?: ActivitySession & { activity?: Activity };
 }
 
 export interface Restaurant {
@@ -149,6 +156,8 @@ export interface RestaurantTimeSlot {
   status: SlotStatus;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  restaurant?: Restaurant;
 }
 
 export interface RestaurantReservation {
@@ -165,4 +174,7 @@ export interface RestaurantReservation {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  // Joined fields
+  guest?: Guest;
+  slot?: RestaurantTimeSlot & { restaurant?: Restaurant };
 }
