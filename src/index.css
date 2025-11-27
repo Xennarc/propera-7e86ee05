@@ -1,114 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Propera Design System - Resort Operations Theme */
+/* Propera Design System - Luxury Maldives Resort Theme */
 
 @layer base {
   :root {
-    /* Ocean-inspired professional palette */
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Core Palette - Inspired by Ocean & Sand */
+    --background: 40 6% 96%;           /* #F5F5F4 soft off-white */
+    --foreground: 222 47% 11%;          /* #111827 text primary */
 
-    --card: 0 0% 100%;
+    --card: 0 0% 100%;                  /* #FFFFFF pure white cards */
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary: Deep Teal */
-    --primary: 187 69% 35%;
+    /* Primary: Ocean Teal #0E7490 */
+    --primary: 189 80% 31%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Warm Sand */
-    --secondary: 35 30% 94%;
+    /* Secondary: Sand Beige #D8C7A6 */
+    --secondary: 40 36% 75%;
     --secondary-foreground: 222 47% 11%;
 
     /* Muted: Soft Gray */
-    --muted: 210 20% 96%;
+    --muted: 40 10% 93%;
     --muted-foreground: 215 16% 47%;
 
-    /* Accent: Coral */
-    --accent: 12 76% 61%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Warm Sand Highlight */
+    --accent: 40 36% 85%;
+    --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84% 60%;
+    /* Destructive: Error Red */
+    --destructive: 0 72% 51%;           /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 187 69% 35%;
+    /* Borders & Input */
+    --border: 220 13% 91%;              /* #E5E7EB subtle borders */
+    --input: 220 13% 91%;
+    --ring: 189 80% 31%;
 
-    --radius: 0.5rem;
+    /* Generous border radius for modern luxury feel */
+    --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 187 69% 45%;
+    /* Sidebar - Deep Ocean */
+    --sidebar-background: 189 80% 15%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 189 80% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 47% 18%;
-    --sidebar-accent-foreground: 210 20% 98%;
-    --sidebar-border: 222 47% 18%;
-    --sidebar-ring: 187 69% 45%;
+    --sidebar-accent: 189 60% 22%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 189 60% 20%;
+    --sidebar-ring: 189 80% 45%;
 
-    /* Custom tokens for Propera */
-    --success: 158 64% 42%;
+    /* Status Colors - Consistent across app */
+    --success: 142 76% 36%;             /* #16A34A confirmed/success */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 25 95% 53%;              /* #F97316 pending/awaiting */
     --warning-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
+    --info: 215 16% 47%;                /* #64748B neutral/info */
     --info-foreground: 0 0% 100%;
 
-    /* Status colors */
-    --status-pending: 38 92% 50%;
-    --status-confirmed: 158 64% 42%;
-    --status-cancelled: 0 84% 60%;
-    --status-completed: 187 69% 35%;
-    --status-no-show: 0 0% 45%;
-
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(187 69% 35%), hsl(187 69% 45%));
-    --gradient-accent: linear-gradient(135deg, hsl(12 76% 61%), hsl(12 76% 71%));
-    --gradient-sidebar: linear-gradient(180deg, hsl(222 47% 11%), hsl(222 47% 8%));
+    /* Chart Colors - Ocean Palette */
+    --chart-1: 189 80% 31%;
+    --chart-2: 40 36% 65%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 25 95% 53%;
+    --chart-5: 215 16% 47%;
   }
 
   .dark {
     --background: 222 47% 8%;
-    --foreground: 210 20% 98%;
+    --foreground: 0 0% 98%;
 
     --card: 222 47% 11%;
-    --card-foreground: 210 20% 98%;
+    --card-foreground: 0 0% 98%;
 
     --popover: 222 47% 11%;
-    --popover-foreground: 210 20% 98%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 187 69% 45%;
+    --primary: 189 80% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 47% 18%;
-    --secondary-foreground: 210 20% 98%;
+    --secondary: 40 20% 25%;
+    --secondary-foreground: 0 0% 98%;
 
     --muted: 222 47% 15%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 12 76% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 40 30% 30%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 0 0% 98%;
 
     --border: 222 47% 18%;
     --input: 222 47% 18%;
-    --ring: 187 69% 45%;
+    --ring: 189 80% 45%;
 
     --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 20% 98%;
-    --sidebar-primary: 187 69% 50%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 189 80% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 47% 12%;
-    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 222 47% 12%;
-    --sidebar-ring: 187 69% 50%;
+    --sidebar-ring: 189 80% 50%;
+
+    --chart-1: 189 80% 45%;
+    --chart-2: 40 36% 55%;
+    --chart-3: 142 76% 46%;
+    --chart-4: 25 95% 63%;
+    --chart-5: 215 16% 57%;
   }
 }
 
@@ -117,47 +123,202 @@
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: "opsz" 32;
+  }
+
+  /* Improved focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Luxury Card Styles */
+  .card-luxury {
+    @apply bg-card rounded-xl shadow-sm border border-border/50 transition-all duration-200;
+  }
+
+  .card-luxury:hover {
+    @apply shadow-md border-border;
+  }
+
+  /* Stat Card with subtle gradient */
+  .stat-card {
+    @apply bg-gradient-to-br from-card to-card/80 rounded-xl p-6 border border-border/50 shadow-sm;
+  }
+
+  /* Glass morphism effect for overlays */
+  .glass {
+    @apply bg-background/80 backdrop-blur-md border border-border/50;
+  }
+
+  /* Button Luxury Variants */
+  .btn-primary-luxury {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 
+           shadow-sm hover:shadow-md transition-all duration-200
+           font-medium rounded-lg;
+  }
+
+  .btn-secondary-luxury {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80
+           border border-border shadow-sm hover:shadow-md 
+           transition-all duration-200 font-medium rounded-lg;
+  }
+
+  /* Table Styles - Clean and spacious */
+  .table-luxury {
+    @apply w-full;
+  }
+
+  .table-luxury th {
+    @apply text-left text-xs font-semibold uppercase tracking-wider 
+           text-muted-foreground py-4 px-4 bg-muted/30 first:rounded-tl-lg last:rounded-tr-lg;
+  }
+
+  .table-luxury td {
+    @apply py-4 px-4 border-b border-border/50;
+  }
+
+  .table-luxury tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .table-luxury tbody tr {
+    @apply transition-colors duration-150 hover:bg-muted/30;
+  }
+
+  /* Navigation Link Styles */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           transition-all duration-200 text-muted-foreground
+           hover:text-foreground hover:bg-muted/50;
+  }
+
+  .nav-link.active {
+    @apply bg-primary/10 text-primary font-semibold;
+  }
+
+  /* Badge/Chip Styles */
+  .chip {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .chip-success {
+    @apply bg-success/15 text-success;
+  }
+
+  .chip-warning {
+    @apply bg-warning/15 text-warning;
+  }
+
+  .chip-error {
+    @apply bg-destructive/15 text-destructive;
+  }
+
+  .chip-info {
+    @apply bg-info/15 text-info;
+  }
+
+  .chip-neutral {
+    @apply bg-muted text-muted-foreground;
   }
 }
 
 @layer utilities {
-  /* Status badge utilities */
+  /* Status badge utilities - Updated with new colors */
   .status-pending {
-    @apply bg-warning/10 text-warning;
+    @apply bg-warning/15 text-warning font-medium;
   }
   
   .status-confirmed {
-    @apply bg-success/10 text-success;
+    @apply bg-success/15 text-success font-medium;
   }
   
   .status-cancelled {
-    @apply bg-destructive/10 text-destructive;
+    @apply bg-destructive/15 text-destructive font-medium;
   }
   
   .status-completed {
-    @apply bg-primary/10 text-primary;
+    @apply bg-primary/15 text-primary font-medium;
   }
   
   .status-no-show {
-    @apply bg-muted text-muted-foreground;
+    @apply bg-muted text-muted-foreground font-medium;
   }
 
-  /* Animation utilities */
+  /* Animation Utilities */
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
-  .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.2s ease-out;
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-[1.02];
+  }
+
+  .hover-glow {
+    @apply transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/10;
+  }
+
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground));
   }
 }
 
+/* Keyframes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -167,10 +328,10 @@
   }
 }
 
-@keyframes slideIn {
+@keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -181,10 +342,27 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom selection colors */
+::selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--foreground));
 }
