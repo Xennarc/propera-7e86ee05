@@ -15,12 +15,14 @@ import {
   ChevronDown,
   LogOut,
   User,
-  Bell,
-  Inbox
+  Inbox,
+  Shield,
+  UsersRound
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { ResortRole } from '@/types/database';
 import {
   Sidebar,
   SidebarContent,
@@ -47,37 +49,80 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-const mainNavItems = [
-  { title: 'Dashboard', url: '/staff/dashboard', icon: LayoutDashboard, roles: null },
-  { title: 'Guests', url: '/staff/guests', icon: Users, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-  { title: 'Guest Requests', url: '/staff/guest-requests', icon: Inbox, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+// Define which resort roles can view each nav item
+type NavItem = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  resortRoles: ResortRole[] | null; // null means all roles can view
+};
+
+const mainNavItems: NavItem[] = [
+  { title: 'Dashboard', url: '/staff/dashboard', icon: LayoutDashboard, resortRoles: null },
+  { title: 'Guests', url: '/staff/guests', icon: Users, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+  { title: 'Guest Requests', url: '/staff/guest-requests', icon: Inbox, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
 ];
 
-const activitiesNavItems = [
-  { title: 'Activities', url: '/staff/activities', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-  { title: 'Sessions', url: '/staff/activities/sessions', icon: CalendarDays, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+const activitiesNavItems: NavItem[] = [
+  { title: 'Activities', url: '/staff/activities', icon: Calendar, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Sessions', url: '/staff/activities/sessions', icon: CalendarDays, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
 ];
 
-const restaurantNavItems = [
-  { title: 'Restaurants', url: '/staff/restaurants', icon: Utensils, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
-  { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+const restaurantNavItems: NavItem[] = [
+  { title: 'Restaurants', url: '/staff/restaurants', icon: Utensils, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+  { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
 ];
 
-const settingsNavItems = [
-  { title: 'Resorts', url: '/staff/settings/resorts', icon: Building2, roles: ['ADMIN'] },
-  { title: 'Resources', url: '/staff/settings/resources', icon: Anchor, roles: ['ADMIN'] },
-  { title: 'Settings', url: '/staff/settings', icon: Settings, roles: null },
+const reportNavItems: NavItem[] = [
+  { title: 'Overview', url: '/staff/reports', icon: BarChart3, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Activities', url: '/staff/reports/activities', icon: Activity, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Restaurants', url: '/staff/reports/restaurants', icon: Utensils, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Guest Behaviour', url: '/staff/reports/guest-behaviour', icon: UserCheck, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Market', url: '/staff/reports/market', icon: Globe, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
 ];
 
 export function AppSidebar() {
-  const { user, profile, roles, signOut, hasAnyRole } = useAuth();
+  const { user, profile, globalRole, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
 
-  const canViewItem = (itemRoles: string[] | null) => {
-    if (!itemRoles) return true;
-    return hasAnyRole(itemRoles as any[]);
+  const currentResortRole = currentResort ? getResortRole(currentResort.id) : null;
+
+  const canViewItem = (resortRoles: ResortRole[] | null) => {
+    // SUPER_ADMIN can view everything
+    if (isSuperAdmin()) return true;
+    // If no roles specified, everyone can view
+    if (!resortRoles) return true;
+    // Check if user has one of the required resort roles for current resort
+    if (!currentResortRole) return false;
+    return resortRoles.includes(currentResortRole);
+  };
+
+  const canViewSection = (items: NavItem[]) => {
+    return items.some(item => canViewItem(item.resortRoles));
+  };
+
+  const getRoleBadgeVariant = () => {
+    if (isSuperAdmin()) return 'destructive';
+    if (currentResortRole === 'RESORT_ADMIN') return 'default';
+    return 'secondary';
+  };
+
+  const getRoleDisplay = () => {
+    if (isSuperAdmin()) return 'Super Admin';
+    if (currentResortRole) {
+      const roleMap: Record<ResortRole, string> = {
+        'RESORT_ADMIN': 'Resort Admin',
+        'MANAGER': 'Manager',
+        'FRONT_OFFICE': 'Front Office',
+        'ACTIVITIES': 'Activities',
+        'FNB': 'F&B',
+      };
+      return roleMap[currentResortRole];
+    }
+    return 'No Role';
   };
 
   return (
@@ -125,7 +170,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
               {mainNavItems.map((item) => {
-                if (!canViewItem(item.roles)) return null;
+                if (!canViewItem(item.resortRoles)) return null;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
@@ -148,7 +193,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {canViewItem(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES']) && (
+        {canViewSection(activitiesNavItems) && (
           <SidebarGroup className="mt-6">
             <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs font-semibold uppercase tracking-wider px-3 mb-2">
               Activities
@@ -156,7 +201,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {activitiesNavItems.map((item) => {
-                  if (!canViewItem(item.roles)) return null;
+                  if (!canViewItem(item.resortRoles)) return null;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
@@ -180,7 +225,7 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {canViewItem(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB']) && (
+        {canViewSection(restaurantNavItems) && (
           <SidebarGroup className="mt-6">
             <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs font-semibold uppercase tracking-wider px-3 mb-2">
               Dining
@@ -188,7 +233,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {restaurantNavItems.map((item) => {
-                  if (!canViewItem(item.roles)) return null;
+                  if (!canViewItem(item.resortRoles)) return null;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
@@ -212,88 +257,33 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        {canViewItem(['ADMIN', 'MANAGER']) && (
+        {canViewSection(reportNavItems) && (
           <SidebarGroup className="mt-6">
             <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs font-semibold uppercase tracking-wider px-3 mb-2">
               Reports
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/staff/reports"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <BarChart3 className="h-5 w-5" />
-                      <span>Overview</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/staff/reports/activities"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <Activity className="h-5 w-5" />
-                      <span>Activities</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/staff/reports/restaurants"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <Utensils className="h-5 w-5" />
-                      <span>Restaurants</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/staff/reports/guest-behaviour"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <UserCheck className="h-5 w-5" />
-                      <span>Guest Behaviour</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to="/staff/reports/market"
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      )}
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <Globe className="h-5 w-5" />
-                      <span>Market</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {reportNavItems.map((item) => {
+                  if (!canViewItem(item.resortRoles)) return null;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                            "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          )}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                        >
+                          <item.icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -305,26 +295,98 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1">
-              {settingsNavItems.map((item) => {
-                if (!canViewItem(item.roles)) return null;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink 
-                        to={item.url}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
-                          "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                        )}
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                      >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {/* Resort Staff - visible to SUPER_ADMIN and RESORT_ADMIN */}
+              {(isSuperAdmin() || currentResortRole === 'RESORT_ADMIN') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/resort-staff"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <UsersRound className="h-5 w-5" />
+                      <span>Resort Staff</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              
+              {/* Resorts - SUPER_ADMIN only */}
+              {isSuperAdmin() && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/resorts"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <Building2 className="h-5 w-5" />
+                      <span>Resorts</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              
+              {/* Resources - SUPER_ADMIN and RESORT_ADMIN */}
+              {(isSuperAdmin() || currentResortRole === 'RESORT_ADMIN') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/resources"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <Anchor className="h-5 w-5" />
+                      <span>Resources</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              
+              {/* Platform Users - SUPER_ADMIN only */}
+              {isSuperAdmin() && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/users"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    >
+                      <Shield className="h-5 w-5" />
+                      <span>Platform Users</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/staff/settings"
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                      "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                    )}
+                    activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    end
+                  >
+                    <Settings className="h-5 w-5" />
+                    <span>Settings</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -341,9 +403,9 @@ export function AppSidebar() {
                 <p className="text-sm font-medium truncate">
                   {profile?.full_name || 'Staff User'}
                 </p>
-                <p className="text-xs text-sidebar-foreground/60 truncate">
-                  {roles.length > 0 ? roles.join(', ') : user?.email}
-                </p>
+                <Badge variant={getRoleBadgeVariant()} className="text-[10px] px-1.5 py-0">
+                  {getRoleDisplay()}
+                </Badge>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60 flex-shrink-0" />
             </button>

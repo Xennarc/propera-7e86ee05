@@ -310,6 +310,7 @@ export type Database = {
           created_at: string
           department: string | null
           full_name: string | null
+          global_role: Database["public"]["Enums"]["global_role"]
           id: string
           resort_id: string | null
           updated_at: string
@@ -318,6 +319,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           full_name?: string | null
+          global_role?: Database["public"]["Enums"]["global_role"]
           id: string
           resort_id?: string | null
           updated_at?: string
@@ -326,6 +328,7 @@ export type Database = {
           created_at?: string
           department?: string | null
           full_name?: string | null
+          global_role?: Database["public"]["Enums"]["global_role"]
           id?: string
           resort_id?: string | null
           updated_at?: string
@@ -333,6 +336,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resort_memberships: {
+        Row: {
+          created_at: string
+          department: string | null
+          id: string
+          resort_id: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          resort_id: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          resort_id?: string
+          resort_role?: Database["public"]["Enums"]["resort_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_memberships_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
@@ -709,6 +750,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_resort_membership: {
+        Args: { _resort_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_resort_role: {
+        Args: {
+          _resort_id: string
+          _roles: Database["public"]["Enums"]["resort_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -716,6 +769,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       activity_category: "DIVE" | "EXCURSION" | "WATERSPORT" | "SPA" | "OTHER"
@@ -731,7 +785,14 @@ export type Database = {
         | "CANCELLED"
         | "NO_SHOW"
         | "COMPLETED"
+      global_role: "SUPER_ADMIN" | "STANDARD"
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
+      resort_role:
+        | "RESORT_ADMIN"
+        | "MANAGER"
+        | "FRONT_OFFICE"
+        | "ACTIVITIES"
+        | "FNB"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
@@ -877,7 +938,15 @@ export const Constants = {
         "NO_SHOW",
         "COMPLETED",
       ],
+      global_role: ["SUPER_ADMIN", "STANDARD"],
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
+      resort_role: [
+        "RESORT_ADMIN",
+        "MANAGER",
+        "FRONT_OFFICE",
+        "ACTIVITIES",
+        "FNB",
+      ],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],
       session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
       slot_status: ["OPEN", "CLOSED", "FULL"],

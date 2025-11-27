@@ -1,35 +1,49 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, Users, ChevronRight } from 'lucide-react';
+import { Building2, Anchor, Users, ChevronRight, UsersRound, Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { isSuperAdmin, getResortRole } = useAuth();
+  const { currentResort } = useResort();
+
+  const currentResortRole = currentResort ? getResortRole(currentResort.id) : null;
+  const canManageResortStaff = isSuperAdmin() || currentResortRole === 'RESORT_ADMIN';
 
   const settingsSections = [
     {
-      title: 'Users & Roles',
-      description: 'Manage staff accounts, roles, and resort assignments',
-      icon: Users,
-      href: '/settings/users',
-      adminOnly: true,
+      title: 'Resort Staff',
+      description: 'Manage staff members and their roles for this resort',
+      icon: UsersRound,
+      href: '/staff/settings/resort-staff',
+      visible: canManageResortStaff,
     },
     {
       title: 'Resorts',
       description: 'Manage resort properties and configurations',
       icon: Building2,
-      href: '/settings/resorts',
-      adminOnly: true,
+      href: '/staff/settings/resorts',
+      visible: isSuperAdmin(),
     },
     {
       title: 'Resources',
       description: 'Manage boats, vans, and other operational resources',
       icon: Anchor,
-      href: '/settings/resources',
-      adminOnly: false,
+      href: '/staff/settings/resources',
+      visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+    },
+    {
+      title: 'Platform Users',
+      description: 'Manage global roles for all platform users',
+      icon: Shield,
+      href: '/staff/settings/users',
+      visible: isSuperAdmin(),
     },
   ];
+
+  const visibleSections = settingsSections.filter(s => s.visible);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -38,13 +52,17 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Configure your resort operations</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {settingsSections.map((section) => {
-          if (section.adminOnly && !hasRole('ADMIN')) {
-            return null;
-          }
-          
-          return (
+      {visibleSections.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <p className="text-center text-muted-foreground">
+              No settings available for your current role.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {visibleSections.map((section) => (
             <Card key={section.title} className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -68,9 +86,9 @@ export default function SettingsPage() {
                 </Link>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

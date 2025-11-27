@@ -13,54 +13,81 @@ interface ResortContextType {
 
 const ResortContext = createContext<ResortContextType | undefined>(undefined);
 
+const CURRENT_RESORT_KEY = 'propera-current-resort-id';
+
 export function ResortProvider({ children }: { children: ReactNode }) {
   const [resorts, setResorts] = useState<Resort[]>([]);
-  const [currentResort, setCurrentResort] = useState<Resort | null>(null);
+  const [currentResort, setCurrentResortState] = useState<Resort | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isSuperAdmin, memberships } = useAuth();
+
+  const setCurrentResort = (resort: Resort | null) => {
+    setCurrentResortState(resort);
+    if (resort) {
+      localStorage.setItem(CURRENT_RESORT_KEY, resort.id);
+    } else {
+      localStorage.removeItem(CURRENT_RESORT_KEY);
+    }
+  };
+
+  const restoreOrSelectResort = (availableResorts: Resort[]) => {
+    if (availableResorts.length === 0) {
+      setCurrentResortState(null);
+      return;
+    }
+    const savedResortId = localStorage.getItem(CURRENT_RESORT_KEY);
+    if (savedResortId) {
+      const savedResort = availableResorts.find(r => r.id === savedResortId);
+      if (savedResort) {
+        setCurrentResortState(savedResort);
+        return;
+      }
+    }
+    if (!currentResort || !availableResorts.find(r => r.id === currentResort.id)) {
+      setCurrentResortState(availableResorts[0]);
+    }
+  };
 
   const fetchResorts = async () => {
     if (!user) {
       setResorts([]);
-      setCurrentResort(null);
+      setCurrentResortState(null);
       setLoading(false);
       return;
     }
-
     setLoading(true);
-    const { data, error } = await supabase
-      .from('resorts')
-      .select('*')
-      .order('name');
-
-    if (error) {
-      console.error('Error fetching resorts:', error);
+    
+    if (isSuperAdmin()) {
+      const { data, error } = await supabase.from('resorts').select('*').order('name');
+      if (!error && data) {
+        const typedData = data as Resort[];
+        setResorts(typedData);
+        restoreOrSelectResort(typedData);
+      }
     } else {
-      const typedData = data as Resort[];
-      setResorts(typedData);
-      
-      // Auto-select first resort if none selected
-      if (!currentResort && typedData.length > 0) {
-        setCurrentResort(typedData[0]);
+      const memberResortIds = memberships.map(m => m.resort_id);
+      if (memberResortIds.length === 0) {
+        setResorts([]);
+        setCurrentResortState(null);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.from('resorts').select('*').in('id', memberResortIds).order('name');
+      if (!error && data) {
+        const typedData = data as Resort[];
+        setResorts(typedData);
+        restoreOrSelectResort(typedData);
       }
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchResorts();
-  }, [user]);
+    if (user) fetchResorts();
+  }, [user, memberships.length, isSuperAdmin()]);
 
   return (
-    <ResortContext.Provider
-      value={{
-        resorts,
-        currentResort,
-        setCurrentResort,
-        loading,
-        refetch: fetchResorts,
-      }}
-    >
+    <ResortContext.Provider value={{ resorts, currentResort, setCurrentResort, loading, refetch: fetchResorts }}>
       {children}
     </ResortContext.Provider>
   );
