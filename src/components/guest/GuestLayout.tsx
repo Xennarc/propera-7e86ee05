@@ -3,6 +3,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Home, Calendar, Utensils, ClipboardList, LogOut, Waves } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const navItems = [
   { icon: Home, label: 'Home', href: '/guest' },
@@ -44,14 +45,17 @@ export function GuestLayout() {
               <p className="text-xs text-muted-foreground">Room {guest.roomNumber}</p>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={logout}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={logout}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
