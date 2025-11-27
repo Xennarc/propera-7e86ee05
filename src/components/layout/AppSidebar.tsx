@@ -1,0 +1,193 @@
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar, 
+  Utensils, 
+  BarChart3, 
+  Settings,
+  Building2,
+  Anchor,
+  ChevronDown,
+  LogOut,
+  User
+} from 'lucide-react';
+import { NavLink } from '@/components/NavLink';
+import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+const mainNavItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Guests', url: '/guests', icon: Users },
+  { title: 'Activities', url: '/activities', icon: Calendar },
+  { title: 'Restaurants', url: '/restaurants', icon: Utensils },
+  { title: 'Reports', url: '/reports', icon: BarChart3 },
+];
+
+const settingsNavItems = [
+  { title: 'Resorts', url: '/settings/resorts', icon: Building2, adminOnly: true },
+  { title: 'Resources', url: '/settings/resources', icon: Anchor },
+  { title: 'Settings', url: '/settings', icon: Settings },
+];
+
+export function AppSidebar() {
+  const { user, profile, signOut, hasRole } = useAuth();
+  const { resorts, currentResort, setCurrentResort } = useResort();
+
+  return (
+    <Sidebar className="border-r border-sidebar-border">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground font-bold text-lg">
+            P
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-sidebar-foreground">Propera</h1>
+            <p className="text-xs text-sidebar-foreground/60">Resort Operations</p>
+          </div>
+        </div>
+        
+        {resorts.length > 0 && (
+          <div className="mt-4">
+            <Select
+              value={currentResort?.id || ''}
+              onValueChange={(value) => {
+                const resort = resorts.find(r => r.id === value);
+                setCurrentResort(resort || null);
+              }}
+            >
+              <SelectTrigger className="w-full bg-sidebar-accent border-sidebar-border text-sidebar-foreground">
+                <SelectValue placeholder="Select resort" />
+              </SelectTrigger>
+              <SelectContent>
+                {resorts.map((resort) => (
+                  <SelectItem key={resort.id} value={resort.id}>
+                    {resort.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/60">Main</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainNavItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-sidebar-foreground/60">Settings</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsNavItems.map((item) => {
+                // Hide admin-only items for non-admins
+                if (item.adminOnly && !hasRole('ADMIN')) {
+                  return null;
+                }
+                
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink 
+                        to={item.url}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                          "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                        )}
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex w-full items-center gap-3 rounded-lg p-2 text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-sm font-medium">
+                {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium truncate">
+                  {profile?.full_name || 'Staff User'}
+                </p>
+                <p className="text-xs text-sidebar-foreground/60 truncate">
+                  {user?.email}
+                </p>
+              </div>
+              <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
