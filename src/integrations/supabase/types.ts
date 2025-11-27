@@ -247,9 +247,12 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          last_login_at: string | null
           nationality: string | null
           notes: string | null
           phone: string | null
+          portal_enabled: boolean
+          portal_pin_hash: string | null
           resort_id: string
           room_number: string
           updated_at: string
@@ -263,9 +266,12 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          last_login_at?: string | null
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          portal_enabled?: boolean
+          portal_pin_hash?: string | null
           resort_id: string
           room_number: string
           updated_at?: string
@@ -279,9 +285,12 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          last_login_at?: string | null
           nationality?: string | null
           notes?: string | null
           phone?: string | null
+          portal_enabled?: boolean
+          portal_pin_hash?: string | null
           resort_id?: string
           room_number?: string
           updated_at?: string
@@ -614,6 +623,64 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      guest_cancel_activity_booking: {
+        Args: { p_booking_id: string; p_guest_id: string }
+        Returns: Json
+      }
+      guest_cancel_restaurant_reservation: {
+        Args: { p_guest_id: string; p_reservation_id: string }
+        Returns: Json
+      }
+      guest_create_activity_booking: {
+        Args: {
+          p_guest_id: string
+          p_notes?: string
+          p_num_adults: number
+          p_num_children: number
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      guest_create_restaurant_reservation: {
+        Args: {
+          p_guest_id: string
+          p_num_adults: number
+          p_num_children: number
+          p_slot_id: string
+          p_special_requests?: string
+        }
+        Returns: Json
+      }
+      guest_get_available_sessions: {
+        Args: {
+          p_category?: Database["public"]["Enums"]["activity_category"]
+          p_date?: string
+          p_guest_id: string
+        }
+        Returns: Json
+      }
+      guest_get_available_slots: {
+        Args: { p_date?: string; p_guest_id: string; p_restaurant_id?: string }
+        Returns: Json
+      }
+      guest_get_bookings: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
+      guest_portal_login: {
+        Args: {
+          p_last_name: string
+          p_pin_hash: string
+          p_resort_id: string
+          p_room_number: string
+        }
+        Returns: {
+          check_in_date: string
+          check_out_date: string
+          full_name: string
+          guest_id: string
+          resort_id: string
+          room_number: string
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
