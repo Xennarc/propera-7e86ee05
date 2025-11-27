@@ -15,6 +15,13 @@ export interface Resort {
   code: string;
   timezone: string;
   currency: string;
+  login_logo_url: string | null;
+  login_hero_image_url: string | null;
+  login_primary_color: string | null;
+  login_accent_color: string | null;
+  guest_login_title: string | null;
+  guest_login_subtitle: string | null;
+  guest_login_instructions: string | null;
   created_at: string;
   updated_at: string;
 }
