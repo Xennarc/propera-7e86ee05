@@ -50,25 +50,25 @@ import {
 import { cn } from '@/lib/utils';
 
 const mainNavItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard, roles: null },
-  { title: 'Guests', url: '/guests', icon: Users, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-  { title: 'Guest Requests', url: '/guest-requests', icon: Inbox, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+  { title: 'Dashboard', url: '/staff/dashboard', icon: LayoutDashboard, roles: null },
+  { title: 'Guests', url: '/staff/guests', icon: Users, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+  { title: 'Guest Requests', url: '/staff/guest-requests', icon: Inbox, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
 ];
 
 const activitiesNavItems = [
-  { title: 'Activities', url: '/activities', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-  { title: 'Sessions', url: '/activities/sessions', icon: CalendarDays, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Activities', url: '/staff/activities', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Sessions', url: '/staff/activities/sessions', icon: CalendarDays, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
 ];
 
 const restaurantNavItems = [
-  { title: 'Restaurants', url: '/restaurants', icon: Utensils, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
-  { title: 'Time Slots', url: '/restaurants/slots', icon: Clock, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+  { title: 'Restaurants', url: '/staff/restaurants', icon: Utensils, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+  { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
 ];
 
 const settingsNavItems = [
-  { title: 'Resorts', url: '/settings/resorts', icon: Building2, roles: ['ADMIN'] },
-  { title: 'Resources', url: '/settings/resources', icon: Anchor, roles: ['ADMIN'] },
-  { title: 'Settings', url: '/settings', icon: Settings, roles: null },
+  { title: 'Resorts', url: '/staff/settings/resorts', icon: Building2, roles: ['ADMIN'] },
+  { title: 'Resources', url: '/staff/settings/resources', icon: Anchor, roles: ['ADMIN'] },
+  { title: 'Settings', url: '/staff/settings', icon: Settings, roles: null },
 ];
 
 export function AppSidebar() {
@@ -222,7 +222,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/reports"
+                      to="/staff/reports"
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -237,7 +237,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/reports/activities"
+                      to="/staff/reports/activities"
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -252,7 +252,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/reports/restaurants"
+                      to="/staff/reports/restaurants"
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -267,7 +267,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/reports/guest-behaviour"
+                      to="/staff/reports/guest-behaviour"
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -282,7 +282,7 @@ export function AppSidebar() {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/reports/market"
+                      to="/staff/reports/market"
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"

@@ -23,7 +23,7 @@ export function AppLayout() {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/staff/auth" replace />;
   }
 
   return (
