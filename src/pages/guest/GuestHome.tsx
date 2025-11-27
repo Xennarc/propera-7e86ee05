@@ -5,7 +5,8 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Utensils, ClipboardList, Clock, Sun, Sunset, Moon, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Utensils, ClipboardList, Clock, Sun, Sunset, Moon, ChevronRight, MessageSquareHeart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function GuestHome() {
@@ -23,6 +24,20 @@ export default function GuestHome() {
         activity_bookings: any[];
         restaurant_reservations: any[];
       };
+    },
+    enabled: !!guest,
+  });
+
+  // Check if guest can submit feedback
+  const { data: canSubmitFeedback } = useQuery({
+    queryKey: ['can-submit-feedback', guest?.guestId],
+    queryFn: async () => {
+      if (!guest) return null;
+      const { data, error } = await supabase.rpc('guest_can_submit_feedback', {
+        p_guest_id: guest.guestId,
+      });
+      if (error) throw error;
+      return data as { can_submit: boolean; reason?: string };
     },
     enabled: !!guest,
   });
@@ -71,6 +86,32 @@ export default function GuestHome() {
 
   return (
     <div className="space-y-6">
+      {/* Feedback Prompt - Show when eligible */}
+      {canSubmitFeedback?.can_submit && (
+        <Card className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-amber-500/20 overflow-hidden">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+                <MessageSquareHeart className="h-6 w-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-foreground mb-1">
+                  How was your stay?
+                </h2>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Your feedback helps us improve. This takes less than a minute.
+                </p>
+                <Link to="/guest/feedback">
+                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                    Share Feedback
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Premium Greeting Card */}
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
         <CardContent className="p-5">
