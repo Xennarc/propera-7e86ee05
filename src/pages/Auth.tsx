@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { Loader2, Waves } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -128,30 +129,38 @@ export default function Auth() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-secondary p-4">
-      <div className="w-full max-w-md animate-fade-in">
+    <div className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/30" />
+      
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+      
+      <div className="relative w-full max-w-md animate-fade-in">
+        {/* Header */}
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-primary-foreground text-2xl font-bold shadow-lg">
-            P
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
+            <Waves className="h-8 w-8" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Propera</h1>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Propera</h1>
           <p className="mt-2 text-muted-foreground">Resort Booking & Operations</p>
         </div>
 
-        <Card className="shadow-xl">
+        <Card className="shadow-elevated border-border/50 backdrop-blur-sm bg-card/95">
           <Tabs defaultValue="login">
-            <CardHeader className="pb-0">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <CardHeader className="pb-2">
+              <TabsList className="grid w-full grid-cols-2 h-11">
+                <TabsTrigger value="login" className="text-sm font-medium">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="text-sm font-medium">Sign Up</TabsTrigger>
               </TabsList>
             </CardHeader>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4 pt-6">
+                <CardContent className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
+                    <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -159,13 +168,14 @@ export default function Auth() {
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.login_email && (
                       <p className="text-sm text-destructive">{errors.login_email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
+                    <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
                     <Input
                       id="login-password"
                       type="password"
@@ -173,15 +183,23 @@ export default function Auth() {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.login_password && (
                       <p className="text-sm text-destructive">{errors.login_password}</p>
                     )}
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Signing in...' : 'Sign In'}
+                <CardFooter className="flex-col gap-4">
+                  <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      'Sign In'
+                    )}
                   </Button>
                 </CardFooter>
               </form>
@@ -189,9 +207,9 @@ export default function Auth() {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignup}>
-                <CardContent className="space-y-4 pt-6">
+                <CardContent className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm font-medium">Full Name</Label>
                     <Input
                       id="signup-name"
                       type="text"
@@ -199,13 +217,14 @@ export default function Auth() {
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.signup_fullName && (
                       <p className="text-sm text-destructive">{errors.signup_fullName}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
                     <Input
                       id="signup-email"
                       type="email"
@@ -213,13 +232,14 @@ export default function Auth() {
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.signup_email && (
                       <p className="text-sm text-destructive">{errors.signup_email}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -227,13 +247,14 @@ export default function Auth() {
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.signup_password && (
                       <p className="text-sm text-destructive">{errors.signup_password}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">Confirm Password</Label>
+                    <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirm Password</Label>
                     <Input
                       id="signup-confirm"
                       type="password"
@@ -241,6 +262,7 @@ export default function Auth() {
                       value={signupConfirmPassword}
                       onChange={(e) => setSignupConfirmPassword(e.target.value)}
                       disabled={isLoading}
+                      className="h-11"
                     />
                     {errors.signup_confirmPassword && (
                       <p className="text-sm text-destructive">{errors.signup_confirmPassword}</p>
@@ -248,8 +270,15 @@ export default function Auth() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? 'Creating account...' : 'Create Account'}
+                  <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      'Create Account'
+                    )}
                   </Button>
                 </CardFooter>
               </form>

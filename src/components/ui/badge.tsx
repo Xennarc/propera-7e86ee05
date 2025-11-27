@@ -4,24 +4,26 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        // Status variants for Propera
-        confirmed: "border-transparent bg-success/10 text-success",
-        pending: "border-transparent bg-warning/10 text-warning",
-        cancelled: "border-transparent bg-destructive/10 text-destructive",
-        completed: "border-transparent bg-primary/10 text-primary",
-        noShow: "border-transparent bg-muted text-muted-foreground",
+        default: "border-transparent bg-primary text-primary-foreground shadow-sm",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground shadow-sm",
+        outline: "text-foreground border-border",
+        // Status variants - Updated with luxury colors
+        confirmed: "border-transparent bg-success/15 text-success font-semibold",
+        pending: "border-transparent bg-warning/15 text-warning font-semibold",
+        cancelled: "border-transparent bg-destructive/15 text-destructive font-semibold",
+        completed: "border-transparent bg-primary/15 text-primary font-semibold",
+        noShow: "border-transparent bg-muted text-muted-foreground font-semibold",
         // Utility variants
-        success: "border-transparent bg-success/10 text-success",
-        warning: "border-transparent bg-warning/10 text-warning",
-        info: "border-transparent bg-info/10 text-info",
+        success: "border-transparent bg-success/15 text-success",
+        warning: "border-transparent bg-warning/15 text-warning",
+        info: "border-transparent bg-info/15 text-info",
+        // Subtle variants for tags
+        subtle: "border-border bg-muted/50 text-muted-foreground",
       },
     },
     defaultVariants: {
