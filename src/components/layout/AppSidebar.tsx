@@ -5,7 +5,10 @@ import {
   CalendarDays,
   Utensils, 
   Clock,
-  BarChart3, 
+  BarChart3,
+  Activity,
+  Globe,
+  UserCheck,
   Settings,
   Building2,
   Anchor,
@@ -200,28 +203,90 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/60">Reports</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <NavLink 
-                    to="/reports"
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
-                      "hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    )}
-                    activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                  >
-                    <BarChart3 className="h-5 w-5" />
-                    <span>Reports</span>
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {canViewItem(['ADMIN', 'MANAGER']) && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/60">Reports</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/reports"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <BarChart3 className="h-5 w-5" />
+                      <span>Overview</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/reports/activities"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Activity className="h-5 w-5" />
+                      <span>Activities</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/reports/restaurants"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Utensils className="h-5 w-5" />
+                      <span>Restaurants</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/reports/guest-behaviour"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <UserCheck className="h-5 w-5" />
+                      <span>Guest Behaviour</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/reports/market"
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/80 transition-colors",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <Globe className="h-5 w-5" />
+                      <span>Market</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60">Settings</SidebarGroupLabel>

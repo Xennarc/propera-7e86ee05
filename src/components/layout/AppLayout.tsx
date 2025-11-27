@@ -1,14 +1,9 @@
-import { ReactNode } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 
-interface AppLayoutProps {
-  children: ReactNode;
-}
-
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -35,7 +30,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <SidebarTrigger className="-ml-2" />
           </header>
           <div className="p-6">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>
