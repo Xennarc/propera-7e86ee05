@@ -21,6 +21,7 @@ import RestaurantSlotDetailPage from "./pages/restaurants/RestaurantSlotDetailPa
 import ResortsPage from "./pages/settings/ResortsPage";
 import ResourcesPage from "./pages/settings/ResourcesPage";
 import SettingsPage from "./pages/settings/SettingsPage";
+import UserManagementPage from "./pages/settings/UserManagementPage";
 import Reports from "./pages/Reports";
 import ActivitiesReport from "./pages/reports/ActivitiesReport";
 import RestaurantsReport from "./pages/reports/RestaurantsReport";
@@ -68,6 +69,7 @@ const App = () => (
                   <Route path="reports/market" element={<MarketReport />} />
                   <Route path="guest-requests" element={<GuestRequestsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings/users" element={<UserManagementPage />} />
                   <Route path="settings/resorts" element={<ResortsPage />} />
                   <Route path="settings/resources" element={<ResourcesPage />} />
                 </Route>

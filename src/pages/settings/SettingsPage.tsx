@@ -1,13 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, Settings, ChevronRight } from 'lucide-react';
+import { Building2, Anchor, Users, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
   const { hasRole } = useAuth();
 
   const settingsSections = [
+    {
+      title: 'Users & Roles',
+      description: 'Manage staff accounts, roles, and resort assignments',
+      icon: Users,
+      href: '/settings/users',
+      adminOnly: true,
+    },
     {
       title: 'Resorts',
       description: 'Manage resort properties and configurations',
