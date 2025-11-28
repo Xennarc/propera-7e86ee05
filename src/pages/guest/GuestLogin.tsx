@@ -90,8 +90,8 @@ export default function GuestLogin() {
         <div className="w-full max-w-md">
           <Card className="shadow-elevated border-border/40">
             <CardHeader className="pb-4 pt-8">
-              <CardTitle className="text-xl font-bold">Welcome Back</CardTitle>
-              <CardDescription>Enter your details to access your bookings</CardDescription>
+              <CardTitle className="text-xl font-bold">Sign In</CardTitle>
+              <CardDescription>Use your room number and last name to access your bookings.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -169,7 +169,7 @@ export default function GuestLogin() {
                       Signing in...
                     </>
                   ) : (
-                    'Access Portal'
+                    'Sign In'
                   )}
                 </Button>
               </form>

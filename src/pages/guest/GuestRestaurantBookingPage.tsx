@@ -141,19 +141,24 @@ export default function GuestRestaurantBookingPage() {
           <CardContent className="py-8 text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">
-              {bookingResult.requiresApproval ? 'Request Submitted!' : 'Reservation Confirmed!'}
+              {bookingResult.requiresApproval ? 'Request Sent!' : 'Table Booked!'}
             </h2>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-2">
               {bookingResult.requiresApproval
-                ? 'Your request has been submitted. We will confirm your reservation soon.'
-                : `Your table at ${slot.restaurant_name} is confirmed.`}
+                ? `We've sent your request for ${slot.restaurant_name} on ${format(parseISO(slot.date), 'EEE, MMM d')} at ${slot.start_time.slice(0, 5)}.`
+                : `Your table at ${slot.restaurant_name} on ${format(parseISO(slot.date), 'EEE, MMM d')} at ${slot.start_time.slice(0, 5)} is confirmed.`}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {bookingResult.requiresApproval
+                ? "We'll confirm your table as soon as possible."
+                : "You can view or cancel this in 'My Bookings'."}
             </p>
             <div className="space-y-2">
               <Button className="w-full" onClick={() => navigate('/guest/bookings')}>
                 View My Bookings
               </Button>
               <Button variant="outline" className="w-full" onClick={() => navigate('/guest/restaurants')}>
-                Book More Reservations
+                Back to Restaurants
               </Button>
             </div>
           </CardContent>
@@ -209,10 +214,13 @@ export default function GuestRestaurantBookingPage() {
           )}
 
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
-            <p className="font-medium mb-1">Reservation Rules:</p>
+            <p className="font-medium mb-1">Good to know:</p>
             <ul className="text-muted-foreground space-y-1">
               <li>• Maximum {maxPax} guests per reservation</li>
-              <li>• Reserve at least {slot.guest_cutoff_minutes} minutes before</li>
+              <li>• Online booking closes {slot.guest_cutoff_minutes} minutes before</li>
+              {slot.guest_can_cancel && (
+                <li>• You can cancel online up to {slot.guest_cancel_cutoff_minutes} minutes before</li>
+              )}
             </ul>
           </div>
         </CardContent>
@@ -221,7 +229,7 @@ export default function GuestRestaurantBookingPage() {
       {/* Booking Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Guest Details</CardTitle>
+          <CardTitle className="text-lg">Number of Guests</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -248,9 +256,9 @@ export default function GuestRestaurantBookingPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Special Requests (optional)</Label>
+            <Label>Special requests (optional)</Label>
             <Textarea
-              placeholder="Any special requests? e.g., birthday celebration, dietary requirements, highchair needed..."
+              placeholder="e.g., birthday celebration, dietary requirements, highchair needed..."
               value={specialRequests}
               onChange={(e) => setSpecialRequests(e.target.value)}
               maxLength={500}
@@ -278,8 +286,14 @@ export default function GuestRestaurantBookingPage() {
             onClick={() => bookMutation.mutate()}
             disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
           >
-            {bookMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {slot.requires_approval ? 'Submit Request' : 'Confirm Reservation'}
+            {bookMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Confirming your reservation...
+              </>
+            ) : (
+              slot.requires_approval ? 'Submit Request' : 'Confirm Reservation'
+            )}
           </Button>
         </CardContent>
       </Card>

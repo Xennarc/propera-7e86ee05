@@ -142,19 +142,24 @@ export default function GuestActivityBookingPage() {
           <CardContent className="py-8 text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">
-              {bookingResult.requiresApproval ? 'Request Submitted!' : 'Booking Confirmed!'}
+              {bookingResult.requiresApproval ? 'Request Sent!' : "You're Booked!"}
             </h2>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-muted-foreground mb-2">
               {bookingResult.requiresApproval
-                ? 'Your request has been submitted. We will confirm your booking soon.'
-                : `Your booking for ${session.activity_name} is confirmed.`}
+                ? `We've sent your request for ${session.activity_name} on ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)}.`
+                : `Your booking for ${session.activity_name} on ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)} is confirmed.`}
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              {bookingResult.requiresApproval
+                ? "We'll confirm this as soon as possible."
+                : "You can find this in 'My Bookings' at any time."}
             </p>
             <div className="space-y-2">
               <Button className="w-full" onClick={() => navigate('/guest/bookings')}>
                 View My Bookings
               </Button>
               <Button variant="outline" className="w-full" onClick={() => navigate('/guest/activities')}>
-                Book More Activities
+                Back to Activities
               </Button>
             </div>
           </CardContent>
@@ -211,10 +216,13 @@ export default function GuestActivityBookingPage() {
           )}
 
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
-            <p className="font-medium mb-1">Booking Rules:</p>
+            <p className="font-medium mb-1">Good to know:</p>
             <ul className="text-muted-foreground space-y-1">
               <li>• Maximum {maxPax} guests per booking</li>
-              <li>• Book at least {session.guest_cutoff_hours}h before start time</li>
+              <li>• Online booking closes {session.guest_cutoff_hours}h before start time</li>
+              {session.guest_can_cancel && (
+                <li>• You can cancel online up to {session.guest_cancel_cutoff_hours}h before</li>
+              )}
             </ul>
           </div>
         </CardContent>
@@ -223,7 +231,7 @@ export default function GuestActivityBookingPage() {
       {/* Booking Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Guest Details</CardTitle>
+          <CardTitle className="text-lg">Number of Guests</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -250,7 +258,7 @@ export default function GuestActivityBookingPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Notes (optional)</Label>
+            <Label>Notes for the team (optional)</Label>
             <Textarea
               placeholder="Any special requirements? e.g., dietary needs, mobility assistance..."
               value={notes}
@@ -280,8 +288,14 @@ export default function GuestActivityBookingPage() {
             onClick={() => bookMutation.mutate()}
             disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1}
           >
-            {bookMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {session.requires_approval ? 'Submit Request' : 'Confirm Booking'}
+            {bookMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Confirming your booking...
+              </>
+            ) : (
+              session.requires_approval ? 'Submit Request' : 'Confirm Booking'
+            )}
           </Button>
         </CardContent>
       </Card>

@@ -96,9 +96,10 @@ export default function GuestRestaurantBrowser() {
         <div className="space-y-3">
           <Skeleton className="h-24 w-full rounded-xl" />
           <Skeleton className="h-24 w-full rounded-xl" />
+          <p className="text-sm text-center text-muted-foreground">Loading restaurants...</p>
         </div>
       ) : Object.keys(slotsByPeriod).length === 0 ? (
-        <EmptyState icon={Utensils} title="No availability" description="Try a different date" />
+        <EmptyState icon={Utensils} title="No tables available" description="No reservations available for this date. Try another day or contact reception." />
       ) : (
         <div className="space-y-6">
           {MEAL_PERIOD_ORDER.filter(p => slotsByPeriod[p]).map((period) => (
@@ -124,10 +125,12 @@ export default function GuestRestaurantBrowser() {
                               <Users className="h-4 w-4" />
                               {slot.remaining_covers} available
                             </span>
-                            {slot.requires_approval && (
+                            {slot.requires_approval ? (
                               <Badge variant="pending" className="text-xs">
-                                <Sparkles className="h-3 w-3 mr-1" />Request
+                                <Sparkles className="h-3 w-3 mr-1" />On request
                               </Badge>
+                            ) : (
+                              <Badge variant="confirmed" className="text-xs">Instant</Badge>
                             )}
                           </div>
                         </div>

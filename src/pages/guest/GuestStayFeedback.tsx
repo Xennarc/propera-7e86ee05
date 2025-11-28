@@ -122,8 +122,8 @@ export default function GuestStayFeedback() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['can-submit-feedback'] });
       toast({
-        title: 'Thank you!',
-        description: 'Your feedback has been submitted successfully.',
+        title: 'Thank you for your feedback!',
+        description: 'We really appreciate it. Have a safe journey home.',
       });
       navigate('/guest');
     },
@@ -158,9 +158,9 @@ export default function GuestStayFeedback() {
         <Card className="border-primary/20">
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Thank You!</h2>
+            <h2 className="text-xl font-semibold mb-2">Thank You for Your Feedback</h2>
             <p className="text-muted-foreground">
-              We've already received your feedback for this stay. We truly appreciate you taking the time to share your thoughts with us.
+              We really appreciate you taking the time to share your thoughts with us. Have a safe journey home!
             </p>
           </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function GuestStayFeedback() {
             className="w-full"
             size="lg"
           >
-            {submitMutation.isPending ? 'Submitting...' : 'Submit Feedback'}
+            {submitMutation.isPending ? 'Sending feedback...' : 'Send Feedback'}
           </Button>
         </CardContent>
       </Card>

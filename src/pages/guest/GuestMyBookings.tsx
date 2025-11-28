@@ -78,7 +78,7 @@ export default function GuestMyBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-      toast.success('Booking cancelled successfully');
+      toast.success('Your booking has been cancelled.');
       setCancelDialog(null);
     },
     onError: (error: Error) => {
@@ -103,7 +103,7 @@ export default function GuestMyBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-      toast.success('Reservation cancelled successfully');
+      toast.success('Your reservation has been cancelled.');
       setCancelDialog(null);
     },
     onError: (error: Error) => {
@@ -161,13 +161,13 @@ export default function GuestMyBookings() {
       case 'CONFIRMED':
         return <Badge variant="confirmed">Confirmed</Badge>;
       case 'PENDING':
-        return <Badge variant="pending">Pending</Badge>;
+        return <Badge variant="pending">Pending approval</Badge>;
       case 'CANCELLED':
         return <Badge variant="cancelled">Cancelled</Badge>;
       case 'COMPLETED':
         return <Badge variant="completed">Completed</Badge>;
       case 'NO_SHOW':
-        return <Badge variant="noShow">No Show</Badge>;
+        return <Badge variant="noShow">No show</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -248,7 +248,27 @@ export default function GuestMyBookings() {
         <div className="space-y-4">
           <Skeleton className="h-32 w-full rounded-xl" />
           <Skeleton className="h-32 w-full rounded-xl" />
+          <p className="text-sm text-center text-muted-foreground">Loading your bookings...</p>
         </div>
+      ) : upcomingActivities.length === 0 && upcomingReservations.length === 0 && pastActivities.length === 0 && pastReservations.length === 0 ? (
+        // Complete empty state
+        <Card className="border-dashed border-2 bg-muted/20">
+          <CardContent className="py-10 text-center">
+            <Calendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h3 className="font-semibold text-foreground mb-1">No bookings yet</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              You haven't made any bookings during your stay yet.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button asChild>
+                <a href="/guest/activities">Book an Activity</a>
+              </Button>
+              <Button variant="outline" asChild>
+                <a href="/guest/restaurants">Book a Restaurant</a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <>
           {/* Upcoming Activities */}
@@ -338,10 +358,9 @@ export default function GuestMyBookings() {
       <AlertDialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel your booking for "{cancelDialog?.title}"? 
-              This action cannot be undone.
+              We'll cancel your booking for "{cancelDialog?.title}". This can't be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -81,16 +81,21 @@ export default function GuestActivitiesBrowser() {
         ))}
       </div>
 
+      <p className="text-xs text-muted-foreground -mt-2 mb-2">
+        You can book for any day during your stay.
+      </p>
+
       {isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-32 w-full rounded-xl" />
           <Skeleton className="h-32 w-full rounded-xl" />
+          <p className="text-sm text-center text-muted-foreground">Loading activities...</p>
         </div>
       ) : sessions?.length === 0 ? (
         <EmptyState
           icon={Calendar}
           title="No activities available"
-          description="Try a different date or category"
+          description="No activities are available for this date. Try another day or ask reception for help."
         />
       ) : (
         <div className="space-y-3">
@@ -111,10 +116,12 @@ export default function GuestActivitiesBrowser() {
                       <span className="font-mono font-medium">{session.start_time?.slice(0, 5)}</span>
                       <Badge variant="outline" className="text-xs">{session.category}</Badge>
                     </div>
-                    {session.requires_approval && (
+                    {session.requires_approval ? (
                       <Badge variant="pending" className="text-xs">
-                        <Sparkles className="h-3 w-3 mr-1" />Request
+                        <Sparkles className="h-3 w-3 mr-1" />On request
                       </Badge>
+                    ) : (
+                      <Badge variant="confirmed" className="text-xs">Instant</Badge>
                     )}
                   </div>
                   <h3 className="font-semibold text-foreground mb-1">{session.activity_name}</h3>
