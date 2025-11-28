@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse } from 'lucide-react';
+import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 
@@ -19,6 +19,13 @@ export default function SettingsPage() {
       icon: UsersRound,
       href: '/staff/settings/resort-staff',
       visible: canManageResortStaff,
+    },
+    {
+      title: 'Guest Import',
+      description: 'Import guests from CSV files',
+      icon: FileSpreadsheet,
+      href: '/staff/settings/import/guests',
+      visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
     },
     {
       title: 'Resorts',
