@@ -26,7 +26,7 @@ interface ResortBranding {
 export default function ResortGuestLogin() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
-  const { guest, login } = useGuestAuth();
+  const { guest, login, logout } = useGuestAuth();
   const [loading, setLoading] = useState(false);
   const [loadingResort, setLoadingResort] = useState(true);
   const [resort, setResort] = useState<ResortBranding | null>(null);
@@ -34,10 +34,21 @@ export default function ResortGuestLogin() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ roomNumber: '', lastName: '', pin: '' });
 
-  // Redirect if already logged in
+  // Handle if already logged in - check for resort mismatch
   useEffect(() => {
-    if (guest) navigate('/guest');
-  }, [guest, navigate]);
+    if (guest && resort) {
+      // If logged into a different resort, show mismatch handling
+      if (guest.resortId !== resort.id) {
+        // Don't redirect, let them see the mismatch message
+        return;
+      }
+      // Same resort - redirect to portal
+      navigate('/guest');
+    } else if (guest && !loadingResort && !resort) {
+      // Still loading resort or resort not found
+      navigate('/guest');
+    }
+  }, [guest, resort, loadingResort, navigate]);
 
   // Fetch resort by code
   useEffect(() => {
@@ -109,6 +120,39 @@ export default function ResortGuestLogin() {
                 Back to Home
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Session mismatch - guest is logged into a different resort
+  if (guest && resort && guest.resortId !== resort.id) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
+        
+        <Card className="w-full max-w-md shadow-elevated border-border/50">
+          <CardContent className="flex flex-col items-center py-12">
+            <div className="h-16 w-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+              <AlertCircle className="h-8 w-8 text-warning" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Different Resort</h1>
+            <p className="text-muted-foreground text-center mb-6">
+              You are currently logged into a different resort. Please log out first to access {resort.name}.
+            </p>
+            <div className="flex flex-col gap-3 w-full">
+              <Button onClick={logout} variant="default" className="w-full">
+                Log Out & Continue Here
+              </Button>
+              <Link to="/guest" className="w-full">
+                <Button variant="outline" className="w-full">
+                  Return to Current Portal
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>

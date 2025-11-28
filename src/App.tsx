@@ -26,6 +26,7 @@ import SettingsPage from "./pages/settings/SettingsPage";
 import UserManagementPage from "./pages/settings/UserManagementPage";
 import ResortStaffPage from "./pages/settings/ResortStaffPage";
 import BookingHealthPage from "./pages/settings/BookingHealthPage";
+import PermissionsDebugPage from "./pages/settings/PermissionsDebugPage";
 import Reports from "./pages/Reports";
 import ActivitiesReport from "./pages/reports/ActivitiesReport";
 import RestaurantsReport from "./pages/reports/RestaurantsReport";
@@ -86,6 +87,7 @@ const App = () => (
                   <Route path="settings/resources" element={<ResourcesPage />} />
                   <Route path="settings/resort-staff" element={<ResortStaffPage />} />
                   <Route path="settings/booking-health" element={<BookingHealthPage />} />
+                  <Route path="settings/permissions" element={<PermissionsDebugPage />} />
                 </Route>
                 
                 {/* Legacy staff routes - redirect to new /staff prefix */}
