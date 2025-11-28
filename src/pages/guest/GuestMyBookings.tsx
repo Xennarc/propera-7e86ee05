@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+// Map server error messages to error codes
+function mapCancelErrorToCode(error: string): BookingErrorCode {
+  const lowerError = error.toLowerCase();
+  if (lowerError.includes('cutoff') || lowerError.includes('too late')) return 'CANCEL_CUTOFF_PAST';
+  if (lowerError.includes('disabled') || lowerError.includes('not allowed')) return 'CANCEL_DISABLED';
+  if (lowerError.includes('status') || lowerError.includes('cannot be cancelled')) return 'BOOKING_NOT_CANCELLABLE';
+  return 'UNKNOWN_ERROR';
+}
 
 export default function GuestMyBookings() {
   const { guest } = useGuestAuth();
@@ -72,7 +82,9 @@ export default function GuestMyBookings() {
       setCancelDialog(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      const errorCode = mapCancelErrorToCode(error.message);
+      const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
+      toast.error(friendlyMessage);
     },
   });
 
@@ -95,7 +107,9 @@ export default function GuestMyBookings() {
       setCancelDialog(null);
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      const errorCode = mapCancelErrorToCode(error.message);
+      const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
+      toast.error(friendlyMessage);
     },
   });
 

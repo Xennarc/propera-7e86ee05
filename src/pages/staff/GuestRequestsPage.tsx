@@ -4,6 +4,8 @@ import { format, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { validateActivityBooking, validateRestaurantReservation } from '@/lib/booking-validation';
+import { getBookingErrorMessage } from '@/lib/booking-errors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -109,23 +111,31 @@ export default function GuestRequestsPage() {
   // Approve activity booking
   const approveActivityMutation = useMutation({
     mutationFn: async (bookingId: string) => {
-      // First check capacity
       const booking = activityRequests?.find((r: any) => r.id === bookingId);
       if (!booking) throw new Error('Booking not found');
 
-      const { data: confirmed, error: countError } = await supabase
+      // Fetch guest_id from the booking
+      const { data: bookingData } = await supabase
         .from('activity_bookings')
-        .select('num_adults, num_children')
-        .eq('session_id', booking.activity_sessions.id)
-        .in('status', ['CONFIRMED', 'COMPLETED']);
+        .select('guest_id')
+        .eq('id', bookingId)
+        .single();
 
-      if (countError) throw countError;
+      if (!bookingData) throw new Error('Booking not found');
 
-      const confirmedPax = confirmed?.reduce((sum, b) => sum + b.num_adults + b.num_children, 0) || 0;
-      const requestedPax = booking.num_adults + booking.num_children;
+      // Re-validate using centralized validation (excluding cutoff for staff approval)
+      const validationResult = await validateActivityBooking({
+        resortId: currentResort!.id,
+        guestId: bookingData.guest_id,
+        sessionId: booking.activity_sessions.id,
+        numAdults: booking.num_adults,
+        numChildren: booking.num_children,
+        source: 'STAFF_FRONT_DESK', // Use staff source to skip cutoff checks
+      });
 
-      if (confirmedPax + requestedPax > booking.activity_sessions.capacity) {
-        throw new Error(`Not enough capacity. Only ${booking.activity_sessions.capacity - confirmedPax} spots available.`);
+      if (!validationResult.ok) {
+        const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
+        throw new Error(validationResult.details || errorMessage);
       }
 
       const { error } = await supabase
@@ -166,23 +176,31 @@ export default function GuestRequestsPage() {
   // Approve restaurant reservation
   const approveReservationMutation = useMutation({
     mutationFn: async (reservationId: string) => {
-      // First check capacity
       const reservation = restaurantRequests?.find((r: any) => r.id === reservationId);
       if (!reservation) throw new Error('Reservation not found');
 
-      const { data: confirmed, error: countError } = await supabase
+      // Fetch guest_id from the reservation
+      const { data: reservationData } = await supabase
         .from('restaurant_reservations')
-        .select('num_adults, num_children')
-        .eq('restaurant_slot_id', reservation.restaurant_time_slots.id)
-        .in('status', ['CONFIRMED', 'COMPLETED']);
+        .select('guest_id')
+        .eq('id', reservationId)
+        .single();
 
-      if (countError) throw countError;
+      if (!reservationData) throw new Error('Reservation not found');
 
-      const confirmedCovers = confirmed?.reduce((sum, r) => sum + r.num_adults + r.num_children, 0) || 0;
-      const requestedCovers = reservation.num_adults + reservation.num_children;
+      // Re-validate using centralized validation (excluding cutoff for staff approval)
+      const validationResult = await validateRestaurantReservation({
+        resortId: currentResort!.id,
+        guestId: reservationData.guest_id,
+        slotId: reservation.restaurant_time_slots.id,
+        numAdults: reservation.num_adults,
+        numChildren: reservation.num_children,
+        source: 'STAFF_FRONT_DESK', // Use staff source to skip cutoff checks
+      });
 
-      if (confirmedCovers + requestedCovers > reservation.restaurant_time_slots.capacity) {
-        throw new Error(`Not enough capacity. Only ${reservation.restaurant_time_slots.capacity - confirmedCovers} covers available.`);
+      if (!validationResult.ok) {
+        const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
+        throw new Error(validationResult.details || errorMessage);
       }
 
       const { error } = await supabase

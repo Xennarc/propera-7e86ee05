@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,18 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Map server error messages to error codes
+function mapErrorToCode(error: string): BookingErrorCode {
+  const lowerError = error.toLowerCase();
+  if (lowerError.includes('capacity') || lowerError.includes('full')) return 'SESSION_FULL';
+  if (lowerError.includes('cutoff') || lowerError.includes('booking window')) return 'CUTOFF_PAST';
+  if (lowerError.includes('stay dates') || lowerError.includes('check-in') || lowerError.includes('check-out')) return 'OUTSIDE_STAY_DATES';
+  if (lowerError.includes('overlap')) return 'OVERLAPPING_BOOKING';
+  if (lowerError.includes('max') || lowerError.includes('party size')) return 'MAX_PAX_EXCEEDED';
+  if (lowerError.includes('not available') || lowerError.includes('disabled')) return 'GUEST_BOOKING_DISABLED';
+  return 'UNKNOWN_ERROR';
+}
 
 export default function GuestActivityBookingPage() {
   const { sessionId } = useParams();
@@ -68,16 +81,21 @@ export default function GuestActivityBookingPage() {
           requiresApproval: data.requires_approval,
         });
       } else {
+        // Map server error to user-friendly message
+        const errorCode = mapErrorToCode(data.error || '');
+        const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
         setBookingResult({
           success: false,
-          error: data.error || 'Failed to create booking',
+          error: friendlyMessage,
         });
       }
     },
     onError: (error: Error) => {
+      const errorCode = mapErrorToCode(error.message);
+      const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
       setBookingResult({
         success: false,
-        error: error.message,
+        error: friendlyMessage,
       });
     },
   });
