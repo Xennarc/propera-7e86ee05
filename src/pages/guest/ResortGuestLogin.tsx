@@ -226,8 +226,8 @@ export default function ResortGuestLogin() {
 
         <Card className="shadow-elevated border-border/50">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl">Guest Login</CardTitle>
-            <CardDescription>Enter your details to access your bookings</CardDescription>
+            <CardTitle className="text-xl">Sign In</CardTitle>
+            <CardDescription>Use your room number and last name to view your schedule and make bookings.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -297,7 +297,7 @@ export default function ResortGuestLogin() {
                     Signing in...
                   </>
                 ) : (
-                  'Access Portal'
+                  'Sign In'
                 )}
               </Button>
             </form>

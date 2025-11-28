@@ -58,11 +58,11 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
     try {
       // Validate inputs
       if (!roomNumber.trim() || !lastName.trim() || !pin.trim()) {
-        return { error: 'Please fill in all fields' };
+        return { error: 'Please fill in all fields.' };
       }
 
       if (!/^\d{4,6}$/.test(pin)) {
-        return { error: 'PIN must be 4-6 digits' };
+        return { error: 'Your PIN should be 4-6 digits.' };
       }
 
       const pinHash = await hashPin(pin);
@@ -76,11 +76,11 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Login error:', error);
-        return { error: 'Login failed. Please try again.' };
+        return { error: 'We couldn\'t sign you in. Please try again or contact reception.' };
       }
 
       if (!data || data.length === 0) {
-        return { error: 'Invalid credentials. Please check your room number, name, and PIN.' };
+        return { error: 'We couldn\'t find a guest with those details. Please check your room number, last name, and PIN.' };
       }
 
       const guestData = data[0];
@@ -98,7 +98,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     } catch (err) {
       console.error('Login error:', err);
-      return { error: 'An error occurred. Please try again.' };
+      return { error: 'Something went wrong. Please try again or contact reception.' };
     }
   };
 

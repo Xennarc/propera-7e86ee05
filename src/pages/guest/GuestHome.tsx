@@ -135,7 +135,9 @@ export default function GuestHome() {
                 {greeting.text}, {firstName}!
               </h1>
               <p className="text-muted-foreground">
-                Welcome to your island escape
+                {todaySchedule.length > 0 
+                  ? "Here's what you have planned today."
+                  : "You can book activities and restaurants during your stay."}
               </p>
             </div>
           </div>
@@ -167,8 +169,9 @@ export default function GuestHome() {
           <Card className="border-dashed border-2 bg-muted/20">
             <CardContent className="py-10 text-center">
               <IconCalendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="text-muted-foreground font-medium">
-                No bookings for today. Explore activities and restaurants below!
+              <h3 className="font-semibold text-foreground mb-1">No plans for today yet</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                You can book activities or a restaurant directly from below.
               </p>
             </CardContent>
           </Card>
@@ -202,7 +205,7 @@ export default function GuestHome() {
                     variant={item.status === 'CONFIRMED' ? 'confirmed' : 'pending'}
                     className="shrink-0 rounded-full px-3"
                   >
-                    {item.status}
+                    {item.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
                   </Badge>
                 </CardContent>
               </Card>
