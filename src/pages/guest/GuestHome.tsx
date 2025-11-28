@@ -6,8 +6,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Utensils, ClipboardList, Clock, Sun, Sunset, Moon, ChevronRight, MessageSquareHeart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Sun, Sunset, Moon, ChevronRight } from 'lucide-react';
+import {
+  IconActivities,
+  IconRestaurants,
+  IconBookings,
+  IconCalendar,
+  IconClock,
+  IconFeedback,
+  IconStay,
+} from '@/components/icons/ProperaIcons';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
@@ -88,22 +97,23 @@ export default function GuestHome() {
     <div className="space-y-6">
       {/* Feedback Prompt - Show when eligible */}
       {canSubmitFeedback?.can_submit && (
-        <Card className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-amber-500/20 overflow-hidden">
+        <Card className="bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border-warning/20 overflow-hidden shadow-soft">
           <CardContent className="p-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
-                <MessageSquareHeart className="h-6 w-6 text-amber-600" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-warning/10 shadow-sm">
+                <IconFeedback className="h-7 w-7 text-warning" />
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-foreground mb-1">
+                <h2 className="text-lg font-bold text-foreground mb-1">
                   How was your stay?
                 </h2>
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-muted-foreground mb-4">
                   Your feedback helps us improve. This takes less than a minute.
                 </p>
                 <Link to="/guest/feedback">
-                  <Button size="sm" className="bg-amber-600 hover:bg-amber-700">
+                  <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-full font-semibold shadow-sm">
                     Share Feedback
+                    <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </Link>
               </div>
@@ -113,48 +123,51 @@ export default function GuestHome() {
       )}
 
       {/* Premium Greeting Card */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <GreetingIcon className="h-5 w-5 text-primary" />
+      <Card className="relative overflow-hidden border-primary/20 shadow-soft">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" />
+        <CardContent className="p-6 relative">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
+              <GreetingIcon className="h-7 w-7 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">
+              <h1 className="text-2xl font-bold text-foreground">
                 {greeting.text}, {firstName}!
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground">
                 Welcome to your island escape
               </p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-primary/10">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Room {guest.roomNumber}</span>
-              <span className="text-muted-foreground">
-                {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d, yyyy')}
-              </span>
+          <div className="flex items-center justify-between text-sm pt-4 border-t border-primary/10">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <IconStay className="h-4 w-4" />
+              <span className="font-medium">Room {guest.roomNumber}</span>
             </div>
+            <span className="text-muted-foreground font-medium">
+              {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d, yyyy')}
+            </span>
           </div>
         </CardContent>
       </Card>
 
       {/* Today's Schedule */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <Clock className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold text-foreground">Today's Schedule</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <IconClock className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Today's Schedule</h2>
         </div>
         
         {isLoading ? (
           <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-xl" />
-            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full rounded-2xl" />
           </div>
         ) : todaySchedule.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">
+          <Card className="border-dashed border-2 bg-muted/20">
+            <CardContent className="py-10 text-center">
+              <IconCalendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-muted-foreground font-medium">
                 No bookings for today. Explore activities and restaurants below!
               </p>
             </CardContent>
@@ -164,21 +177,21 @@ export default function GuestHome() {
             {todaySchedule.map((item, idx) => (
               <Card
                 key={idx}
-                className="hover:shadow-card-hover hover:border-primary/30 transition-all"
+                className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300"
               >
                 <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
                     {item.type === 'activity' ? (
-                      <Calendar className="h-6 w-6 text-primary" />
+                      <IconActivities className="h-7 w-7 text-primary" />
                     ) : (
-                      <Utensils className="h-6 w-6 text-primary" />
+                      <IconRestaurants className="h-7 w-7 text-primary" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-foreground truncate">
+                    <p className="font-bold text-foreground truncate">
                       {item.title}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground font-medium">
                       {item.time.slice(0, 5)}
                       {item.type === 'restaurant' && item.mealPeriod && (
                         <span className="ml-2">• {item.mealPeriod}</span>
@@ -187,7 +200,7 @@ export default function GuestHome() {
                   </div>
                   <Badge
                     variant={item.status === 'CONFIRMED' ? 'confirmed' : 'pending'}
-                    className="shrink-0"
+                    className="shrink-0 rounded-full px-3"
                   >
                     {item.status}
                   </Badge>
@@ -199,17 +212,17 @@ export default function GuestHome() {
       </div>
 
       {/* Quick Actions */}
-      <div className="space-y-3">
-        <h2 className="font-semibold text-foreground">Explore & Book</h2>
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-foreground">Explore & Book</h2>
         
         <Link to="/guest/activities">
-          <Card className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-                <Calendar className="h-7 w-7 text-primary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
+                <IconActivities className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
                   Book Activities
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -222,13 +235,13 @@ export default function GuestHome() {
         </Link>
 
         <Link to="/guest/restaurants">
-          <Card className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-                <Utensils className="h-7 w-7 text-primary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
+                <IconRestaurants className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
                   Book a Restaurant
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -241,13 +254,13 @@ export default function GuestHome() {
         </Link>
 
         <Link to="/guest/bookings">
-          <Card className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10">
-                <ClipboardList className="h-7 w-7 text-primary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
+                <IconBookings className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
                   My Bookings
                 </h3>
                 <p className="text-sm text-muted-foreground">

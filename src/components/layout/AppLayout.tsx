@@ -4,9 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
-import { CalendarDays, Bell } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
 
 export function AppLayout() {
   const { user, profile, loading } = useAuth();
@@ -14,10 +15,12 @@ export function AppLayout() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft shadow-soft">
+            <IconPropera className="h-9 w-9 text-primary" />
+          </div>
+          <p className="text-muted-foreground font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -33,35 +36,35 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top App Bar */}
-          <header className="sticky top-0 z-10 h-16 border-b border-border bg-card/80 backdrop-blur-md">
+          <header className="sticky top-0 z-10 h-18 border-b border-border/50 bg-card/80 backdrop-blur-xl shadow-soft">
             <div className="flex h-full items-center justify-between px-6 gap-4">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground transition-colors" />
+                <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl" />
                 <div className="hidden sm:block">
-                  <h2 className="text-sm font-semibold text-foreground">
+                  <h2 className="text-base font-bold text-foreground">
                     {currentResort?.name || 'Select Resort'}
                   </h2>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <CalendarDays className="h-3 w-3" />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                    <IconCalendar className="h-3 w-3" />
                     {format(new Date(), 'EEEE, MMMM d, yyyy')}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-warning" />
+                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-warning shadow-sm" />
                 </Button>
-                <div className="hidden md:flex items-center gap-3 pl-3 border-l border-border">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-semibold text-foreground">
                       {profile?.full_name || 'Staff User'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground font-medium">
                       {profile?.department || user?.email}
                     </p>
                   </div>
