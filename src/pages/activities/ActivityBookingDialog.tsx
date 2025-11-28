@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { ActivitySession, Activity, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
+import { validateActivityBooking } from '@/lib/booking-validation';
+import { getBookingErrorMessage } from '@/lib/booking-errors';
 import {
   Dialog,
   DialogContent,
@@ -14,9 +16,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { GuestSearchDialog } from '@/components/bookings/GuestSearchDialog';
 import { format, parseISO } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
 
 interface ActivityBookingDialogProps {
   open: boolean;
@@ -46,6 +50,7 @@ export function ActivityBookingDialog({
     num_children: 0,
     notes: '',
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { user } = useAuth();
   const { currentResort } = useResort();
@@ -58,6 +63,7 @@ export function ActivityBookingDialog({
       setSelectedGuest(initialGuest || null);
       setSelectedSession(session || null);
       setFormData({ num_adults: 1, num_children: 0, notes: '' });
+      setValidationError(null);
       if (!session) {
         setSelectedActivityId('');
         setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
@@ -108,81 +114,39 @@ export function ActivityBookingDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     
     const currentSession = selectedSession || session;
     const currentGuest = selectedGuest || initialGuest;
     
     if (!currentSession || !currentGuest || !currentResort) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please select a guest and session' });
+      setValidationError('Please select a guest and session');
       return;
     }
 
     setLoading(true);
 
-    // Validation 1: Check capacity
-    const { data: existingBookings, error: capacityError } = await supabase
-      .from('activity_bookings')
-      .select('num_adults, num_children')
-      .eq('session_id', currentSession.id)
-      .eq('status', 'CONFIRMED');
+    // Use centralized validation
+    const validationResult = await validateActivityBooking({
+      resortId: currentResort.id,
+      guestId: currentGuest.id,
+      sessionId: currentSession.id,
+      numAdults: formData.num_adults,
+      numChildren: formData.num_children,
+      source: bookingSource,
+    });
 
-    if (capacityError) {
-      toast({ variant: 'destructive', title: 'Error', description: capacityError.message });
+    if (!validationResult.ok) {
+      const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
+      setValidationError(validationResult.details || errorMessage);
       setLoading(false);
       return;
-    }
-
-    const totalBooked = existingBookings?.reduce((sum, b) => sum + b.num_adults + b.num_children, 0) || 0;
-    const newPax = formData.num_adults + formData.num_children;
-    
-    if (totalBooked + newPax > currentSession.capacity) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Capacity exceeded', 
-        description: `Only ${currentSession.capacity - totalBooked} spots remaining` 
-      });
-      setLoading(false);
-      return;
-    }
-
-    // Validation 2: Check for overlapping bookings
-    const { data: guestBookings, error: overlapError } = await supabase
-      .from('activity_bookings')
-      .select(`
-        id,
-        session:activity_sessions(date, start_time, end_time)
-      `)
-      .eq('guest_id', currentGuest.id)
-      .eq('status', 'CONFIRMED');
-
-    if (!overlapError && guestBookings) {
-      const hasOverlap = guestBookings.some(booking => {
-        const bookingSession = booking.session as any;
-        if (!bookingSession || bookingSession.date !== currentSession.date) return false;
-        
-        // Check time overlap
-        const newStart = currentSession.start_time;
-        const newEnd = currentSession.end_time;
-        const existingStart = bookingSession.start_time;
-        const existingEnd = bookingSession.end_time;
-        
-        return newStart < existingEnd && newEnd > existingStart;
-      });
-
-      if (hasOverlap) {
-        toast({ 
-          variant: 'destructive', 
-          title: 'Time conflict', 
-          description: 'Guest already has a booking during this time' 
-        });
-        setLoading(false);
-        return;
-      }
     }
 
     // Calculate total
     const pricePerPerson = currentSession.activity?.default_price_per_person || 0;
-    const totalAmount = newPax * pricePerPerson;
+    const totalPax = formData.num_adults + formData.num_children;
+    const totalAmount = totalPax * pricePerPerson;
 
     const { error } = await supabase
       .from('activity_bookings')
@@ -203,6 +167,7 @@ export function ActivityBookingDialog({
       });
 
     if (error) {
+      setValidationError(error.message);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
       toast({ title: 'Success', description: 'Booking created successfully' });
@@ -223,6 +188,14 @@ export function ActivityBookingDialog({
             <DialogTitle>New Activity Booking</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Validation Error */}
+            {validationError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{validationError}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Guest Selection (if not provided) */}
             {!initialGuest && (
               <div className="space-y-2">

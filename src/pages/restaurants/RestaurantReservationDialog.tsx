@@ -4,6 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { RestaurantTimeSlot, Restaurant, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
+import { validateRestaurantReservation } from '@/lib/booking-validation';
+import { getBookingErrorMessage } from '@/lib/booking-errors';
 import {
   Dialog,
   DialogContent,
@@ -15,9 +17,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { GuestSearchDialog } from '@/components/bookings/GuestSearchDialog';
 import { format, parseISO } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
 
 interface RestaurantReservationDialogProps {
   open: boolean;
@@ -42,6 +46,7 @@ export function RestaurantReservationDialog({
     num_children: 0,
     special_requests: '',
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const { user } = useAuth();
   const { currentResort } = useResort();
@@ -52,43 +57,36 @@ export function RestaurantReservationDialog({
     if (open) {
       setSelectedGuest(initialGuest || null);
       setFormData({ num_adults: 2, num_children: 0, special_requests: '' });
+      setValidationError(null);
     }
   }, [open, initialGuest]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     
     const currentGuest = selectedGuest || initialGuest;
     
     if (!slot || !currentGuest || !currentResort) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please select a guest' });
+      setValidationError('Please select a guest');
       return;
     }
 
     setLoading(true);
 
-    // Validate capacity
-    const { data: existingReservations, error: capacityError } = await supabase
-      .from('restaurant_reservations')
-      .select('num_adults, num_children')
-      .eq('restaurant_slot_id', slot.id)
-      .eq('status', 'CONFIRMED');
+    // Use centralized validation
+    const validationResult = await validateRestaurantReservation({
+      resortId: currentResort.id,
+      guestId: currentGuest.id,
+      slotId: slot.id,
+      numAdults: formData.num_adults,
+      numChildren: formData.num_children,
+      source: bookingSource,
+    });
 
-    if (capacityError) {
-      toast({ variant: 'destructive', title: 'Error', description: capacityError.message });
-      setLoading(false);
-      return;
-    }
-
-    const totalBooked = existingReservations?.reduce((sum, r) => sum + r.num_adults + r.num_children, 0) || 0;
-    const newPax = formData.num_adults + formData.num_children;
-    
-    if (totalBooked + newPax > slot.capacity) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Capacity exceeded', 
-        description: `Only ${slot.capacity - totalBooked} covers remaining` 
-      });
+    if (!validationResult.ok) {
+      const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
+      setValidationError(validationResult.details || errorMessage);
       setLoading(false);
       return;
     }
@@ -109,6 +107,7 @@ export function RestaurantReservationDialog({
       });
 
     if (error) {
+      setValidationError(error.message);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
       toast({ title: 'Success', description: 'Reservation created successfully' });
@@ -128,6 +127,14 @@ export function RestaurantReservationDialog({
             <DialogTitle>New Restaurant Reservation</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Validation Error */}
+            {validationError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{validationError}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Guest Selection */}
             {!initialGuest && (
               <div className="space-y-2">
