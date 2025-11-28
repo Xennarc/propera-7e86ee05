@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, Users, ChevronRight, UsersRound, Shield } from 'lucide-react';
+import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 
@@ -39,6 +39,20 @@ export default function SettingsPage() {
       description: 'Manage global roles for all platform users',
       icon: Shield,
       href: '/staff/settings/users',
+      visible: isSuperAdmin(),
+    },
+    {
+      title: 'Booking Health',
+      description: 'Check for capacity issues and data inconsistencies',
+      icon: HeartPulse,
+      href: '/staff/settings/booking-health',
+      visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+    },
+    {
+      title: 'Permissions Debug',
+      description: 'View your current permissions and access levels',
+      icon: Bug,
+      href: '/staff/settings/permissions',
       visible: isSuperAdmin(),
     },
   ];

@@ -2,16 +2,19 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Bell } from 'lucide-react';
+import { Bell, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export function AppLayout() {
-  const { user, profile, loading } = useAuth();
-  const { currentResort } = useResort();
+  const { user, profile, loading, signOut } = useAuth();
+  const { currentResort, loading: resortLoading } = useResort();
+  const permissions = usePermissions();
 
   if (loading) {
     return (
@@ -28,6 +31,47 @@ export function AppLayout() {
 
   if (!user) {
     return <Navigate to="/staff/auth" replace />;
+  }
+
+  // Wait for resort loading to complete
+  if (resortLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft shadow-soft">
+            <IconPropera className="h-9 w-9 text-primary" />
+          </div>
+          <p className="text-muted-foreground font-medium">Loading resorts...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied for users without any resort access
+  if (!permissions.hasAnyResortAccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background hero-pattern p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+              <ShieldX className="h-8 w-8 text-destructive" />
+            </div>
+            <CardTitle>No Access</CardTitle>
+            <CardDescription>
+              Your account does not have access to any resorts. Please contact a Super Admin to be added to a resort.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-sm text-muted-foreground text-center">
+              Logged in as: <span className="font-medium">{user.email}</span>
+            </p>
+            <Button variant="outline" onClick={() => signOut()}>
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
