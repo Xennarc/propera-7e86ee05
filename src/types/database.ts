@@ -75,6 +75,13 @@ export interface Guest {
   updated_at: string;
 }
 
+export type DifficultyLevel = 'EASY' | 'MODERATE' | 'ADVANCED';
+
+export interface ActivityFaq {
+  question: string;
+  answer: string;
+}
+
 export interface Activity {
   id: string;
   resort_id: string;
@@ -95,6 +102,18 @@ export interface Activity {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // New content fields
+  short_description?: string | null;
+  full_description?: string | null;
+  difficulty_level?: DifficultyLevel | null;
+  max_age?: number | null;
+  is_swimming_required?: boolean;
+  suitable_for_non_swimmers?: boolean;
+  highlights?: unknown;
+  includes?: string | null;
+  health_and_safety_notes?: string | null;
+  cancellation_policy_text?: string | null;
+  faq?: unknown;
 }
 
 export interface Resource {

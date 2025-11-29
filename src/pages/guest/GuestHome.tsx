@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sun, Sunset, Moon, ChevronRight } from 'lucide-react';
+import { Sun, Sunset, Moon, ChevronRight, Compass } from 'lucide-react';
 import {
   IconActivities,
   IconRestaurants,
@@ -47,6 +47,22 @@ export default function GuestHome() {
       });
       if (error) throw error;
       return data as { can_submit: boolean; reason?: string };
+    },
+    enabled: !!guest,
+  });
+
+  // Fetch resort code for activity explorer links
+  const { data: resort } = useQuery({
+    queryKey: ['guest-resort', guest?.resortId],
+    queryFn: async () => {
+      if (!guest) return null;
+      const { data, error } = await supabase
+        .from('resorts')
+        .select('code')
+        .eq('id', guest.resortId)
+        .single();
+      if (error) throw error;
+      return data;
     },
     enabled: !!guest,
   });
@@ -218,6 +234,28 @@ export default function GuestHome() {
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-foreground">Explore & Book</h2>
         
+        {/* Explore Activities - links to resort-specific activity explorer */}
+        {resort?.code && (
+          <Link to={`/resort/${resort.code}/guest/activities`}>
+            <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-primary/5 to-transparent">
+              <CardContent className="flex items-center gap-4 p-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 to-primary/15 shadow-sm group-hover:from-primary/40 group-hover:to-primary/20 transition-all duration-300">
+                  <Compass className="h-8 w-8 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                    Explore Activities
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Learn about all experiences we offer
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
         <Link to="/guest/activities">
           <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
             <CardContent className="flex items-center gap-4 p-4">
@@ -229,7 +267,7 @@ export default function GuestHome() {
                   Book Activities
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Explore excursions, diving, and more
+                  Browse available sessions and book
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />

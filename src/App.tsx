@@ -17,6 +17,7 @@ import GuestDetailPage from "./pages/guests/GuestDetailPage";
 import ActivitiesPage from "./pages/activities/ActivitiesPage";
 import ActivitySessionsPage from "./pages/activities/ActivitySessionsPage";
 import ActivitySessionDetailPage from "./pages/activities/ActivitySessionDetailPage";
+import ActivityCheatsheetPage from "./pages/activities/ActivityCheatsheetPage";
 import RestaurantsPage from "./pages/restaurants/RestaurantsPage";
 import RestaurantSlotsPage from "./pages/restaurants/RestaurantSlotsPage";
 import RestaurantSlotDetailPage from "./pages/restaurants/RestaurantSlotDetailPage";
@@ -44,6 +45,8 @@ import GuestActivityBookingPage from "./pages/guest/GuestActivityBookingPage";
 import GuestRestaurantBrowser from "./pages/guest/GuestRestaurantBrowser";
 import GuestRestaurantBookingPage from "./pages/guest/GuestRestaurantBookingPage";
 import GuestStayFeedback from "./pages/guest/GuestStayFeedback";
+import GuestActivityExplorer from "./pages/guest/GuestActivityExplorer";
+import GuestActivityDetailPage from "./pages/guest/GuestActivityDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +75,7 @@ const App = () => (
                   <Route path="activities" element={<ActivitiesPage />} />
                   <Route path="activities/sessions" element={<ActivitySessionsPage />} />
                   <Route path="activities/sessions/:id" element={<ActivitySessionDetailPage />} />
+                  <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />
                   <Route path="restaurants/slots/:id" element={<RestaurantSlotDetailPage />} />
@@ -116,6 +120,12 @@ const App = () => (
                 
                 {/* Resort-specific guest login */}
                 <Route path="/resort/:code/guest/login" element={<ResortGuestLogin />} />
+                
+                {/* Resort-specific guest activity explorer */}
+                <Route path="/resort/:code/guest" element={<GuestLayout />}>
+                  <Route path="activities" element={<GuestActivityExplorer />} />
+                  <Route path="activities/:activityId" element={<GuestActivityDetailPage />} />
+                </Route>
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />

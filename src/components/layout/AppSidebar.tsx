@@ -62,6 +62,7 @@ const mainNavItems: NavItem[] = [
 const activitiesNavItems: NavItem[] = [
   { title: 'Activities', url: '/staff/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
   { title: 'Sessions', url: '/staff/activities/sessions', icon: IconCalendar, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'] },
 ];
 
 const restaurantNavItems: NavItem[] = [

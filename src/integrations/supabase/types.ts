@@ -17,65 +17,98 @@ export type Database = {
       activities: {
         Row: {
           age_min: number | null
+          cancellation_policy_text: string | null
           category: Database["public"]["Enums"]["activity_category"]
           created_at: string
           default_max_capacity: number
           default_price_per_person: number
           description: string | null
+          difficulty_level: string | null
           duration_minutes: number
+          faq: Json | null
+          full_description: string | null
           guest_can_book: boolean
           guest_can_cancel: boolean
           guest_cancel_cutoff_hours: number
           guest_cutoff_hours: number
+          health_and_safety_notes: string | null
+          highlights: Json | null
           id: string
+          includes: string | null
           is_active: boolean
+          is_swimming_required: boolean
+          max_age: number | null
           max_pax_per_booking: number
           min_capacity: number | null
           name: string
           requires_approval: boolean
           resort_id: string
+          short_description: string | null
+          suitable_for_non_swimmers: boolean
           updated_at: string
         }
         Insert: {
           age_min?: number | null
+          cancellation_policy_text?: string | null
           category?: Database["public"]["Enums"]["activity_category"]
           created_at?: string
           default_max_capacity?: number
           default_price_per_person?: number
           description?: string | null
+          difficulty_level?: string | null
           duration_minutes?: number
+          faq?: Json | null
+          full_description?: string | null
           guest_can_book?: boolean
           guest_can_cancel?: boolean
           guest_cancel_cutoff_hours?: number
           guest_cutoff_hours?: number
+          health_and_safety_notes?: string | null
+          highlights?: Json | null
           id?: string
+          includes?: string | null
           is_active?: boolean
+          is_swimming_required?: boolean
+          max_age?: number | null
           max_pax_per_booking?: number
           min_capacity?: number | null
           name: string
           requires_approval?: boolean
           resort_id: string
+          short_description?: string | null
+          suitable_for_non_swimmers?: boolean
           updated_at?: string
         }
         Update: {
           age_min?: number | null
+          cancellation_policy_text?: string | null
           category?: Database["public"]["Enums"]["activity_category"]
           created_at?: string
           default_max_capacity?: number
           default_price_per_person?: number
           description?: string | null
+          difficulty_level?: string | null
           duration_minutes?: number
+          faq?: Json | null
+          full_description?: string | null
           guest_can_book?: boolean
           guest_can_cancel?: boolean
           guest_cancel_cutoff_hours?: number
           guest_cutoff_hours?: number
+          health_and_safety_notes?: string | null
+          highlights?: Json | null
           id?: string
+          includes?: string | null
           is_active?: boolean
+          is_swimming_required?: boolean
+          max_age?: number | null
           max_pax_per_booking?: number
           min_capacity?: number | null
           name?: string
           requires_approval?: boolean
           resort_id?: string
+          short_description?: string | null
+          suitable_for_non_swimmers?: boolean
           updated_at?: string
         }
         Relationships: [
