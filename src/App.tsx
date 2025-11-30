@@ -36,6 +36,8 @@ import GuestBehaviourReport from "./pages/reports/GuestBehaviourReport";
 import MarketReport from "./pages/reports/MarketReport";
 import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
+import StaffInviteAcceptPage from "./pages/staff/StaffInviteAcceptPage";
+import ResortOnboardingPage from "./pages/onboarding/ResortOnboardingPage";
 import GuestLogin from "./pages/guest/GuestLogin";
 import GuestFindResort from "./pages/guest/GuestFindResort";
 import ResortGuestLogin from "./pages/guest/ResortGuestLogin";
@@ -97,7 +99,11 @@ const App = () => (
                   <Route path="settings/permissions" element={<PermissionsDebugPage />} />
                   <Route path="settings/import/guests" element={<GuestImportPage />} />
                   <Route path="settings/public-links" element={<ResortPublicLinksPage />} />
+                  <Route path="onboarding" element={<ResortOnboardingPage />} />
                 </Route>
+                
+                {/* Staff invitation acceptance (public) */}
+                <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
                 
                 {/* Legacy staff routes - redirect to new /staff prefix */}
                 <Route path="/auth" element={<Navigate to="/staff/auth" replace />} />

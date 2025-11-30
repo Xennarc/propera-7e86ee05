@@ -11,6 +11,8 @@ export type MealPeriod = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'EVENT';
 export type SlotStatus = 'OPEN' | 'CLOSED' | 'FULL';
 export type ResourceType = 'BOAT' | 'VAN' | 'CABANA' | 'OTHER';
 export type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
+export type OnboardingStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED';
 
 export interface Resort {
   id: string;
@@ -26,8 +28,31 @@ export interface Resort {
   guest_login_title: string | null;
   guest_login_subtitle: string | null;
   guest_login_instructions: string | null;
+  onboarding_status: OnboardingStatus;
+  onboarding_basics_done: boolean;
+  onboarding_activities_done: boolean;
+  onboarding_restaurants_done: boolean;
+  onboarding_staff_done: boolean;
+  onboarding_portal_done: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface StaffInvitation {
+  id: string;
+  email: string;
+  name: string | null;
+  resort_id: string;
+  resort_role: ResortRole;
+  department: string | null;
+  invited_by_user_id: string | null;
+  token: string;
+  status: InvitationStatus;
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  resort?: Resort;
 }
 
 export interface Profile {

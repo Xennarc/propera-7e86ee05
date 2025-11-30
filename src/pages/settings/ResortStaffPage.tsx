@@ -2,23 +2,25 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
-import { Profile, ResortMembership, ResortRole } from '@/types/database';
+import { Profile, ResortMembership, ResortRole, GlobalRole, StaffInvitation } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Users, Shield, Plus, Trash2, Search, UserPlus } from 'lucide-react';
+import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StaffInviteDialog } from '@/components/staff/StaffInviteDialog';
 
 interface MembershipWithProfile extends ResortMembership {
-  profile: Profile;
+  profile: Profile & { global_role?: GlobalRole };
 }
 
 const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'];
@@ -43,9 +45,11 @@ export default function ResortStaffPage() {
   const { isSuperAdmin, getResortRole, user } = useAuth();
   const { currentResort } = useResort();
   const [memberships, setMemberships] = useState<MembershipWithProfile[]>([]);
+  const [invitations, setInvitations] = useState<StaffInvitation[]>([]);
   const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState<MembershipWithProfile | null>(null);
@@ -64,6 +68,7 @@ export default function ResortStaffPage() {
     if (currentResort && canManage) {
       fetchMemberships();
       fetchAvailableUsers();
+      fetchInvitations();
     }
   }, [currentResort, canManage]);
 
@@ -90,12 +95,15 @@ export default function ResortStaffPage() {
 
       if (profilesError) throw profilesError;
 
-      // Combine memberships with profiles
+      // Combine memberships with profiles, filtering out SUPER_ADMIN users
       const profileMap = new Map((profilesData || []).map(p => [p.id, p]));
-      const combined = (membershipsData || []).map(m => ({
-        ...m,
-        profile: profileMap.get(m.user_id) as Profile,
-      }));
+      const combined = (membershipsData || [])
+        .map(m => ({
+          ...m,
+          profile: profileMap.get(m.user_id) as Profile,
+        }))
+        // Filter out SUPER_ADMIN users - they should not appear in resort staff lists
+        .filter(m => m.profile?.global_role !== 'SUPER_ADMIN');
 
       setMemberships(combined as MembershipWithProfile[]);
     } catch (error) {
@@ -127,11 +135,48 @@ export default function ResortStaffPage() {
       if (membershipsError) throw membershipsError;
 
       const existingUserIds = new Set((existingMemberships || []).map(m => m.user_id));
-      const available = (profiles || []).filter(p => !existingUserIds.has(p.id));
+      // Filter out SUPER_ADMIN users and those already in resort
+      const available = (profiles || []).filter(p => 
+        !existingUserIds.has(p.id) && p.global_role !== 'SUPER_ADMIN'
+      );
       
       setAvailableUsers(available as Profile[]);
     } catch (error) {
       console.error('Error fetching available users:', error);
+    }
+  };
+
+  const fetchInvitations = async () => {
+    if (!currentResort) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('staff_invitations')
+        .select('*')
+        .eq('resort_id', currentResort.id)
+        .eq('status', 'PENDING')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setInvitations((data || []) as StaffInvitation[]);
+    } catch (error) {
+      console.error('Error fetching invitations:', error);
+    }
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff_invitations')
+        .update({ status: 'CANCELLED' })
+        .eq('id', invitationId);
+
+      if (error) throw error;
+      toast.success('Invitation cancelled');
+      fetchInvitations();
+    } catch (error) {
+      console.error('Error cancelling invitation:', error);
+      toast.error('Failed to cancel invitation');
     }
   };
 
@@ -261,10 +306,16 @@ export default function ResortStaffPage() {
         title="Resort Staff"
         description={`Manage staff members for ${currentResort.name}`}
         action={
-          <Button onClick={() => setAddDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add Staff Member
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setAddDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Existing User
+            </Button>
+            <Button onClick={() => setInviteDialogOpen(true)}>
+              <Mail className="h-4 w-4 mr-2" />
+              Invite Staff
+            </Button>
+          </div>
         }
       />
 
@@ -503,6 +554,40 @@ export default function ResortStaffPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Pending Invitations */}
+      {invitations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Pending Invitations ({invitations.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {invitations.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">{inv.name || inv.email}</p>
+                    <p className="text-sm text-muted-foreground">{inv.email} • {ROLE_LABELS[inv.resort_role]}</p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => handleCancelInvitation(inv.id)}>
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Staff Invite Dialog */}
+      <StaffInviteDialog 
+        open={inviteDialogOpen} 
+        onOpenChange={setInviteDialogOpen}
+        onSuccess={fetchInvitations}
+      />
     </div>
   );
 }
