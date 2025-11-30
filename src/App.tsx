@@ -42,6 +42,7 @@ import GuestLogin from "./pages/guest/GuestLogin";
 import GuestFindResort from "./pages/guest/GuestFindResort";
 import ResortGuestLogin from "./pages/guest/ResortGuestLogin";
 import ResortPublicLinksPage from "./pages/settings/ResortPublicLinksPage";
+import ResortBrandingPage from "./pages/settings/ResortBrandingPage";
 import GuestHome from "./pages/guest/GuestHome";
 import GuestMyBookings from "./pages/guest/GuestMyBookings";
 import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
@@ -101,6 +102,7 @@ const App = () => (
                   <Route path="settings/permissions" element={<PermissionsDebugPage />} />
                   <Route path="settings/import/guests" element={<GuestImportPage />} />
                   <Route path="settings/public-links" element={<ResortPublicLinksPage />} />
+                  <Route path="settings/branding" element={<ResortBrandingPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
                 </Route>

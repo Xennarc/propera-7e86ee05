@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LogOut, User } from 'lucide-react';
+import { ChevronDown, LogOut, User, Palette } from 'lucide-react';
 import {
   IconPropera,
   IconDashboard,
@@ -319,6 +319,25 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                     >
                       <IconGuests className="h-5 w-5" />
                       <span>Resort Staff</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {(isSuperAdmin() || currentResortRole === 'RESORT_ADMIN') && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/branding"
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      onClick={onNavigate}
+                    >
+                      <Palette className="h-5 w-5" />
+                      <span>Branding</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
