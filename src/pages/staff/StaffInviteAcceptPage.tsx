@@ -157,26 +157,20 @@ export default function StaffInviteAcceptPage() {
         throw new Error('Failed to create user');
       }
 
-      // Create resort membership
-      const { error: membershipError } = await supabase
-        .from('resort_memberships')
-        .insert({
-          user_id: signUpData.user.id,
-          resort_id: invitation.resort_id,
-          resort_role: invitation.resort_role,
-          department: invitation.department,
+      // Accept invitation using secure function (handles membership + status update)
+      const { data: acceptResult, error: acceptError } = await supabase
+        .rpc('accept_staff_invitation', {
+          p_token: token,
+          p_user_id: signUpData.user.id,
         });
 
-      if (membershipError) {
-        console.error('Membership error:', membershipError);
-        // Continue anyway - user is created
+      const result = acceptResult as { success: boolean; message?: string } | null;
+      if (acceptError) {
+        console.error('Accept invitation error:', acceptError);
+        // User is created but membership failed - they can try again
+      } else if (result && !result.success) {
+        console.error('Accept invitation failed:', result.message);
       }
-
-      // Update invitation status
-      await supabase
-        .from('staff_invitations')
-        .update({ status: 'ACCEPTED' })
-        .eq('id', invitation.id);
 
       toast.success('Account created successfully! Welcome to the team.');
       navigate('/staff');
@@ -212,23 +206,19 @@ export default function StaffInviteAcceptPage() {
         return;
       }
 
-      // Create resort membership
-      const { error: membershipError } = await supabase
-        .from('resort_memberships')
-        .insert({
-          user_id: user.id,
-          resort_id: invitation.resort_id,
-          resort_role: invitation.resort_role,
-          department: invitation.department,
+      // Accept invitation using secure function (handles membership + status update)
+      const { data: acceptResult, error: acceptError } = await supabase
+        .rpc('accept_staff_invitation', {
+          p_token: token,
+          p_user_id: user.id,
         });
 
-      if (membershipError) throw membershipError;
-
-      // Update invitation status
-      await supabase
-        .from('staff_invitations')
-        .update({ status: 'ACCEPTED' })
-        .eq('id', invitation.id);
+      if (acceptError) throw acceptError;
+      
+      const result = acceptResult as { success: boolean; message?: string } | null;
+      if (result && !result.success) {
+        throw new Error(result.message || 'Failed to accept invitation');
+      }
 
       await refetchUserData();
       toast.success('Invitation accepted! Welcome to the team.');

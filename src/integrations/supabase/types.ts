@@ -879,6 +879,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_staff_invitation: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: Json
+      }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
