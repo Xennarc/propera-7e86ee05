@@ -13,6 +13,7 @@ const DEMO_ACTIVITIES = [
     guest_can_book: true,
     guest_cutoff_hours: 2,
     difficulty_level: 'EASY',
+    requires_approval: false,
   },
   {
     name: 'Intro Dive',
@@ -38,6 +39,7 @@ const DEMO_ACTIVITIES = [
     guest_can_book: true,
     guest_cutoff_hours: 4,
     difficulty_level: 'EASY',
+    requires_approval: false,
   },
   {
     name: 'Sandbank Picnic',
@@ -50,6 +52,7 @@ const DEMO_ACTIVITIES = [
     guest_can_book: true,
     guest_cutoff_hours: 24,
     difficulty_level: 'EASY',
+    requires_approval: false,
   },
 ];
 
@@ -61,6 +64,7 @@ const DEMO_RESTAURANTS = [
     guest_can_book: true,
     guest_cutoff_minutes: 60,
     max_pax_per_booking: 8,
+    requires_approval: false,
   },
   {
     name: 'Sunset Grill',
