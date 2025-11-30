@@ -78,7 +78,11 @@ const reportNavItems: NavItem[] = [
   { title: 'Market', url: '/staff/reports/market', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const { user, profile, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
 
@@ -172,7 +176,7 @@ export function AppSidebar() {
                 const Icon = item.icon;
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url} 
                         className={cn(
@@ -180,6 +184,7 @@ export function AppSidebar() {
                           "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                        onClick={onNavigate}
                       >
                         <Icon className="h-5 w-5" />
                         <span>{item.title}</span>
@@ -205,13 +210,14 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <NavLink 
+                      <NavLink 
                           to={item.url}
                           className={cn(
                             "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                             "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                           )}
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                          onClick={onNavigate}
                         >
                           <Icon className="h-5 w-5" />
                           <span>{item.title}</span>
@@ -245,6 +251,7 @@ export function AppSidebar() {
                             "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                           )}
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                          onClick={onNavigate}
                         >
                           <Icon className="h-5 w-5" />
                           <span>{item.title}</span>
@@ -278,6 +285,7 @@ export function AppSidebar() {
                             "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                           )}
                           activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                          onClick={onNavigate}
                         >
                           <Icon className="h-5 w-5" />
                           <span>{item.title}</span>
@@ -307,6 +315,7 @@ export function AppSidebar() {
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                       )}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      onClick={onNavigate}
                     >
                       <IconGuests className="h-5 w-5" />
                       <span>Resort Staff</span>
@@ -325,6 +334,7 @@ export function AppSidebar() {
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                       )}
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      onClick={onNavigate}
                     >
                       <IconResort className="h-5 w-5" />
                       <span>Resorts</span>
@@ -342,6 +352,7 @@ export function AppSidebar() {
                       "hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     )}
                     activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                    onClick={onNavigate}
                     end
                   >
                     <IconSettings className="h-5 w-5" />

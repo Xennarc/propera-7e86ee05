@@ -32,7 +32,9 @@ export function DataTable<T extends { id: string }>({
 }: DataTableProps<T>) {
   return (
     <div className={cn('rounded-xl border border-border/50 overflow-hidden', className)}>
-      <Table>
+      {/* Horizontal scroll wrapper for mobile */}
+      <div className="overflow-x-auto scrollbar-thin">
+        <Table className="min-w-[640px]">
         <TableHeader>
           <TableRow className="bg-muted/30 hover:bg-muted/30">
             {columns.map((col, idx) => (
@@ -79,7 +81,8 @@ export function DataTable<T extends { id: string }>({
             ))
           )}
         </TableBody>
-      </Table>
+        </Table>
+      </div>
     </div>
   );
 }

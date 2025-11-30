@@ -43,43 +43,43 @@ export function GuestLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Premium Header */}
-      <header className="sticky top-0 z-10 glass-dark border-b border-border/30 shadow-soft">
-        <div className="flex h-16 items-center justify-between px-4 max-w-lg mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
-              <IconPropera className="h-6 w-6 text-primary" />
+      {/* Mobile-optimized Header */}
+      <header className="sticky top-0 z-10 glass-dark border-b border-border/30 shadow-soft safe-area-inset-top">
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-primary/10 shadow-sm flex-shrink-0">
+              <IconPropera className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-base font-bold text-foreground">Guest Portal</h1>
-              <p className="text-xs text-muted-foreground font-medium">Room {guest.roomNumber}</p>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-foreground truncate">Guest Portal</h1>
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Room {guest.roomNumber}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+            <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10" />
             <GuestNotificationBell />
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={logout}
-              className="text-muted-foreground hover:text-foreground rounded-xl"
+              className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10"
             >
-              <IconLogout className="h-5 w-5" />
+              <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main content with extra padding for bottom nav */}
-      <main className="flex-1 overflow-auto pb-28">
+      {/* Main content with bottom nav padding */}
+      <main className="flex-1 overflow-auto pb-24 sm:pb-28">
         <div className="p-4 max-w-lg mx-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* Premium Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-10 bg-card/95 backdrop-blur-xl border-t border-border/30 shadow-elevated">
-        <div className="flex h-22 items-center justify-around px-2 max-w-lg mx-auto pb-safe">
+      {/* Mobile-optimized Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-10 bg-card/95 backdrop-blur-xl border-t border-border/30 shadow-elevated safe-area-inset-bottom">
+        <div className="flex h-16 sm:h-20 items-center justify-around px-2 max-w-lg mx-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/guest' && location.pathname.startsWith(item.href));
@@ -89,15 +89,15 @@ export function GuestLayout() {
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl transition-all duration-300",
+                  "flex flex-col items-center gap-1 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 min-w-[60px]",
                   isActive 
                     ? "text-primary bg-primary/10" 
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
-                <Icon className={cn("h-6 w-6", isActive && "text-primary")} />
+                <Icon className={cn("h-5 w-5 sm:h-6 sm:w-6", isActive && "text-primary")} />
                 <span className={cn(
-                  "text-[11px] font-semibold",
+                  "text-[10px] sm:text-[11px] font-semibold",
                   isActive && "text-primary"
                 )}>
                   {item.label}
