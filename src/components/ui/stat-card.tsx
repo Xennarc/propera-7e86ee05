@@ -52,22 +52,22 @@ export function StatCard({
 
   return (
     <Card className={cn('hover:shadow-card-hover transition-shadow', className)}>
-      <CardContent className="p-5">
-        <div className="flex items-start gap-4">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex items-start gap-3 sm:gap-4">
           {Icon && (
-            <div className={cn('rounded-xl p-3', styles.icon)}>
-              <Icon className="h-5 w-5" />
+            <div className={cn('rounded-xl p-2.5 sm:p-3 flex-shrink-0', styles.icon)}>
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
           )}
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className={cn('text-2xl font-bold', styles.value)}>{value}</p>
+          <div className="flex-1 space-y-0.5 sm:space-y-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">{title}</p>
+            <p className={cn('text-xl sm:text-2xl font-bold', styles.value)}>{value}</p>
             {description && (
-              <p className="text-xs text-muted-foreground">{description}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{description}</p>
             )}
             {trend && (
               <p className={cn(
-                'text-xs font-medium',
+                'text-[11px] sm:text-xs font-medium',
                 trend.value >= 0 ? 'text-success' : 'text-destructive'
               )}>
                 {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}

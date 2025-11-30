@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,14 +6,16 @@ import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ShieldX } from 'lucide-react';
+import { ShieldX, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export function AppLayout() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, profile, loading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
@@ -78,14 +81,49 @@ export function AppLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block">
+          <AppSidebar />
+        </div>
+        
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top App Bar */}
-          <header className="sticky top-0 z-10 h-18 border-b border-border/50 bg-card/80 backdrop-blur-xl shadow-soft">
-            <div className="flex h-full items-center justify-between px-6 gap-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="-ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl" />
-                <div className="hidden sm:block">
+          <header className="sticky top-0 z-10 h-16 lg:h-18 border-b border-border/50 bg-card/80 backdrop-blur-xl shadow-soft">
+            <div className="flex h-full items-center justify-between px-4 lg:px-6 gap-4">
+              <div className="flex items-center gap-3 lg:gap-4">
+                {/* Mobile Menu */}
+                <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                  <SheetTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="lg:hidden -ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="p-0 w-[280px]">
+                    <AppSidebar onNavigate={() => setMobileMenuOpen(false)} />
+                  </SheetContent>
+                </Sheet>
+                
+                {/* Desktop Sidebar Trigger */}
+                <SidebarTrigger className="hidden lg:flex -ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl" />
+                
+                {/* Mobile: Compact header */}
+                <div className="flex items-center gap-3 lg:hidden">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
+                    <IconPropera className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-foreground truncate max-w-[140px]">
+                      {currentResort?.name || 'Select Resort'}
+                    </h2>
+                  </div>
+                </div>
+                
+                {/* Desktop: Full header */}
+                <div className="hidden lg:block">
                   <h2 className="text-base font-bold text-foreground">
                     {currentResort?.name || 'Select Resort'}
                   </h2>
@@ -95,14 +133,17 @@ export function AppLayout() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              
+              <div className="flex items-center gap-2 lg:gap-3">
                 <ThemeToggle className="text-muted-foreground hover:text-foreground" />
                 <NotificationBell />
-                <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
+                
+                {/* User info */}
+                <div className="hidden md:flex items-center gap-3 pl-3 lg:pl-4 border-l border-border">
+                  <div className="flex h-9 w-9 lg:h-10 lg:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right hidden lg:block">
                     <p className="text-sm font-semibold text-foreground">
                       {profile?.full_name || 'Staff User'}
                     </p>
@@ -117,7 +158,7 @@ export function AppLayout() {
           
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
-            <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
+            <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
               <Outlet />
             </div>
           </main>
