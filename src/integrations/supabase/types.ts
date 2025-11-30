@@ -482,6 +482,8 @@ export type Database = {
       }
       resorts: {
         Row: {
+          brand_theme: string | null
+          brand_wordmark: string | null
           code: string
           created_at: string
           currency: string
@@ -508,6 +510,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_theme?: string | null
+          brand_wordmark?: string | null
           code: string
           created_at?: string
           currency?: string
@@ -534,6 +538,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_theme?: string | null
+          brand_wordmark?: string | null
           code?: string
           created_at?: string
           currency?: string
