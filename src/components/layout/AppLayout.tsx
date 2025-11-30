@@ -5,9 +5,10 @@ import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Bell, ShieldX } from 'lucide-react';
+import { ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -96,10 +97,7 @@ export function AppLayout() {
               </div>
               <div className="flex items-center gap-3">
                 <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground rounded-xl">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-warning shadow-sm" />
-                </Button>
+                <NotificationBell />
                 <div className="hidden md:flex items-center gap-3 pl-4 border-l border-border">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}

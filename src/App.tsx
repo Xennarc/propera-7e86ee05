@@ -51,6 +51,8 @@ import GuestRestaurantBookingPage from "./pages/guest/GuestRestaurantBookingPage
 import GuestStayFeedback from "./pages/guest/GuestStayFeedback";
 import GuestActivityExplorer from "./pages/guest/GuestActivityExplorer";
 import GuestActivityDetailPage from "./pages/guest/GuestActivityDetailPage";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
+import GuestNotificationsPage from "./pages/guest/GuestNotificationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +102,7 @@ const App = () => (
                   <Route path="settings/import/guests" element={<GuestImportPage />} />
                   <Route path="settings/public-links" element={<ResortPublicLinksPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
+                  <Route path="notifications" element={<NotificationsPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
@@ -147,6 +150,7 @@ const App = () => (
                   <Route path="restaurants" element={<GuestRestaurantBrowser />} />
                   <Route path="restaurants/book/:slotId" element={<GuestRestaurantBookingPage />} />
                   <Route path="feedback" element={<GuestStayFeedback />} />
+                  <Route path="notifications" element={<GuestNotificationsPage />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />

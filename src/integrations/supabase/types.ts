@@ -338,6 +338,72 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          audience: Database["public"]["Enums"]["notification_audience"]
+          channel: Database["public"]["Enums"]["notification_channel"]
+          created_at: string
+          guest_id: string | null
+          id: string
+          is_read: boolean
+          link_url: string | null
+          message: string
+          read_at: string | null
+          resort_id: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          audience: Database["public"]["Enums"]["notification_audience"]
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          message: string
+          read_at?: string | null
+          resort_id?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["notification_audience"]
+          channel?: Database["public"]["Enums"]["notification_channel"]
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          message?: string
+          read_at?: string | null
+          resort_id?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -883,6 +949,39 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      create_guest_notification: {
+        Args: {
+          p_guest_id: string
+          p_link_url?: string
+          p_message: string
+          p_resort_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: string
+      }
+      create_staff_notification_for_user: {
+        Args: {
+          p_link_url?: string
+          p_message: string
+          p_resort_id: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      create_staff_notifications_for_roles: {
+        Args: {
+          p_link_url?: string
+          p_message: string
+          p_resort_id: string
+          p_roles: Database["public"]["Enums"]["resort_role"][]
+          p_title: string
+          p_type: string
+        }
+        Returns: number
+      }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
@@ -925,7 +1024,20 @@ export type Database = {
         Returns: Json
       }
       guest_get_bookings: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_notifications: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
+      guest_get_unread_notification_count: {
+        Args: { p_guest_id: string }
+        Returns: number
+      }
+      guest_mark_all_notifications_read: {
+        Args: { p_guest_id: string }
+        Returns: number
+      }
+      guest_mark_notification_read: {
+        Args: { p_guest_id: string; p_notification_id: string }
+        Returns: boolean
+      }
       guest_portal_login: {
         Args: {
           p_last_name: string
@@ -1002,6 +1114,8 @@ export type Database = {
       feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
+      notification_audience: "STAFF" | "GUEST"
+      notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
       recommendation_response: "YES" | "NO" | "MAYBE"
       resort_role:
         | "RESORT_ADMIN"
@@ -1158,6 +1272,8 @@ export const Constants = {
       feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
+      notification_audience: ["STAFF", "GUEST"],
+      notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
       recommendation_response: ["YES", "NO", "MAYBE"],
       resort_role: [
         "RESORT_ADMIN",
