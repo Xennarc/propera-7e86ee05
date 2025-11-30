@@ -428,6 +428,12 @@ export type Database = {
           login_logo_url: string | null
           login_primary_color: string | null
           name: string
+          onboarding_activities_done: boolean
+          onboarding_basics_done: boolean
+          onboarding_portal_done: boolean
+          onboarding_restaurants_done: boolean
+          onboarding_staff_done: boolean
+          onboarding_status: string
           status: Database["public"]["Enums"]["resort_status"]
           timezone: string
           updated_at: string
@@ -445,6 +451,12 @@ export type Database = {
           login_logo_url?: string | null
           login_primary_color?: string | null
           name: string
+          onboarding_activities_done?: boolean
+          onboarding_basics_done?: boolean
+          onboarding_portal_done?: boolean
+          onboarding_restaurants_done?: boolean
+          onboarding_staff_done?: boolean
+          onboarding_status?: string
           status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
@@ -462,6 +474,12 @@ export type Database = {
           login_logo_url?: string | null
           login_primary_color?: string | null
           name?: string
+          onboarding_activities_done?: boolean
+          onboarding_basics_done?: boolean
+          onboarding_portal_done?: boolean
+          onboarding_restaurants_done?: boolean
+          onboarding_staff_done?: boolean
+          onboarding_status?: string
           status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
@@ -688,6 +706,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "restaurants_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_invitations: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string
+          expires_at: string
+          id: string
+          invited_by_user_id: string | null
+          name: string | null
+          resort_id: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          invited_by_user_id?: string | null
+          name?: string | null
+          resort_id: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by_user_id?: string | null
+          name?: string | null
+          resort_id?: string
+          resort_role?: Database["public"]["Enums"]["resort_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invitations_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
