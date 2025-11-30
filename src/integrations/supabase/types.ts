@@ -428,6 +428,7 @@ export type Database = {
           login_logo_url: string | null
           login_primary_color: string | null
           name: string
+          status: Database["public"]["Enums"]["resort_status"]
           timezone: string
           updated_at: string
         }
@@ -444,6 +445,7 @@ export type Database = {
           login_logo_url?: string | null
           login_primary_color?: string | null
           name: string
+          status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
         }
@@ -460,6 +462,7 @@ export type Database = {
           login_logo_url?: string | null
           login_primary_color?: string | null
           name?: string
+          status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
         }
@@ -922,6 +925,7 @@ export type Database = {
         | "FRONT_OFFICE"
         | "ACTIVITIES"
         | "FNB"
+      resort_status: "ACTIVE" | "INACTIVE" | "DEMO"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
@@ -1078,6 +1082,7 @@ export const Constants = {
         "ACTIVITIES",
         "FNB",
       ],
+      resort_status: ["ACTIVE", "INACTIVE", "DEMO"],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],
       session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
       slot_status: ["OPEN", "CLOSED", "FULL"],

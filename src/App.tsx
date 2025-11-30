@@ -37,7 +37,9 @@ import MarketReport from "./pages/reports/MarketReport";
 import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
 import GuestLogin from "./pages/guest/GuestLogin";
+import GuestFindResort from "./pages/guest/GuestFindResort";
 import ResortGuestLogin from "./pages/guest/ResortGuestLogin";
+import ResortPublicLinksPage from "./pages/settings/ResortPublicLinksPage";
 import GuestHome from "./pages/guest/GuestHome";
 import GuestMyBookings from "./pages/guest/GuestMyBookings";
 import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
@@ -94,6 +96,7 @@ const App = () => (
                   <Route path="settings/booking-health" element={<BookingHealthPage />} />
                   <Route path="settings/permissions" element={<PermissionsDebugPage />} />
                   <Route path="settings/import/guests" element={<GuestImportPage />} />
+                  <Route path="settings/public-links" element={<ResortPublicLinksPage />} />
                 </Route>
                 
                 {/* Legacy staff routes - redirect to new /staff prefix */}
@@ -129,6 +132,7 @@ const App = () => (
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
+                <Route path="/guest/find" element={<GuestFindResort />} />
                 <Route path="/guest" element={<GuestLayout />}>
                   <Route index element={<GuestHome />} />
                   <Route path="bookings" element={<GuestMyBookings />} />

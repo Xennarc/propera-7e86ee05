@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Resort } from '@/types/database';
+import { Resort, ResortStatus } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    status: 'ACTIVE' as ResortStatus,
     timezone: 'UTC',
     currency: 'USD',
     login_logo_url: '',
@@ -81,6 +83,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
       setFormData({
         name: resort.name,
         code: resort.code,
+        status: resort.status || 'ACTIVE',
         timezone: resort.timezone,
         currency: resort.currency,
         login_logo_url: resort.login_logo_url || '',
@@ -95,6 +98,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
       setFormData({
         name: '',
         code: '',
+        status: 'ACTIVE',
         timezone: 'UTC',
         currency: 'USD',
         login_logo_url: '',
@@ -130,6 +134,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
     const resortData = {
       name: formData.name.trim(),
       code: formData.code.trim().toUpperCase(),
+      status: formData.status,
       timezone: formData.timezone,
       currency: formData.currency,
       login_logo_url: formData.login_logo_url.trim() || null,
@@ -245,7 +250,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone *</Label>
                   <Select
@@ -280,6 +285,36 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
                     </SelectContent>
                   </Select>
                   {errors.currency && <p className="text-sm text-destructive">{errors.currency}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value as ResortStatus })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default" className="text-xs">Active</Badge>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="INACTIVE">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="destructive" className="text-xs">Inactive</Badge>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="DEMO">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">Demo</Badge>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Guest portal access</p>
                 </div>
               </div>
 

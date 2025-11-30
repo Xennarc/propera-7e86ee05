@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet } from 'lucide-react';
+import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 
@@ -13,6 +13,13 @@ export default function SettingsPage() {
   const canManageResortStaff = isSuperAdmin() || currentResortRole === 'RESORT_ADMIN';
 
   const settingsSections = [
+    {
+      title: 'Guest Portal Links',
+      description: 'Share QR codes and links for guests to access the portal',
+      icon: LinkIcon,
+      href: '/staff/settings/public-links',
+      visible: canManageResortStaff,
+    },
     {
       title: 'Resort Staff',
       description: 'Manage staff members and their roles for this resort',

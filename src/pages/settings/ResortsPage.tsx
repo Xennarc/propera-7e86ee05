@@ -128,6 +128,7 @@ export default function ResortsPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Code</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Timezone</TableHead>
                     <TableHead>Currency</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -140,6 +141,17 @@ export default function ResortsPage() {
                       <TableCell>
                         <Badge variant="outline" className="font-mono">
                           {resort.code}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={
+                            resort.status === 'ACTIVE' ? 'default' : 
+                            resort.status === 'INACTIVE' ? 'destructive' : 
+                            'secondary'
+                          }
+                        >
+                          {resort.status || 'ACTIVE'}
                         </Badge>
                       </TableCell>
                       <TableCell>{resort.timezone}</TableCell>
