@@ -34,6 +34,9 @@ export interface Resort {
   onboarding_restaurants_done: boolean;
   onboarding_staff_done: boolean;
   onboarding_portal_done: boolean;
+  is_demo: boolean;
+  demo_expires_at: string | null;
+  demo_note: string | null;
   created_at: string;
   updated_at: string;
 }

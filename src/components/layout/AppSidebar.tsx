@@ -144,7 +144,14 @@ export function AppSidebar() {
               <SelectContent>
                 {resorts.map((resort) => (
                   <SelectItem key={resort.id} value={resort.id}>
-                    {resort.name}
+                    <div className="flex items-center gap-2">
+                      <span>{resort.name}</span>
+                      {resort.is_demo && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 bg-primary/10 text-primary border-primary/30">
+                          DEMO
+                        </Badge>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

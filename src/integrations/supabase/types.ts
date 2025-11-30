@@ -419,10 +419,13 @@ export type Database = {
           code: string
           created_at: string
           currency: string
+          demo_expires_at: string | null
+          demo_note: string | null
           guest_login_instructions: string | null
           guest_login_subtitle: string | null
           guest_login_title: string | null
           id: string
+          is_demo: boolean
           login_accent_color: string | null
           login_hero_image_url: string | null
           login_logo_url: string | null
@@ -442,10 +445,13 @@ export type Database = {
           code: string
           created_at?: string
           currency?: string
+          demo_expires_at?: string | null
+          demo_note?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null
           id?: string
+          is_demo?: boolean
           login_accent_color?: string | null
           login_hero_image_url?: string | null
           login_logo_url?: string | null
@@ -465,10 +471,13 @@ export type Database = {
           code?: string
           created_at?: string
           currency?: string
+          demo_expires_at?: string | null
+          demo_note?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null
           id?: string
+          is_demo?: boolean
           login_accent_color?: string | null
           login_hero_image_url?: string | null
           login_logo_url?: string | null

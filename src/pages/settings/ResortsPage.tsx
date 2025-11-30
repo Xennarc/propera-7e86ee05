@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Building2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Building2, Sparkles, ArrowRight, Clock, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ResortDialog } from './ResortDialog';
+import { DemoResortDialog } from '@/components/demo/DemoResortDialog';
+import { ConvertDemoDialog } from '@/components/demo/ConvertDemoDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,17 +23,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Navigate } from 'react-router-dom';
+import { formatDistanceToNow, isPast } from 'date-fns';
 
 export default function ResortsPage() {
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editingResort, setEditingResort] = useState<Resort | null>(null);
   const [deleteResort, setDeleteResort] = useState<Resort | null>(null);
+  const [convertingResort, setConvertingResort] = useState<Resort | null>(null);
   
-  const { hasRole } = useAuth();
+  const { hasRole, isSuperAdmin } = useAuth();
   const { refetch: refetchResorts } = useResort();
   const { toast } = useToast();
 
@@ -77,6 +89,36 @@ export default function ResortsPage() {
     setDeleteResort(null);
   };
 
+  const handleExpireDemo = async (resort: Resort) => {
+    const { error } = await supabase
+      .from('resorts')
+      .update({
+        demo_expires_at: new Date().toISOString(),
+        status: 'INACTIVE',
+      })
+      .eq('id', resort.id);
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } else {
+      toast({ title: 'Demo expired', description: 'Demo resort has been archived' });
+      fetchResorts();
+      refetchResorts();
+    }
+  };
+
+  const getDemoExpiryStatus = (resort: Resort) => {
+    if (!resort.demo_expires_at) return null;
+    const expiresAt = new Date(resort.demo_expires_at);
+    const isExpired = isPast(expiresAt);
+    return {
+      isExpired,
+      text: isExpired 
+        ? 'Expired' 
+        : `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`,
+    };
+  };
+
   const filteredResorts = resorts.filter(resort =>
     resort.name.toLowerCase().includes(search.toLowerCase()) ||
     resort.code.toLowerCase().includes(search.toLowerCase())
@@ -89,10 +131,18 @@ export default function ResortsPage() {
           <h1 className="text-3xl font-bold text-foreground">Resorts</h1>
           <p className="text-muted-foreground">Manage resort properties (Admin only)</p>
         </div>
-        <Button onClick={() => { setEditingResort(null); setDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Resort
-        </Button>
+        <div className="flex gap-2">
+          {isSuperAdmin() && (
+            <Button variant="outline" onClick={() => setDemoDialogOpen(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Create Demo Resort
+            </Button>
+          )}
+          <Button onClick={() => { setEditingResort(null); setDialogOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Resort
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -135,47 +185,103 @@ export default function ResortsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredResorts.map((resort) => (
-                    <TableRow key={resort.id}>
-                      <TableCell className="font-medium">{resort.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {resort.code}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            resort.status === 'ACTIVE' ? 'default' : 
-                            resort.status === 'INACTIVE' ? 'destructive' : 
-                            'secondary'
-                          }
-                        >
-                          {resort.status || 'ACTIVE'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{resort.timezone}</TableCell>
-                      <TableCell>{resort.currency}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => { setEditingResort(resort); setDialogOpen(true); }}
+                  {filteredResorts.map((resort) => {
+                    const demoStatus = resort.is_demo ? getDemoExpiryStatus(resort) : null;
+                    
+                    return (
+                      <TableRow key={resort.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{resort.name}</span>
+                            {resort.is_demo && (
+                              <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                                DEMO
+                              </Badge>
+                            )}
+                          </div>
+                          {demoStatus && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                              {demoStatus.isExpired ? (
+                                <AlertTriangle className="h-3 w-3 text-destructive" />
+                              ) : (
+                                <Clock className="h-3 w-3" />
+                              )}
+                              <span className={demoStatus.isExpired ? 'text-destructive' : ''}>
+                                {demoStatus.text}
+                              </span>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {resort.code}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              resort.status === 'ACTIVE' ? 'default' : 
+                              resort.status === 'INACTIVE' ? 'destructive' : 
+                              'secondary'
+                            }
                           >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteResort(resort)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            {resort.status || 'ACTIVE'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{resort.timezone}</TableCell>
+                        <TableCell>{resort.currency}</TableCell>
+                        <TableCell className="text-right">
+                          {resort.is_demo && isSuperAdmin() ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  Actions
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setEditingResort(resort); setDialogOpen(true); }}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setConvertingResort(resort); setConvertDialogOpen(true); }}>
+                                  <ArrowRight className="mr-2 h-4 w-4" />
+                                  Convert to Live
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExpireDemo(resort)}>
+                                  <Clock className="mr-2 h-4 w-4" />
+                                  Expire Now
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onClick={() => setDeleteResort(resort)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => { setEditingResort(resort); setDialogOpen(true); }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteResort(resort)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -189,6 +295,21 @@ export default function ResortsPage() {
         resort={editingResort}
         onSuccess={() => { fetchResorts(); refetchResorts(); }}
       />
+
+      <DemoResortDialog
+        open={demoDialogOpen}
+        onOpenChange={setDemoDialogOpen}
+        onSuccess={() => { fetchResorts(); refetchResorts(); }}
+      />
+
+      {convertingResort && (
+        <ConvertDemoDialog
+          open={convertDialogOpen}
+          onOpenChange={setConvertDialogOpen}
+          resort={convertingResort}
+          onSuccess={() => { fetchResorts(); refetchResorts(); setConvertingResort(null); }}
+        />
+      )}
 
       <AlertDialog open={!!deleteResort} onOpenChange={() => setDeleteResort(null)}>
         <AlertDialogContent>
