@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle } from 'lucide-react';
+import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle, KeyRound, User } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StaffInviteDialog } from '@/components/staff/StaffInviteDialog';
+import { CreateStaffAccountDialog } from '@/components/staff/CreateStaffAccountDialog';
+import { ResetPasswordDialog } from '@/components/staff/ResetPasswordDialog';
 
 interface MembershipWithProfile extends ResortMembership {
   profile: Profile & { global_role?: GlobalRole };
@@ -50,8 +52,10 @@ export default function ResortStaffPage() {
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [createAccountDialogOpen, setCreateAccountDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState<MembershipWithProfile | null>(null);
   const [newMembership, setNewMembership] = useState({
     user_id: '',
@@ -308,12 +312,16 @@ export default function ResortStaffPage() {
         action={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setAddDialogOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Existing User
+              <User className="h-4 w-4 mr-2" />
+              Add Existing
             </Button>
-            <Button onClick={() => setInviteDialogOpen(true)}>
+            <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
               <Mail className="h-4 w-4 mr-2" />
-              Invite Staff
+              Invite by Email
+            </Button>
+            <Button onClick={() => setCreateAccountDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create Account
             </Button>
           </div>
         }
@@ -381,7 +389,18 @@ export default function ResortStaffPage() {
                   >
                     {ROLE_LABELS[membership.resort_role]}
                   </Badge>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedMembership(membership);
+                        setResetPasswordDialogOpen(true);
+                      }}
+                      title="Reset password"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -588,6 +607,26 @@ export default function ResortStaffPage() {
         onOpenChange={setInviteDialogOpen}
         onSuccess={fetchInvitations}
       />
+
+      {/* Create Staff Account Dialog */}
+      <CreateStaffAccountDialog 
+        open={createAccountDialogOpen} 
+        onOpenChange={setCreateAccountDialogOpen}
+        onSuccess={() => {
+          fetchMemberships();
+          fetchAvailableUsers();
+        }}
+      />
+
+      {/* Reset Password Dialog */}
+      {selectedMembership && (
+        <ResetPasswordDialog 
+          open={resetPasswordDialogOpen} 
+          onOpenChange={setResetPasswordDialogOpen}
+          userId={selectedMembership.user_id}
+          userName={selectedMembership.profile?.full_name || 'Staff member'}
+        />
+      )}
     </div>
   );
 }
