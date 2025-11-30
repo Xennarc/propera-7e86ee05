@@ -271,7 +271,7 @@ export default function ResortGuestLogin() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Room Number</Label>
+                  <Label className="flex items-center h-5">Room Number</Label>
                   <Input 
                     placeholder="e.g., 101" 
                     value={formData.roomNumber} 
