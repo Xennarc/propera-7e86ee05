@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, Calendar, Utensils, Star, ArrowRight } from 'lucide-react';
+import { Building2, Users, Calendar, Utensils, Star, ArrowRight, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -15,22 +18,42 @@ export default function SuperAdminHome() {
   const { resorts, setCurrentResort } = useResort();
   const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0];
+  const [includeDemos, setIncludeDemos] = useState(false);
+
+  // Filter resorts based on includeDemos toggle
+  const activeResorts = includeDemos 
+    ? resorts 
+    : resorts.filter(r => r.status === 'ACTIVE');
 
   // Fetch platform-wide stats
   const { data: platformStats, isLoading } = useQuery({
-    queryKey: ['super-admin-stats', today],
+    queryKey: ['super-admin-stats', today, includeDemos],
     queryFn: async () => {
-      // Get total active guests across all resorts
+      // Get resort IDs to filter by
+      const resortIds = activeResorts.map(r => r.id);
+      
+      if (resortIds.length === 0) {
+        return {
+          totalResorts: 0,
+          totalGuests: 0,
+          totalActivityPax: 0,
+          totalCovers: 0,
+        };
+      }
+
+      // Get total active guests across filtered resorts
       const { count: totalGuests } = await supabase
         .from('guests')
         .select('*', { count: 'exact', head: true })
+        .in('resort_id', resortIds)
         .lte('check_in_date', today)
         .gte('check_out_date', today);
 
-      // Get today's activity pax across all resorts
+      // Get today's activity pax across filtered resorts
       const { data: todaySessions } = await supabase
         .from('activity_sessions')
         .select('id')
+        .in('resort_id', resortIds)
         .eq('date', today)
         .eq('status', 'SCHEDULED');
 
@@ -49,10 +72,11 @@ export default function SuperAdminHome() {
         ) || 0;
       }
 
-      // Get today's restaurant covers across all resorts
+      // Get today's restaurant covers across filtered resorts
       const { data: todaySlots } = await supabase
         .from('restaurant_time_slots')
         .select('id')
+        .in('resort_id', resortIds)
         .eq('date', today);
 
       let totalCovers = 0;
@@ -71,7 +95,7 @@ export default function SuperAdminHome() {
       }
 
       return {
-        totalResorts: resorts.length,
+        totalResorts: activeResorts.length,
         totalGuests: totalGuests || 0,
         totalActivityPax,
         totalCovers,
@@ -81,10 +105,10 @@ export default function SuperAdminHome() {
 
   // Fetch per-resort breakdown
   const { data: resortBreakdown, isLoading: loadingBreakdown } = useQuery({
-    queryKey: ['resort-breakdown', today, resorts.map(r => r.id)],
+    queryKey: ['resort-breakdown', today, activeResorts.map(r => r.id)],
     queryFn: async () => {
       const breakdown = await Promise.all(
-        resorts.map(async (resort) => {
+        activeResorts.map(async (resort) => {
           // Guests in house
           const { count: guestsInHouse } = await supabase
             .from('guests')
@@ -153,6 +177,8 @@ export default function SuperAdminHome() {
             id: resort.id,
             name: resort.name,
             code: resort.code,
+            status: resort.status,
+            is_demo: resort.is_demo,
             guestsInHouse: guestsInHouse || 0,
             activityPax,
             covers,
@@ -162,7 +188,7 @@ export default function SuperAdminHome() {
       );
       return breakdown;
     },
-    enabled: resorts.length > 0,
+    enabled: activeResorts.length > 0,
   });
 
   const handleSwitchResort = (resortId: string) => {
@@ -180,14 +206,32 @@ export default function SuperAdminHome() {
         description="High-level view across all resorts using Propera."
       />
 
+      {/* Demo toggle */}
+      <div className="flex items-center gap-3">
+        <Switch 
+          id="include-demos" 
+          checked={includeDemos} 
+          onCheckedChange={setIncludeDemos} 
+        />
+        <Label htmlFor="include-demos" className="text-sm text-muted-foreground cursor-pointer">
+          Include demo resorts in metrics
+        </Label>
+        {resorts.filter(r => r.status === 'DEMO').length > 0 && (
+          <Badge variant="secondary" className="ml-2">
+            <Sparkles className="h-3 w-3 mr-1" />
+            {resorts.filter(r => r.status === 'DEMO').length} demo{resorts.filter(r => r.status === 'DEMO').length !== 1 ? 's' : ''}
+          </Badge>
+        )}
+      </div>
+
       {/* Platform Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Active Resorts"
+          title={includeDemos ? "All Resorts" : "Active Resorts"}
           value={isLoading ? '—' : platformStats?.totalResorts || 0}
           icon={Building2}
           variant="primary"
-          description="Total resorts on platform"
+          description={includeDemos ? "Including demos" : "Production resorts"}
         />
         <StatCard
           title="Guests In House"
@@ -240,7 +284,16 @@ export default function SuperAdminHome() {
               <TableBody>
                 {resortBreakdown.map((resort) => (
                   <TableRow key={resort.id} className="group">
-                    <TableCell className="font-medium">{resort.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{resort.name}</span>
+                        {resort.is_demo && (
+                          <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                            DEMO
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center">
                       <Badge variant="outline">{resort.code}</Badge>
                     </TableCell>
