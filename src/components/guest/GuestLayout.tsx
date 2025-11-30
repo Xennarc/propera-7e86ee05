@@ -3,6 +3,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
 import {
   IconPropera,
   IconStay,
@@ -56,6 +57,7 @@ export function GuestLayout() {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+            <GuestNotificationBell />
             <Button 
               variant="ghost" 
               size="icon" 
