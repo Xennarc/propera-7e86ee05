@@ -10,11 +10,13 @@ export type BookingSource = 'STAFF_FRONT_DESK' | 'STAFF_DIVE' | 'STAFF_FNB' | 'G
 export type MealPeriod = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'EVENT';
 export type SlotStatus = 'OPEN' | 'CLOSED' | 'FULL';
 export type ResourceType = 'BOAT' | 'VAN' | 'CABANA' | 'OTHER';
+export type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 
 export interface Resort {
   id: string;
   name: string;
   code: string;
+  status: ResortStatus;
   timezone: string;
   currency: string;
   login_logo_url: string | null;

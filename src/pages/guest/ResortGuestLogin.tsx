@@ -7,13 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Waves, Loader2, Lock, User, AlertCircle, Home } from 'lucide-react';
+import { Waves, Loader2, Lock, User, AlertCircle, Home, Building2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
+type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 
 interface ResortBranding {
   id: string;
   name: string;
   code: string;
+  status: ResortStatus;
   login_logo_url: string | null;
   login_hero_image_url: string | null;
   login_primary_color: string | null;
@@ -31,6 +34,7 @@ export default function ResortGuestLogin() {
   const [loadingResort, setLoadingResort] = useState(true);
   const [resort, setResort] = useState<ResortBranding | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [resortInactive, setResortInactive] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ roomNumber: '', lastName: '', pin: '' });
 
@@ -39,13 +43,11 @@ export default function ResortGuestLogin() {
     if (guest && resort) {
       // If logged into a different resort, show mismatch handling
       if (guest.resortId !== resort.id) {
-        // Don't redirect, let them see the mismatch message
         return;
       }
       // Same resort - redirect to portal
       navigate('/guest');
     } else if (guest && !loadingResort && !resort) {
-      // Still loading resort or resort not found
       navigate('/guest');
     }
   }, [guest, resort, loadingResort, navigate]);
@@ -61,14 +63,21 @@ export default function ResortGuestLogin() {
     const fetchResort = async () => {
       const { data, error } = await supabase
         .from('resorts')
-        .select('id, name, code, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
+        .select('id, name, code, status, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
         .ilike('code', code)
         .single();
 
       if (error || !data) {
         setNotFound(true);
       } else {
-        setResort(data as ResortBranding);
+        const resortData = data as ResortBranding;
+        // Check if resort is active
+        if (resortData.status === 'INACTIVE') {
+          setResortInactive(true);
+          setResort(resortData);
+        } else {
+          setResort(resortData);
+        }
       }
       setLoadingResort(false);
     };
@@ -112,7 +121,36 @@ export default function ResortGuestLogin() {
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Resort Not Found</h1>
             <p className="text-muted-foreground text-center mb-6">
-              The resort code "{code}" was not found. Please check the URL or contact your resort.
+              We couldn't find a resort with this link. Please check the URL or contact your resort for the correct link.
+            </p>
+            <Link to="/">
+              <Button variant="outline" className="gap-2">
+                <Home className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Resort is inactive
+  if (resortInactive) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
+        
+        <Card className="w-full max-w-md shadow-elevated border-border/50">
+          <CardContent className="flex flex-col items-center py-12">
+            <div className="h-16 w-16 rounded-full bg-warning/10 flex items-center justify-center mb-4">
+              <Building2 className="h-8 w-8 text-warning" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Portal Unavailable</h1>
+            <p className="text-muted-foreground text-center mb-6">
+              The guest portal for {resort?.name} is currently not available. Please contact your resort's front desk for assistance.
             </p>
             <Link to="/">
               <Button variant="outline" className="gap-2">
