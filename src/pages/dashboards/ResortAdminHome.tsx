@@ -6,15 +6,42 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Link } from 'react-router-dom';
-import { Users, UserPlus, UserMinus, Calendar, Utensils, Star, ArrowRight, Clock, MessageSquare } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Users, UserPlus, UserMinus, Calendar, Utensils, Star, ArrowRight, Clock, MessageSquare, Palette, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
+import { useState, useEffect } from 'react';
 
 export default function ResortAdminHome() {
   const { currentResort } = useResort();
+  const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0];
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  // Check if this is a new resort needing branding setup
+  useEffect(() => {
+    if (currentResort?.onboarding_status === 'NOT_STARTED' && !dismissed) {
+      // Check if user already dismissed this session
+      const dismissedKey = `propera-welcome-dismissed-${currentResort.id}`;
+      const wasDismissed = sessionStorage.getItem(dismissedKey);
+      if (!wasDismissed) {
+        setShowWelcome(true);
+      }
+    } else {
+      setShowWelcome(false);
+    }
+  }, [currentResort, dismissed]);
+
+  const handleDismiss = () => {
+    if (currentResort) {
+      sessionStorage.setItem(`propera-welcome-dismissed-${currentResort.id}`, 'true');
+    }
+    setDismissed(true);
+    setShowWelcome(false);
+  };
 
   // Fetch resort stats
   const { data: stats, isLoading } = useQuery({
@@ -250,6 +277,42 @@ export default function ResortAdminHome() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Welcome/Branding Prompt for new resorts */}
+      {showWelcome && (
+        <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 overflow-hidden">
+          <CardContent className="py-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Palette className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">Welcome to {currentResort?.name}!</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Let's set up your brand so the guest portal looks like your resort. You can customize your logo, colors, and welcome message.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={() => navigate('/staff/settings/branding')}>
+                      <Palette className="h-4 w-4 mr-2" />
+                      Set Up Branding
+                    </Button>
+                    <Button variant="ghost" onClick={handleDismiss}>
+                      Skip for Now
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" onClick={handleDismiss} className="shrink-0">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Onboarding Banner */}
+      <OnboardingBanner />
+
       <PageHeader
         title={`${currentResort?.name || 'Resort'} – Today`}
         description="Overview of guests, activities, restaurants, and feedback for today."

@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ResortDialog } from './ResortDialog';
 import { DemoResortDialog } from '@/components/demo/DemoResortDialog';
 import { ConvertDemoDialog } from '@/components/demo/ConvertDemoDialog';
+import { CreateResortDialog } from '@/components/resort/CreateResortDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,25 +32,36 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Navigate } from 'react-router-dom';
 import { formatDistanceToNow, isPast } from 'date-fns';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Shield } from 'lucide-react';
 
 export default function ResortsPage() {
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [demoDialogOpen, setDemoDialogOpen] = useState(false);
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
   const [editingResort, setEditingResort] = useState<Resort | null>(null);
   const [deleteResort, setDeleteResort] = useState<Resort | null>(null);
   const [convertingResort, setConvertingResort] = useState<Resort | null>(null);
   
-  const { hasRole, isSuperAdmin } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const { refetch: refetchResorts } = useResort();
   const { toast } = useToast();
 
-  // Only admins can access this page
-  if (!hasRole('ADMIN')) {
-    return <Navigate to="/dashboard" replace />;
+  // Only SUPER_ADMIN can access this page
+  if (!isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <EmptyState
+          icon={Shield}
+          title="Access Denied"
+          description="Only platform administrators can manage resorts"
+        />
+      </div>
+    );
   }
 
   const fetchResorts = async () => {
@@ -132,15 +144,13 @@ export default function ResortsPage() {
           <p className="text-muted-foreground">Manage resort properties (Admin only)</p>
         </div>
         <div className="flex gap-2">
-          {isSuperAdmin() && (
-            <Button variant="outline" onClick={() => setDemoDialogOpen(true)}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              Create Demo Resort
-            </Button>
-          )}
-          <Button onClick={() => { setEditingResort(null); setDialogOpen(true); }}>
+          <Button variant="outline" onClick={() => setDemoDialogOpen(true)}>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Create Demo
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Resort
+            Create Resort
           </Button>
         </div>
       </div>
@@ -288,6 +298,12 @@ export default function ResortsPage() {
           )}
         </CardContent>
       </Card>
+
+      <CreateResortDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={() => { fetchResorts(); refetchResorts(); }}
+      />
 
       <ResortDialog
         open={dialogOpen}
