@@ -1,1 +1,4 @@
 project_id = "dstxrbmetabgbijjeoyf"
+
+[functions.find-guest-resort]
+verify_jwt = false

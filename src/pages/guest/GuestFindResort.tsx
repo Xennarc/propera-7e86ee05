@@ -27,40 +27,23 @@ export default function GuestFindResort() {
     setLoading(true);
 
     try {
-      // Search for guests matching the criteria across all resorts
-      const { data: guests, error } = await supabase
-        .from('guests')
-        .select(`
-          id,
-          resort_id,
-          resorts!inner(id, code, name, status)
-        `)
-        .ilike('full_name', `%${formData.lastName}%`)
-        .ilike('room_number', formData.roomNumber)
-        .lte('check_in_date', new Date().toISOString().split('T')[0])
-        .gte('check_out_date', new Date().toISOString().split('T')[0]);
+      // Call edge function to search (bypasses RLS)
+      const { data, error } = await supabase.functions.invoke('find-guest-resort', {
+        body: {
+          lastName: formData.lastName,
+          roomNumber: formData.roomNumber,
+        },
+      });
 
       if (error) throw error;
 
-      // Filter to only active resorts
-      const activeGuests = guests?.filter((g: any) => g.resorts?.status === 'ACTIVE') || [];
-
-      // Get unique resort IDs
-      const uniqueResorts = new Map<string, { code: string; name: string }>();
-      activeGuests.forEach((g: any) => {
-        if (g.resorts && !uniqueResorts.has(g.resort_id)) {
-          uniqueResorts.set(g.resort_id, { code: g.resorts.code, name: g.resorts.name });
-        }
-      });
-
-      if (uniqueResorts.size === 0) {
+      if (data.error) {
+        console.error('Search error:', data.error);
         setResult({ type: 'not_found' });
-      } else if (uniqueResorts.size === 1) {
-        const [_, resort] = Array.from(uniqueResorts.entries())[0];
-        setResult({ type: 'found', resortCode: resort.code, resortName: resort.name });
-      } else {
-        setResult({ type: 'multiple' });
+        return;
       }
+
+      setResult(data as SearchResult);
     } catch (error) {
       console.error('Search error:', error);
       setResult({ type: 'not_found' });
