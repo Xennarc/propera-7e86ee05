@@ -413,6 +413,7 @@ export type Database = {
           id: string
           resort_id: string | null
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -422,6 +423,7 @@ export type Database = {
           id: string
           resort_id?: string | null
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -431,6 +433,7 @@ export type Database = {
           id?: string
           resort_id?: string | null
           updated_at?: string
+          username?: string | null
         }
         Relationships: [
           {
@@ -955,6 +958,10 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      admin_reset_staff_password: {
+        Args: { p_new_password: string; p_user_id: string }
+        Returns: Json
+      }
       create_guest_notification: {
         Args: {
           p_guest_id: string
@@ -965,6 +972,18 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      create_staff_account: {
+        Args: {
+          p_department?: string
+          p_email?: string
+          p_full_name: string
+          p_password: string
+          p_resort_id?: string
+          p_resort_role?: Database["public"]["Enums"]["resort_role"]
+          p_username: string
+        }
+        Returns: Json
       }
       create_staff_notification_for_user: {
         Args: {
@@ -1102,6 +1121,19 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      staff_lookup_by_identifier: {
+        Args: { p_identifier: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+          username: string
+        }[]
+      }
+      update_staff_username: {
+        Args: { p_new_username: string; p_user_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       activity_category: "DIVE" | "EXCURSION" | "WATERSPORT" | "SPA" | "OTHER"

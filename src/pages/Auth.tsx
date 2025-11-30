@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
@@ -12,13 +13,16 @@ import { Loader2, Waves } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  identifier: z.string().min(1, 'Please enter your username or email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 const signupSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  email: z.string().email('Please enter a valid email').optional().or(z.literal('')),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -28,15 +32,16 @@ const signupSchema = z.object({
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
+  const [signupUsername, setSignupUsername] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -50,7 +55,7 @@ export default function Auth() {
     e.preventDefault();
     setErrors({});
     
-    const result = loginSchema.safeParse({ email: loginEmail, password: loginPassword });
+    const result = loginSchema.safeParse({ identifier: loginIdentifier, password: loginPassword });
     
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -64,19 +69,39 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
-    setIsLoading(false);
+    try {
+      // First, lookup the user by username or email to get their actual email
+      const { data: lookupData, error: lookupError } = await supabase
+        .rpc('staff_lookup_by_identifier', { p_identifier: loginIdentifier });
 
-    if (error) {
+      if (lookupError) {
+        console.error('Lookup error:', lookupError);
+        throw new Error('Invalid username/email or password');
+      }
+
+      const userData = lookupData as { user_id: string; email: string; username: string; full_name: string }[] | null;
+      
+      if (!userData || userData.length === 0) {
+        throw new Error('Invalid username/email or password');
+      }
+
+      // Use the found email to sign in
+      const actualEmail = userData[0].email;
+      const { error } = await signIn(actualEmail, loginPassword);
+
+      if (error) {
+        throw new Error('Invalid username/email or password');
+      }
+      
+      navigate('/staff/dashboard', { replace: true });
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login failed',
-        description: error.message === 'Invalid login credentials' 
-          ? 'Invalid email or password. Please try again.'
-          : error.message,
+        description: error.message || 'Invalid username/email or password. Please try again.',
       });
-    } else {
-      navigate('/staff/dashboard', { replace: true });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -86,6 +111,7 @@ export default function Auth() {
     
     const result = signupSchema.safeParse({
       fullName: signupName,
+      username: signupUsername,
       email: signupEmail,
       password: signupPassword,
       confirmPassword: signupConfirmPassword,
@@ -103,29 +129,58 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
-    setIsLoading(false);
+    try {
+      // Use the create_staff_account function to create a new user with username
+      const { data, error } = await supabase.rpc('create_staff_account', {
+        p_username: signupUsername.trim(),
+        p_password: signupPassword,
+        p_full_name: signupName.trim() || null,
+        p_email: signupEmail.trim() || null,
+        p_resort_id: null,
+        p_resort_role: null,
+        p_department: null,
+      });
 
-    if (error) {
-      if (error.message.includes('already registered')) {
-        toast({
-          variant: 'destructive',
-          title: 'Account exists',
-          description: 'An account with this email already exists. Please sign in instead.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Signup failed',
-          description: error.message,
-        });
+      if (error) throw error;
+
+      const response = data as { success: boolean; error?: string; email?: string };
+      if (!response.success) {
+        if (response.error?.includes('already taken')) {
+          toast({
+            variant: 'destructive',
+            title: 'Username taken',
+            description: 'This username is already in use. Please choose another.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Signup failed',
+            description: response.error || 'Failed to create account',
+          });
+        }
+        return;
       }
-    } else {
+
+      // Sign in with the newly created account
+      const actualEmail = response.email;
+      if (actualEmail) {
+        await signIn(actualEmail, signupPassword);
+      }
+
       toast({
         title: 'Account created',
-        description: 'Welcome to Propera! You can now sign in.',
+        description: 'Welcome to Propera! You can now sign in with your username.',
       });
       navigate('/staff/dashboard', { replace: true });
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Signup failed',
+        description: error.message || 'Failed to create account',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -166,18 +221,18 @@ export default function Auth() {
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4 pt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="login-identifier" className="text-sm font-medium">Username or Email</Label>
                     <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@resort.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
+                      id="login-identifier"
+                      type="text"
+                      placeholder="Enter your username or email"
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
                       disabled={isLoading}
                       className="h-11"
                     />
-                    {errors.login_email && (
-                      <p className="text-sm text-destructive">{errors.login_email}</p>
+                    {errors.login_identifier && (
+                      <p className="text-sm text-destructive">{errors.login_identifier}</p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -230,7 +285,23 @@ export default function Auth() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="signup-username" className="text-sm font-medium">Username *</Label>
+                    <Input
+                      id="signup-username"
+                      type="text"
+                      placeholder="john_smith"
+                      value={signupUsername}
+                      onChange={(e) => setSignupUsername(e.target.value)}
+                      disabled={isLoading}
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">This is what you'll use to log in</p>
+                    {errors.signup_username && (
+                      <p className="text-sm text-destructive">{errors.signup_username}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email" className="text-sm font-medium">Email (optional)</Label>
                     <Input
                       id="signup-email"
                       type="email"

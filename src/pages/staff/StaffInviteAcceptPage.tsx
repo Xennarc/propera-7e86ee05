@@ -39,6 +39,9 @@ const ROLE_LABELS: Record<ResortRole, string> = {
 
 const signupSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -58,6 +61,7 @@ export default function StaffInviteAcceptPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     fullName: '',
+    username: '',
     password: '',
     confirmPassword: '',
   });
@@ -133,43 +137,40 @@ export default function StaffInviteAcceptPage() {
 
     setAccepting(true);
     try {
-      // Sign up new user
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: invitation.email,
-        password: formData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/staff`,
-          data: {
-            full_name: formData.fullName,
-          },
-        },
+      // Use the create_staff_account RPC to create user with username
+      const { data, error } = await supabase.rpc('create_staff_account', {
+        p_username: formData.username.trim(),
+        p_password: formData.password,
+        p_full_name: formData.fullName.trim() || null,
+        p_email: invitation.email,
+        p_resort_id: invitation.resort_id,
+        p_resort_role: invitation.resort_role,
+        p_department: invitation.department,
       });
 
-      if (signUpError) {
-        if (signUpError.message.includes('already registered')) {
-          toast.error('This email is already registered. Please sign in instead.');
+      if (error) throw error;
+
+      const response = data as { success: boolean; error?: string; user_id?: string; email?: string };
+      if (!response.success) {
+        if (response.error?.includes('already taken')) {
+          toast.error('This username is already taken. Please choose another.');
           return;
         }
-        throw signUpError;
+        throw new Error(response.error || 'Failed to create account');
       }
 
-      if (!signUpData.user) {
-        throw new Error('Failed to create user');
-      }
+      // Mark invitation as accepted
+      await supabase
+        .from('staff_invitations')
+        .update({ status: 'ACCEPTED' })
+        .eq('token', token);
 
-      // Accept invitation using secure function (handles membership + status update)
-      const { data: acceptResult, error: acceptError } = await supabase
-        .rpc('accept_staff_invitation', {
-          p_token: token,
-          p_user_id: signUpData.user.id,
+      // Sign in the new user
+      if (response.email) {
+        await supabase.auth.signInWithPassword({
+          email: response.email,
+          password: formData.password,
         });
-
-      const result = acceptResult as { success: boolean; message?: string } | null;
-      if (acceptError) {
-        console.error('Accept invitation error:', acceptError);
-        // User is created but membership failed - they can try again
-      } else if (result && !result.success) {
-        console.error('Accept invitation failed:', result.message);
       }
 
       toast.success('Account created successfully! Welcome to the team.');
@@ -352,6 +353,18 @@ export default function StaffInviteAcceptPage() {
                   disabled
                   className="bg-muted"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="username">Username *</Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="john_smith"
+                />
+                <p className="text-xs text-muted-foreground">This is what you'll use to log in</p>
+                {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
               </div>
 
               <div className="space-y-2">
