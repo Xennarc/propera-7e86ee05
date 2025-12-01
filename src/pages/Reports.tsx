@@ -1,10 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Utensils, UserCheck, Globe, ArrowRight, MessageSquareHeart } from 'lucide-react';
+import { Activity, Utensils, UserCheck, Globe, ArrowRight, MessageSquareHeart, DollarSign } from 'lucide-react';
 
 import { XCircle, Users } from 'lucide-react';
 
 const reportLinks = [
+  {
+    title: 'Sales Performance',
+    description: 'Revenue metrics, attach rates, and sales analytics',
+    icon: DollarSign,
+    href: '/staff/reports/sales',
+  },
   {
     title: 'Activities Report',
     description: 'Activity booking statistics, revenue, and occupancy rates',

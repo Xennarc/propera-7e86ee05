@@ -625,6 +625,7 @@ export type Database = {
           source: Database["public"]["Enums"]["booking_source"]
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
           updated_at: string
         }
         Insert: {
@@ -640,6 +641,7 @@ export type Database = {
           source?: Database["public"]["Enums"]["booking_source"]
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
           updated_at?: string
         }
         Update: {
@@ -655,6 +657,7 @@ export type Database = {
           source?: Database["public"]["Enums"]["booking_source"]
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
           updated_at?: string
         }
         Relationships: [
