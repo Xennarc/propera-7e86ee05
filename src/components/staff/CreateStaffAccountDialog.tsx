@@ -88,21 +88,22 @@ export function CreateStaffAccountDialog({ open, onOpenChange, onSuccess }: Crea
 
     setSaving(true);
     try {
-      const { data, error } = await supabase.rpc('create_staff_account', {
-        p_username: formData.username.trim(),
-        p_password: formData.password,
-        p_full_name: formData.full_name.trim() || null,
-        p_email: formData.email.trim() || null,
-        p_resort_id: currentResort.id,
-        p_resort_role: formData.resort_role as ResortRole,
-        p_department: formData.department.trim() || null,
+      const { data, error } = await supabase.functions.invoke('create-staff-user', {
+        body: {
+          username: formData.username.trim(),
+          password: formData.password,
+          full_name: formData.full_name.trim() || null,
+          email: formData.email.trim() || null,
+          resort_id: currentResort.id,
+          resort_role: formData.resort_role as ResortRole,
+          department: formData.department.trim() || null,
+        }
       });
 
       if (error) throw error;
 
-      const response = data as { success: boolean; error?: string; username?: string };
-      if (!response.success) {
-        toast.error(response.error || 'Failed to create account');
+      if (!data.success) {
+        toast.error(data.error || 'Failed to create account');
         return;
       }
 
