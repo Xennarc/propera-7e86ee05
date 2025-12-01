@@ -123,6 +123,9 @@ export type Database = {
       }
       activity_bookings: {
         Row: {
+          booking_source:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at: string
           created_by_user_id: string | null
           discount_amount: number
@@ -141,6 +144,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_source?:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at?: string
           created_by_user_id?: string | null
           discount_amount?: number
@@ -159,6 +165,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_source?:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at?: string
           created_by_user_id?: string | null
           discount_amount?: number
@@ -667,6 +676,9 @@ export type Database = {
       }
       restaurant_reservations: {
         Row: {
+          booking_source:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at: string
           created_by_user_id: string | null
           guest_id: string
@@ -683,6 +695,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_source?:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at?: string
           created_by_user_id?: string | null
           guest_id: string
@@ -699,6 +714,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_source?:
+            | Database["public"]["Enums"]["booking_source_context"]
+            | null
           created_at?: string
           created_by_user_id?: string | null
           guest_id?: string
@@ -1201,6 +1219,7 @@ export type Database = {
         | "STAFF_DIVE"
         | "STAFF_FNB"
         | "GUEST_PORTAL"
+      booking_source_context: "NORMAL" | "PRE_STAY" | "IN_STAY_SUGGESTION"
       booking_status:
         | "PENDING"
         | "CONFIRMED"
@@ -1358,6 +1377,7 @@ export const Constants = {
         "STAFF_FNB",
         "GUEST_PORTAL",
       ],
+      booking_source_context: ["NORMAL", "PRE_STAY", "IN_STAY_SUGGESTION"],
       booking_status: [
         "PENDING",
         "CONFIRMED",
