@@ -6,7 +6,7 @@ import { Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GuestDialog } from './GuestDialog';
 import { PageHeader } from '@/components/ui/page-header';
@@ -259,11 +259,21 @@ export default function GuestsPage() {
                 {
                   header: 'Guest',
                   accessor: (guest) => (
-                    <div>
-                      <p className="font-medium text-foreground">{guest.full_name}</p>
-                      {guest.email && (
-                        <p className="text-sm text-muted-foreground">{guest.email}</p>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-foreground">{guest.full_name}</p>
+                          {guest.is_vip && (
+                            <Crown className="h-3.5 w-3.5 text-amber-500" />
+                          )}
+                          {guest.loyalty_tier && (
+                            <Star className="h-3.5 w-3.5 text-primary" />
+                          )}
+                        </div>
+                        {guest.email && (
+                          <p className="text-sm text-muted-foreground">{guest.email}</p>
+                        )}
+                      </div>
                     </div>
                   ),
                 },

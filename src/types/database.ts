@@ -101,6 +101,9 @@ export interface Guest {
   booking_reference: string | null;
   channel: string | null;
   notes: string | null;
+  loyalty_tier: string | null;
+  is_vip: boolean;
+  notes_internal: string | null;
   created_at: string;
   updated_at: string;
 }
