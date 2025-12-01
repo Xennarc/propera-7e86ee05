@@ -280,9 +280,12 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_vip: boolean
           last_login_at: string | null
+          loyalty_tier: string | null
           nationality: string | null
           notes: string | null
+          notes_internal: string | null
           phone: string | null
           portal_enabled: boolean
           portal_pin_hash: string | null
@@ -299,9 +302,12 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          is_vip?: boolean
           last_login_at?: string | null
+          loyalty_tier?: string | null
           nationality?: string | null
           notes?: string | null
+          notes_internal?: string | null
           phone?: string | null
           portal_enabled?: boolean
           portal_pin_hash?: string | null
@@ -318,9 +324,12 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_vip?: boolean
           last_login_at?: string | null
+          loyalty_tier?: string | null
           nationality?: string | null
           notes?: string | null
+          notes_internal?: string | null
           phone?: string | null
           portal_enabled?: boolean
           portal_pin_hash?: string | null

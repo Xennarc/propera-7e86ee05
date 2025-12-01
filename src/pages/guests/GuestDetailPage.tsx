@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Link as LinkIcon, Star, Crown, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
@@ -15,6 +15,7 @@ import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArrivalLinkDialog';
+import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -59,8 +60,11 @@ export default function GuestDetailPage() {
   const [activityBookingDialogOpen, setActivityBookingDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [preArrivalDialogOpen, setPreArrivalDialogOpen] = useState(false);
+  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
+  const [feedback, setFeedback] = useState<any[]>([]);
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE']);
+  const canEditLoyalty = hasAnyRole(['ADMIN', 'MANAGER']);
 
   const fetchGuest = async () => {
     if (!id) return;
@@ -114,6 +118,17 @@ export default function GuestDetailPage() {
       setRestaurantReservations(reservationsData as any[]);
     }
 
+    // Fetch stay feedback
+    const { data: feedbackData } = await supabase
+      .from('stay_feedback')
+      .select('*')
+      .eq('guest_id', id)
+      .order('created_at', { ascending: false });
+
+    if (feedbackData) {
+      setFeedback(feedbackData);
+    }
+
     setLoading(false);
   };
 
@@ -161,7 +176,21 @@ export default function GuestDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{guest.full_name}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold">{guest.full_name}</h1>
+            {guest.is_vip && (
+              <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                <Crown className="h-3 w-3 mr-1" />
+                VIP
+              </Badge>
+            )}
+            {guest.loyalty_tier && (
+              <Badge variant="outline" className="border-primary">
+                <Star className="h-3 w-3 mr-1" />
+                {guest.loyalty_tier}
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground">
             Room {guest.room_number} • {format(parseISO(guest.check_in_date), 'MMM d')} - {format(parseISO(guest.check_out_date), 'MMM d, yyyy')}
           </p>
@@ -249,6 +278,158 @@ export default function GuestDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Loyalty & Internal Notes */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Star className="h-5 w-5" />
+            Loyalty & Internal Notes
+          </CardTitle>
+          {canEditLoyalty && (
+            <Button variant="outline" size="sm" onClick={() => setLoyaltyDialogOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <dt className="text-sm text-muted-foreground mb-1">VIP Status</dt>
+              <dd>
+                {guest.is_vip ? (
+                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    VIP Guest
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Standard</span>
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-muted-foreground mb-1">Loyalty Tier</dt>
+              <dd>
+                {guest.loyalty_tier ? (
+                  <Badge variant="outline" className="border-primary">
+                    <Star className="h-3 w-3 mr-1" />
+                    {guest.loyalty_tier}
+                  </Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground">None</span>
+                )}
+              </dd>
+            </div>
+            <div className="md:col-span-1">
+              <dt className="text-sm text-muted-foreground mb-1">Internal Notes</dt>
+              <dd className="text-sm">
+                {guest.notes_internal ? (
+                  <span className="whitespace-pre-wrap">{guest.notes_internal}</span>
+                ) : (
+                  <span className="text-muted-foreground italic">No notes</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      {/* Stay Feedback */}
+      {feedback.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Stay Feedback
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {feedback.map((fb) => (
+                <div key={fb.id} className="rounded-lg border p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {format(parseISO(fb.check_out_date), 'MMM d, yyyy')}
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < fb.overall_rating
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-muted-foreground'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-sm font-medium ml-1">{fb.overall_rating}/5</span>
+                      </div>
+                    </div>
+                    <Badge
+                      variant={
+                        fb.would_recommend === 'YES'
+                          ? 'confirmed'
+                          : fb.would_recommend === 'NO'
+                          ? 'destructive'
+                          : 'secondary'
+                      }
+                    >
+                      {fb.would_recommend === 'YES'
+                        ? 'Would Recommend'
+                        : fb.would_recommend === 'NO'
+                        ? 'Would Not Recommend'
+                        : 'Maybe Recommend'}
+                    </Badge>
+                  </div>
+                  {fb.highlight_comment && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Highlights:</p>
+                      <p className="text-sm">{fb.highlight_comment}</p>
+                    </div>
+                  )}
+                  {fb.improvement_comment && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Suggestions:</p>
+                      <p className="text-sm">{fb.improvement_comment}</p>
+                    </div>
+                  )}
+                  {(fb.rating_activities || fb.rating_diving || fb.rating_fnb || fb.rating_room || fb.rating_service) && (
+                    <div className="flex flex-wrap gap-3 pt-2 border-t text-xs">
+                      {fb.rating_activities && (
+                        <span className="text-muted-foreground">
+                          Activities: <strong>{fb.rating_activities}/5</strong>
+                        </span>
+                      )}
+                      {fb.rating_diving && (
+                        <span className="text-muted-foreground">
+                          Diving: <strong>{fb.rating_diving}/5</strong>
+                        </span>
+                      )}
+                      {fb.rating_fnb && (
+                        <span className="text-muted-foreground">
+                          F&B: <strong>{fb.rating_fnb}/5</strong>
+                        </span>
+                      )}
+                      {fb.rating_room && (
+                        <span className="text-muted-foreground">
+                          Room: <strong>{fb.rating_room}/5</strong>
+                        </span>
+                      )}
+                      {fb.rating_service && (
+                        <span className="text-muted-foreground">
+                          Service: <strong>{fb.rating_service}/5</strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Activity Bookings */}
       <Card>
@@ -453,6 +634,14 @@ export default function GuestDetailPage() {
         open={preArrivalDialogOpen}
         onOpenChange={setPreArrivalDialogOpen}
         guest={guest}
+      />
+
+      {/* Loyalty Edit Dialog */}
+      <LoyaltyEditDialog
+        open={loyaltyDialogOpen}
+        onOpenChange={setLoyaltyDialogOpen}
+        guest={guest}
+        onSuccess={fetchGuest}
       />
     </div>
   );
