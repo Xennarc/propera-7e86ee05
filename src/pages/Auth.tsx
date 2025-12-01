@@ -18,15 +18,15 @@ const loginSchema = z.object({
 });
 
 const signupSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  fullName: z.string().min(2, 'Please enter your name'),
   username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  email: z.string().email('Please enter a valid email').optional().or(z.literal('')),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+    .min(3, 'Usernames must be at least 3 characters long')
+    .regex(/^[a-zA-Z0-9_.]+$/, 'Usernames can only contain letters, numbers, and dots or underscores'),
+  email: z.string().email('Please enter a valid email address, or leave this field empty').optional().or(z.literal('')),
+  password: z.string().min(8, 'Your password is too short. Please choose a stronger one'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords don't match. Please check and try again",
   path: ["confirmPassword"],
 });
 
@@ -233,7 +233,7 @@ export default function Auth() {
           <Card className="shadow-lg border-border/50">
             <Tabs defaultValue="login">
               <CardHeader className="pb-3">
-                <TabsList className="grid w-full grid-cols-2 h-11">
+                  <TabsList className="grid w-full grid-cols-2 h-11">
                   <TabsTrigger value="login" className="text-sm font-medium">Sign In</TabsTrigger>
                   <TabsTrigger value="signup" className="text-sm font-medium">Create Account</TabsTrigger>
                 </TabsList>
@@ -312,7 +312,7 @@ export default function Auth() {
                   <CardContent className="space-y-5 pt-6">
                     <div className="space-y-2">
                       <Label htmlFor="signup-name" className="text-sm font-medium">
-                        Full Name
+                        Full name
                       </Label>
                       <Input
                         id="signup-name"
@@ -324,7 +324,7 @@ export default function Auth() {
                         className="h-11"
                       />
                       <p className="text-xs text-muted-foreground">
-                        This will be shown to your colleagues in reports and assignments
+                        This name will be shown to your colleagues in reports and assignments
                       </p>
                       {errors.signup_fullName && (
                         <p className="text-sm text-destructive">{errors.signup_fullName}</p>
@@ -333,7 +333,7 @@ export default function Auth() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="signup-username" className="text-sm font-medium">
-                        Username *
+                        Username
                       </Label>
                       <Input
                         id="signup-username"
@@ -345,7 +345,7 @@ export default function Auth() {
                         className="h-11"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Use this to log in. It must be unique
+                        You'll use this to log in. It must be unique and contain no spaces
                       </p>
                       {errors.signup_username && (
                         <p className="text-sm text-destructive">{errors.signup_username}</p>
@@ -366,7 +366,7 @@ export default function Auth() {
                         className="h-11"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Add this if you want to receive notifications or use email to log in later
+                        Add your email if you'd like to receive updates or use email to log in later
                       </p>
                       {errors.signup_email && (
                         <p className="text-sm text-destructive">{errors.signup_email}</p>
@@ -375,7 +375,7 @@ export default function Auth() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="signup-password" className="text-sm font-medium">
-                        Password *
+                        Password
                       </Label>
                       <div className="relative">
                         <Input
@@ -391,11 +391,12 @@ export default function Auth() {
                           type="button"
                           onClick={() => setShowSignupPassword(!showSignupPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showSignupPassword ? "Hide password" : "Show password"}
                         >
                           {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">At least 6 characters</p>
+                      <p className="text-xs text-muted-foreground">At least 8 characters. Use something you don't use anywhere else</p>
                       {errors.signup_password && (
                         <p className="text-sm text-destructive">{errors.signup_password}</p>
                       )}
@@ -403,7 +404,7 @@ export default function Auth() {
                     
                     <div className="space-y-2">
                       <Label htmlFor="signup-confirm" className="text-sm font-medium">
-                        Confirm Password *
+                        Confirm password
                       </Label>
                       <div className="relative">
                         <Input
@@ -419,10 +420,12 @@ export default function Auth() {
                           type="button"
                           onClick={() => setShowSignupConfirm(!showSignupConfirm)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          aria-label={showSignupConfirm ? "Hide password" : "Show password"}
                         >
                           {showSignupConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      <p className="text-xs text-muted-foreground">Type the same password again to confirm</p>
                       {errors.signup_confirmPassword && (
                         <p className="text-sm text-destructive">{errors.signup_confirmPassword}</p>
                       )}
@@ -433,14 +436,14 @@ export default function Auth() {
                       {isLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
+                          Creating your account…
                         </>
                       ) : (
-                        'Create Account'
+                        'Create account'
                       )}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
-                      By creating an account, you agree to follow your resort's policies.
+                      By creating an account, you agree to follow your resort's policies
                     </p>
                   </CardFooter>
                 </form>

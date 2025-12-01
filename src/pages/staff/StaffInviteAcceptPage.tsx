@@ -38,14 +38,14 @@ const ROLE_LABELS: Record<ResortRole, string> = {
 };
 
 const signupSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
+  fullName: z.string().min(2, 'Please enter your name'),
   username: z.string()
-    .min(3, 'Username must be at least 3 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+    .min(3, 'Usernames must be at least 3 characters long')
+    .regex(/^[a-zA-Z0-9_.]+$/, 'Usernames can only contain letters, numbers, and dots or underscores'),
+  password: z.string().min(8, 'Your password is too short. Please choose a stronger one'),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords don't match. Please check and try again",
   path: ['confirmPassword'],
 });
 
@@ -250,11 +250,13 @@ export default function StaffInviteAcceptPage() {
             <XCircle className="h-8 w-8 text-destructive" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">Invitation Not Valid</h2>
-            <p className="text-muted-foreground">{error}</p>
+            <h2 className="text-2xl font-bold text-foreground">This invitation has expired</h2>
+            <p className="text-muted-foreground">
+              This invite link is no longer valid. Please contact your resort admin to request a new invitation.
+            </p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/')} className="mt-6">
-            Go to Home
+          <Button onClick={() => navigate('/auth')} className="mt-6">
+            Back to login
           </Button>
         </div>
       </div>
@@ -283,14 +285,14 @@ export default function StaffInviteAcceptPage() {
           <div className="space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
               <UserPlus className="h-4 w-4" />
-              You're Joining
+              You're joining
             </div>
             <h2 className="text-2xl font-semibold text-foreground">
               {invitation.resort.name}
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              You've been invited to join the team. Create your account to get started managing 
-              guests, activities, and reservations.
+              You've been invited to join {invitation.resort.name} on Propera. 
+              This account lets you manage guests, activities and reservations.
             </p>
           </div>
 
@@ -320,7 +322,7 @@ export default function StaffInviteAcceptPage() {
         <div className="w-full max-w-md space-y-6 animate-fade-in">
           <Card className="shadow-lg border-border/50">
             <CardHeader className="space-y-2 text-center lg:text-left">
-              <CardTitle className="text-2xl">Create Your Account</CardTitle>
+              <CardTitle className="text-2xl">Create your staff account</CardTitle>
               <CardDescription>
                 Set up your credentials to access the staff console
               </CardDescription>
@@ -395,7 +397,7 @@ export default function StaffInviteAcceptPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-sm font-medium">Full Name *</Label>
+                    <Label htmlFor="fullName" className="text-sm font-medium">Full name</Label>
                     <Input
                       id="fullName"
                       value={formData.fullName}
@@ -404,13 +406,13 @@ export default function StaffInviteAcceptPage() {
                       className="h-11"
                     />
                     <p className="text-xs text-muted-foreground">
-                      This will be shown to your colleagues in reports and assignments
+                      This name will be shown to your colleagues in reports and assignments
                     </p>
                     {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium">Username *</Label>
+                    <Label htmlFor="username" className="text-sm font-medium">Username</Label>
                     <Input
                       id="username"
                       value={formData.username}
@@ -418,12 +420,14 @@ export default function StaffInviteAcceptPage() {
                       placeholder="e.g. ali.frontoffice"
                       className="h-11"
                     />
-                    <p className="text-xs text-muted-foreground">Use this to log in. It must be unique</p>
+                    <p className="text-xs text-muted-foreground">
+                      You'll use this to log in. It must be unique and contain no spaces
+                    </p>
                     {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                     <div className="relative">
                       <Input
                         id="password"
@@ -437,16 +441,19 @@ export default function StaffInviteAcceptPage() {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">At least 6 characters</p>
+                    <p className="text-xs text-muted-foreground">
+                      At least 8 characters. Use something you don't use anywhere else
+                    </p>
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm password</Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
@@ -460,10 +467,14 @@ export default function StaffInviteAcceptPage() {
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                       >
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Type the same password again to confirm
+                    </p>
                     {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
                   </div>
 
@@ -475,12 +486,23 @@ export default function StaffInviteAcceptPage() {
                     {accepting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating Account...
+                        Creating your account…
                       </>
                     ) : (
-                      'Create Account & Join'
+                      'Create account'
                     )}
                   </Button>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => navigate('/auth')}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </p>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
