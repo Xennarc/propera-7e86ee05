@@ -472,43 +472,74 @@ export default function SalesPerformanceReport() {
                     Revenue Coach (AI)
                   </CardTitle>
                   <CardDescription className="mt-1.5">
-                    Practical suggestions to improve sales based on your data
+                    Data-driven suggestions to improve ancillary sales
                   </CardDescription>
                 </div>
-                <Button
-                  onClick={generateAIInsights}
-                  disabled={generatingAI}
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {generatingAI ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Insights
-                    </>
+                <div className="flex gap-2">
+                  {aiInsights && (
+                    <Button
+                      onClick={generateAIInsights}
+                      disabled={generatingAI}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {generatingAI ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Regenerating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Regenerate
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                  {!aiInsights && (
+                    <Button
+                      onClick={generateAIInsights}
+                      disabled={generatingAI}
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      {generatingAI ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Generate Insights
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardHeader>
             {aiInsights && (
               <CardContent>
                 <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">
-                    {aiInsights}
+                  <div className="space-y-6">
+                    <div className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">
+                      {aiInsights}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             )}
             {!aiInsights && !generatingAI && (
               <CardContent>
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Click "Generate Insights" to get AI-powered revenue recommendations
-                </p>
+                <div className="text-center py-8 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Get AI-powered analysis of your sales performance with actionable recommendations
+                  </p>
+                  <p className="text-xs text-muted-foreground/70">
+                    The AI will analyze your revenue metrics, attach rates, top performers, and segment data to provide specific suggestions for improvement
+                  </p>
+                </div>
               </CardContent>
             )}
           </Card>
