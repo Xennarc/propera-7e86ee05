@@ -57,6 +57,7 @@ import GuestActivityExplorer from "./pages/guest/GuestActivityExplorer";
 import GuestActivityDetailPage from "./pages/guest/GuestActivityDetailPage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import GuestNotificationsPage from "./pages/guest/GuestNotificationsPage";
+import PreArrivalPage from "./pages/guest/PreArrivalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -146,6 +147,9 @@ const App = () => (
                   <Route path="activities" element={<GuestActivityExplorer />} />
                   <Route path="activities/:activityId" element={<GuestActivityDetailPage />} />
                 </Route>
+                
+                {/* Pre-arrival route (token-based, no auth required) */}
+                <Route path="/prearrival/:token" element={<PreArrivalPage />} />
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />

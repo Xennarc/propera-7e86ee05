@@ -109,6 +109,17 @@ export default function GuestHome() {
     })),
   ].sort((a, b) => a.time.localeCompare(b.time));
 
+  // Calculate if guest has "no plans yet" - check if they have few bookings
+  const upcomingActivities = bookings?.activity_bookings?.filter(
+    (b) => b.date >= todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  ) || [];
+  const upcomingReservations = bookings?.restaurant_reservations?.filter(
+    (r) => r.date >= todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
+  ) || [];
+  
+  const totalUpcomingBookings = upcomingActivities.length + upcomingReservations.length;
+  const showNudge = !isLoading && totalUpcomingBookings <= 2 && todaySchedule.length === 0;
+
   return (
     <div className="space-y-6">
       {/* Feedback Prompt - Show when eligible */}
@@ -168,6 +179,41 @@ export default function GuestHome() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Smart Nudge - No Plans Yet */}
+      {showNudge && (
+        <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                  <Compass className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold mb-2">No plans for today yet?</h3>
+                <p className="text-muted-foreground mb-4">
+                  Here are some popular options during your stay.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/guest/activities">
+                  <Button className="w-full sm:w-auto">
+                    <IconActivities className="h-4 w-4 mr-2" />
+                    Explore Activities
+                  </Button>
+                </Link>
+                <Link to="/guest/restaurants">
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <IconRestaurants className="h-4 w-4 mr-2" />
+                    Book a Restaurant
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Today's Schedule */}
       <div>
