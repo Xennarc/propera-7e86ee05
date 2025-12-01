@@ -37,6 +37,7 @@ import GuestsReport from "./pages/reports/GuestsReport";
 import GuestBehaviourReport from "./pages/reports/GuestBehaviourReport";
 import MarketReport from "./pages/reports/MarketReport";
 import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
+import SalesPerformanceReport from "./pages/reports/SalesPerformanceReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
 import StaffInviteAcceptPage from "./pages/staff/StaffInviteAcceptPage";
 import ResortOnboardingPage from "./pages/onboarding/ResortOnboardingPage";
@@ -89,6 +90,7 @@ const App = () => (
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />
                   <Route path="restaurants/slots/:id" element={<RestaurantSlotDetailPage />} />
                   <Route path="reports" element={<Reports />} />
+                  <Route path="reports/sales" element={<SalesPerformanceReport />} />
                   <Route path="reports/activities" element={<ActivitiesReport />} />
                   <Route path="reports/restaurants" element={<RestaurantsReport />} />
                   <Route path="reports/cancellations" element={<CancellationsReport />} />
