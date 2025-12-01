@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Star, ThumbsUp, Download, TrendingUp, Users, MessageSquare } from 'lucide-react';
 import { format, parseISO, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 
 interface StayFeedbackRow {
   id: string;
@@ -352,6 +353,25 @@ export default function StayFeedbackReport() {
           )}
         </CardContent>
       </Card>
+
+      <AIInsightsPanel
+        reportType="feedback"
+        reportData={{
+          totalResponses,
+          avgOverall,
+          recommendPercentage,
+          categoryAverages: {
+            activities: calculateAvg('rating_activities'),
+            diving: calculateAvg('rating_diving'),
+            fnb: calculateAvg('rating_fnb'),
+            room: calculateAvg('rating_room'),
+            service: calculateAvg('rating_service'),
+          },
+          ratingDistribution,
+        }}
+        resortName={currentResort.name}
+        dateRange={{ start: startDate, end: endDate }}
+      />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Download, Users, Activity, BarChart3 } from 'lucide-react';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 
 const DISTRIBUTION_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
 
@@ -305,6 +306,13 @@ export default function GuestBehaviourReport() {
           )}
         </CardContent>
       </Card>
+
+      <AIInsightsPanel
+        reportType="guest-behaviour"
+        reportData={reportData || {}}
+        resortName={currentResort.name}
+        dateRange={{ start: startDate, end: endDate }}
+      />
     </div>
   );
 }

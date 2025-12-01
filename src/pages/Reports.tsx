@@ -2,36 +2,50 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Utensils, UserCheck, Globe, ArrowRight, MessageSquareHeart } from 'lucide-react';
 
+import { XCircle, Users } from 'lucide-react';
+
 const reportLinks = [
   {
     title: 'Activities Report',
     description: 'Activity booking statistics, revenue, and occupancy rates',
     icon: Activity,
-    href: '/reports/activities',
+    href: '/staff/reports/activities',
   },
   {
     title: 'Restaurants Report',
     description: 'Restaurant covers by meal period and no-show rates',
     icon: Utensils,
-    href: '/reports/restaurants',
+    href: '/staff/reports/restaurants',
+  },
+  {
+    title: 'Cancellations Report',
+    description: 'Cross-module cancellation analysis and patterns',
+    icon: XCircle,
+    href: '/staff/reports/cancellations',
+  },
+  {
+    title: 'Guests Report',
+    description: 'Guest mix, channels, and length of stay analysis',
+    icon: Users,
+    href: '/staff/reports/guests',
   },
   {
     title: 'Guest Behaviour',
     description: 'Guest engagement and activity participation analysis',
     icon: UserCheck,
-    href: '/reports/guest-behaviour',
+    href: '/staff/reports/guest-behaviour',
   },
   {
     title: 'Market Report',
     description: 'Booking analysis by guest nationality',
     icon: Globe,
-    href: '/reports/market',
+    href: '/staff/reports/market',
   },
   {
     title: 'Stay Feedback',
     description: 'End-of-stay guest satisfaction and feedback',
     icon: MessageSquareHeart,
-    href: '/reports/stay-feedback',
+    href: '/staff/reports/stay-feedback',
   },
 ];
 

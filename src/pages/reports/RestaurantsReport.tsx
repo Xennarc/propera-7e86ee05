@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Download, Users, TrendingDown, Utensils } from 'lucide-react';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 
 const MEAL_PERIOD_COLORS: Record<string, string> = {
   BREAKFAST: 'hsl(var(--chart-1))',
@@ -395,6 +396,13 @@ export default function RestaurantsReport() {
           )}
         </CardContent>
       </Card>
+
+      <AIInsightsPanel
+        reportType="restaurants"
+        reportData={reportData || {}}
+        resortName={currentResort.name}
+        dateRange={{ start: startDate, end: endDate }}
+      />
     </div>
   );
 }

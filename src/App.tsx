@@ -32,6 +32,8 @@ import GuestImportPage from "./pages/settings/GuestImportPage";
 import Reports from "./pages/Reports";
 import ActivitiesReport from "./pages/reports/ActivitiesReport";
 import RestaurantsReport from "./pages/reports/RestaurantsReport";
+import CancellationsReport from "./pages/reports/CancellationsReport";
+import GuestsReport from "./pages/reports/GuestsReport";
 import GuestBehaviourReport from "./pages/reports/GuestBehaviourReport";
 import MarketReport from "./pages/reports/MarketReport";
 import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
@@ -89,6 +91,8 @@ const App = () => (
                   <Route path="reports" element={<Reports />} />
                   <Route path="reports/activities" element={<ActivitiesReport />} />
                   <Route path="reports/restaurants" element={<RestaurantsReport />} />
+                  <Route path="reports/cancellations" element={<CancellationsReport />} />
+                  <Route path="reports/guests" element={<GuestsReport />} />
                   <Route path="reports/guest-behaviour" element={<GuestBehaviourReport />} />
                   <Route path="reports/market" element={<MarketReport />} />
                   <Route path="reports/stay-feedback" element={<StayFeedbackReport />} />

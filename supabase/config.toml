@@ -2,3 +2,6 @@ project_id = "dstxrbmetabgbijjeoyf"
 
 [functions.find-guest-resort]
 verify_jwt = false
+
+[functions.generate-insights]
+verify_jwt = false
