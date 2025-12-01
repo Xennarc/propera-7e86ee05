@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, isBefore, startOfDay } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
+import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArrivalLinkDialog';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -57,6 +58,7 @@ export default function GuestDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activityBookingDialogOpen, setActivityBookingDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [preArrivalDialogOpen, setPreArrivalDialogOpen] = useState(false);
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE']);
 
@@ -165,6 +167,12 @@ export default function GuestDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          {canEdit && (
+            <Button variant="outline" onClick={() => setPreArrivalDialogOpen(true)}>
+              <LinkIcon className="h-4 w-4 mr-2" />
+              Pre-Arrival Link
+            </Button>
+          )}
           {canEdit && (
             <Button variant="outline" onClick={() => setFeedbackDialogOpen(true)}>
               <MessageSquareHeart className="h-4 w-4 mr-2" />
@@ -438,6 +446,13 @@ export default function GuestDetailPage() {
         onOpenChange={setFeedbackDialogOpen}
         guest={guest}
         onSuccess={fetchGuest}
+      />
+
+      {/* Pre-Arrival Link Dialog */}
+      <GeneratePreArrivalLinkDialog
+        open={preArrivalDialogOpen}
+        onOpenChange={setPreArrivalDialogOpen}
+        guest={guest}
       />
     </div>
   );

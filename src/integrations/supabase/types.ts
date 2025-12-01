@@ -404,6 +404,51 @@ export type Database = {
           },
         ]
       }
+      prearrival_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          guest_id: string
+          id: string
+          resort_id: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          guest_id: string
+          id?: string
+          resort_id: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          guest_id?: string
+          id?: string
+          resort_id?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prearrival_tokens_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prearrival_tokens_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1010,6 +1055,7 @@ export type Database = {
         }
         Returns: number
       }
+      generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
