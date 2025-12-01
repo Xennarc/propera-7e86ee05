@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Download, Globe } from 'lucide-react';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -416,6 +417,13 @@ export default function MarketReport() {
           )}
         </CardContent>
       </Card>
+
+      <AIInsightsPanel
+        reportType="market"
+        reportData={{ segmentType, data: reportData }}
+        resortName={currentResort.name}
+        dateRange={{ start: startDate, end: endDate }}
+      />
     </div>
   );
 }

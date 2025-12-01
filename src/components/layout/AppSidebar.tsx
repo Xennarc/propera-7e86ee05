@@ -72,8 +72,10 @@ const restaurantNavItems: NavItem[] = [
 
 const reportNavItems: NavItem[] = [
   { title: 'Overview', url: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { title: 'Activities', url: '/staff/reports/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { title: 'Restaurants', url: '/staff/reports/restaurants', icon: IconRestaurants, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Activities', url: '/staff/reports/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'] },
+  { title: 'Restaurants', url: '/staff/reports/restaurants', icon: IconRestaurants, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FNB'] },
+  { title: 'Cancellations', url: '/staff/reports/cancellations', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+  { title: 'Guests', url: '/staff/reports/guests', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
   { title: 'Guest Behaviour', url: '/staff/reports/guest-behaviour', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
   { title: 'Market', url: '/staff/reports/market', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
 ];

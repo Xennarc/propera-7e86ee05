@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Download, Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 
 export default function ActivitiesReport() {
   const { currentResort } = useResort();
@@ -391,6 +392,13 @@ export default function ActivitiesReport() {
           )}
         </CardContent>
       </Card>
+
+      <AIInsightsPanel
+        reportType="activities"
+        reportData={reportData || {}}
+        resortName={currentResort.name}
+        dateRange={{ start: startDate, end: endDate }}
+      />
     </div>
   );
 }
