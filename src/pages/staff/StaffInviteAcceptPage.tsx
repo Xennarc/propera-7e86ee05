@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
-import { Building2, UserPlus, CheckCircle, XCircle, LogOut } from 'lucide-react';
+import { Building2, UserPlus, CheckCircle, XCircle, LogOut, Waves, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
 interface Invitation {
@@ -59,6 +59,8 @@ export default function StaffInviteAcceptPage() {
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     username: '',
@@ -243,20 +245,18 @@ export default function StaffInviteAcceptPage() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-              <XCircle className="h-6 w-6 text-destructive" />
-            </div>
-            <CardTitle>Invalid Invitation</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button variant="outline" onClick={() => navigate('/')}>
-              Go to Home
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="max-w-md w-full space-y-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+            <XCircle className="h-8 w-8 text-destructive" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-foreground">Invitation Not Valid</h2>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+          <Button variant="outline" onClick={() => navigate('/')} className="mt-6">
+            Go to Home
+          </Button>
+        </div>
       </div>
     );
   }
@@ -266,164 +266,246 @@ export default function StaffInviteAcceptPage() {
   const emailMatch = user?.email?.toLowerCase() === invitation.email.toLowerCase();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="max-w-md w-full">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <UserPlus className="h-6 w-6 text-primary" />
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Brand Panel - Left side on desktop, top on mobile */}
+      <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
+        <div className="max-w-md mx-auto w-full space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+              <Waves className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Propera</h1>
+              <p className="text-sm text-muted-foreground">Staff Console</p>
+            </div>
           </div>
-          <CardTitle>Join Propera Staff</CardTitle>
-          <CardDescription>
-            You've been invited to join {invitation.resort.name}
-          </CardDescription>
-        </CardHeader>
+          
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <UserPlus className="h-4 w-4" />
+              You're Joining
+            </div>
+            <h2 className="text-2xl font-semibold text-foreground">
+              {invitation.resort.name}
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              You've been invited to join the team. Create your account to get started managing 
+              guests, activities, and reservations.
+            </p>
+          </div>
 
-        <CardContent className="space-y-6">
-          {/* Invitation Details */}
-          <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+          {/* Resort context */}
+          <div className="rounded-lg border border-border bg-card/50 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">{invitation.resort.name}</span>
+              <span className="font-medium text-sm">Your role</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Role:</span>
-              <Badge variant="secondary">{ROLE_LABELS[invitation.resort_role]}</Badge>
-            </div>
-            {invitation.department && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Department:</span>
-                <span className="text-sm">{invitation.department}</span>
-              </div>
-            )}
-          </div>
-
-          {user ? (
-            // User is logged in
-            <div className="space-y-4">
-              {emailMatch ? (
-                <>
-                  <div className="flex items-center gap-3 p-3 bg-success/10 border border-success/20 rounded-lg">
-                    <CheckCircle className="h-5 w-5 text-success" />
-                    <div>
-                      <p className="text-sm font-medium">Signed in as {user.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        This matches the invitation email
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    className="w-full" 
-                    onClick={handleAcceptAsCurrentUser}
-                    disabled={accepting}
-                  >
-                    {accepting ? 'Accepting...' : 'Accept Invitation'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                    <XCircle className="h-5 w-5 text-warning" />
-                    <div>
-                      <p className="text-sm font-medium">Email Mismatch</p>
-                      <p className="text-xs text-muted-foreground">
-                        You're signed in as {user.email}, but this invitation is for {invitation.email}
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={signOut}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out & Create New Account
-                  </Button>
-                </>
+              <Badge variant="secondary" className="text-sm">
+                {ROLE_LABELS[invitation.resort_role]}
+              </Badge>
+              {invitation.department && (
+                <span className="text-sm text-muted-foreground">• {invitation.department}</span>
               )}
             </div>
-          ) : (
-            // User is not logged in - show signup form
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={invitation.email}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="username">Username *</Label>
-                <Input
-                  id="username"
-                  value={formData.username}
-                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                  placeholder="john_smith"
-                />
-                <p className="text-xs text-muted-foreground">This is what you'll use to log in</p>
-                {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
-              </div>
+        {/* Background decoration */}
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+      </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
-                <Input
-                  id="fullName"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="John Smith"
-                />
-                {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
-              </div>
+      {/* Form Panel - Right side on desktop */}
+      <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-background">
+        <div className="w-full max-w-md space-y-6 animate-fade-in">
+          <Card className="shadow-lg border-border/50">
+            <CardHeader className="space-y-2 text-center lg:text-left">
+              <CardTitle className="text-2xl">Create Your Account</CardTitle>
+              <CardDescription>
+                Set up your credentials to access the staff console
+              </CardDescription>
+            </CardHeader>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Min 6 characters"
-                />
-                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-              </div>
+            <CardContent className="space-y-6">
+              {user ? (
+                // User is logged in
+                <div className="space-y-4">
+                  {emailMatch ? (
+                    <>
+                      <div className="flex items-start gap-3 p-4 bg-success/10 border border-success/20 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Signed in as {user.email}</p>
+                          <p className="text-xs text-muted-foreground">
+                            This matches the invitation email. Click below to complete setup.
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        className="w-full h-11" 
+                        onClick={handleAcceptAsCurrentUser}
+                        disabled={accepting}
+                      >
+                        {accepting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Accepting...
+                          </>
+                        ) : (
+                          'Accept Invitation & Continue'
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-3 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                        <XCircle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Email Mismatch</p>
+                          <p className="text-xs text-muted-foreground">
+                            You're signed in as {user.email}, but this invitation is for {invitation.email}. 
+                            Please sign out to create a new account.
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="w-full h-11"
+                        onClick={signOut}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Sign Out & Create New Account
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                // User is not logged in - show signup form
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={invitation.email}
+                      disabled
+                      className="bg-muted h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">Your invitation email (cannot be changed)</p>
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Repeat password"
-                />
-                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName" className="text-sm font-medium">Full Name *</Label>
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                      placeholder="e.g. Ali Ahmed"
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This will be shown to your colleagues in reports and assignments
+                    </p>
+                    {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
+                  </div>
 
-              <Button 
-                className="w-full" 
-                onClick={handleSignUpAndAccept}
-                disabled={accepting}
-              >
-                {accepting ? 'Creating Account...' : 'Create Account & Join'}
-              </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="username" className="text-sm font-medium">Username *</Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                      placeholder="e.g. ali.frontoffice"
+                      className="h-11"
+                    />
+                    <p className="text-xs text-muted-foreground">Use this to log in. It must be unique</p>
+                    {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
+                  </div>
 
-              <p className="text-xs text-center text-muted-foreground">
-                Already have an account?{' '}
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-xs"
-                  onClick={() => navigate('/auth')}
-                >
-                  Sign in
-                </Button>
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-sm font-medium">Password *</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={formData.password}
+                        onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="••••••••"
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">At least 6 characters</p>
+                    {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password *</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={formData.confirmPassword}
+                        onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder="••••••••"
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+                  </div>
+
+                  <Button 
+                    className="w-full h-11 font-medium" 
+                    onClick={handleSignUpAndAccept}
+                    disabled={accepting}
+                  >
+                    {accepting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Account & Join'
+                    )}
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Already have an account?
+                      </span>
+                    </div>
+                  </div>
+
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-11"
+                    onClick={() => navigate('/auth')}
+                  >
+                    Sign in instead
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

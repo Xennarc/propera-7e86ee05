@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Loader2, Waves } from 'lucide-react';
+import { Loader2, Waves, Eye, EyeOff } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const loginSchema = z.object({
@@ -34,11 +34,14 @@ export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [signupName, setSignupName] = useState('');
   const [signupUsername, setSignupUsername] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirm, setShowSignupConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { signIn, user } = useAuth();
@@ -185,187 +188,266 @@ export default function Auth() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
-      {/* Theme toggle in top right */}
+    <div className="min-h-screen flex flex-col lg:flex-row">
+      {/* Theme toggle */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
       </div>
-      
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/30" />
-      
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-      
-      <div className="relative w-full max-w-md animate-fade-in">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-            <Waves className="h-8 w-8" />
+
+      {/* Brand Panel - Left side on desktop, top on mobile */}
+      <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
+        <div className="max-w-md mx-auto w-full space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+              <Waves className="h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Propera</h1>
+              <p className="text-sm text-muted-foreground">Staff Console</p>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Propera</h1>
-          <p className="mt-2 text-muted-foreground">Resort Booking & Operations</p>
+          
+          <div className="space-y-3 hidden lg:block">
+            <h2 className="text-xl font-semibold text-foreground">
+              Manage your resort operations
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Sign in to manage guests, activities, and reservations for your resort. 
+              Everything you need in one place.
+            </p>
+          </div>
+
+          {/* Decorative element */}
+          <div className="hidden lg:block">
+            <div className="h-1 w-16 bg-primary/20 rounded-full" />
+          </div>
         </div>
 
-        <Card className="shadow-elevated border-border/50 backdrop-blur-sm bg-card/95">
-          <Tabs defaultValue="login">
-            <CardHeader className="pb-2">
-              <TabsList className="grid w-full grid-cols-2 h-11">
-                <TabsTrigger value="login" className="text-sm font-medium">Sign In</TabsTrigger>
-                <TabsTrigger value="signup" className="text-sm font-medium">Sign Up</TabsTrigger>
-              </TabsList>
-            </CardHeader>
+        {/* Background decoration */}
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+      </div>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-identifier" className="text-sm font-medium">Username or Email</Label>
-                    <Input
-                      id="login-identifier"
-                      type="text"
-                      placeholder="Enter your username or email"
-                      value={loginIdentifier}
-                      onChange={(e) => setLoginIdentifier(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.login_identifier && (
-                      <p className="text-sm text-destructive">{errors.login_identifier}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.login_password && (
-                      <p className="text-sm text-destructive">{errors.login_password}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col gap-4">
-                  <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+      {/* Form Panel - Right side on desktop, bottom on mobile */}
+      <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-background">
+        <div className="w-full max-w-md space-y-6 animate-fade-in">
+          <Card className="shadow-lg border-border/50">
+            <Tabs defaultValue="login">
+              <CardHeader className="pb-3">
+                <TabsList className="grid w-full grid-cols-2 h-11">
+                  <TabsTrigger value="login" className="text-sm font-medium">Sign In</TabsTrigger>
+                  <TabsTrigger value="signup" className="text-sm font-medium">Create Account</TabsTrigger>
+                </TabsList>
+              </CardHeader>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup}>
-                <CardContent className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-sm font-medium">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Smith"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.signup_fullName && (
-                      <p className="text-sm text-destructive">{errors.signup_fullName}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-username" className="text-sm font-medium">Username *</Label>
-                    <Input
-                      id="signup-username"
-                      type="text"
-                      placeholder="john_smith"
-                      value={signupUsername}
-                      onChange={(e) => setSignupUsername(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    <p className="text-xs text-muted-foreground">This is what you'll use to log in</p>
-                    {errors.signup_username && (
-                      <p className="text-sm text-destructive">{errors.signup_username}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm font-medium">Email (optional)</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@resort.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.signup_email && (
-                      <p className="text-sm text-destructive">{errors.signup_email}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.signup_password && (
-                      <p className="text-sm text-destructive">{errors.signup_password}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirm Password</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                      disabled={isLoading}
-                      className="h-11"
-                    />
-                    {errors.signup_confirmPassword && (
-                      <p className="text-sm text-destructive">{errors.signup_confirmPassword}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      'Create Account'
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </Card>
+              <TabsContent value="login">
+                <form onSubmit={handleLogin}>
+                  <CardContent className="space-y-5 pt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-identifier" className="text-sm font-medium">
+                        Username or Email
+                      </Label>
+                      <Input
+                        id="login-identifier"
+                        type="text"
+                        placeholder="Enter your username or email"
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11"
+                      />
+                      {errors.login_identifier && (
+                        <p className="text-sm text-destructive flex items-center gap-1">
+                          {errors.login_identifier}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password" className="text-sm font-medium">
+                        Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showLoginPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          disabled={isLoading}
+                          className="h-11 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowLoginPassword(!showLoginPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errors.login_password && (
+                        <p className="text-sm text-destructive">{errors.login_password}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex-col gap-4 pt-2">
+                    <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Staff accounts only. Contact your administrator for access.
+                    </p>
+                  </CardFooter>
+                </form>
+              </TabsContent>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Staff accounts only. Contact your administrator for access.
-        </p>
+              <TabsContent value="signup">
+                <form onSubmit={handleSignup}>
+                  <CardContent className="space-y-5 pt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-name" className="text-sm font-medium">
+                        Full Name
+                      </Label>
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="e.g. Ali Ahmed"
+                        value={signupName}
+                        onChange={(e) => setSignupName(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        This will be shown to your colleagues in reports and assignments
+                      </p>
+                      {errors.signup_fullName && (
+                        <p className="text-sm text-destructive">{errors.signup_fullName}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-username" className="text-sm font-medium">
+                        Username *
+                      </Label>
+                      <Input
+                        id="signup-username"
+                        type="text"
+                        placeholder="e.g. ali.frontoffice"
+                        value={signupUsername}
+                        onChange={(e) => setSignupUsername(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Use this to log in. It must be unique
+                      </p>
+                      {errors.signup_username && (
+                        <p className="text-sm text-destructive">{errors.signup_username}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-sm font-medium">
+                        Email (optional)
+                      </Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        disabled={isLoading}
+                        className="h-11"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Add this if you want to receive notifications or use email to log in later
+                      </p>
+                      {errors.signup_email && (
+                        <p className="text-sm text-destructive">{errors.signup_email}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password" className="text-sm font-medium">
+                        Password *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="signup-password"
+                          type={showSignupPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          disabled={isLoading}
+                          className="h-11 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupPassword(!showSignupPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">At least 6 characters</p>
+                      {errors.signup_password && (
+                        <p className="text-sm text-destructive">{errors.signup_password}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-confirm" className="text-sm font-medium">
+                        Confirm Password *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="signup-confirm"
+                          type={showSignupConfirm ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={signupConfirmPassword}
+                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                          disabled={isLoading}
+                          className="h-11 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowSignupConfirm(!showSignupConfirm)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showSignupConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      {errors.signup_confirmPassword && (
+                        <p className="text-sm text-destructive">{errors.signup_confirmPassword}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex-col gap-4 pt-2">
+                    <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        'Create Account'
+                      )}
+                    </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                      By creating an account, you agree to follow your resort's policies.
+                    </p>
+                  </CardFooter>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </Card>
+        </div>
       </div>
     </div>
   );
