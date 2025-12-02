@@ -39,6 +39,7 @@ import MarketReport from "./pages/reports/MarketReport";
 import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
 import SalesPerformanceReport from "./pages/reports/SalesPerformanceReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
+import TodaysOpportunitiesPage from "./pages/staff/TodaysOpportunitiesPage";
 import StaffInviteAcceptPage from "./pages/staff/StaffInviteAcceptPage";
 import ResortOnboardingPage from "./pages/onboarding/ResortOnboardingPage";
 import GuestLogin from "./pages/guest/GuestLogin";
@@ -100,6 +101,7 @@ const App = () => (
                   <Route path="reports/market" element={<MarketReport />} />
                   <Route path="reports/stay-feedback" element={<StayFeedbackReport />} />
                   <Route path="guest-requests" element={<GuestRequestsPage />} />
+                  <Route path="today" element={<TodaysOpportunitiesPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="settings/users" element={<UserManagementPage />} />
                   <Route path="settings/resorts" element={<ResortsPage />} />
