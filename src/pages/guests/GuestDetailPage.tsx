@@ -16,6 +16,7 @@ import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog'
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArrivalLinkDialog';
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
+import { GuestPinManager } from '@/components/guest/GuestPinManager';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -334,6 +335,18 @@ export default function GuestDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Guest Portal PIN */}
+      {canEdit && (
+        <GuestPinManager
+          guestId={guest.id}
+          guestName={guest.full_name}
+          pinLast4={guest.portal_pin_last4 || null}
+          pinSetAt={guest.portal_pin_set_at || null}
+          portalEnabled={guest.portal_enabled || false}
+          onPinUpdated={fetchGuest}
+        />
+      )}
 
       {/* Stay Feedback */}
       {feedback.length > 0 && (

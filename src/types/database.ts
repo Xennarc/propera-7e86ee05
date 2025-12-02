@@ -104,6 +104,10 @@ export interface Guest {
   loyalty_tier: string | null;
   is_vip: boolean;
   notes_internal: string | null;
+  portal_enabled?: boolean;
+  portal_pin_hash?: string | null;
+  portal_pin_last4?: string | null;
+  portal_pin_set_at?: string | null;
   created_at: string;
   updated_at: string;
 }
