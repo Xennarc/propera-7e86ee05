@@ -105,7 +105,31 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
 
       const link = `${window.location.origin}/staff/invite/${token}`;
       setInviteLink(link);
-      toast.success('Invitation created successfully');
+
+      // Send invitation email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-staff-invite', {
+          body: {
+            email: formData.email.trim().toLowerCase(),
+            name: formData.name.trim() || null,
+            resortName: currentResort.name,
+            role: formData.resort_role,
+            inviteLink: link,
+            expiresIn: '7 days',
+          },
+        });
+
+        if (emailError) {
+          console.error('Failed to send email:', emailError);
+          toast.success('Invitation created! Email could not be sent - please share the link manually.');
+        } else {
+          toast.success('Invitation sent successfully!');
+        }
+      } catch (emailErr) {
+        console.error('Email sending error:', emailErr);
+        toast.success('Invitation created! Email could not be sent - please share the link manually.');
+      }
+
       onSuccess?.();
     } catch (error) {
       console.error('Error creating invitation:', error);
