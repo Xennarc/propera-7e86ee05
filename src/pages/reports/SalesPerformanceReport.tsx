@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { StatCard } from '@/components/ui/stat-card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { DollarSign, TrendingUp, Users, UtensilsCrossed, Sparkles, Loader2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { DollarSign, TrendingUp, Users, UtensilsCrossed, Sparkles, Loader2, CalendarClock, Zap } from 'lucide-react';
 import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -22,6 +22,11 @@ interface SalesMetrics {
   activityAttachRate: number;
   fnbCaptureRate: number;
   cancellationLoss: number;
+  preStayRevenue: number;
+  inStayUpsellRevenue: number;
+  normalRevenue: number;
+  preStayBookings: number;
+  inStayUpsellBookings: number;
 }
 
 interface ActivitySales {
@@ -57,6 +62,13 @@ interface SegmentData {
   cancellationRate: number;
 }
 
+interface UpsellItem {
+  type: 'Activity' | 'Restaurant';
+  name: string;
+  bookings: number;
+  revenue: number;
+}
+
 export default function SalesPerformanceReport() {
   const { currentResort } = useResort();
   const [dateRange, setDateRange] = useState<DateRange>(() => {
@@ -73,6 +85,7 @@ export default function SalesPerformanceReport() {
   const [activitySales, setActivitySales] = useState<ActivitySales[]>([]);
   const [restaurantSales, setRestaurantSales] = useState<RestaurantSales[]>([]);
   const [channelData, setChannelData] = useState<SegmentData[]>([]);
+  const [upsellItems, setUpsellItems] = useState<UpsellItem[]>([]);
   const [aiInsights, setAiInsights] = useState<string>('');
   const [generatingAI, setGeneratingAI] = useState(false);
 
@@ -141,6 +154,7 @@ export default function SalesPerformanceReport() {
           status,
           guest_id,
           session_id,
+          booking_source,
           activity_sessions(activity_id, date, capacity, activities(name))
         `)
         .eq('resort_id', currentResort.id)
@@ -158,6 +172,7 @@ export default function SalesPerformanceReport() {
           status,
           guest_id,
           restaurant_slot_id,
+          booking_source,
           restaurant_time_slots(restaurant_id, capacity, restaurants(name))
         `)
         .eq('resort_id', currentResort.id)
@@ -189,13 +204,95 @@ export default function SalesPerformanceReport() {
         (activityBookings?.filter(b => b.status === 'CANCELLED').reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0) +
         (restaurantReservations?.filter(r => r.status === 'CANCELLED').reduce((sum, r) => sum + (r.total_amount || 0), 0) || 0);
 
+      // Calculate booking source metrics
+      const confirmedActivityBookings = activityBookings?.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED') || [];
+      const confirmedRestaurantReservations = restaurantReservations?.filter(r => r.status === 'CONFIRMED' || r.status === 'COMPLETED') || [];
+
+      const activityPreStayRevenue = confirmedActivityBookings
+        .filter(b => b.booking_source === 'PRE_STAY')
+        .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+      
+      const activityInStayRevenue = confirmedActivityBookings
+        .filter(b => b.booking_source === 'IN_STAY_SUGGESTION')
+        .reduce((sum, b) => sum + (b.total_amount || 0), 0);
+      
+      const restaurantPreStayRevenue = confirmedRestaurantReservations
+        .filter(r => r.booking_source === 'PRE_STAY')
+        .reduce((sum, r) => sum + (r.total_amount || 0), 0);
+      
+      const restaurantInStayRevenue = confirmedRestaurantReservations
+        .filter(r => r.booking_source === 'IN_STAY_SUGGESTION')
+        .reduce((sum, r) => sum + (r.total_amount || 0), 0);
+
+      const preStayRevenue = activityPreStayRevenue + restaurantPreStayRevenue;
+      const inStayUpsellRevenue = activityInStayRevenue + restaurantInStayRevenue;
+      const normalRevenue = totalRevenue - preStayRevenue - inStayUpsellRevenue;
+
+      const preStayBookings = 
+        confirmedActivityBookings.filter(b => b.booking_source === 'PRE_STAY').length +
+        confirmedRestaurantReservations.filter(r => r.booking_source === 'PRE_STAY').length;
+      
+      const inStayUpsellBookings = 
+        confirmedActivityBookings.filter(b => b.booking_source === 'IN_STAY_SUGGESTION').length +
+        confirmedRestaurantReservations.filter(r => r.booking_source === 'IN_STAY_SUGGESTION').length;
+
       setMetrics({
         totalRevenue,
         revenuePerGuest: totalRevenue / totalGuests,
         activityAttachRate: (guestsWithActivities / totalGuests) * 100,
         fnbCaptureRate: (guestsWithRestaurants / totalGuests) * 100,
-        cancellationLoss
+        cancellationLoss,
+        preStayRevenue,
+        inStayUpsellRevenue,
+        normalRevenue,
+        preStayBookings,
+        inStayUpsellBookings
       });
+
+      // Build upsell items list
+      const upsellMap = new Map<string, UpsellItem>();
+
+      confirmedActivityBookings
+        .filter(b => b.booking_source === 'IN_STAY_SUGGESTION')
+        .forEach(booking => {
+          const session = booking.activity_sessions as any;
+          if (!session?.activities?.name) return;
+          
+          const key = `activity-${session.activity_id}`;
+          if (!upsellMap.has(key)) {
+            upsellMap.set(key, {
+              type: 'Activity',
+              name: session.activities.name,
+              bookings: 0,
+              revenue: 0
+            });
+          }
+          const item = upsellMap.get(key)!;
+          item.bookings++;
+          item.revenue += booking.total_amount || 0;
+        });
+
+      confirmedRestaurantReservations
+        .filter(r => r.booking_source === 'IN_STAY_SUGGESTION')
+        .forEach(reservation => {
+          const slot = reservation.restaurant_time_slots as any;
+          if (!slot?.restaurants?.name) return;
+          
+          const key = `restaurant-${slot.restaurant_id}`;
+          if (!upsellMap.has(key)) {
+            upsellMap.set(key, {
+              type: 'Restaurant',
+              name: slot.restaurants.name,
+              bookings: 0,
+              revenue: 0
+            });
+          }
+          const item = upsellMap.get(key)!;
+          item.bookings++;
+          item.revenue += reservation.total_amount || 0;
+        });
+
+      setUpsellItems(Array.from(upsellMap.values()).sort((a, b) => b.revenue - a.revenue));
 
       // Activity sales breakdown
       const activityMap = new Map<string, any>();
@@ -372,7 +469,14 @@ export default function SalesPerformanceReport() {
         summary: metrics,
         topActivities: activitySales.slice(0, 5),
         topRestaurants: restaurantSales.slice(0, 5),
-        channels: channelData
+        channels: channelData,
+        bookingSources: {
+          preStayRevenue: metrics.preStayRevenue,
+          inStayUpsellRevenue: metrics.inStayUpsellRevenue,
+          preStayBookings: metrics.preStayBookings,
+          inStayUpsellBookings: metrics.inStayUpsellBookings,
+          topUpsellItems: upsellItems.slice(0, 5)
+        }
       };
 
       const { data, error } = await supabase.functions.invoke('generate-insights', {
@@ -462,6 +566,24 @@ export default function SalesPerformanceReport() {
             />
           </div>
 
+          {/* Booking Source Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <StatCard
+              title="Pre-stay Revenue"
+              value={`${currentResort.currency} ${metrics?.preStayRevenue.toFixed(2) || '0.00'}`}
+              icon={CalendarClock}
+              description={`Bookings before arrival • ${metrics?.preStayBookings || 0} bookings • ${metrics?.totalRevenue > 0 ? ((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}% of total`}
+              variant="success"
+            />
+            <StatCard
+              title="In-stay Upsell Revenue"
+              value={`${currentResort.currency} ${metrics?.inStayUpsellRevenue.toFixed(2) || '0.00'}`}
+              icon={Zap}
+              description={`From portal suggestions • ${metrics?.inStayUpsellBookings || 0} bookings • ${metrics?.totalRevenue > 0 ? ((metrics.inStayUpsellRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}% of total`}
+              variant="success"
+            />
+          </div>
+
           {/* AI Revenue Coach */}
           <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
             <CardHeader>
@@ -542,6 +664,206 @@ export default function SalesPerformanceReport() {
                 </div>
               </CardContent>
             )}
+          </Card>
+
+          {/* Booking Source Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Where your bookings come from</CardTitle>
+              <CardDescription>Revenue split by booking channel</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart 
+                  data={[
+                    { 
+                      name: 'Normal', 
+                      revenue: metrics?.normalRevenue || 0,
+                      fill: 'hsl(var(--primary))' 
+                    },
+                    { 
+                      name: 'Pre-stay', 
+                      revenue: metrics?.preStayRevenue || 0,
+                      fill: 'hsl(var(--chart-2))' 
+                    },
+                    { 
+                      name: 'In-stay upsell', 
+                      revenue: metrics?.inStayUpsellRevenue || 0,
+                      fill: 'hsl(var(--chart-3))' 
+                    }
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="name" className="text-xs" />
+                  <YAxis className="text-xs" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
+                  />
+                  <Bar dataKey="revenue" />
+                </BarChart>
+              </ResponsiveContainer>
+
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">
+                    {metrics?.totalRevenue > 0 ? ((metrics.normalRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">Normal bookings</div>
+                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.normalRevenue.toFixed(2) || '0.00'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-2">
+                    {metrics?.totalRevenue > 0 ? ((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">Pre-arrival</div>
+                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.preStayRevenue.toFixed(2) || '0.00'}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-chart-3">
+                    {metrics?.totalRevenue > 0 ? ((metrics.inStayUpsellRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">In-stay upsells</div>
+                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.inStayUpsellRevenue.toFixed(2) || '0.00'}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* In-stay Upsell Effectiveness */}
+          <Card className="border-chart-3/30 bg-gradient-to-br from-card to-chart-3/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-chart-3" />
+                In-stay Upsell Effectiveness
+              </CardTitle>
+              <CardDescription>
+                Performance of smart suggestions shown during the guest stay
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {metrics && metrics.inStayUpsellRevenue > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-card rounded-lg p-4 border">
+                      <div className="text-sm text-muted-foreground mb-1">Bookings from suggestions</div>
+                      <div className="text-2xl font-bold text-foreground">{metrics.inStayUpsellBookings}</div>
+                    </div>
+                    <div className="bg-card rounded-lg p-4 border">
+                      <div className="text-sm text-muted-foreground mb-1">Revenue from suggestions</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {currentResort.currency} {metrics.inStayUpsellRevenue.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {upsellItems.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 text-foreground">Top performers from suggestions</h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="border-b border-border">
+                            <tr className="text-left">
+                              <th className="pb-2 font-medium">Type</th>
+                              <th className="pb-2 font-medium">Name</th>
+                              <th className="pb-2 font-medium text-right">Bookings</th>
+                              <th className="pb-2 font-medium text-right">Revenue</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {upsellItems.map((item, idx) => (
+                              <tr key={idx} className="border-b border-border/50">
+                                <td className="py-3">
+                                  <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                    item.type === 'Activity' ? 'bg-primary/10 text-primary' : 'bg-chart-2/10 text-chart-2'
+                                  }`}>
+                                    {item.type}
+                                  </span>
+                                </td>
+                                <td className="py-3 font-medium">{item.name}</td>
+                                <td className="py-3 text-right">{item.bookings}</td>
+                                <td className="py-3 text-right font-medium">
+                                  {currentResort.currency} {item.revenue.toFixed(2)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <Zap className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No bookings from in-stay suggestions in this period.
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-2">
+                    Smart suggestions appear on guest home when they have light plans.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Pre-stay Planning Impact */}
+          <Card className="border-chart-2/30 bg-gradient-to-br from-card to-chart-2/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarClock className="h-5 w-5 text-chart-2" />
+                Pre-stay Planning Impact
+              </CardTitle>
+              <CardDescription>
+                Revenue secured before guests arrive via pre-arrival links
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {metrics && metrics.preStayRevenue > 0 ? (
+                <>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-card rounded-lg p-4 border">
+                      <div className="text-sm text-muted-foreground mb-1">Bookings before arrival</div>
+                      <div className="text-2xl font-bold text-foreground">{metrics.preStayBookings}</div>
+                    </div>
+                    <div className="bg-card rounded-lg p-4 border">
+                      <div className="text-sm text-muted-foreground mb-1">Pre-stay revenue</div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {currentResort.currency} {metrics.preStayRevenue.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg p-4 border">
+                      <div className="text-sm text-muted-foreground mb-1">Share of total revenue</div>
+                      <div className="text-2xl font-bold text-chart-2">
+                        {((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-card rounded-lg p-4 border">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      <strong className="text-foreground">Pre-stay bookings reduce operational pressure</strong> and increase revenue certainty. 
+                      Guests who plan before arrival are more engaged and have a better experience. Track this metric to measure 
+                      the effectiveness of your pre-arrival communication strategy.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <CalendarClock className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    No bookings from pre-arrival planning in this period.
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-2">
+                    Generate pre-arrival links for guests to enable planning before arrival.
+                  </p>
+                </div>
+              )}
+            </CardContent>
           </Card>
 
           {/* Activity Sales */}
