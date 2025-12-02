@@ -298,6 +298,8 @@ export type Database = {
           phone: string | null
           portal_enabled: boolean
           portal_pin_hash: string | null
+          portal_pin_last4: string | null
+          portal_pin_set_at: string | null
           resort_id: string
           room_number: string
           updated_at: string
@@ -320,6 +322,8 @@ export type Database = {
           phone?: string | null
           portal_enabled?: boolean
           portal_pin_hash?: string | null
+          portal_pin_last4?: string | null
+          portal_pin_set_at?: string | null
           resort_id: string
           room_number: string
           updated_at?: string
@@ -342,6 +346,8 @@ export type Database = {
           phone?: string | null
           portal_enabled?: boolean
           portal_pin_hash?: string | null
+          portal_pin_last4?: string | null
+          portal_pin_set_at?: string | null
           resort_id?: string
           room_number?: string
           updated_at?: string
@@ -1082,6 +1088,7 @@ export type Database = {
         }
         Returns: number
       }
+      generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
