@@ -1,13 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sun, Sunset, Moon, ChevronRight, Compass } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles } from 'lucide-react';
 import {
   IconActivities,
   IconRestaurants,
@@ -17,9 +18,15 @@ import {
   IconFeedback,
   IconStay,
 } from '@/components/icons/ProperaIcons';
+import {
+  createActivityBookingFromInStaySuggestion,
+  createRestaurantReservationFromInStaySuggestion,
+} from '@/lib/booking-source-helpers';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['guest-bookings', guest?.guestId],
@@ -120,6 +127,131 @@ export default function GuestHome() {
   const totalUpcomingBookings = upcomingActivities.length + upcomingReservations.length;
   const showNudge = !isLoading && totalUpcomingBookings <= 2 && todaySchedule.length === 0;
 
+  // Fetch smart suggestions for in-stay upsell
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+  const { data: suggestions } = useQuery({
+    queryKey: ['guest-suggestions', guest?.guestId, todayStr],
+    queryFn: async () => {
+      if (!guest) return null;
+
+      // Fetch suggested activities for today and tomorrow
+      const { data: activityData } = await supabase.rpc('guest_get_available_sessions', {
+        p_guest_id: guest.guestId,
+        p_date: null, // Get all upcoming
+      });
+
+      const sessions = (activityData as any[]) || [];
+      
+      // Filter to today/tomorrow and sort by popularity (remaining_spots desc means less popular, so reverse)
+      const todayTomorrowSessions = sessions
+        .filter((s: any) => s.date === todayStr || s.date === tomorrow)
+        .sort((a: any, b: any) => {
+          // Prioritize sessions with more bookings (capacity - remaining = booked)
+          const aBooked = a.capacity - a.remaining_spots;
+          const bBooked = b.capacity - b.remaining_spots;
+          return bBooked - aBooked;
+        })
+        .slice(0, 2); // Top 2 activities
+
+      // Fetch suggested restaurant slots for today
+      const { data: restaurantData } = await supabase.rpc('guest_get_available_slots', {
+        p_guest_id: guest.guestId,
+        p_date: todayStr,
+      });
+
+      const slots = (restaurantData as any[]) || [];
+      
+      // Get dinner slots for tonight
+      const dinnerSlots = slots
+        .filter((s: any) => s.meal_period === 'DINNER' && s.remaining_covers > 0)
+        .slice(0, 1); // Top 1 restaurant
+
+      return {
+        activities: todayTomorrowSessions,
+        restaurants: dinnerSlots,
+      };
+    },
+    enabled: !!guest && showNudge,
+  });
+
+  // Mutation for booking activities from suggestions
+  const bookActivityMutation = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!guest) throw new Error('Not authenticated');
+      
+      return createActivityBookingFromInStaySuggestion({
+        guestId: guest.guestId,
+        sessionId,
+        numAdults: 1,
+        numChildren: 0,
+      });
+    },
+    onSuccess: (result, sessionId) => {
+      if ((result.data as any)?.success) {
+        const session = suggestions?.activities.find((s: any) => s.id === sessionId);
+        toast({
+          title: "You're booked!",
+          description: `${session?.activity_name} on ${format(parseISO(session?.date), 'MMM d')} at ${session?.start_time.slice(0, 5)}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['guest-suggestions'] });
+      } else {
+        toast({
+          title: "Couldn't complete booking",
+          description: "This time may no longer be available. Please try another or contact reception.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Booking failed",
+        description: "Something went wrong. Please try again or contact reception.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for booking restaurants from suggestions
+  const bookRestaurantMutation = useMutation({
+    mutationFn: async (slotId: string) => {
+      if (!guest) throw new Error('Not authenticated');
+      
+      return createRestaurantReservationFromInStaySuggestion({
+        guestId: guest.guestId,
+        slotId,
+        numAdults: 2,
+        numChildren: 0,
+      });
+    },
+    onSuccess: (result, slotId) => {
+      if ((result.data as any)?.success) {
+        const slot = suggestions?.restaurants.find((s: any) => s.id === slotId);
+        toast({
+          title: "Table reserved!",
+          description: `${slot?.restaurant_name} tonight at ${slot?.start_time.slice(0, 5)}`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+        queryClient.invalidateQueries({ queryKey: ['guest-suggestions'] });
+      } else {
+        toast({
+          title: "Couldn't complete reservation",
+          description: "This time may no longer be available. Please try another or contact reception.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Reservation failed",
+        description: "Something went wrong. Please try again or contact reception.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const hasSuggestions = (suggestions?.activities?.length || 0) + (suggestions?.restaurants?.length || 0) > 0;
+
   return (
     <div className="space-y-6">
       {/* Feedback Prompt - Show when eligible */}
@@ -180,8 +312,102 @@ export default function GuestHome() {
         </CardContent>
       </Card>
 
-      {/* Smart Nudge - No Plans Yet */}
-      {showNudge && (
+      {/* Smart Nudge - No Plans Yet with Suggestions */}
+      {showNudge && hasSuggestions && (
+        <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">No plans for today yet?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Here are some popular options you can still book.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                {/* Activity Suggestions */}
+                {suggestions?.activities?.map((session: any) => (
+                  <Card key={session.id} className="shadow-soft border-primary/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+                          <IconActivities className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-foreground mb-1 truncate">
+                            {session.activity_name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            {format(parseISO(session.date), 'MMM d')} at {session.start_time.slice(0, 5)}
+                            {session.duration_minutes && ` • ${session.duration_minutes}min`}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            Guest favourite
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => bookActivityMutation.mutate(session.id)}
+                          disabled={bookActivityMutation.isPending}
+                          className="shrink-0"
+                        >
+                          {bookActivityMutation.isPending ? 'Booking...' : 'Book now'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Restaurant Suggestions */}
+                {suggestions?.restaurants?.map((slot: any) => (
+                  <Card key={slot.id} className="shadow-soft border-primary/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+                          <IconRestaurants className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-foreground mb-1 truncate">
+                            {slot.restaurant_name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground mb-1">
+                            Tonight at {slot.start_time.slice(0, 5)}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            Still available for tonight
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => bookRestaurantMutation.mutate(slot.id)}
+                          disabled={bookRestaurantMutation.isPending}
+                          className="shrink-0"
+                        >
+                          {bookRestaurantMutation.isPending ? 'Booking...' : 'Reserve table'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="pt-2 text-center">
+                <Link to="/guest/activities" className="text-sm text-primary hover:underline font-medium">
+                  See all activities →
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fallback nudge if no suggestions available */}
+      {showNudge && !hasSuggestions && (
         <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-6">
             <div className="text-center space-y-4">
@@ -193,7 +419,7 @@ export default function GuestHome() {
               <div>
                 <h3 className="text-xl font-bold mb-2">No plans for today yet?</h3>
                 <p className="text-muted-foreground mb-4">
-                  Here are some popular options during your stay.
+                  Explore activities and dining options during your stay.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
