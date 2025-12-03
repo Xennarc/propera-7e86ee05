@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Search, ArrowLeft, CheckCircle, AlertCircle, Users } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconPropera, WaveDivider } from '@/components/icons/ProperaIcons';
 
@@ -20,10 +21,40 @@ export default function GuestFindResort() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [formData, setFormData] = useState({ lastName: '', roomNumber: '' });
+  const [errors, setErrors] = useState<{ lastName?: string; roomNumber?: string; form?: string }>({});
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+    const trimmedLastName = formData.lastName.trim();
+    const trimmedRoom = formData.roomNumber.trim();
+
+    if (!trimmedLastName) {
+      newErrors.lastName = 'Last name is required';
+    } else if (trimmedLastName.length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
+    }
+
+    if (!trimmedRoom) {
+      newErrors.roomNumber = 'Room number is required';
+    }
+
+    if (!trimmedLastName && !trimmedRoom) {
+      newErrors.form = 'Please enter at least your room number and last name to continue.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setResult(null);
+    setErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -98,30 +129,53 @@ export default function GuestFindResort() {
             <CardContent>
               {!result ? (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {errors.form && (
+                    <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{errors.form}</AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Last Name</Label>
+                    <Label className="text-sm font-medium">Last Name *</Label>
                     <Input 
                       placeholder="e.g., Smith" 
                       value={formData.lastName} 
-                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} 
-                      className="h-12 rounded-xl"
+                      onChange={(e) => {
+                        setFormData({ ...formData, lastName: e.target.value });
+                        if (errors.lastName && e.target.value.trim().length >= 2) {
+                          setErrors(prev => ({ ...prev, lastName: undefined, form: undefined }));
+                        }
+                      }}
+                      className={cn("h-12 rounded-xl", errors.lastName && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {errors.lastName && (
+                      <p className="text-sm text-destructive">{errors.lastName}</p>
+                    )}
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Room Number</Label>
+                    <Label className="text-sm font-medium">Room Number *</Label>
                     <Input 
                       placeholder="e.g., 101" 
                       value={formData.roomNumber} 
-                      onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })} 
-                      className="h-12 rounded-xl font-mono"
+                      onChange={(e) => {
+                        setFormData({ ...formData, roomNumber: e.target.value });
+                        if (errors.roomNumber && e.target.value.trim()) {
+                          setErrors(prev => ({ ...prev, roomNumber: undefined, form: undefined }));
+                        }
+                      }}
+                      className={cn("h-12 rounded-xl font-mono", errors.roomNumber && "border-destructive focus-visible:ring-destructive")}
                     />
+                    {errors.roomNumber && (
+                      <p className="text-sm text-destructive">{errors.roomNumber}</p>
+                    )}
                   </div>
                   
                   <Button 
                     type="submit" 
                     className="w-full h-14 text-base font-bold rounded-xl shadow-md" 
-                    disabled={loading || !formData.lastName || !formData.roomNumber}
+                    disabled={loading}
                   >
                     {loading ? (
                       <>

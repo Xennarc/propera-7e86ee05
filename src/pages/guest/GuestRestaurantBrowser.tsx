@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Utensils, Clock, Users, ChevronRight, Calendar, Sparkles } from 'lucide-react';
+import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
+import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 
 const MEAL_PERIOD_ORDER = ['BREAKFAST', 'LUNCH', 'DINNER', 'EVENT'];
 
@@ -64,33 +64,30 @@ export default function GuestRestaurantBrowser() {
         <p className="text-sm text-muted-foreground">Reserve your dining experience</p>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-primary shrink-0" />
-          <Input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            min={guest.checkInDate}
-            max={guest.checkOutDate}
-            className="flex-1"
-          />
-        </div>
-        <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
-          <SelectTrigger>
-            <div className="flex items-center gap-2">
-              <Utensils className="h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder="All Restaurants" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Restaurants</SelectItem>
-            {restaurants?.map((r: any) => (
-              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Restaurant Filter */}
+      <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
+        <SelectTrigger className="h-12">
+          <div className="flex items-center gap-2">
+            <Utensils className="h-4 w-4 text-muted-foreground" />
+            <SelectValue placeholder="All Restaurants" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Restaurants</SelectItem>
+          {restaurants?.map((r: any) => (
+            <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Date Picker with Month Navigation */}
+      <GuestDatePicker
+        value={selectedDate}
+        onChange={setSelectedDate}
+        minDate={guest.checkInDate}
+        maxDate={guest.checkOutDate}
+        hint="Select a date to see available dining times"
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -99,7 +96,21 @@ export default function GuestRestaurantBrowser() {
           <p className="text-sm text-center text-muted-foreground">Loading restaurants...</p>
         </div>
       ) : Object.keys(slotsByPeriod).length === 0 ? (
-        <EmptyState icon={Utensils} title="No tables available" description="No reservations available for this date. Try another day or contact reception." />
+        <Card className="border-dashed bg-muted/30">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <Utensils className="h-10 w-10 text-muted-foreground/50" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">All dining times are fully booked</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mb-4">
+              Please contact your butler or concierge for alternative arrangements.
+            </p>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Phone className="h-4 w-4" />
+              Contact Butler
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {MEAL_PERIOD_ORDER.filter(p => slotsByPeriod[p]).map((period) => (
