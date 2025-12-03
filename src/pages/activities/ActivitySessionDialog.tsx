@@ -105,40 +105,60 @@ export function ActivitySessionDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.activity_id) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select an activity' });
+      return;
+    }
+    if (!formData.date) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select a date' });
+      return;
+    }
+    if (!formData.start_time || !formData.end_time) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set start and end times' });
+      return;
+    }
+
     setLoading(true);
 
-    const payload = {
-      resort_id: resortId,
-      activity_id: formData.activity_id,
-      date: formData.date,
-      start_time: formData.start_time,
-      end_time: formData.end_time,
-      capacity: formData.capacity,
-      resource_id: formData.resource_id || null,
-      status: formData.status,
-      notes: formData.notes || null,
-    };
+    try {
+      const payload = {
+        resort_id: resortId,
+        activity_id: formData.activity_id,
+        date: formData.date,
+        start_time: formData.start_time,
+        end_time: formData.end_time,
+        capacity: formData.capacity,
+        resource_id: formData.resource_id || null,
+        status: formData.status,
+        notes: formData.notes || null,
+      };
 
-    let error;
-    if (session) {
-      ({ error } = await supabase
-        .from('activity_sessions')
-        .update(payload)
-        .eq('id', session.id));
-    } else {
-      ({ error } = await supabase
-        .from('activity_sessions')
-        .insert(payload));
-    }
+      let error;
+      if (session) {
+        ({ error } = await supabase
+          .from('activity_sessions')
+          .update(payload)
+          .eq('id', session.id));
+      } else {
+        ({ error } = await supabase
+          .from('activity_sessions')
+          .insert(payload));
+      }
 
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      toast({ title: 'Success', description: session ? 'Session updated' : 'Session created' });
-      onSuccess();
-      onOpenChange(false);
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+      } else {
+        toast({ title: 'Success', description: session ? 'Session updated successfully' : 'Session created successfully' });
+        onSuccess();
+        onOpenChange(false);
+      }
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -150,19 +170,23 @@ export function ActivitySessionDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Activity *</Label>
-            <Select
-              value={formData.activity_id}
-              onValueChange={(v) => setFormData({ ...formData, activity_id: v })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select activity" />
-              </SelectTrigger>
-              <SelectContent>
-                {activities.map(a => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {activities.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">No activities available. Please create an activity first.</p>
+            ) : (
+              <Select
+                value={formData.activity_id}
+                onValueChange={(v) => setFormData({ ...formData, activity_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select activity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activities.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">

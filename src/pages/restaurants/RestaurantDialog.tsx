@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const restaurantSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
   total_capacity: z.number().min(1, 'Capacity must be at least 1'),
 });
 
@@ -156,7 +156,13 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, name: e.target.value });
+                // Clear error when user types valid value
+                if (e.target.value.trim().length >= 2 && errors.name) {
+                  setErrors(prev => ({ ...prev, name: '' }));
+                }
+              }}
               placeholder="Oceanview Restaurant"
             />
             {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}

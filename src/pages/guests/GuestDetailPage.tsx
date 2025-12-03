@@ -17,6 +17,7 @@ import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArrivalLinkDialog';
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 import { GuestPinManager } from '@/components/guest/GuestPinManager';
+import { ErrorState } from '@/components/ui/error-state';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -63,27 +64,40 @@ export default function GuestDetailPage() {
   const [preArrivalDialogOpen, setPreArrivalDialogOpen] = useState(false);
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE']);
   const canEditLoyalty = hasAnyRole(['ADMIN', 'MANAGER']);
 
   const fetchGuest = async () => {
-    if (!id) return;
-    setLoading(true);
-
-    const { data: guestData, error } = await supabase
-      .from('guests')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-      navigate('/guests');
+    if (!id) {
+      setError('Invalid guest ID');
+      setLoading(false);
       return;
     }
+    
+    setLoading(true);
+    setError(null);
 
-    setGuest(guestData as Guest);
+    try {
+      const { data: guestData, error: fetchError } = await supabase
+        .from('guests')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        if (fetchError.code === 'PGRST116') {
+          // No rows returned - guest not found
+          setError('Guest not found');
+        } else {
+          setError('Failed to load guest details');
+        }
+        setLoading(false);
+        return;
+      }
+
+      setGuest(guestData as Guest);
 
     // Fetch activity bookings
     const { data: bookingsData } = await supabase
@@ -126,11 +140,14 @@ export default function GuestDetailPage() {
       .eq('guest_id', id)
       .order('created_at', { ascending: false });
 
-    if (feedbackData) {
-      setFeedback(feedbackData);
+      if (feedbackData) {
+        setFeedback(feedbackData);
+      }
+    } catch (err) {
+      setError('An unexpected error occurred while loading guest details');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -160,13 +177,15 @@ export default function GuestDetailPage() {
     );
   }
 
-  if (!guest) {
+  if (error || !guest) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">Guest not found</p>
-        </CardContent>
-      </Card>
+      <ErrorState
+        title="We couldn't load this guest"
+        description={error || "Guest not found. Please try again later or contact your system administrator."}
+        onBack={() => navigate('/guests')}
+        backLabel="Back to Guests"
+        onRetry={fetchGuest}
+      />
     );
   }
 
