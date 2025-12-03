@@ -535,3 +535,58 @@
     min-width: 44px;
   }
 }
+
+/* Mobile-first form improvements */
+@layer components {
+  /* Full-width form inputs on mobile */
+  @media (max-width: 640px) {
+    .form-mobile input,
+    .form-mobile select,
+    .form-mobile textarea,
+    .form-mobile button[type="submit"] {
+      width: 100%;
+    }
+    
+    .form-mobile button {
+      min-height: 48px;
+    }
+  }
+  
+  /* Better touch targets for form elements */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"] {
+    min-height: 44px;
+  }
+  
+  /* Improved select styling on mobile */
+  @media (max-width: 640px) {
+    select {
+      font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+  }
+}
+
+/* Mobile card layout utilities */
+@layer utilities {
+  .card-mobile {
+    @apply p-4;
+  }
+  
+  @media (min-width: 640px) {
+    .card-mobile {
+      @apply p-6;
+    }
+  }
+  
+  /* Stack on mobile, row on desktop */
+  .stack-mobile {
+    @apply flex flex-col gap-3;
+  }
+  
+  @media (min-width: 640px) {
+    .stack-mobile {
+      @apply flex-row items-center;
+    }
+  }
+}

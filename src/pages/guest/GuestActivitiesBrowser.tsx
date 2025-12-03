@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Calendar, Clock, Users, ChevronRight, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { cn } from '@/lib/utils';
 
 const categories = [
@@ -55,18 +55,7 @@ export default function GuestActivitiesBrowser() {
         <p className="text-sm text-muted-foreground">Discover experiences for your stay</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Calendar className="h-5 w-5 text-primary shrink-0" />
-        <Input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          min={minDate}
-          max={maxDate}
-          className="flex-1"
-        />
-      </div>
-
+      {/* Category Pills */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-thin">
         {categories.map((cat) => (
           <Button
@@ -74,16 +63,21 @@ export default function GuestActivitiesBrowser() {
             variant={selectedCategory === cat.value ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedCategory(cat.value)}
-            className={cn("shrink-0 rounded-full", selectedCategory === cat.value && "shadow-sm")}
+            className={cn("shrink-0 rounded-full h-10 px-4", selectedCategory === cat.value && "shadow-sm")}
           >
             {cat.label}
           </Button>
         ))}
       </div>
 
-      <p className="text-xs text-muted-foreground -mt-2 mb-2">
-        You can book for any day during your stay.
-      </p>
+      {/* Date Picker with Month Navigation */}
+      <GuestDatePicker
+        value={selectedDate}
+        onChange={setSelectedDate}
+        minDate={minDate}
+        maxDate={maxDate}
+        hint="Select a date to see available activities"
+      />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -92,11 +86,21 @@ export default function GuestActivitiesBrowser() {
           <p className="text-sm text-center text-muted-foreground">Loading activities...</p>
         </div>
       ) : sessions?.length === 0 ? (
-        <EmptyState
-          icon={Calendar}
-          title="No activities available"
-          description="No activities are available for this date. Try another day or ask reception for help."
-        />
+        <Card className="border-dashed bg-muted/30">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <Calendar className="h-10 w-10 text-muted-foreground/50" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">No activities available</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mb-4">
+              There are no activities available on this date. Please select another date or contact your concierge for assistance.
+            </p>
+            <Button variant="outline" size="sm" className="gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Contact Concierge
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {sessions?.map((session: any) => {
