@@ -24,8 +24,8 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const guestSchema = z.object({
-  full_name: z.string().min(2, 'Name must be at least 2 characters'),
-  room_number: z.string().min(1, 'Room number is required'),
+  full_name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
+  room_number: z.string().transform(val => val.trim()).pipe(z.string().min(1, 'Room number is required')),
   check_in_date: z.string().min(1, 'Check-in date is required'),
   check_out_date: z.string().min(1, 'Check-out date is required'),
   nationality: z.string().optional(),
@@ -169,7 +169,13 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
               <Input
                 id="full_name"
                 value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, full_name: e.target.value });
+                  // Clear error when user types valid value
+                  if (e.target.value.trim().length >= 2 && errors.full_name) {
+                    setErrors(prev => ({ ...prev, full_name: '' }));
+                  }
+                }}
                 placeholder="John Smith"
               />
               {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
