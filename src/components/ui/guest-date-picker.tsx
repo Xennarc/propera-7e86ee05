@@ -21,7 +21,8 @@ export function GuestDatePicker({
   className,
   hint = "Select a date to see available options",
 }: GuestDatePickerProps) {
-  const selectedDate = value ? parseISO(value) : new Date();
+  const today = new Date();
+  const selectedDate = value ? parseISO(value) : today;
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
   
   const minDateObj = minDate ? parseISO(minDate) : null;
@@ -111,32 +112,32 @@ export function GuestDatePicker({
         {paddingDays.map((_, idx) => (
           <div key={`pad-${idx}`} className="h-10" />
         ))}
-        {days.map((day) => {
-          const isSelected = isSameDay(day, selectedDate);
-          const isDisabled = isDateDisabled(day);
-          const isCurrentMonth = isSameMonth(day, currentMonth);
-          const isToday = isSameDay(day, new Date());
+          {days.map((day) => {
+            const isSelected = isSameDay(day, selectedDate);
+            const isDisabled = isDateDisabled(day);
+            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isToday = isSameDay(day, today);
 
-          return (
-            <button
-              key={day.toISOString()}
-              type="button"
-              onClick={() => handleSelectDate(day)}
-              disabled={isDisabled}
-              className={cn(
-                "h-10 w-full rounded-lg text-sm font-medium transition-all",
-                "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                isSelected && "bg-primary text-primary-foreground shadow-sm",
-                !isSelected && isToday && "bg-accent text-accent-foreground",
-                !isSelected && !isToday && !isDisabled && "hover:bg-muted",
-                isDisabled && "text-muted-foreground/40 cursor-not-allowed",
-                !isCurrentMonth && "opacity-50"
-              )}
-            >
-              {format(day, 'd')}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={day.toISOString()}
+                type="button"
+                onClick={() => handleSelectDate(day)}
+                disabled={isDisabled}
+                className={cn(
+                  "h-10 w-full rounded-lg text-sm font-medium transition-all min-h-[44px]",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  isSelected && "bg-primary text-primary-foreground shadow-sm",
+                  !isSelected && isToday && "ring-2 ring-primary/50 bg-primary/10 text-primary font-semibold",
+                  !isSelected && !isToday && !isDisabled && "hover:bg-muted",
+                  isDisabled && "text-muted-foreground/40 cursor-not-allowed",
+                  !isCurrentMonth && "opacity-50"
+                )}
+              >
+                {format(day, 'd')}
+              </button>
+            );
+          })}
       </div>
 
       {/* Hint Text */}

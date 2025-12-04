@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Restaurant, RestaurantTimeSlot, MealPeriod, SlotStatus } from '@/types/database';
 import {
@@ -32,6 +32,7 @@ export function RestaurantSlotDialog({
   onSuccess,
 }: RestaurantSlotDialogProps) {
   const [loading, setLoading] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     restaurant_id: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -66,6 +67,10 @@ export function RestaurantSlotDialog({
         capacity: defaultRestaurant?.total_capacity || 50,
         status: 'OPEN',
       });
+    }
+    // Auto-focus date field when dialog opens
+    if (open) {
+      setTimeout(() => dateInputRef.current?.focus(), 100);
     }
   }, [slot, open, restaurants]);
 
@@ -141,9 +146,11 @@ export function RestaurantSlotDialog({
             <Label>Date *</Label>
             <Input
               type="date"
+              ref={dateInputRef}
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
+              className="h-12"
             />
           </div>
 

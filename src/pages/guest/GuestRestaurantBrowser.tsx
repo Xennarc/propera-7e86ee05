@@ -8,9 +8,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone } from 'lucide-react';
+import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const MEAL_PERIOD_ORDER = ['BREAKFAST', 'LUNCH', 'DINNER', 'EVENT'];
 
@@ -60,7 +66,21 @@ export default function GuestRestaurantBrowser() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-foreground">Restaurants</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-foreground">Restaurants</h1>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[250px]">
+                <p>Restaurants appear when they have available time slots for the selected date.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <p className="text-sm text-muted-foreground">Reserve your dining experience</p>
       </div>
 
@@ -101,13 +121,13 @@ export default function GuestRestaurantBrowser() {
             <div className="rounded-full bg-muted p-4 mb-4">
               <Utensils className="h-10 w-10 text-muted-foreground/50" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">All dining times are fully booked</h3>
+            <h3 className="font-semibold text-foreground mb-2">No dining slots available</h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-4">
-              Please contact your butler or concierge for alternative arrangements.
+              There are no dining slots scheduled for this date. Please try selecting another day or contact your concierge for assistance.
             </p>
             <Button variant="outline" size="sm" className="gap-2">
               <Phone className="h-4 w-4" />
-              Contact Butler
+              Contact Concierge
             </Button>
           </CardContent>
         </Card>

@@ -595,4 +595,50 @@
       @apply flex-row items-center;
     }
   }
+  
+  /* Table horizontal scroll indicator */
+  .table-scroll-container {
+    @apply relative overflow-x-auto;
+  }
+  
+  .table-scroll-container::after {
+    content: '';
+    @apply absolute top-0 right-0 bottom-0 w-6 pointer-events-none;
+    background: linear-gradient(to right, transparent, hsl(var(--card) / 0.8));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .table-scroll-container.has-scroll::after {
+    opacity: 1;
+  }
+  
+  /* Better dialog mobile styling */
+  @media (max-width: 640px) {
+    [role="dialog"] {
+      max-height: 90vh !important;
+      margin: 1rem;
+    }
+    
+    [role="dialog"] form {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+  }
+  
+  /* Improved touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Filter bar mobile improvements */
+  @media (max-width: 768px) {
+    .filter-bar {
+      @apply flex-wrap gap-2;
+    }
+    
+    .filter-bar > * {
+      @apply flex-1 min-w-[140px];
+    }
+  }
 }

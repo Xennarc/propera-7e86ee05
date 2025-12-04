@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, ActivitySession, Resource, SessionStatus } from '@/types/database';
 import {
@@ -34,6 +34,7 @@ export function ActivitySessionDialog({
 }: ActivitySessionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     activity_id: '',
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -70,6 +71,10 @@ export function ActivitySessionDialog({
         status: 'SCHEDULED',
         notes: '',
       });
+    }
+    // Auto-focus date field when dialog opens
+    if (open) {
+      setTimeout(() => dateInputRef.current?.focus(), 100);
     }
   }, [session, open, activities]);
 
@@ -193,9 +198,11 @@ export function ActivitySessionDialog({
             <Label>Date *</Label>
             <Input
               type="date"
+              ref={dateInputRef}
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
+              className="h-12"
             />
           </div>
 

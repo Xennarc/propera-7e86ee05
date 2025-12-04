@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Utensils } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Utensils, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RestaurantDialog } from './RestaurantDialog';
+import { SetupBanner } from '@/components/staff/SetupBanner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,7 @@ import {
 
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [slotsCount, setSlotsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -47,6 +49,14 @@ export default function RestaurantsPage() {
     } else {
       setRestaurants(data as Restaurant[]);
     }
+    
+    // Check if any time slots exist
+    const { count } = await supabase
+      .from('restaurant_time_slots')
+      .select('*', { count: 'exact', head: true })
+      .eq('resort_id', currentResort.id);
+    setSlotsCount(count ?? 0);
+    
     setLoading(false);
   };
 
@@ -98,6 +108,18 @@ export default function RestaurantsPage() {
         </Button>
       </div>
 
+      {/* Setup Banner: Restaurants exist but no time slots */}
+      {restaurants.length > 0 && slotsCount === 0 && (
+        <SetupBanner
+          id="restaurants-need-slots"
+          title="Next step: Add time slots for your restaurants"
+          description="Time slots define when each restaurant is available for reservations. Without slots, guests won't see your restaurants in the portal."
+          actionLabel="Go to Time Slots"
+          actionUrl="/staff/restaurants/slots"
+          resortId={currentResort.id}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -119,10 +141,23 @@ export default function RestaurantsPage() {
             </div>
           ) : filteredRestaurants.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Utensils className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">
-                {search ? 'No restaurants found' : 'No restaurants yet. Add your first restaurant!'}
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Sparkles className="h-12 w-12 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {search ? 'No restaurants found' : 'No restaurants yet'}
+              </h3>
+              <p className="text-muted-foreground max-w-sm mb-4">
+                {search 
+                  ? 'Try a different search term'
+                  : "Click 'Add Restaurant' to create your first dining venue for guests."}
               </p>
+              {!search && (
+                <Button onClick={() => { setEditingRestaurant(null); setDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Restaurant
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">
