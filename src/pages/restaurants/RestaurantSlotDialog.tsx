@@ -7,13 +7,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TimePicker } from '@/components/ui/time-picker';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { Trash2 } from 'lucide-react';
 
 interface RestaurantSlotDialogProps {
   open: boolean;
@@ -33,6 +43,9 @@ export function RestaurantSlotDialog({
   onSuccess,
 }: RestaurantSlotDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [bookingCount, setBookingCount] = useState<number | null>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     restaurant_id: '',
@@ -45,6 +58,61 @@ export function RestaurantSlotDialog({
   });
 
   const { toast } = useToast();
+
+  // Check booking count when editing a slot
+  useEffect(() => {
+    if (slot?.id) {
+      checkBookingCount(slot.id);
+    } else {
+      setBookingCount(null);
+    }
+  }, [slot?.id]);
+
+  const checkBookingCount = async (slotId: string) => {
+    const { count } = await supabase
+      .from('restaurant_reservations')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_slot_id', slotId);
+    setBookingCount(count ?? 0);
+  };
+
+  const handleDelete = async () => {
+    if (!slot) return;
+    setDeleteLoading(true);
+
+    if (bookingCount === 0) {
+      // No bookings - hard delete
+      const { error } = await supabase
+        .from('restaurant_time_slots')
+        .delete()
+        .eq('id', slot.id);
+      
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+      } else {
+        toast({ title: 'Deleted', description: 'Time slot has been removed' });
+        onSuccess();
+        onOpenChange(false);
+      }
+    } else {
+      // Has bookings - soft close
+      const { error } = await supabase
+        .from('restaurant_time_slots')
+        .update({ status: 'CLOSED' })
+        .eq('id', slot.id);
+      
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+      } else {
+        toast({ title: 'Closed', description: 'Time slot closed to new reservations' });
+        onSuccess();
+        onOpenChange(false);
+      }
+    }
+    
+    setDeleteLoading(false);
+    setShowDeleteDialog(false);
+  };
 
   useEffect(() => {
     if (slot) {
@@ -173,16 +241,28 @@ export function RestaurantSlotDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <TimePicker
-              label="Start Time *"
-              value={formData.start_time}
-              onChange={(v) => setFormData({ ...formData, start_time: v })}
-            />
-            <TimePicker
-              label="End Time *"
-              value={formData.end_time}
-              onChange={(v) => setFormData({ ...formData, end_time: v })}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="start_time">Start Time *</Label>
+              <Input
+                id="start_time"
+                type="time"
+                value={formData.start_time}
+                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                required
+                className="h-12"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_time">End Time *</Label>
+              <Input
+                id="end_time"
+                type="time"
+                value={formData.end_time}
+                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                required
+                className="h-12"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -233,16 +313,56 @@ export function RestaurantSlotDialog({
             </div>
           )}
 
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : slot ? 'Update' : 'Create'}
-            </Button>
+          <div className="flex justify-between gap-3 pt-4">
+            {slot && (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={loading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {bookingCount === 0 ? 'Delete' : 'Close'} Slot
+              </Button>
+            )}
+            <div className="flex gap-3 ml-auto">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Saving...' : slot ? 'Update' : 'Create'}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
+
+      {/* Delete/Close Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bookingCount === 0 ? 'Delete this time slot?' : 'Close this time slot?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bookingCount === 0 
+                ? 'This action will permanently remove the slot. This cannot be undone.'
+                : `This slot has ${bookingCount} existing reservation${bookingCount === 1 ? '' : 's'}. We will close it to new reservations but keep it in history. Guests will no longer see it as available.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? 'Processing...' : bookingCount === 0 ? 'Delete Slot' : 'Close Slot'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

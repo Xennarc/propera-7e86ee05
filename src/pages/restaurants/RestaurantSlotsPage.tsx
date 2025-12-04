@@ -31,7 +31,7 @@ export default function RestaurantSlotsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [restaurantFilter, setRestaurantFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('OPEN');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { currentResort } = useResort();
@@ -185,14 +185,14 @@ export default function RestaurantSlotsPage() {
                   </SelectContent>
                 </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32 bg-background">
-                    <SelectValue placeholder="All" />
+                  <SelectTrigger className="w-36 bg-background">
+                    <SelectValue placeholder="Open" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
                     <SelectItem value="OPEN">Open</SelectItem>
-                    <SelectItem value="CLOSED">Closed</SelectItem>
                     <SelectItem value="FULL">Full</SelectItem>
+                    <SelectItem value="CLOSED">Closed</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                   </SelectContent>
                 </Select>
               </FilterBarGroup>
