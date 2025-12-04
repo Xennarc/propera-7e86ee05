@@ -84,6 +84,23 @@ export function RestaurantSlotDialog({
       return;
     }
     
+    // Calculate duration in hours
+    const [startH, startM] = formData.start_time.split(':').map(Number);
+    const [endH, endM] = formData.end_time.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    const durationHours = (endMinutes - startMinutes) / 60;
+    
+    // Warn if duration is unrealistically long (> 6 hours)
+    if (durationHours > 6) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Unusually long duration', 
+        description: `Duration is ${durationHours.toFixed(1)} hours. Please check start and end times are correct.` 
+      });
+      return;
+    }
+    
     setLoading(true);
 
     const payload = {
