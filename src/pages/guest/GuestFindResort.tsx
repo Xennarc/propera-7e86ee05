@@ -85,7 +85,12 @@ export default function GuestFindResort() {
 
   const handleGoToResort = () => {
     if (result?.type === 'found') {
-      navigate(`/resort/${result.resortCode}/guest/login`);
+      // Pass lastName via URL params so it's pre-filled on login page
+      const params = new URLSearchParams({
+        lastName: formData.lastName.trim(),
+        roomNumber: formData.roomNumber.trim(),
+      });
+      navigate(`/resort/${result.resortCode}/guest/login?${params.toString()}`);
     }
   };
 

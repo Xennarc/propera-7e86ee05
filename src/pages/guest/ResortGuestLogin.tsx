@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ interface ResortBranding {
 
 export default function ResortGuestLogin() {
   const { code } = useParams<{ code: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { guest, login, logout } = useGuestAuth();
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,13 @@ export default function ResortGuestLogin() {
   const [notFound, setNotFound] = useState(false);
   const [resortInactive, setResortInactive] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({ roomNumber: '', lastName: '', pin: '' });
+  
+  // Initialize form with URL params from "Find Resort" flow
+  const [formData, setFormData] = useState(() => ({
+    roomNumber: searchParams.get('roomNumber') || '',
+    lastName: searchParams.get('lastName') || '',
+    pin: '',
+  }));
 
   // Handle if already logged in - check for resort mismatch
   useEffect(() => {
