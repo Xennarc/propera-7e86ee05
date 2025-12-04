@@ -50,7 +50,8 @@ export default function TodaysOpportunitiesPage() {
       
       if (error) throw error;
       
-      return (sessions || []).map(session => {
+      // Map sessions and calculate occupancy
+      const mappedSessions = (sessions || []).map(session => {
         const confirmedPax = session.bookings
           ?.filter((b: any) => b.status === 'CONFIRMED' || b.status === 'COMPLETED')
           .reduce((sum: number, b: any) => sum + b.num_adults + b.num_children, 0) || 0;
@@ -64,7 +65,14 @@ export default function TodaysOpportunitiesPage() {
           occupancy,
           activityName: session.activity?.name || 'Unknown Activity'
         };
-      }).filter(s => s.occupancy < 0.4);
+      });
+      
+      // Deduplicate by session.id (in case of any duplicate records)
+      const uniqueSessions = mappedSessions.filter((session, index, self) => 
+        index === self.findIndex(s => s.id === session.id)
+      );
+      
+      return uniqueSessions.filter(s => s.occupancy < 0.4);
     },
     enabled: !!currentResort
   });
@@ -89,7 +97,8 @@ export default function TodaysOpportunitiesPage() {
       
       if (error) throw error;
       
-      return (slots || []).map(slot => {
+      // Map slots and calculate occupancy
+      const mappedSlots = (slots || []).map(slot => {
         const confirmedCovers = slot.reservations
           ?.filter((r: any) => r.status === 'CONFIRMED' || r.status === 'COMPLETED')
           .reduce((sum: number, r: any) => sum + r.num_adults + r.num_children, 0) || 0;
@@ -103,7 +112,14 @@ export default function TodaysOpportunitiesPage() {
           occupancy,
           restaurantName: slot.restaurant?.name || 'Unknown Restaurant'
         };
-      }).filter(s => s.occupancy < 0.5);
+      });
+      
+      // Deduplicate by slot.id (in case of any duplicate records)
+      const uniqueSlots = mappedSlots.filter((slot, index, self) => 
+        index === self.findIndex(s => s.id === slot.id)
+      );
+      
+      return uniqueSlots.filter(s => s.occupancy < 0.5);
     },
     enabled: !!currentResort
   });
