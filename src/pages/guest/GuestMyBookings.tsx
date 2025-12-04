@@ -31,8 +31,8 @@ import { cn } from '@/lib/utils';
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
   const lowerError = error.toLowerCase();
-  if (lowerError.includes('cutoff') || lowerError.includes('too late')) return 'CANCEL_CUTOFF_PAST';
-  if (lowerError.includes('disabled') || lowerError.includes('not allowed')) return 'CANCEL_DISABLED';
+  if (lowerError.includes('cutoff') || lowerError.includes('too late') || lowerError.includes('deadline') || lowerError.includes('passed')) return 'CANCEL_CUTOFF_PAST';
+  if (lowerError.includes('disabled') || lowerError.includes('not allowed') || lowerError.includes('contact front desk')) return 'CANCEL_DISABLED';
   if (lowerError.includes('status') || lowerError.includes('cannot be cancelled')) return 'BOOKING_NOT_CANCELLABLE';
   return 'UNKNOWN_ERROR';
 }
