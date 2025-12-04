@@ -31,11 +31,31 @@ interface BookingWithGuest extends ActivityBooking {
   guest: Guest;
 }
 
+// Validate if string is a valid UUID format
+function isValidUUID(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 export default function ActivitySessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasAnyRole } = useAuth();
+
+  // Early return for invalid/non-UUID IDs (like "new")
+  if (!id || !isValidUUID(id)) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground mb-4">Invalid session ID</p>
+          <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>
+            Back to Sessions
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const [session, setSession] = useState<SessionWithDetails | null>(null);
   const [bookings, setBookings] = useState<BookingWithGuest[]>([]);
