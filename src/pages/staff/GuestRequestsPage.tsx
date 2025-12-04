@@ -39,7 +39,7 @@ export default function GuestRequestsPage() {
   const canManageActivities = hasAnyRole(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES']);
   const canManageRestaurants = hasAnyRole(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB']);
 
-  // Fetch pending activity bookings
+  // Fetch pending activity bookings (need approval)
   const { data: activityRequests, isLoading: loadingActivities } = useQuery({
     queryKey: ['pending-activity-requests', currentResort?.id],
     queryFn: async () => {
@@ -48,6 +48,7 @@ export default function GuestRequestsPage() {
         .from('activity_bookings')
         .select(`
           id,
+          status,
           num_adults,
           num_children,
           notes,
@@ -73,7 +74,45 @@ export default function GuestRequestsPage() {
     enabled: !!currentResort && canManageActivities,
   });
 
-  // Fetch pending restaurant reservations
+  // Fetch activity bookings with special requests (notes) - all statuses except CANCELLED
+  const { data: activitySpecialRequests, isLoading: loadingActivitySpecialRequests } = useQuery({
+    queryKey: ['activity-special-requests', currentResort?.id],
+    queryFn: async () => {
+      if (!currentResort) return [];
+      const { data, error } = await supabase
+        .from('activity_bookings')
+        .select(`
+          id,
+          status,
+          num_adults,
+          num_children,
+          notes,
+          room_number,
+          created_at,
+          guests!inner(id, full_name),
+          activity_sessions!inner(
+            id,
+            date,
+            start_time,
+            end_time,
+            capacity,
+            activities!inner(id, name)
+          )
+        `)
+        .eq('resort_id', currentResort.id)
+        .eq('source', 'GUEST_PORTAL')
+        .neq('status', 'CANCELLED')
+        .not('notes', 'is', null)
+        .neq('notes', '')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      // Filter to only non-empty notes after trim
+      return (data || []).filter((r: any) => r.notes && r.notes.trim().length > 0);
+    },
+    enabled: !!currentResort && canManageActivities,
+  });
+
+  // Fetch pending restaurant reservations (need approval)
   const { data: restaurantRequests, isLoading: loadingRestaurants } = useQuery({
     queryKey: ['pending-restaurant-requests', currentResort?.id],
     queryFn: async () => {
@@ -82,6 +121,7 @@ export default function GuestRequestsPage() {
         .from('restaurant_reservations')
         .select(`
           id,
+          status,
           num_adults,
           num_children,
           special_requests,
@@ -104,6 +144,45 @@ export default function GuestRequestsPage() {
         .order('created_at', { ascending: true });
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!currentResort && canManageRestaurants,
+  });
+
+  // Fetch restaurant reservations with special requests - all statuses except CANCELLED
+  const { data: restaurantSpecialRequests, isLoading: loadingRestaurantSpecialRequests } = useQuery({
+    queryKey: ['restaurant-special-requests', currentResort?.id],
+    queryFn: async () => {
+      if (!currentResort) return [];
+      const { data, error } = await supabase
+        .from('restaurant_reservations')
+        .select(`
+          id,
+          status,
+          num_adults,
+          num_children,
+          special_requests,
+          room_number,
+          created_at,
+          guests!inner(id, full_name),
+          restaurant_time_slots!inner(
+            id,
+            date,
+            start_time,
+            end_time,
+            meal_period,
+            capacity,
+            restaurants!inner(id, name)
+          )
+        `)
+        .eq('resort_id', currentResort.id)
+        .eq('source', 'GUEST_PORTAL')
+        .neq('status', 'CANCELLED')
+        .not('special_requests', 'is', null)
+        .neq('special_requests', '')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      // Filter to only non-empty special_requests after trim
+      return (data || []).filter((r: any) => r.special_requests && r.special_requests.trim().length > 0);
     },
     enabled: !!currentResort && canManageRestaurants,
   });
@@ -255,30 +334,240 @@ export default function GuestRequestsPage() {
     );
   }
 
-  const activityCount = activityRequests?.length || 0;
-  const restaurantCount = restaurantRequests?.length || 0;
-  const totalCount = activityCount + restaurantCount;
+  const activityPendingCount = activityRequests?.length || 0;
+  const restaurantPendingCount = restaurantRequests?.length || 0;
+  const activitySpecialCount = activitySpecialRequests?.length || 0;
+  const restaurantSpecialCount = restaurantSpecialRequests?.length || 0;
+  const totalPendingCount = activityPendingCount + restaurantPendingCount;
+  const totalSpecialCount = activitySpecialCount + restaurantSpecialCount;
+
+  // Helper to render status badge
+  const renderStatusBadge = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return <Badge variant="pending">Pending Approval</Badge>;
+      case 'CONFIRMED':
+        return <Badge variant="success">Confirmed</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="secondary">Completed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Guest Requests</h1>
         <p className="text-muted-foreground">
-          {totalCount} pending request{totalCount !== 1 ? 's' : ''} from the guest portal
+          {totalPendingCount} pending approval{totalPendingCount !== 1 ? 's' : ''} • {totalSpecialCount} special request{totalSpecialCount !== 1 ? 's' : ''}
         </p>
       </div>
 
-      <Tabs defaultValue="activities">
+      <Tabs defaultValue="special-requests">
         <TabsList>
+          <TabsTrigger value="special-requests">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Special Requests ({totalSpecialCount})
+          </TabsTrigger>
           <TabsTrigger value="activities" disabled={!canManageActivities}>
             <Calendar className="mr-2 h-4 w-4" />
-            Activities ({activityCount})
+            Pending Activities ({activityPendingCount})
           </TabsTrigger>
           <TabsTrigger value="restaurants" disabled={!canManageRestaurants}>
             <Utensils className="mr-2 h-4 w-4" />
-            Restaurants ({restaurantCount})
+            Pending Restaurants ({restaurantPendingCount})
           </TabsTrigger>
         </TabsList>
+
+        {/* Special Requests Tab - Shows all bookings with special requests */}
+        <TabsContent value="special-requests" className="mt-4 space-y-6">
+          {(loadingActivitySpecialRequests || loadingRestaurantSpecialRequests) ? (
+            <div className="space-y-4">
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          ) : totalSpecialCount === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No guest special requests yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  New special requests from guest reservations will appear here.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Restaurant Special Requests */}
+              {restaurantSpecialCount > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Utensils className="h-5 w-5" />
+                    Restaurant Requests ({restaurantSpecialCount})
+                  </h2>
+                  {restaurantSpecialRequests?.map((request: any) => (
+                    <Card key={request.id} className="border-l-4 border-l-primary">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {renderStatusBadge(request.status)}
+                              <Badge variant="outline">Guest Portal</Badge>
+                              <Badge variant="secondary">
+                                {request.restaurant_time_slots.meal_period}
+                              </Badge>
+                            </div>
+                            <h3 className="font-semibold text-foreground">
+                              {request.restaurant_time_slots.restaurants.name}
+                            </h3>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                {request.guests.full_name} • Room {request.room_number}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {format(parseISO(request.restaurant_time_slots.date), 'EEE, MMM d, yyyy')}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                {request.restaurant_time_slots.start_time.slice(0, 5)} - {request.restaurant_time_slots.end_time.slice(0, 5)}
+                              </p>
+                              <p>
+                                {request.num_adults} adult{request.num_adults !== 1 ? 's' : ''}
+                                {request.num_children > 0 && `, ${request.num_children} child${request.num_children !== 1 ? 'ren' : ''}`}
+                              </p>
+                            </div>
+                            {/* Highlighted Special Request */}
+                            <div className="mt-3 p-3 bg-muted rounded-lg">
+                              <p className="flex items-start gap-2 text-sm">
+                                <MessageSquare className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                                <span className="font-medium text-foreground">{request.special_requests}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(request.created_at), 'MMM d, h:mm a')}
+                            </p>
+                            {request.status === 'PENDING' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => approveReservationMutation.mutate(request.id)}
+                                  disabled={approveReservationMutation.isPending}
+                                >
+                                  <Check className="mr-1 h-4 w-4" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setRejectDialog({
+                                    type: 'restaurant',
+                                    id: request.id,
+                                    title: request.restaurant_time_slots.restaurants.name,
+                                  })}
+                                >
+                                  <X className="mr-1 h-4 w-4" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Activity Special Requests */}
+              {activitySpecialCount > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Activity Requests ({activitySpecialCount})
+                  </h2>
+                  {activitySpecialRequests?.map((request: any) => (
+                    <Card key={request.id} className="border-l-4 border-l-primary">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {renderStatusBadge(request.status)}
+                              <Badge variant="outline">Guest Portal</Badge>
+                            </div>
+                            <h3 className="font-semibold text-foreground">
+                              {request.activity_sessions.activities.name}
+                            </h3>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                {request.guests.full_name} • Room {request.room_number}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {format(parseISO(request.activity_sessions.date), 'EEE, MMM d, yyyy')}
+                              </p>
+                              <p className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                {request.activity_sessions.start_time.slice(0, 5)} - {request.activity_sessions.end_time.slice(0, 5)}
+                              </p>
+                              <p>
+                                {request.num_adults} adult{request.num_adults !== 1 ? 's' : ''}
+                                {request.num_children > 0 && `, ${request.num_children} child${request.num_children !== 1 ? 'ren' : ''}`}
+                              </p>
+                            </div>
+                            {/* Highlighted Special Request */}
+                            <div className="mt-3 p-3 bg-muted rounded-lg">
+                              <p className="flex items-start gap-2 text-sm">
+                                <MessageSquare className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                                <span className="font-medium text-foreground">{request.notes}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(request.created_at), 'MMM d, h:mm a')}
+                            </p>
+                            {request.status === 'PENDING' && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => approveActivityMutation.mutate(request.id)}
+                                  disabled={approveActivityMutation.isPending}
+                                >
+                                  <Check className="mr-1 h-4 w-4" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setRejectDialog({
+                                    type: 'activity',
+                                    id: request.id,
+                                    title: request.activity_sessions.activities.name,
+                                  })}
+                                >
+                                  <X className="mr-1 h-4 w-4" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
 
         <TabsContent value="activities" className="mt-4 space-y-4">
           {loadingActivities ? (
@@ -290,7 +579,7 @@ export default function GuestRequestsPage() {
             <Card>
               <CardContent className="py-8 text-center">
                 <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No pending activity requests</p>
+                <p className="text-muted-foreground">No pending activity approvals</p>
               </CardContent>
             </Card>
           ) : (
@@ -324,10 +613,12 @@ export default function GuestRequestsPage() {
                           {request.num_children > 0 && `, ${request.num_children} child${request.num_children !== 1 ? 'ren' : ''}`}
                         </p>
                         {request.notes && (
-                          <p className="flex items-start gap-2">
-                            <MessageSquare className="h-4 w-4 mt-0.5" />
-                            {request.notes}
-                          </p>
+                          <div className="mt-2 p-2 bg-muted rounded">
+                            <p className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 mt-0.5" />
+                              {request.notes}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -375,7 +666,7 @@ export default function GuestRequestsPage() {
             <Card>
               <CardContent className="py-8 text-center">
                 <Utensils className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No pending restaurant requests</p>
+                <p className="text-muted-foreground">No pending restaurant approvals</p>
               </CardContent>
             </Card>
           ) : (
@@ -412,10 +703,12 @@ export default function GuestRequestsPage() {
                           {request.num_children > 0 && `, ${request.num_children} child${request.num_children !== 1 ? 'ren' : ''}`}
                         </p>
                         {request.special_requests && (
-                          <p className="flex items-start gap-2">
-                            <MessageSquare className="h-4 w-4 mt-0.5" />
-                            {request.special_requests}
-                          </p>
+                          <div className="mt-2 p-2 bg-muted rounded">
+                            <p className="flex items-start gap-2">
+                              <MessageSquare className="h-4 w-4 mt-0.5" />
+                              {request.special_requests}
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
