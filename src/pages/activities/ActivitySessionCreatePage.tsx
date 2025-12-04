@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, Clock, Users, Save } from 'lucide-react';
+import { TimePicker } from '@/components/ui/time-picker';
+import { ArrowLeft, Calendar, Users, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays } from 'date-fns';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -244,32 +245,16 @@ export default function ActivitySessionCreatePage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="start_time">Start Time *</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="start_time"
-                    type="time"
-                    value={formData.start_time}
-                    onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end_time">End Time *</Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="end_time"
-                    type="time"
-                    value={formData.end_time}
-                    onChange={(e) => setFormData(prev => ({ ...prev, end_time: e.target.value }))}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+              <TimePicker
+                label="Start Time *"
+                value={formData.start_time}
+                onChange={(v) => setFormData(prev => ({ ...prev, start_time: v }))}
+              />
+              <TimePicker
+                label="End Time *"
+                value={formData.end_time}
+                onChange={(v) => setFormData(prev => ({ ...prev, end_time: v }))}
+              />
             </div>
 
             {/* Capacity and Resource */}

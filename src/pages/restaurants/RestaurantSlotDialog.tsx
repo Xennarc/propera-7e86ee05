@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TimePicker } from '@/components/ui/time-picker';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -155,24 +156,16 @@ export function RestaurantSlotDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Time *</Label>
-              <Input
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Time *</Label>
-              <Input
-                type="time"
-                value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                required
-              />
-            </div>
+            <TimePicker
+              label="Start Time *"
+              value={formData.start_time}
+              onChange={(v) => setFormData({ ...formData, start_time: v })}
+            />
+            <TimePicker
+              label="End Time *"
+              value={formData.end_time}
+              onChange={(v) => setFormData({ ...formData, end_time: v })}
+            />
           </div>
 
           <div className="space-y-2">
