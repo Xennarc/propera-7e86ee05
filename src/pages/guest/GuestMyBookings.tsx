@@ -117,19 +117,85 @@ export default function GuestMyBookings() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const upcomingActivities = bookings?.activity_bookings?.filter(
-    (b) => b.date >= today && b.status !== 'CANCELLED'
-  ) || [];
-  const pastActivities = bookings?.activity_bookings?.filter(
-    (b) => b.date < today || b.status === 'CANCELLED'
-  ) || [];
+  // Helper to deduplicate bookings - for each slot, keep only the most recent active booking
+  // If there's both a cancelled and confirmed booking for the same slot, only show the active one in upcoming
+  const deduplicateBookings = (bookings: any[], slotIdField: string) => {
+    if (!bookings) return [];
+    
+    // Group by slot ID
+    const bySlot = bookings.reduce((acc: Record<string, any[]>, booking) => {
+      // Use the slot/session date + start_time as a grouping key for same-slot bookings
+      const slotKey = `${booking.date}_${booking.start_time}_${booking[slotIdField === 'activity' ? 'activity_name' : 'restaurant_name']}`;
+      if (!acc[slotKey]) acc[slotKey] = [];
+      acc[slotKey].push(booking);
+      return acc;
+    }, {});
+    
+    // For each slot, return the "best" booking:
+    // 1. Prefer non-cancelled over cancelled
+    // 2. Among same status, prefer most recent (by created_at)
+    return Object.values(bySlot).map((slotBookings: any[]) => {
+      // Sort: non-cancelled first, then by created_at desc
+      slotBookings.sort((a: any, b: any) => {
+        if (a.status === 'CANCELLED' && b.status !== 'CANCELLED') return 1;
+        if (a.status !== 'CANCELLED' && b.status === 'CANCELLED') return -1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      return slotBookings[0];
+    });
+  };
 
-  const upcomingReservations = bookings?.restaurant_reservations?.filter(
+  // Get all activity bookings deduplicated
+  const allActivities = bookings?.activity_bookings || [];
+  const deduplicatedActivities = deduplicateBookings(allActivities, 'activity');
+  
+  const upcomingActivities = deduplicatedActivities.filter(
+    (b) => b.date >= today && b.status !== 'CANCELLED'
+  );
+  
+  // For past section, include: past date OR cancelled bookings that don't have an active replacement
+  const pastActivities = allActivities.filter((b) => {
+    // Past by date
+    if (b.date < today) return true;
+    // Cancelled but no active booking exists for this slot
+    if (b.status === 'CANCELLED') {
+      const slotKey = `${b.date}_${b.start_time}_${b.activity_name}`;
+      const hasActiveForSlot = allActivities.some(
+        other => other.id !== b.id && 
+        `${other.date}_${other.start_time}_${other.activity_name}` === slotKey &&
+        other.status !== 'CANCELLED'
+      );
+      // Only show in past if there's no active replacement
+      return !hasActiveForSlot;
+    }
+    return false;
+  });
+
+  // Get all restaurant reservations deduplicated  
+  const allReservations = bookings?.restaurant_reservations || [];
+  const deduplicatedReservations = deduplicateBookings(allReservations, 'restaurant');
+  
+  const upcomingReservations = deduplicatedReservations.filter(
     (r) => r.date >= today && r.status !== 'CANCELLED'
-  ) || [];
-  const pastReservations = bookings?.restaurant_reservations?.filter(
-    (r) => r.date < today || r.status === 'CANCELLED'
-  ) || [];
+  );
+  
+  // For past section, include: past date OR cancelled reservations that don't have an active replacement
+  const pastReservations = allReservations.filter((r) => {
+    // Past by date
+    if (r.date < today) return true;
+    // Cancelled but no active reservation exists for this slot
+    if (r.status === 'CANCELLED') {
+      const slotKey = `${r.date}_${r.start_time}_${r.restaurant_name}`;
+      const hasActiveForSlot = allReservations.some(
+        other => other.id !== r.id && 
+        `${other.date}_${other.start_time}_${other.restaurant_name}` === slotKey &&
+        other.status !== 'CANCELLED'
+      );
+      // Only show in past if there's no active replacement
+      return !hasActiveForSlot;
+    }
+    return false;
+  });
 
   const canCancelActivity = (booking: any) => {
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
