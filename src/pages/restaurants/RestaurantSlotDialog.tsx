@@ -71,6 +71,13 @@ export function RestaurantSlotDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate time range
+    if (formData.end_time <= formData.start_time) {
+      toast({ variant: 'destructive', title: 'Invalid time range', description: 'End time must be after start time' });
+      return;
+    }
+    
     setLoading(true);
 
     const payload = {
