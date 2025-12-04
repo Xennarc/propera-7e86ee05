@@ -55,17 +55,25 @@ export default function GuestRestaurantBrowser() {
     enabled: !!guest,
   });
 
-  // Check if there are any slots configured for the date (even if full)
+  // Check if there are any slots configured for the date (even if full or past cutoff)
   const { data: allSlotsForDate } = useQuery({
     queryKey: ['guest-all-slots-for-date', guest?.resortId, selectedDate, selectedRestaurant],
     queryFn: async () => {
       if (!guest) return [];
-      // Query all slots for the date regardless of availability
+      // Query all slots for the date with restaurant info for cutoff calculation
       let query = supabase
         .from('restaurant_time_slots')
-        .select('id, capacity, status, restaurant_id')
+        .select(`
+          id, 
+          capacity, 
+          status, 
+          restaurant_id,
+          start_time,
+          restaurant:restaurants!inner(guest_cutoff_minutes)
+        `)
         .eq('resort_id', guest.resortId)
-        .eq('date', selectedDate);
+        .eq('date', selectedDate)
+        .eq('status', 'OPEN');
       
       if (selectedRestaurant !== 'all') {
         query = query.eq('restaurant_id', selectedRestaurant);
@@ -77,6 +85,19 @@ export default function GuestRestaurantBrowser() {
     },
     enabled: !!guest,
   });
+
+  // Determine if slots are past their booking cutoff
+  const slotsArePastCutoff = (() => {
+    if (!allSlotsForDate || allSlotsForDate.length === 0) return false;
+    const now = new Date();
+    
+    return allSlotsForDate.every((slot: any) => {
+      const slotDateTime = new Date(`${selectedDate}T${slot.start_time}`);
+      const cutoffMinutes = slot.restaurant?.guest_cutoff_minutes || 30;
+      const cutoffTime = new Date(slotDateTime.getTime() - cutoffMinutes * 60 * 1000);
+      return now > cutoffTime;
+    });
+  })();
 
   if (!guest) return null;
 
@@ -147,17 +168,27 @@ export default function GuestRestaurantBrowser() {
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               {hasConfiguredSlots ? (
-                <Users className="h-10 w-10 text-muted-foreground/50" />
+                slotsArePastCutoff ? (
+                  <Clock className="h-10 w-10 text-muted-foreground/50" />
+                ) : (
+                  <Users className="h-10 w-10 text-muted-foreground/50" />
+                )
               ) : (
                 <CalendarX className="h-10 w-10 text-muted-foreground/50" />
               )}
             </div>
             <h3 className="font-semibold text-foreground mb-2">
-              {hasConfiguredSlots ? 'Fully booked for this date' : 'No reservations available'}
+              {hasConfiguredSlots 
+                ? slotsArePastCutoff 
+                  ? 'Booking time has passed' 
+                  : 'Fully booked for this date'
+                : 'No reservations available'}
             </h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-4">
               {hasConfiguredSlots 
-                ? 'All dining times are fully booked for this date. Please try another day or contact Guest Services for assistance.'
+                ? slotsArePastCutoff
+                  ? "The booking deadline for today's dining times has passed. Please select a future date or contact Guest Services for walk-in availability."
+                  : 'All dining times are fully booked for this date. Please try another day or contact Guest Services for assistance.'
                 : 'This restaurant is not accepting reservations for this date. Please try selecting another day or contact your concierge.'}
             </p>
             <Button variant="outline" size="sm" className="gap-2">
