@@ -3,7 +3,22 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+
+// Helper component for legacy redirects with dynamic params
+function LegacyRedirect({ to }: { to: string }) {
+  const params = useParams();
+  const location = useLocation();
+  
+  let targetPath = to;
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      targetPath = targetPath.replace(`:${key}`, value);
+    }
+  });
+  
+  return <Navigate to={targetPath + location.search} replace />;
+}
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ResortProvider } from "@/contexts/ResortContext";
 import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
@@ -123,13 +138,13 @@ const App = () => (
                 <Route path="/auth" element={<Navigate to="/staff/auth" replace />} />
                 <Route path="/dashboard" element={<Navigate to="/staff/dashboard" replace />} />
                 <Route path="/guests" element={<Navigate to="/staff/guests" replace />} />
-                <Route path="/guests/:id" element={<Navigate to="/staff/guests/:id" replace />} />
+                <Route path="/guests/:id" element={<LegacyRedirect to="/staff/guests/:id" />} />
                 <Route path="/activities" element={<Navigate to="/staff/activities" replace />} />
                 <Route path="/activities/sessions" element={<Navigate to="/staff/activities/sessions" replace />} />
-                <Route path="/activities/sessions/:id" element={<Navigate to="/staff/activities/sessions/:id" replace />} />
+                <Route path="/activities/sessions/:id" element={<LegacyRedirect to="/staff/activities/sessions/:id" />} />
                 <Route path="/restaurants" element={<Navigate to="/staff/restaurants" replace />} />
                 <Route path="/restaurants/slots" element={<Navigate to="/staff/restaurants/slots" replace />} />
-                <Route path="/restaurants/slots/:id" element={<Navigate to="/staff/restaurants/slots/:id" replace />} />
+                <Route path="/restaurants/slots/:id" element={<LegacyRedirect to="/staff/restaurants/slots/:id" />} />
                 <Route path="/reports" element={<Navigate to="/staff/reports" replace />} />
                 <Route path="/reports/activities" element={<Navigate to="/staff/reports/activities" replace />} />
                 <Route path="/reports/restaurants" element={<Navigate to="/staff/reports/restaurants" replace />} />
