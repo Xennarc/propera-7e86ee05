@@ -77,7 +77,9 @@ export default function GuestMyBookings() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+      // Immediately invalidate and refetch guest bookings
+      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      queryClient.refetchQueries({ queryKey: ['guest-bookings', guest?.guestId] });
       toast.success('Your booking has been cancelled.');
       setCancelDialog(null);
     },
@@ -102,7 +104,9 @@ export default function GuestMyBookings() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
+      // Immediately invalidate and refetch guest bookings
+      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      queryClient.refetchQueries({ queryKey: ['guest-bookings', guest?.guestId] });
       toast.success('Your reservation has been cancelled.');
       setCancelDialog(null);
     },
