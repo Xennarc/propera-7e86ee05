@@ -7,11 +7,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle } from 'lucide-react';
+import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const categories = [
   { value: 'all', label: 'All' },
@@ -67,7 +73,21 @@ export default function GuestActivitiesBrowser() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-foreground">Activities</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-foreground">Activities</h1>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[250px]">
+                <p>Activities only appear on dates with available sessions. If you don't see an activity, it may not be scheduled yet.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <p className="text-sm text-muted-foreground">Discover experiences for your stay</p>
       </div>
 

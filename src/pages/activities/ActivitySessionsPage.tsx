@@ -254,12 +254,20 @@ export default function ActivitySessionsPage() {
             <EmptyState
               icon={Calendar}
               title="No sessions found"
-              description="No sessions found for the selected period"
+              description={activities.length === 0 
+                ? "You need to create activities first before scheduling sessions."
+                : "No sessions found for the selected period. Create sessions to make activities available for booking."}
               action={
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Session
-                </Button>
+                activities.length === 0 ? (
+                  <Button variant="outline" onClick={() => window.location.href = '/staff/activities'}>
+                    Go to Activities
+                  </Button>
+                ) : (
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Session
+                  </Button>
+                )
               }
             />
           ) : viewMode === 'table' ? (

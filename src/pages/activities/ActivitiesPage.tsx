@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Calendar, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityDialog } from './ActivityDialog';
+import { SetupBanner } from '@/components/staff/SetupBanner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +32,7 @@ const categoryColors: Record<ActivityCategory, string> = {
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [sessionsCount, setSessionsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,6 +57,14 @@ export default function ActivitiesPage() {
     } else {
       setActivities(data as Activity[]);
     }
+    
+    // Check if any sessions exist
+    const { count } = await supabase
+      .from('activity_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('resort_id', currentResort.id);
+    setSessionsCount(count ?? 0);
+    
     setLoading(false);
   };
 
@@ -107,6 +117,18 @@ export default function ActivitiesPage() {
         </Button>
       </div>
 
+      {/* Setup Banner: Activities exist but no sessions */}
+      {activities.length > 0 && sessionsCount === 0 && (
+        <SetupBanner
+          id="activities-need-sessions"
+          title="Next step: Add sessions for your activities"
+          description="Sessions define when each activity is available. Without sessions, guests won't see your activities in the portal."
+          actionLabel="Go to Sessions"
+          actionUrl="/staff/activities/sessions"
+          resortId={currentResort.id}
+        />
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
@@ -128,10 +150,23 @@ export default function ActivitiesPage() {
             </div>
           ) : filteredActivities.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Calendar className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">
-                {search ? 'No activities found' : 'No activities yet. Add your first activity!'}
+              <div className="rounded-full bg-muted p-4 mb-4">
+                <Sparkles className="h-12 w-12 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {search ? 'No activities found' : 'No activities yet'}
+              </h3>
+              <p className="text-muted-foreground max-w-sm mb-4">
+                {search 
+                  ? 'Try a different search term'
+                  : "Click 'Add Activity' to create your first excursion, dive, or experience for guests."}
               </p>
+              {!search && (
+                <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Activity
+                </Button>
+              )}
             </div>
           ) : (
             <div className="rounded-md border">

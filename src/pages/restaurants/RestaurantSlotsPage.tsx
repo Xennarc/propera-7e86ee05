@@ -205,12 +205,20 @@ export default function RestaurantSlotsPage() {
             <EmptyState
               icon={Utensils}
               title="No time slots"
-              description="No time slots found for this date"
+              description={restaurants.length === 0 
+                ? "You need to create restaurants first before adding time slots."
+                : "No time slots found for this date. Create slots to make restaurants available for reservations."}
               action={
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Slot
-                </Button>
+                restaurants.length === 0 ? (
+                  <Button variant="outline" onClick={() => window.location.href = '/staff/restaurants'}>
+                    Go to Restaurants
+                  </Button>
+                ) : (
+                  <Button onClick={() => setDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Slot
+                  </Button>
+                )
               }
             />
           ) : (

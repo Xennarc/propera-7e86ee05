@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Restaurant } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ interface RestaurantDialogProps {
 export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onSuccess }: RestaurantDialogProps) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -77,6 +78,10 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
       });
     }
     setErrors({});
+    // Auto-focus name field when dialog opens
+    if (open) {
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    }
   }, [restaurant, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +160,7 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
             <Label htmlFor="name">Name *</Label>
             <Input
               id="name"
+              ref={nameInputRef}
               value={formData.name}
               onChange={(e) => {
                 setFormData({ ...formData, name: e.target.value });

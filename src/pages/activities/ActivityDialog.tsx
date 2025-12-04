@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, ActivityCategory } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ const categories: ActivityCategory[] = ['DIVE', 'EXCURSION', 'WATERSPORT', 'SPA'
 export function ActivityDialog({ open, onOpenChange, activity, resortId, onSuccess }: ActivityDialogProps) {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const nameInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 'OTHER' as ActivityCategory,
@@ -104,6 +105,10 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       });
     }
     setErrors({});
+    // Auto-focus name field when dialog opens
+    if (open) {
+      setTimeout(() => nameInputRef.current?.focus(), 100);
+    }
   }, [activity, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -191,6 +196,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
               <Label htmlFor="name">Name *</Label>
               <Input
                 id="name"
+                ref={nameInputRef}
                 value={formData.name}
                 onChange={(e) => {
                   setFormData({ ...formData, name: e.target.value });
