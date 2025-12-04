@@ -28,7 +28,7 @@ export default function GuestActivitiesBrowser() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const { data: sessions, isLoading } = useQuery({
+  const { data: sessions, isLoading, isError } = useQuery({
     queryKey: ['guest-available-sessions', guest?.guestId, selectedDate, selectedCategory],
     queryFn: async () => {
       if (!guest) return [];
@@ -39,6 +39,22 @@ export default function GuestActivitiesBrowser() {
       });
       if (error) throw error;
       return (data as any[]) || [];
+    },
+    enabled: !!guest,
+  });
+
+  // Check if resort has any activities defined at all
+  const { data: activitiesExist } = useQuery({
+    queryKey: ['guest-activities-exist', guest?.resortId],
+    queryFn: async () => {
+      if (!guest) return false;
+      const { count, error } = await supabase
+        .from('activities')
+        .select('*', { count: 'exact', head: true })
+        .eq('resort_id', guest.resortId)
+        .eq('is_active', true);
+      if (error) return false;
+      return (count ?? 0) > 0;
     },
     enabled: !!guest,
   });
@@ -85,16 +101,42 @@ export default function GuestActivitiesBrowser() {
           <Skeleton className="h-32 w-full rounded-xl" />
           <p className="text-sm text-center text-muted-foreground">Loading activities...</p>
         </div>
+      ) : isError ? (
+        <Card className="border-dashed bg-muted/30">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="rounded-full bg-destructive/10 p-4 mb-4">
+              <HelpCircle className="h-10 w-10 text-destructive/50" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">Unable to load activities</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mb-4">
+              We couldn't load the available activities. Please try again or contact your concierge for assistance.
+            </p>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       ) : sessions?.length === 0 ? (
         <Card className="border-dashed bg-muted/30">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <Calendar className="h-10 w-10 text-muted-foreground/50" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">No activities available</h3>
-            <p className="text-sm text-muted-foreground max-w-xs mb-4">
-              There are no activities available on this date. Please select another date or contact your concierge for assistance.
-            </p>
+            {activitiesExist === false ? (
+              <>
+                <h3 className="font-semibold text-foreground mb-2">Activities coming soon</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mb-4">
+                  This resort hasn't added any activities yet. Please check back later or contact your concierge for more information.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="font-semibold text-foreground mb-2">No sessions available</h3>
+                <p className="text-sm text-muted-foreground max-w-xs mb-4">
+                  There are no activity sessions scheduled for this date. Please try selecting another day or contact your concierge for assistance.
+                </p>
+              </>
+            )}
             <Button variant="outline" size="sm" className="gap-2">
               <HelpCircle className="h-4 w-4" />
               Contact Concierge

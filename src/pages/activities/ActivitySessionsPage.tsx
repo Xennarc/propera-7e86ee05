@@ -265,7 +265,7 @@ export default function ActivitySessionsPage() {
           ) : viewMode === 'table' ? (
             <DataTable
               data={sessions}
-              onRowClick={(session) => navigate(`/activities/sessions/${session.id}`)}
+              onRowClick={(session) => navigate(`/staff/activities/sessions/${session.id}`)}
               columns={[
                 {
                   header: 'Date',
@@ -336,7 +336,7 @@ export default function ActivitySessionsPage() {
                         <Card 
                           key={session.id} 
                           className="cursor-pointer hover:shadow-card-hover hover:border-primary/30 transition-all"
-                          onClick={() => navigate(`/activities/sessions/${session.id}`)}
+                          onClick={() => navigate(`/staff/activities/sessions/${session.id}`)}
                         >
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start mb-3">

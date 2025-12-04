@@ -25,7 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
 const activitySchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
+  name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
   category: z.string().min(1, 'Category is required'),
   duration_minutes: z.number().min(1, 'Duration must be at least 1 minute'),
   default_price_per_person: z.number().min(0, 'Price cannot be negative'),
@@ -192,7 +192,13 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value });
+                  // Clear error when user types valid value
+                  if (e.target.value.trim().length >= 2 && errors.name) {
+                    setErrors(prev => ({ ...prev, name: '' }));
+                  }
+                }}
                 placeholder="Sunset Diving"
               />
               {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
