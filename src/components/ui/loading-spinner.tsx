@@ -1,9 +1,11 @@
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
+import { useState, useEffect } from 'react';
 
 interface LoadingSpinnerProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  delay?: number; // Delay in ms before showing spinner
 }
 
 const sizeClasses = {
@@ -12,7 +14,17 @@ const sizeClasses = {
   lg: 'h-12 w-12 border-4',
 };
 
-export function LoadingSpinner({ className, size = 'md' }: LoadingSpinnerProps) {
+export function LoadingSpinner({ className, size = 'md', delay = 0 }: LoadingSpinnerProps) {
+  const [showSpinner, setShowSpinner] = useState(delay === 0);
+
+  useEffect(() => {
+    if (delay === 0) return;
+    const timer = setTimeout(() => setShowSpinner(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  if (!showSpinner) return null;
+
   return (
     <div className={cn('flex items-center justify-center', className)}>
       <div
@@ -25,7 +37,17 @@ export function LoadingSpinner({ className, size = 'md' }: LoadingSpinnerProps) 
   );
 }
 
-export function LoadingPage() {
+export function LoadingPage({ delay = 150 }: { delay?: number }) {
+  const [showContent, setShowContent] = useState(delay === 0);
+
+  useEffect(() => {
+    if (delay === 0) return;
+    const timer = setTimeout(() => setShowContent(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  if (!showContent) return null;
+
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
       <LoadingSpinner size="lg" />

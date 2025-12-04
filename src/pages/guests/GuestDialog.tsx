@@ -282,7 +282,7 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any special requests or notes..."
+              placeholder="Guest preferences, special requests, or any relevant information"
               rows={3}
             />
           </div>

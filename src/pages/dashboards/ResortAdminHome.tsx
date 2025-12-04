@@ -345,11 +345,13 @@ export default function ResortAdminHome() {
             title="Activities Pax"
             value={stats?.activityPax || 0}
             icon={Calendar}
+            description="Excursions, dives, spa"
           />
           <StatCard
-            title="Restaurant Covers"
+            title="Dining Covers"
             value={stats?.covers || 0}
             icon={Utensils}
+            description="Restaurant bookings"
           />
           <StatCard
             title="Avg Rating (7d)"
