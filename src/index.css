@@ -507,6 +507,12 @@
   }
 }
 
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Custom selection colors */
 ::selection {
   background-color: hsl(var(--primary) / 0.25);

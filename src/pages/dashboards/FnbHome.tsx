@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
 import { Utensils, Users, Clock, AlertCircle, Search, Plus, Check, X, ArrowRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardGridSkeleton, TableSkeleton, RequestCardSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -242,37 +242,41 @@ export default function FnbHome() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          title="Total Covers"
-          value={isLoading ? '—' : stats?.totalCovers || 0}
-          icon={Utensils}
-          variant="primary"
-        />
-        <StatCard
-          title="Breakfast"
-          value={isLoading ? '—' : stats?.breakfastCovers || 0}
-          icon={Clock}
-          variant="warning"
-        />
-        <StatCard
-          title="Lunch"
-          value={isLoading ? '—' : stats?.lunchCovers || 0}
-          icon={Clock}
-        />
-        <StatCard
-          title="Dinner"
-          value={isLoading ? '—' : stats?.dinnerCovers || 0}
-          icon={Clock}
-          variant="success"
-        />
-        <StatCard
-          title="Pending Requests"
-          value={isLoading ? '—' : stats?.pendingRequests || 0}
-          icon={AlertCircle}
-          variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
-        />
-      </div>
+      {isLoading ? (
+        <StatCardGridSkeleton count={5} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            title="Total Covers"
+            value={stats?.totalCovers || 0}
+            icon={Utensils}
+            variant="primary"
+          />
+          <StatCard
+            title="Breakfast"
+            value={stats?.breakfastCovers || 0}
+            icon={Clock}
+            variant="warning"
+          />
+          <StatCard
+            title="Lunch"
+            value={stats?.lunchCovers || 0}
+            icon={Clock}
+          />
+          <StatCard
+            title="Dinner"
+            value={stats?.dinnerCovers || 0}
+            icon={Clock}
+            variant="success"
+          />
+          <StatCard
+            title="Pending Requests"
+            value={stats?.pendingRequests || 0}
+            icon={AlertCircle}
+            variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Slots Table */}
@@ -290,9 +294,7 @@ export default function FnbHome() {
           </CardHeader>
           <CardContent>
             {loadingSlots ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
+              <TableSkeleton rows={4} columns={6} />
             ) : slots && slots.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -353,7 +355,7 @@ export default function FnbHome() {
           <CardContent>
             {loadingRequests ? (
               <div className="space-y-3">
-                {[1, 2].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+                {[1, 2].map(i => <RequestCardSkeleton key={i} />)}
               </div>
             ) : pendingRequests && pendingRequests.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-auto">
