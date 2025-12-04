@@ -20,7 +20,6 @@ import {
 } from '@/components/icons/ProperaIcons';
 import {
   createActivityBookingFromInStaySuggestion,
-  createRestaurantReservationFromInStaySuggestion,
 } from '@/lib/booking-source-helpers';
 
 export default function GuestHome() {
@@ -212,44 +211,6 @@ export default function GuestHome() {
     },
   });
 
-  // Mutation for booking restaurants from suggestions
-  const bookRestaurantMutation = useMutation({
-    mutationFn: async (slotId: string) => {
-      if (!guest) throw new Error('Not authenticated');
-      
-      return createRestaurantReservationFromInStaySuggestion({
-        guestId: guest.guestId,
-        slotId,
-        numAdults: 2,
-        numChildren: 0,
-      });
-    },
-    onSuccess: (result, slotId) => {
-      if ((result.data as any)?.success) {
-        const slot = suggestions?.restaurants.find((s: any) => s.id === slotId);
-        toast({
-          title: "Table reserved!",
-          description: `${slot?.restaurant_name} tonight at ${slot?.start_time.slice(0, 5)}`,
-        });
-        queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['guest-suggestions'] });
-      } else {
-        toast({
-          title: "Couldn't complete reservation",
-          description: "This time may no longer be available. Please try another or contact reception.",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Reservation failed",
-        description: "Something went wrong. Please try again or contact reception.",
-        variant: "destructive",
-      });
-    },
-  });
-
   const hasSuggestions = (suggestions?.activities?.length || 0) + (suggestions?.restaurants?.length || 0) > 0;
 
   return (
@@ -382,14 +343,11 @@ export default function GuestHome() {
                             Still available for tonight
                           </Badge>
                         </div>
-                        <Button
-                          size="sm"
-                          onClick={() => bookRestaurantMutation.mutate(slot.id)}
-                          disabled={bookRestaurantMutation.isPending}
-                          className="shrink-0"
-                        >
-                          {bookRestaurantMutation.isPending ? 'Booking...' : 'Reserve table'}
-                        </Button>
+                        <Link to={`/guest/restaurants/book/${slot.id}`}>
+                          <Button size="sm" className="shrink-0">
+                            Reserve table
+                          </Button>
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>

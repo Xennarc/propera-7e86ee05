@@ -12,6 +12,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Utensils } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -35,11 +45,32 @@ export default function GuestRestaurantBookingPage() {
   const [numAdults, setNumAdults] = useState(2);
   const [numChildren, setNumChildren] = useState(0);
   const [specialRequests, setSpecialRequests] = useState('');
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const [bookingResult, setBookingResult] = useState<{
     success: boolean;
     requiresApproval?: boolean;
     error?: string;
   } | null>(null);
+
+  // Check for existing bookings on this slot
+  const { data: existingBooking } = useQuery({
+    queryKey: ['guest-existing-slot-booking', slotId, guest?.guestId],
+    queryFn: async () => {
+      if (!guest || !slotId) return null;
+      // Get existing bookings for this guest
+      const { data, error } = await supabase.rpc('guest_get_bookings', {
+        p_guest_id: guest.guestId,
+      });
+      if (error) return null;
+      const bookings = data as { restaurant_reservations: any[] };
+      // Check if there's already an active booking for this slot
+      const existing = bookings?.restaurant_reservations?.find(
+        (r) => r.slot_id === slotId && (r.status === 'CONFIRMED' || r.status === 'PENDING')
+      );
+      return existing || null;
+    },
+    enabled: !!guest && !!slotId,
+  });
 
   // Fetch slot details
   const { data: slot, isLoading } = useQuery({
@@ -170,7 +201,35 @@ export default function GuestRestaurantBookingPage() {
   const totalPax = numAdults + numChildren;
   const maxPax = slot.max_pax_per_booking;
 
+  const handleBooking = () => {
+    if (existingBooking) {
+      setShowDuplicateWarning(true);
+    } else {
+      bookMutation.mutate();
+    }
+  };
+
   return (
+    <>
+      {/* Duplicate booking warning dialog */}
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>You already have a booking</AlertDialogTitle>
+            <AlertDialogDescription>
+              You already have a reservation for this time slot ({existingBooking?.num_adults + existingBooking?.num_children} guests). 
+              Are you sure you want to book another table?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep existing booking</AlertDialogCancel>
+            <AlertDialogAction onClick={() => bookMutation.mutate()}>
+              Book another table
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate('/guest/restaurants')}>
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -283,7 +342,7 @@ export default function GuestRestaurantBookingPage() {
 
           <Button
             className="w-full"
-            onClick={() => bookMutation.mutate()}
+            onClick={handleBooking}
             disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
           >
             {bookMutation.isPending ? (
@@ -298,5 +357,6 @@ export default function GuestRestaurantBookingPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 }
