@@ -9,7 +9,8 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Loader2, Waves, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Waves, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const loginSchema = z.object({
@@ -98,10 +99,10 @@ export default function Auth() {
       
       navigate('/staff/dashboard', { replace: true });
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Login failed',
-        description: error.message || 'Invalid username/email or password. Please try again.',
+      // Clear password field for security but keep identifier
+      setLoginPassword('');
+      setErrors({
+        login_form: error.message || 'Invalid username/email or password. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -242,6 +243,12 @@ export default function Auth() {
               <TabsContent value="login">
                 <form onSubmit={handleLogin}>
                   <CardContent className="space-y-5 pt-6">
+                    {errors.login_form && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{errors.login_form}</AlertDescription>
+                      </Alert>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="login-identifier" className="text-sm font-medium">
                         Username or Email

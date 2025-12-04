@@ -145,14 +145,18 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                 setCurrentResort(resort || null);
               }}
             >
-              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent transition-colors rounded-xl h-11">
+              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent transition-colors rounded-xl h-12 px-4">
                 <SelectValue placeholder="Select resort" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50">
                 {resorts.map((resort) => (
-                  <SelectItem key={resort.id} value={resort.id}>
+                  <SelectItem 
+                    key={resort.id} 
+                    value={resort.id}
+                    className="cursor-pointer py-3 px-4"
+                  >
                     <div className="flex items-center gap-2">
-                      <span>{resort.name}</span>
+                      <span className="font-medium">{resort.name}</span>
                       {resort.is_demo && (
                         <Badge variant="outline" className="text-[10px] px-1 py-0 bg-primary/10 text-primary border-primary/30">
                           DEMO
