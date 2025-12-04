@@ -15,7 +15,8 @@ import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { SearchInput } from '@/components/ui/search-input';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingPage } from '@/components/ui/loading-spinner';
+import { LoadingPage, PageLoadingSkeleton } from '@/components/ui/loading-spinner';
+import { StatCardGridSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
@@ -181,32 +182,36 @@ export default function GuestsPage() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Guests"
-          value={guests.length}
-          icon={Users}
-          variant="default"
-        />
-        <StatCard
-          title="In-House Today"
-          value={stats.inHouse}
-          icon={Building2}
-          variant="primary"
-        />
-        <StatCard
-          title="Arrivals Today"
-          value={stats.arrivals}
-          icon={ArrowUpRight}
-          variant="success"
-        />
-        <StatCard
-          title="Departures Today"
-          value={stats.departures}
-          icon={ArrowDownRight}
-          variant="warning"
-        />
-      </div>
+      {loading ? (
+        <StatCardGridSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Guests"
+            value={guests.length}
+            icon={Users}
+            variant="default"
+          />
+          <StatCard
+            title="In-House Today"
+            value={stats.inHouse}
+            icon={Building2}
+            variant="primary"
+          />
+          <StatCard
+            title="Arrivals Today"
+            value={stats.arrivals}
+            icon={ArrowUpRight}
+            variant="success"
+          />
+          <StatCard
+            title="Departures Today"
+            value={stats.departures}
+            icon={ArrowDownRight}
+            variant="warning"
+          />
+        </div>
+      )}
 
       {/* Filters and Table */}
       <Card>

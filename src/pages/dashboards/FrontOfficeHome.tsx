@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
 import { Users, UserPlus, UserMinus, Calendar, Utensils, Search, ArrowRight, Eye, Plus } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardGridSkeleton, TableSkeleton, CardTableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function FrontOfficeHome() {
@@ -228,36 +228,40 @@ export default function FrontOfficeHome() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          title="In-House Guests"
-          value={isLoading ? '—' : stats?.guestsInHouse || 0}
-          icon={Users}
-          variant="primary"
-        />
-        <StatCard
-          title="Arrivals Today"
-          value={isLoading ? '—' : stats?.arrivalsToday || 0}
-          icon={UserPlus}
-          variant="success"
-        />
-        <StatCard
-          title="Departures Today"
-          value={isLoading ? '—' : stats?.departuresToday || 0}
-          icon={UserMinus}
-          variant="warning"
-        />
-        <StatCard
-          title="With Activities"
-          value={isLoading ? '—' : stats?.guestsWithActivities || 0}
-          icon={Calendar}
-        />
-        <StatCard
-          title="Dinner Tonight"
-          value={isLoading ? '—' : stats?.guestsWithDinner || 0}
-          icon={Utensils}
-        />
-      </div>
+      {isLoading ? (
+        <StatCardGridSkeleton count={5} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatCard
+            title="In-House Guests"
+            value={stats?.guestsInHouse || 0}
+            icon={Users}
+            variant="primary"
+          />
+          <StatCard
+            title="Arrivals Today"
+            value={stats?.arrivalsToday || 0}
+            icon={UserPlus}
+            variant="success"
+          />
+          <StatCard
+            title="Departures Today"
+            value={stats?.departuresToday || 0}
+            icon={UserMinus}
+            variant="warning"
+          />
+          <StatCard
+            title="With Activities"
+            value={stats?.guestsWithActivities || 0}
+            icon={Calendar}
+          />
+          <StatCard
+            title="Dinner Tonight"
+            value={stats?.guestsWithDinner || 0}
+            icon={Utensils}
+          />
+        </div>
+      )}
 
       {/* Arrivals Today */}
       <Card>
@@ -274,9 +278,7 @@ export default function FrontOfficeHome() {
         </CardHeader>
         <CardContent>
           {loadingArrivals ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
+            <TableSkeleton rows={3} columns={5} />
           ) : arrivals && arrivals.length > 0 ? (
             <Table>
               <TableHeader>
@@ -344,9 +346,7 @@ export default function FrontOfficeHome() {
         </CardHeader>
         <CardContent>
           {loadingInHouse ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-            </div>
+            <TableSkeleton rows={3} columns={6} />
           ) : inHouseGuests && inHouseGuests.length > 0 ? (
             <Table>
               <TableHeader>

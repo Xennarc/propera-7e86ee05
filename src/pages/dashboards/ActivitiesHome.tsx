@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Clock, AlertCircle, Search, Plus, Check, X, ArrowRight } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardGridSkeleton, TableSkeleton, RequestCardSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
@@ -262,31 +262,35 @@ export default function ActivitiesHome() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Sessions"
-          value={isLoading ? '—' : stats?.totalSessions || 0}
-          icon={Calendar}
-          variant="primary"
-        />
-        <StatCard
-          title="Confirmed Pax"
-          value={isLoading ? '—' : stats?.totalPax || 0}
-          icon={Users}
-          variant="success"
-        />
-        <StatCard
-          title="Avg Occupancy"
-          value={isLoading ? '—' : `${stats?.avgOccupancy || 0}%`}
-          icon={Clock}
-        />
-        <StatCard
-          title="Pending Requests"
-          value={isLoading ? '—' : stats?.pendingRequests || 0}
-          icon={AlertCircle}
-          variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
-        />
-      </div>
+      {isLoading ? (
+        <StatCardGridSkeleton count={4} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Sessions"
+            value={stats?.totalSessions || 0}
+            icon={Calendar}
+            variant="primary"
+          />
+          <StatCard
+            title="Confirmed Pax"
+            value={stats?.totalPax || 0}
+            icon={Users}
+            variant="success"
+          />
+          <StatCard
+            title="Avg Occupancy"
+            value={`${stats?.avgOccupancy || 0}%`}
+            icon={Clock}
+          />
+          <StatCard
+            title="Pending Requests"
+            value={stats?.pendingRequests || 0}
+            icon={AlertCircle}
+            variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
+          />
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Sessions Table */}
@@ -304,9 +308,7 @@ export default function ActivitiesHome() {
           </CardHeader>
           <CardContent>
             {loadingSessions ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
+              <TableSkeleton rows={4} columns={6} />
             ) : sessions && sessions.length > 0 ? (
               <Table>
                 <TableHeader>
@@ -363,7 +365,7 @@ export default function ActivitiesHome() {
           <CardContent>
             {loadingRequests ? (
               <div className="space-y-3">
-                {[1, 2].map(i => <Skeleton key={i} className="h-20 w-full" />)}
+                {[1, 2].map(i => <RequestCardSkeleton key={i} />)}
               </div>
             ) : pendingRequests && pendingRequests.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-auto">

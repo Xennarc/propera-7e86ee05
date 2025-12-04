@@ -19,6 +19,7 @@ import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/f
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
+import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -158,28 +159,32 @@ export default function ActivitySessionsPage() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Sessions"
-          value={stats.totalSessions}
-          icon={Calendar}
-          variant="default"
-          description="In selected period"
-        />
-        <StatCard
-          title="Total Guests"
-          value={stats.totalPax}
-          icon={Users}
-          variant="success"
-          description="Confirmed pax"
-        />
-        <StatCard
-          title="Average Occupancy"
-          value={`${stats.avgOccupancy}%`}
-          icon={TrendingUp}
-          variant="primary"
-        />
-      </div>
+      {loading ? (
+        <StatCardGridSkeleton count={3} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Total Sessions"
+            value={stats.totalSessions}
+            icon={Calendar}
+            variant="default"
+            description="In selected period"
+          />
+          <StatCard
+            title="Total Guests"
+            value={stats.totalPax}
+            icon={Users}
+            variant="success"
+            description="Confirmed pax"
+          />
+          <StatCard
+            title="Average Occupancy"
+            value={`${stats.avgOccupancy}%`}
+            icon={TrendingUp}
+            variant="primary"
+          />
+        </div>
+      )}
 
       {/* Filters and Table */}
       <Card>

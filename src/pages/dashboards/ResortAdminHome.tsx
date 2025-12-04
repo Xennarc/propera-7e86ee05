@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, UserMinus, Calendar, Utensils, Star, ArrowRight, Clock, MessageSquare, Palette, X } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardGridSkeleton, ListItemSkeleton, FeedbackItemSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
@@ -319,42 +319,46 @@ export default function ResortAdminHome() {
       />
 
       {/* Top Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-        <StatCard
-          title="Guests In House"
-          value={isLoading ? '—' : stats?.guestsInHouse || 0}
-          icon={Users}
-          variant="primary"
-        />
-        <StatCard
-          title="Arrivals Today"
-          value={isLoading ? '—' : stats?.arrivalsToday || 0}
-          icon={UserPlus}
-          variant="success"
-        />
-        <StatCard
-          title="Departures Today"
-          value={isLoading ? '—' : stats?.departuresToday || 0}
-          icon={UserMinus}
-          variant="warning"
-        />
-        <StatCard
-          title="Activities Pax"
-          value={isLoading ? '—' : stats?.activityPax || 0}
-          icon={Calendar}
-        />
-        <StatCard
-          title="Restaurant Covers"
-          value={isLoading ? '—' : stats?.covers || 0}
-          icon={Utensils}
-        />
-        <StatCard
-          title="Avg Rating (7d)"
-          value={isLoading ? '—' : stats?.avgRating || '—'}
-          icon={Star}
-          variant={stats?.avgRating && parseFloat(stats.avgRating) >= 4 ? 'success' : 'default'}
-        />
-      </div>
+      {isLoading ? (
+        <StatCardGridSkeleton count={6} />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          <StatCard
+            title="Guests In House"
+            value={stats?.guestsInHouse || 0}
+            icon={Users}
+            variant="primary"
+          />
+          <StatCard
+            title="Arrivals Today"
+            value={stats?.arrivalsToday || 0}
+            icon={UserPlus}
+            variant="success"
+          />
+          <StatCard
+            title="Departures Today"
+            value={stats?.departuresToday || 0}
+            icon={UserMinus}
+            variant="warning"
+          />
+          <StatCard
+            title="Activities Pax"
+            value={stats?.activityPax || 0}
+            icon={Calendar}
+          />
+          <StatCard
+            title="Restaurant Covers"
+            value={stats?.covers || 0}
+            icon={Utensils}
+          />
+          <StatCard
+            title="Avg Rating (7d)"
+            value={stats?.avgRating || '—'}
+            icon={Star}
+            variant={stats?.avgRating && parseFloat(stats.avgRating) >= 4 ? 'success' : 'default'}
+          />
+        </div>
+      )}
 
       {/* Two Column Layout */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -373,8 +377,8 @@ export default function ResortAdminHome() {
           </CardHeader>
           <CardContent>
             {loadingSessions ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map(i => <ListItemSkeleton key={i} />)}
               </div>
             ) : todaySessions && todaySessions.length > 0 ? (
               <div className="space-y-2 max-h-80 overflow-auto">
@@ -428,8 +432,8 @@ export default function ResortAdminHome() {
           </CardHeader>
           <CardContent>
             {loadingSlots ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map(i => <ListItemSkeleton key={i} />)}
               </div>
             ) : tonightSlots && tonightSlots.length > 0 ? (
               <div className="space-y-2 max-h-80 overflow-auto">
@@ -488,7 +492,7 @@ export default function ResortAdminHome() {
         <CardContent>
           {loadingFeedback ? (
             <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              {[1, 2, 3].map(i => <FeedbackItemSkeleton key={i} />)}
             </div>
           ) : recentFeedback && recentFeedback.length > 0 ? (
             <div className="space-y-3">
