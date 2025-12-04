@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
+import { useEffect, useRef } from 'react';
 import {
   IconPropera,
   IconStay,
@@ -14,15 +15,54 @@ import {
 } from '@/components/icons/ProperaIcons';
 
 const navItems = [
-  { icon: IconStay, label: 'Home', href: '/guest' },
-  { icon: IconActivities, label: 'Activities', href: '/guest/activities' },
-  { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants' },
-  { icon: IconBookings, label: 'Bookings', href: '/guest/bookings' },
+  { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home' },
+  { icon: IconActivities, label: 'Activities', href: '/guest/activities', key: 'guest-activities' },
+  { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants', key: 'guest-dining' },
+  { icon: IconBookings, label: 'Bookings', href: '/guest/bookings', key: 'guest-bookings' },
 ];
+
+// Store scroll positions per tab
+const scrollPositions = new Map<string, number>();
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
   const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Get current tab key
+  const currentTab = navItems.find(item => 
+    location.pathname === item.href || 
+    (item.href !== '/guest' && location.pathname.startsWith(item.href))
+  )?.key || 'guest-home';
+
+  // Save scroll position when navigating away
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    const handleScroll = () => {
+      scrollPositions.set(currentTab, main.scrollTop);
+    };
+
+    main.addEventListener('scroll', handleScroll);
+    return () => main.removeEventListener('scroll', handleScroll);
+  }, [currentTab]);
+
+  // Restore scroll position when tab changes
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    const savedPosition = scrollPositions.get(currentTab);
+    if (savedPosition !== undefined) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        main.scrollTop = savedPosition;
+      });
+    } else {
+      main.scrollTop = 0;
+    }
+  }, [currentTab]);
 
   if (loading) {
     return (
@@ -71,7 +111,7 @@ export function GuestLayout() {
       </header>
 
       {/* Main content with bottom nav padding */}
-      <main className="flex-1 overflow-auto pb-24 sm:pb-28">
+      <main ref={mainRef} className="flex-1 overflow-auto pb-24 sm:pb-28">
         <div className="p-4 max-w-lg mx-auto">
           <Outlet />
         </div>

@@ -196,7 +196,7 @@ export function RestaurantReservationDialog({
               <Textarea
                 value={formData.special_requests}
                 onChange={(e) => setFormData({ ...formData, special_requests: e.target.value })}
-                placeholder="Allergies, preferences, special occasions..."
+                placeholder="Dietary requirements, seating preferences, or special occasions"
               />
             </div>
 

@@ -328,7 +328,7 @@ export function ActivityBookingDialog({
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Optional booking notes..."
+                placeholder="Any special requirements or requests for this booking"
               />
             </div>
 

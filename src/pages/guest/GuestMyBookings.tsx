@@ -200,39 +200,49 @@ export default function GuestMyBookings() {
               <h3 className="font-semibold text-foreground truncate">
                 {type === 'activity' ? booking.activity_name : booking.restaurant_name}
               </h3>
-              {getStatusBadge(booking.status)}
+              <div className="flex items-center gap-2 shrink-0">
+                {getStatusBadge(booking.status)}
+                {canCancel && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCancelDialog({
+                        type,
+                        id: booking.id,
+                        title: type === 'activity' ? booking.activity_name : booking.restaurant_name,
+                      });
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only sm:not-sr-only sm:ml-1">Cancel</span>
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
               <Clock className="h-3.5 w-3.5" />
               {format(parseISO(booking.date), 'EEE, MMM d')} at {booking.start_time?.slice(0, 5)}
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
-              {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
+                {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
+              </span>
               {type === 'restaurant' && booking.meal_period && (
-                <Badge variant="outline" className="text-xs ml-1">{booking.meal_period}</Badge>
+                <Badge variant="outline" className="text-xs">{booking.meal_period}</Badge>
+              )}
+              {booking.created_at && (
+                <span className="text-xs text-muted-foreground/70">
+                  Booked {format(parseISO(booking.created_at), 'MMM d, HH:mm')}
+                </span>
               )}
             </div>
           </div>
         </div>
-        {canCancel && (
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setCancelDialog({
-                type,
-                id: booking.id,
-                title: type === 'activity' ? booking.activity_name : booking.restaurant_name,
-              })}
-            >
-              <X className="mr-1.5 h-4 w-4" />
-              Cancel Booking
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

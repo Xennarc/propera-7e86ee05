@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info } from 'lucide-react';
+import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info, CalendarX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import {
@@ -55,6 +55,29 @@ export default function GuestRestaurantBrowser() {
     enabled: !!guest,
   });
 
+  // Check if there are any slots configured for the date (even if full)
+  const { data: allSlotsForDate } = useQuery({
+    queryKey: ['guest-all-slots-for-date', guest?.resortId, selectedDate, selectedRestaurant],
+    queryFn: async () => {
+      if (!guest) return [];
+      // Query all slots for the date regardless of availability
+      let query = supabase
+        .from('restaurant_time_slots')
+        .select('id, capacity, status, restaurant_id')
+        .eq('resort_id', guest.resortId)
+        .eq('date', selectedDate);
+      
+      if (selectedRestaurant !== 'all') {
+        query = query.eq('restaurant_id', selectedRestaurant);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!guest,
+  });
+
   if (!guest) return null;
 
   const slotsByPeriod = slots?.reduce((acc: Record<string, any[]>, slot: any) => {
@@ -62,6 +85,10 @@ export default function GuestRestaurantBrowser() {
     acc[slot.meal_period].push(slot);
     return acc;
   }, {}) || {};
+
+  // Determine empty state message
+  const hasConfiguredSlots = allSlotsForDate && allSlotsForDate.length > 0;
+  const hasAvailableSlots = Object.keys(slotsByPeriod).length > 0;
 
   return (
     <div className="space-y-5">
@@ -115,15 +142,23 @@ export default function GuestRestaurantBrowser() {
           <Skeleton className="h-24 w-full rounded-xl" />
           <p className="text-sm text-center text-muted-foreground">Loading restaurants...</p>
         </div>
-      ) : Object.keys(slotsByPeriod).length === 0 ? (
+      ) : !hasAvailableSlots ? (
         <Card className="border-dashed bg-muted/30">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
-              <Utensils className="h-10 w-10 text-muted-foreground/50" />
+              {hasConfiguredSlots ? (
+                <Users className="h-10 w-10 text-muted-foreground/50" />
+              ) : (
+                <CalendarX className="h-10 w-10 text-muted-foreground/50" />
+              )}
             </div>
-            <h3 className="font-semibold text-foreground mb-2">No dining slots available</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              {hasConfiguredSlots ? 'Fully booked for this date' : 'No reservations available'}
+            </h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-4">
-              There are no dining slots scheduled for this date. Please try selecting another day or contact your concierge for assistance.
+              {hasConfiguredSlots 
+                ? 'All dining times are fully booked for this date. Please try another day or contact Guest Services for assistance.'
+                : 'This restaurant is not accepting reservations for this date. Please try selecting another day or contact your concierge.'}
             </p>
             <Button variant="outline" size="sm" className="gap-2">
               <Phone className="h-4 w-4" />
