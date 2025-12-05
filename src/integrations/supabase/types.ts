@@ -279,6 +279,86 @@ export type Database = {
           },
         ]
       }
+      guest_requests: {
+        Row: {
+          activity_booking_id: string | null
+          created_at: string
+          guest_id: string
+          id: string
+          reservation_date: string | null
+          reservation_time: string | null
+          resort_id: string
+          restaurant_reservation_id: string | null
+          room_number: string | null
+          source_type: Database["public"]["Enums"]["guest_request_source"]
+          special_request_text: string
+          staff_notes: string | null
+          status: Database["public"]["Enums"]["guest_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          activity_booking_id?: string | null
+          created_at?: string
+          guest_id: string
+          id?: string
+          reservation_date?: string | null
+          reservation_time?: string | null
+          resort_id: string
+          restaurant_reservation_id?: string | null
+          room_number?: string | null
+          source_type: Database["public"]["Enums"]["guest_request_source"]
+          special_request_text: string
+          staff_notes?: string | null
+          status?: Database["public"]["Enums"]["guest_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          activity_booking_id?: string | null
+          created_at?: string
+          guest_id?: string
+          id?: string
+          reservation_date?: string | null
+          reservation_time?: string | null
+          resort_id?: string
+          restaurant_reservation_id?: string | null
+          room_number?: string | null
+          source_type?: Database["public"]["Enums"]["guest_request_source"]
+          special_request_text?: string
+          staff_notes?: string | null
+          status?: Database["public"]["Enums"]["guest_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_requests_activity_booking_id_fkey"
+            columns: ["activity_booking_id"]
+            isOneToOne: false
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_requests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_requests_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_requests_restaurant_reservation_id_fkey"
+            columns: ["restaurant_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           booking_reference: string | null
@@ -1235,6 +1315,8 @@ export type Database = {
         | "COMPLETED"
       feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
+      guest_request_source: "ACTIVITY" | "RESTAURANT"
+      guest_request_status: "OPEN" | "IN_PROGRESS" | "COMPLETED"
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
@@ -1394,6 +1476,8 @@ export const Constants = {
       ],
       feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
+      guest_request_source: ["ACTIVITY", "RESTAURANT"],
+      guest_request_status: ["OPEN", "IN_PROGRESS", "COMPLETED"],
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
