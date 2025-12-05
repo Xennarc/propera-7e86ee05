@@ -37,6 +37,7 @@ import ActivityCheatsheetPage from "./pages/activities/ActivityCheatsheetPage";
 import RestaurantsPage from "./pages/restaurants/RestaurantsPage";
 import RestaurantSlotsPage from "./pages/restaurants/RestaurantSlotsPage";
 import RestaurantSlotDetailPage from "./pages/restaurants/RestaurantSlotDetailPage";
+import CreateRestaurantSlotWizard from './pages/restaurants/CreateRestaurantSlotWizard';
 import ResortsPage from "./pages/settings/ResortsPage";
 import ResourcesPage from "./pages/settings/ResourcesPage";
 import SettingsPage from "./pages/settings/SettingsPage";
@@ -107,6 +108,7 @@ const App = () => (
                   <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />
+                  <Route path="restaurants/slots/new" element={<CreateRestaurantSlotWizard />} />
                   <Route path="restaurants/slots/:id" element={<RestaurantSlotDetailPage />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="reports/sales" element={<SalesPerformanceReport />} />
