@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { ActivityIconPicker } from '@/components/ui/activity-icon-picker';
+import { getCategoryConfig } from '@/lib/activity-category-config';
 
 const activitySchema = z.object({
   name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
@@ -49,6 +51,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
   const [formData, setFormData] = useState({
     name: '',
     category: 'OTHER' as ActivityCategory,
+    icon_key: null as string | null,
     description: '',
     default_price_per_person: 0,
     duration_minutes: 60,
@@ -71,6 +74,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       setFormData({
         name: activity.name,
         category: activity.category,
+        icon_key: (activity as any).icon_key || null,
         description: activity.description || '',
         default_price_per_person: activity.default_price_per_person,
         duration_minutes: activity.duration_minutes,
@@ -89,6 +93,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       setFormData({
         name: '',
         category: 'OTHER',
+        icon_key: null,
         description: '',
         default_price_per_person: 0,
         duration_minutes: 60,
@@ -140,6 +145,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       resort_id: resortId,
       name: formData.name.trim(),
       category: formData.category,
+      icon_key: formData.icon_key,
       description: formData.description.trim() || null,
       default_price_per_person: formData.default_price_per_person,
       duration_minutes: formData.duration_minutes,
@@ -226,6 +232,17 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
               </Select>
               {errors.category && <p className="text-sm text-destructive">{errors.category}</p>}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Icon</Label>
+            <ActivityIconPicker
+              value={formData.icon_key}
+              onChange={(value) => setFormData({ ...formData, icon_key: value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Choose a custom icon or leave empty to use the category default
+            </p>
           </div>
 
           <div className="space-y-2">

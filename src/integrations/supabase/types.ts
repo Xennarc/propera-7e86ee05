@@ -33,6 +33,7 @@ export type Database = {
           guest_cutoff_hours: number
           health_and_safety_notes: string | null
           highlights: Json | null
+          icon_key: string | null
           id: string
           includes: string | null
           is_active: boolean
@@ -65,6 +66,7 @@ export type Database = {
           guest_cutoff_hours?: number
           health_and_safety_notes?: string | null
           highlights?: Json | null
+          icon_key?: string | null
           id?: string
           includes?: string | null
           is_active?: boolean
@@ -97,6 +99,7 @@ export type Database = {
           guest_cutoff_hours?: number
           health_and_safety_notes?: string | null
           highlights?: Json | null
+          icon_key?: string | null
           id?: string
           includes?: string | null
           is_active?: boolean
