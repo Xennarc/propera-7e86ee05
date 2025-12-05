@@ -705,6 +705,30 @@ export type Database = {
           },
         ]
       }
+      rate_limit_logs: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          identifier: string
+          secondary_key: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          identifier: string
+          secondary_key?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          identifier?: string
+          secondary_key?: string | null
+        }
+        Relationships: []
+      }
       resort_memberships: {
         Row: {
           created_at: string
