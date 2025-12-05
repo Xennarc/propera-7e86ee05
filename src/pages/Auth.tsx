@@ -9,9 +9,10 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Loader2, Waves, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 
 const loginSchema = z.object({
   identifier: z.string().min(1, 'Please enter your username or email'),
@@ -211,9 +212,7 @@ export default function Auth() {
       <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full space-y-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <Waves className="h-6 w-6" />
-            </div>
+            <ProperaMark size={48} className="text-primary" />
             <div>
               <h1 className="text-2xl font-bold text-foreground">Propera</h1>
               <p className="text-sm text-muted-foreground">Staff Console</p>

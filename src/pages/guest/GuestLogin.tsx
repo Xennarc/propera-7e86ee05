@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, QrCode, HelpCircle, Search, Waves } from 'lucide-react';
+import { Loader2, QrCode, HelpCircle, Search } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { IconPropera, WaveDivider } from '@/components/icons/ProperaIcons';
+import { WaveDivider } from '@/components/icons/ProperaIcons';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 
 export default function GuestLogin() {
   const navigate = useNavigate();
@@ -29,9 +30,7 @@ export default function GuestLogin() {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full blur-[60px] pointer-events-none" />
         
         <div className="text-center relative z-10">
-          <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl bg-primary/10 mb-6 shadow-soft">
-            <IconPropera className="h-10 w-10 text-primary" />
-          </div>
+          <ProperaMark size={64} className="text-primary mb-6" />
           <h1 className="text-3xl font-bold text-foreground mb-2">Guest Portal</h1>
           <p className="text-muted-foreground">Access your resort experience</p>
         </div>
