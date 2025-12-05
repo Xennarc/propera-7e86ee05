@@ -171,9 +171,9 @@ export default function GuestActivitiesBrowser() {
             
             return (
               <Card
-                key={session.session_id}
+                key={session.id}
                 className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
-                onClick={() => navigate(`/guest/activities/book/${session.session_id}`)}
+                onClick={() => navigate(`/guest/activities/book/${session.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
