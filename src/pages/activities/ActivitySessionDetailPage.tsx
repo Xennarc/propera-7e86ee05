@@ -43,20 +43,7 @@ export default function ActivitySessionDetailPage() {
   const { toast } = useToast();
   const { hasAnyRole } = useAuth();
 
-  // Early return for invalid/non-UUID IDs (like "new")
-  if (!id || !isValidUUID(id)) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground mb-4">Invalid session ID</p>
-          <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>
-            Back to Sessions
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // All hooks must be called unconditionally at the top
   const [session, setSession] = useState<SessionWithDetails | null>(null);
   const [bookings, setBookings] = useState<BookingWithGuest[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -67,9 +54,11 @@ export default function ActivitySessionDetailPage() {
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']);
   const isReadOnly = hasAnyRole(['MANAGER']) && !hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']);
+  
+  const isValidId = id && isValidUUID(id);
 
   const fetchSession = async () => {
-    if (!id) return;
+    if (!id || !isValidId) return;
     setLoading(true);
 
     const { data: sessionData, error } = await supabase
@@ -80,7 +69,7 @@ export default function ActivitySessionDetailPage() {
 
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
-      navigate('/activities/sessions');
+      navigate('/staff/activities/sessions');
       return;
     }
 
@@ -110,8 +99,12 @@ export default function ActivitySessionDetailPage() {
   };
 
   useEffect(() => {
-    fetchSession();
-  }, [id]);
+    if (isValidId) {
+      fetchSession();
+    } else {
+      setLoading(false);
+    }
+  }, [id, isValidId]);
 
   const updateSessionStatus = async (status: 'CANCELLED' | 'COMPLETED') => {
     if (!session) return;
@@ -139,6 +132,20 @@ export default function ActivitySessionDetailPage() {
     .reduce((sum, b) => sum + b.num_adults + b.num_children, 0);
   const remainingSpots = session ? session.capacity - confirmedPax : 0;
 
+  // Handle invalid ID after hooks
+  if (!isValidId) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground mb-4">Invalid session ID</p>
+          <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>
+            Back to Sessions
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -160,7 +167,7 @@ export default function ActivitySessionDetailPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/activities/sessions')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/staff/activities/sessions')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
@@ -311,7 +318,7 @@ export default function ActivitySessionDetailPage() {
                       <TableCell className="font-medium">
                         <button 
                           className="text-primary hover:underline"
-                          onClick={() => navigate(`/guests/${booking.guest_id}`)}
+                          onClick={() => navigate(`/staff/guests/${booking.guest_id}`)}
                         >
                           {booking.guest.full_name}
                         </button>
