@@ -32,7 +32,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ChevronDown, LogOut, User, Palette, TrendingUp } from 'lucide-react';
 import {
-  IconPropera,
   IconDashboard,
   IconGuests,
   IconGuestRequests,
@@ -44,6 +43,7 @@ import {
   IconSettings,
   IconResort,
 } from '@/components/icons/ProperaIcons';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 
 // Define which resort roles can view each nav item
 type NavItem = {
@@ -127,9 +127,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
     <Sidebar className="border-r border-sidebar-border bg-sidebar">
       <SidebarHeader className="p-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-md">
-            <IconPropera className="h-6 w-6" />
-          </div>
+          <ProperaMark size={44} className="text-sidebar-primary" />
           <div>
             <h1 className="text-lg font-bold text-sidebar-foreground tracking-tight">Propera</h1>
             <p className="text-xs text-sidebar-foreground/50 font-medium">Resort Operations</p>

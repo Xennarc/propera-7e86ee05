@@ -6,13 +6,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
 import { useEffect, useRef } from 'react';
 import {
-  IconPropera,
   IconStay,
   IconActivities,
   IconRestaurants,
   IconBookings,
   IconLogout,
 } from '@/components/icons/ProperaIcons';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 
 const navItems = [
   { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home' },
@@ -69,7 +69,7 @@ export function GuestLayout() {
       <div className="flex min-h-screen items-center justify-center hero-pattern">
         <div className="flex flex-col items-center gap-4">
           <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft">
-            <IconPropera className="h-8 w-8 text-primary" />
+            <ProperaMark size={32} className="text-primary" />
           </div>
           <p className="text-muted-foreground font-medium">Loading your experience...</p>
         </div>
@@ -87,9 +87,7 @@ export function GuestLayout() {
       <header className="sticky top-0 z-10 glass-dark border-b border-border/30 shadow-soft safe-area-inset-top">
         <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-primary/10 shadow-sm flex-shrink-0">
-              <IconPropera className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            </div>
+            <ProperaMark size={40} className="text-primary flex-shrink-0" />
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-foreground truncate">Guest Portal</h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Room {guest.roomNumber}</p>
