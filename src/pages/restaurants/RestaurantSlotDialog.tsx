@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Restaurant, RestaurantTimeSlot, MealPeriod, SlotStatus } from '@/types/database';
 import {
@@ -23,7 +23,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Clock } from 'lucide-react';
+
+// Quick time presets for common meal periods
+const TIME_PRESETS = [
+  { label: 'Breakfast', start: '07:00', end: '10:00', period: 'BREAKFAST' as MealPeriod },
+  { label: 'Lunch', start: '12:00', end: '14:00', period: 'LUNCH' as MealPeriod },
+  { label: 'Dinner', start: '19:00', end: '21:00', period: 'DINNER' as MealPeriod },
+  { label: 'Late Dinner', start: '20:00', end: '22:00', period: 'DINNER' as MealPeriod },
+];
 
 interface RestaurantSlotDialogProps {
   open: boolean;
@@ -204,6 +212,30 @@ export function RestaurantSlotDialog({
     setLoading(false);
   };
 
+  // Calculate duration for display
+  const duration = useMemo(() => {
+    const [startH, startM] = formData.start_time.split(':').map(Number);
+    const [endH, endM] = formData.end_time.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    const diffMinutes = endMinutes - startMinutes;
+    if (diffMinutes <= 0) return null;
+    const hours = Math.floor(diffMinutes / 60);
+    const mins = diffMinutes % 60;
+    if (hours === 0) return `${mins} min`;
+    if (mins === 0) return `${hours} hr`;
+    return `${hours} hr ${mins} min`;
+  }, [formData.start_time, formData.end_time]);
+
+  const applyPreset = (preset: typeof TIME_PRESETS[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      start_time: preset.start,
+      end_time: preset.end,
+      meal_period: preset.period,
+    }));
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -240,38 +272,73 @@ export function RestaurantSlotDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Quick time presets */}
+          {!slot && (
             <div className="space-y-2">
-              <Label htmlFor="start_time">Start Time *</Label>
-              <Input
-                id="start_time"
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => {
-                  const newStartTime = e.target.value;
-                  // Auto-suggest meal period based on start time
-                  const hour = parseInt(newStartTime.split(':')[0], 10);
-                  let suggestedPeriod = formData.meal_period;
-                  if (hour >= 6 && hour < 11) suggestedPeriod = 'BREAKFAST';
-                  else if (hour >= 11 && hour < 15) suggestedPeriod = 'LUNCH';
-                  else if (hour >= 17 && hour < 23) suggestedPeriod = 'DINNER';
-                  setFormData({ ...formData, start_time: newStartTime, meal_period: suggestedPeriod });
-                }}
-                required
-                className="h-12"
-              />
+              <Label className="text-muted-foreground text-xs">Quick presets</Label>
+              <div className="flex flex-wrap gap-2">
+                {TIME_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => applyPreset(preset)}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="end_time">End Time *</Label>
-              <Input
-                id="end_time"
-                type="time"
-                value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                required
-                className="h-12"
-              />
+          )}
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Time Range *</Label>
+              {duration && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Duration: {duration}
+                </span>
+              )}
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="start_time" className="text-xs text-muted-foreground">Start</Label>
+                <Input
+                  id="start_time"
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => {
+                    const newStartTime = e.target.value;
+                    // Auto-suggest meal period based on start time
+                    const hour = parseInt(newStartTime.split(':')[0], 10);
+                    let suggestedPeriod = formData.meal_period;
+                    if (hour >= 6 && hour < 11) suggestedPeriod = 'BREAKFAST';
+                    else if (hour >= 11 && hour < 15) suggestedPeriod = 'LUNCH';
+                    else if (hour >= 17 && hour < 23) suggestedPeriod = 'DINNER';
+                    setFormData({ ...formData, start_time: newStartTime, meal_period: suggestedPeriod });
+                  }}
+                  required
+                  className="h-12"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="end_time" className="text-xs text-muted-foreground">End</Label>
+                <Input
+                  id="end_time"
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                  required
+                  className="h-12"
+                />
+              </div>
+            </div>
+            {formData.end_time <= formData.start_time && formData.end_time !== '' && (
+              <p className="text-xs text-destructive">End time must be after start time</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -338,7 +405,7 @@ export function RestaurantSlotDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || formData.end_time <= formData.start_time}>
                 {loading ? 'Saving...' : slot ? 'Update' : 'Create'}
               </Button>
             </div>
