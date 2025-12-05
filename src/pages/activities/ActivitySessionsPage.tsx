@@ -2,17 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Activity, ActivitySession } from '@/types/database';
+import { Activity, ActivitySession, ActivityRecurringRule } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock } from 'lucide-react';
+import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock, RepeatIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, addDays } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
+import { ActivityRecurringRuleDialog } from '@/components/recurring/ActivityRecurringRuleDialog';
+import { RecurringRulesList } from '@/components/recurring/RecurringRulesList';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/filter-bar';
@@ -20,6 +22,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -30,17 +33,26 @@ interface SessionWithBookings extends ActivitySession {
 export default function ActivitySessionsPage() {
   const [sessions, setSessions] = useState<SessionWithBookings[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [recurringRules, setRecurringRules] = useState<ActivityRecurringRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 7), 'yyyy-MM-dd'));
   const [activityFilter, setActivityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<ActivityRecurringRule | null>(null);
+  const [recurringOpen, setRecurringOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'agenda'>('table');
 
   const { currentResort } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Get selected activity for recurring dialog
+  const selectedActivityForRecurring = activityFilter !== 'all' 
+    ? activities.find(a => a.id === activityFilter) 
+    : activities[0];
 
   const fetchActivities = async () => {
     if (!currentResort) return;
@@ -51,6 +63,22 @@ export default function ActivitySessionsPage() {
       .eq('is_active', true)
       .order('name');
     if (data) setActivities(data as Activity[]);
+  };
+
+  const fetchRecurringRules = async () => {
+    if (!currentResort) return;
+    let query = supabase
+      .from('activity_recurring_rules')
+      .select('*, activity:activities(*)')
+      .eq('resort_id', currentResort.id)
+      .order('created_at', { ascending: false });
+    
+    if (activityFilter !== 'all') {
+      query = query.eq('activity_id', activityFilter);
+    }
+    
+    const { data } = await query;
+    if (data) setRecurringRules(data as ActivityRecurringRule[]);
   };
 
   const fetchSessions = async () => {
@@ -112,6 +140,7 @@ export default function ActivitySessionsPage() {
 
   useEffect(() => {
     fetchSessions();
+    fetchRecurringRules();
   }, [currentResort, startDate, endDate, activityFilter, statusFilter]);
 
   // Calculate stats
@@ -383,6 +412,52 @@ export default function ActivitySessionsPage() {
         </CardContent>
       </Card>
 
+      {/* Recurring Schedules */}
+      {activities.length > 0 && (
+        <Collapsible open={recurringOpen} onOpenChange={setRecurringOpen}>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <RepeatIcon className="h-4 w-4" />
+                      Recurring Schedules
+                      <span className="text-muted-foreground font-normal">({recurringRules.length})</span>
+                    </CardTitle>
+                  </Button>
+                </CollapsibleTrigger>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingRule(null);
+                    setRecurringDialogOpen(true);
+                  }}
+                  disabled={!selectedActivityForRecurring}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Schedule
+                </Button>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <RecurringRulesList
+                  rules={recurringRules}
+                  type="activity"
+                  onEdit={(rule) => {
+                    setEditingRule(rule as ActivityRecurringRule);
+                    setRecurringDialogOpen(true);
+                  }}
+                  onRefresh={fetchRecurringRules}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
       <ActivitySessionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -391,6 +466,20 @@ export default function ActivitySessionsPage() {
         activities={activities}
         onSuccess={fetchSessions}
       />
+
+      {selectedActivityForRecurring && (
+        <ActivityRecurringRuleDialog
+          open={recurringDialogOpen}
+          onOpenChange={setRecurringDialogOpen}
+          rule={editingRule}
+          activity={selectedActivityForRecurring}
+          resortId={currentResort.id}
+          onSuccess={() => {
+            fetchRecurringRules();
+            fetchSessions();
+          }}
+        />
+      )}
     </div>
   );
 }

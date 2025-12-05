@@ -2,23 +2,26 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Restaurant, RestaurantTimeSlot } from '@/types/database';
+import { Restaurant, RestaurantTimeSlot, RestaurantRecurringRule } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Clock, Users, Utensils, TrendingUp } from 'lucide-react';
+import { Plus, Clock, Users, Utensils, TrendingUp, RepeatIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { RestaurantSlotDialog } from './RestaurantSlotDialog';
+import { RestaurantRecurringRuleDialog } from '@/components/recurring/RestaurantRecurringRuleDialog';
+import { RecurringRulesList } from '@/components/recurring/RecurringRulesList';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface SlotWithBookings extends RestaurantTimeSlot {
   restaurant?: Restaurant;
@@ -28,15 +31,24 @@ interface SlotWithBookings extends RestaurantTimeSlot {
 export default function RestaurantSlotsPage() {
   const [slots, setSlots] = useState<SlotWithBookings[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [recurringRules, setRecurringRules] = useState<RestaurantRecurringRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [restaurantFilter, setRestaurantFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('OPEN');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<RestaurantRecurringRule | null>(null);
+  const [recurringOpen, setRecurringOpen] = useState(false);
 
   const { currentResort } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Get selected restaurant for recurring dialog
+  const selectedRestaurantForRecurring = restaurantFilter !== 'all' 
+    ? restaurants.find(r => r.id === restaurantFilter) 
+    : restaurants[0];
 
   useEffect(() => {
     if (currentResort) {
@@ -47,6 +59,7 @@ export default function RestaurantSlotsPage() {
   useEffect(() => {
     if (currentResort) {
       fetchSlots();
+      fetchRecurringRules();
     }
   }, [currentResort, selectedDate, restaurantFilter, statusFilter]);
 
@@ -59,6 +72,22 @@ export default function RestaurantSlotsPage() {
       .eq('is_active', true)
       .order('name');
     if (data) setRestaurants(data as Restaurant[]);
+  };
+
+  const fetchRecurringRules = async () => {
+    if (!currentResort) return;
+    let query = supabase
+      .from('restaurant_recurring_rules')
+      .select('*, restaurant:restaurants(*)')
+      .eq('resort_id', currentResort.id)
+      .order('created_at', { ascending: false });
+    
+    if (restaurantFilter !== 'all') {
+      query = query.eq('restaurant_id', restaurantFilter);
+    }
+    
+    const { data } = await query;
+    if (data) setRecurringRules(data as RestaurantRecurringRule[]);
   };
 
   const fetchSlots = async () => {
@@ -280,6 +309,52 @@ export default function RestaurantSlotsPage() {
         </CardContent>
       </Card>
 
+      {/* Recurring Schedules */}
+      {restaurants.length > 0 && (
+        <Collapsible open={recurringOpen} onOpenChange={setRecurringOpen}>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <RepeatIcon className="h-4 w-4" />
+                      Recurring Schedules
+                      <span className="text-muted-foreground font-normal">({recurringRules.length})</span>
+                    </CardTitle>
+                  </Button>
+                </CollapsibleTrigger>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingRule(null);
+                    setRecurringDialogOpen(true);
+                  }}
+                  disabled={!selectedRestaurantForRecurring}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Schedule
+                </Button>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <RecurringRulesList
+                  rules={recurringRules}
+                  type="restaurant"
+                  onEdit={(rule) => {
+                    setEditingRule(rule as RestaurantRecurringRule);
+                    setRecurringDialogOpen(true);
+                  }}
+                  onRefresh={fetchRecurringRules}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
       <RestaurantSlotDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -288,6 +363,20 @@ export default function RestaurantSlotsPage() {
         restaurants={restaurants}
         onSuccess={fetchSlots}
       />
+
+      {selectedRestaurantForRecurring && (
+        <RestaurantRecurringRuleDialog
+          open={recurringDialogOpen}
+          onOpenChange={setRecurringDialogOpen}
+          rule={editingRule}
+          restaurant={selectedRestaurantForRecurring}
+          resortId={currentResort.id}
+          onSuccess={() => {
+            fetchRecurringRules();
+            fetchSlots();
+          }}
+        />
+      )}
     </div>
   );
 }
