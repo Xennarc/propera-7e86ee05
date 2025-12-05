@@ -68,6 +68,12 @@ export default function GuestFindResort() {
 
       if (error) throw error;
 
+      // Handle rate limiting
+      if (data.rateLimited || data.error?.includes('Too many')) {
+        setErrors({ form: data.error || 'Too many search attempts. Please wait a minute and try again.' });
+        return;
+      }
+
       if (data.error) {
         console.error('Search error:', data.error);
         setResult({ type: 'not_found' });
@@ -75,8 +81,13 @@ export default function GuestFindResort() {
       }
 
       setResult(data as SearchResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Search error:', error);
+      // Check if it's a rate limit error from HTTP status
+      if (error?.message?.includes('429') || error?.status === 429) {
+        setErrors({ form: 'Too many search attempts. Please wait a minute and try again.' });
+        return;
+      }
       setResult({ type: 'not_found' });
     } finally {
       setLoading(false);
