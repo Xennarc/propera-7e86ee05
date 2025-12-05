@@ -10,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, User, AlertCircle, Home, Building2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 
@@ -32,6 +34,7 @@ export default function ResortGuestLogin() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { guest, login, logout } = useGuestAuth();
+  const isOnline = useOnlineStatus();
   const [loading, setLoading] = useState(false);
   const [loadingResort, setLoadingResort] = useState(true);
   const [resort, setResort] = useState<ResortBranding | null>(null);
@@ -245,10 +248,12 @@ export default function ResortGuestLogin() {
   const subtitle = resort?.guest_login_subtitle || 'Access your resort experience';
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center p-4 relative"
-      style={customStyles}
-    >
+    <>
+      {!isOnline && <OfflineBanner />}
+      <div 
+        className={`min-h-screen flex flex-col items-center justify-center p-4 relative ${!isOnline ? 'pt-14' : ''}`}
+        style={customStyles}
+      >
       {/* Background - either hero image or gradient */}
       {resort?.login_hero_image_url ? (
         <>
@@ -380,5 +385,6 @@ export default function ResortGuestLogin() {
         </p>
       </div>
     </div>
+    </>
   );
 }
