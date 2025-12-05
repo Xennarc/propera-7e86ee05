@@ -151,12 +151,30 @@ export function RestaurantSlotDialog({
     }
   }, [slot, open, restaurants]);
 
+  // Get selected restaurant's opening hours
+  const selectedRestaurant = restaurants.find(r => r.id === formData.restaurant_id);
+  const openingTime = (selectedRestaurant as any)?.opening_time?.slice(0, 5) || '06:00';
+  const closingTime = (selectedRestaurant as any)?.closing_time?.slice(0, 5) || '23:00';
+
+  // Validate slot is within opening hours
+  const isOutsideOpeningHours = formData.start_time < openingTime || formData.end_time > closingTime;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate time range
     if (formData.end_time <= formData.start_time) {
       toast({ variant: 'destructive', title: 'Invalid time range', description: 'End time must be after start time' });
+      return;
+    }
+
+    // Validate against restaurant opening hours
+    if (isOutsideOpeningHours) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Outside opening hours', 
+        description: `${selectedRestaurant?.name || 'Restaurant'} is open ${openingTime} – ${closingTime}. Slot times must be within opening hours.` 
+      });
       return;
     }
     
@@ -339,6 +357,11 @@ export function RestaurantSlotDialog({
             {formData.end_time <= formData.start_time && formData.end_time !== '' && (
               <p className="text-xs text-destructive">End time must be after start time</p>
             )}
+            {isOutsideOpeningHours && formData.end_time > formData.start_time && selectedRestaurant && (
+              <p className="text-xs text-destructive">
+                Slot outside opening hours ({openingTime} – {closingTime})
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -405,7 +428,7 @@ export function RestaurantSlotDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading || formData.end_time <= formData.start_time}>
+              <Button type="submit" disabled={loading || formData.end_time <= formData.start_time || isOutsideOpeningHours}>
                 {loading ? 'Saving...' : slot ? 'Update' : 'Create'}
               </Button>
             </div>
