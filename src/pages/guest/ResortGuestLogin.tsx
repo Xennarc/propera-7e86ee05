@@ -69,25 +69,38 @@ export default function ResortGuestLogin() {
     }
 
     const fetchResort = async () => {
-      const { data, error } = await supabase
-        .from('resorts')
-        .select('id, name, code, status, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
-        .ilike('code', code)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('resorts')
+          .select('id, name, code, status, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
+          .eq('code', code)
+          .maybeSingle();
 
-      if (error || !data) {
-        setNotFound(true);
-      } else {
-        const resortData = data as ResortBranding;
-        // Check if resort is active
-        if (resortData.status === 'INACTIVE') {
-          setResortInactive(true);
-          setResort(resortData);
-        } else {
-          setResort(resortData);
+        if (error) {
+          console.error('Error fetching resort:', error);
+          setNotFound(true);
+          setLoadingResort(false);
+          return;
         }
+
+        if (!data) {
+          setNotFound(true);
+        } else {
+          const resortData = data as ResortBranding;
+          // Check if resort is active
+          if (resortData.status === 'INACTIVE') {
+            setResortInactive(true);
+            setResort(resortData);
+          } else {
+            setResort(resortData);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching resort:', err);
+        setNotFound(true);
+      } finally {
+        setLoadingResort(false);
       }
-      setLoadingResort(false);
     };
 
     fetchResort();
