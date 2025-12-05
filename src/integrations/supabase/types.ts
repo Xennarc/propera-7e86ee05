@@ -901,6 +901,7 @@ export type Database = {
       }
       restaurants: {
         Row: {
+          closing_time: string | null
           created_at: string
           description: string | null
           guest_can_book: boolean
@@ -911,12 +912,14 @@ export type Database = {
           is_active: boolean
           max_pax_per_booking: number
           name: string
+          opening_time: string | null
           requires_approval: boolean
           resort_id: string
           total_capacity: number
           updated_at: string
         }
         Insert: {
+          closing_time?: string | null
           created_at?: string
           description?: string | null
           guest_can_book?: boolean
@@ -927,12 +930,14 @@ export type Database = {
           is_active?: boolean
           max_pax_per_booking?: number
           name: string
+          opening_time?: string | null
           requires_approval?: boolean
           resort_id: string
           total_capacity?: number
           updated_at?: string
         }
         Update: {
+          closing_time?: string | null
           created_at?: string
           description?: string | null
           guest_can_book?: boolean
@@ -943,6 +948,7 @@ export type Database = {
           is_active?: boolean
           max_pax_per_booking?: number
           name?: string
+          opening_time?: string | null
           requires_approval?: boolean
           resort_id?: string
           total_capacity?: number

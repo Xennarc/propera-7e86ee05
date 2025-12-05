@@ -45,6 +45,8 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
     guest_can_cancel: true,
     guest_cancel_cutoff_minutes: 60,
     is_active: true,
+    opening_time: '06:00',
+    closing_time: '23:00',
   });
   
   const { toast } = useToast();
@@ -62,6 +64,8 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
         guest_can_cancel: restaurant.guest_can_cancel,
         guest_cancel_cutoff_minutes: restaurant.guest_cancel_cutoff_minutes,
         is_active: restaurant.is_active,
+        opening_time: (restaurant as any).opening_time?.slice(0, 5) || '06:00',
+        closing_time: (restaurant as any).closing_time?.slice(0, 5) || '23:00',
       });
     } else {
       setFormData({
@@ -75,6 +79,8 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
         guest_can_cancel: true,
         guest_cancel_cutoff_minutes: 60,
         is_active: true,
+        opening_time: '06:00',
+        closing_time: '23:00',
       });
     }
     setErrors({});
@@ -106,6 +112,12 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
 
     setLoading(true);
 
+    // Validate opening hours
+    if (formData.closing_time <= formData.opening_time) {
+      setErrors({ opening_time: 'Closing time must be after opening time' });
+      return;
+    }
+
     const restaurantData = {
       resort_id: resortId,
       name: formData.name.trim(),
@@ -118,6 +130,8 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
       guest_can_cancel: formData.guest_can_cancel,
       guest_cancel_cutoff_minutes: formData.guest_cancel_cutoff_minutes,
       is_active: formData.is_active,
+      opening_time: formData.opening_time,
+      closing_time: formData.closing_time,
     };
 
     let error;
@@ -206,6 +220,39 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
                 onChange={(e) => setFormData({ ...formData, max_pax_per_booking: parseInt(e.target.value) || 6 })}
               />
             </div>
+          </div>
+
+          <div className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium">Opening Hours</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="opening_time">Opens at</Label>
+                <Input
+                  id="opening_time"
+                  type="time"
+                  value={formData.opening_time}
+                  onChange={(e) => {
+                    setFormData({ ...formData, opening_time: e.target.value });
+                    if (errors.opening_time) setErrors(prev => ({ ...prev, opening_time: '' }));
+                  }}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="closing_time">Closes at</Label>
+                <Input
+                  id="closing_time"
+                  type="time"
+                  value={formData.closing_time}
+                  onChange={(e) => {
+                    setFormData({ ...formData, closing_time: e.target.value });
+                    if (errors.opening_time) setErrors(prev => ({ ...prev, opening_time: '' }));
+                  }}
+                  className="h-11"
+                />
+              </div>
+            </div>
+            {errors.opening_time && <p className="text-sm text-destructive">{errors.opening_time}</p>}
           </div>
 
           <div className="space-y-4 rounded-lg border p-4">
