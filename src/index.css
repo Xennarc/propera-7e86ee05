@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,136 +6,145 @@
 
 /* ========================================
    PROPERA DESIGN SYSTEM
-   Luxury Resort-Tech Visual Identity
+   Premium Resort SaaS Brand Identity
+   Deep Navy + Muted Teal + Sand Beige
    ======================================== */
 
 @layer base {
   :root {
-    /* === Core Palette - Ocean & Coral Sunset === */
-    --background: 200 20% 98%;
-    --foreground: 200 50% 10%;
+    /* === Core Palette - Light Mode === */
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
 
     /* Cards & Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 200 50% 10%;
+    --card-foreground: 220 30% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 50% 10%;
+    --popover-foreground: 220 30% 10%;
 
-    /* === Primary: Deep Ocean Teal === */
-    --primary: 187 69% 28%;
+    /* === Primary: Muted Teal #2F8C84 === */
+    --primary: 175 50% 37%;
     --primary-foreground: 0 0% 100%;
 
-    /* === Secondary: Warm Sand === */
-    --secondary: 35 40% 88%;
-    --secondary-foreground: 200 50% 15%;
+    /* === Secondary: Warm Sand Beige #E5D4B3 === */
+    --secondary: 38 45% 80%;
+    --secondary-foreground: 220 30% 15%;
 
     /* === Muted Surfaces === */
-    --muted: 200 15% 95%;
-    --muted-foreground: 200 15% 45%;
+    --muted: 220 15% 94%;
+    --muted-foreground: 220 15% 45%;
 
-    /* === Accent: Coral Sunset === */
-    --accent: 15 70% 92%;
-    --accent-foreground: 15 70% 30%;
+    /* === Accent: Sand Beige Highlight === */
+    --accent: 38 50% 92%;
+    --accent-foreground: 38 50% 25%;
 
     /* Destructive */
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & Input */
-    --border: 200 20% 90%;
-    --input: 200 20% 90%;
-    --ring: 187 69% 40%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 175 50% 40%;
 
-    /* Radius - Organic, generous curves */
-    --radius: 0.875rem;
+    /* Radius - Modern, generous curves */
+    --radius: 0.75rem;
 
-    /* === Sidebar - Deep Ocean === */
-    --sidebar-background: 200 45% 12%;
-    --sidebar-foreground: 200 15% 95%;
-    --sidebar-primary: 175 65% 55%;
-    --sidebar-primary-foreground: 200 50% 10%;
-    --sidebar-accent: 200 40% 18%;
-    --sidebar-accent-foreground: 200 15% 95%;
-    --sidebar-border: 200 40% 18%;
-    --sidebar-ring: 175 65% 55%;
+    /* === Sidebar - Deep Navy === */
+    --sidebar-background: 220 50% 6%;
+    --sidebar-foreground: 220 15% 95%;
+    --sidebar-primary: 175 50% 50%;
+    --sidebar-primary-foreground: 220 50% 6%;
+    --sidebar-accent: 220 45% 12%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border: 220 40% 14%;
+    --sidebar-ring: 175 50% 50%;
 
     /* === Status Colors === */
-    --success: 160 70% 36%;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 35 95% 50%;
-    --warning-foreground: 35 95% 15%;
-    --info: 200 70% 50%;
+    --warning: 45 93% 58%;
+    --warning-foreground: 45 100% 15%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    /* === Chart Palette - Ocean Gradient === */
-    --chart-1: 187 69% 35%;
-    --chart-2: 35 50% 60%;
-    --chart-3: 160 70% 40%;
-    --chart-4: 15 80% 55%;
-    --chart-5: 200 50% 50%;
+    /* === Chart Palette === */
+    --chart-1: 175 50% 37%;
+    --chart-2: 38 45% 65%;
+    --chart-3: 160 84% 39%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 217 91% 60%;
 
     /* === Premium Gradients === */
-    --gradient-ocean: linear-gradient(135deg, hsl(187 69% 35%) 0%, hsl(175 65% 45%) 100%);
-    --gradient-sunset: linear-gradient(135deg, hsl(35 70% 55%) 0%, hsl(15 80% 55%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(200 20% 98%) 0%, hsl(200 15% 96%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(175 50% 37%) 0%, hsl(175 60% 45%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(38 45% 75%) 0%, hsl(38 50% 85%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(220 20% 97%) 0%, hsl(220 15% 95%) 100%);
   }
 
   .dark {
-    /* === Dark Theme - Deep Ocean Night === */
-    --background: 210 40% 8%;
-    --foreground: 200 15% 95%;
+    /* === Dark Theme - Deep Navy Night #050A14 === */
+    --background: 220 50% 4%;
+    --foreground: 220 15% 95%;
 
-    --card: 210 35% 12%;
-    --card-foreground: 200 15% 95%;
+    --card: 220 45% 7%;
+    --card-foreground: 220 15% 95%;
 
-    --popover: 210 35% 12%;
-    --popover-foreground: 200 15% 95%;
+    --popover: 220 45% 7%;
+    --popover-foreground: 220 15% 95%;
 
-    --primary: 175 65% 50%;
-    --primary-foreground: 210 50% 8%;
+    /* === Primary: Muted Teal #2F8C84 === */
+    --primary: 175 50% 45%;
+    --primary-foreground: 220 50% 4%;
 
-    --secondary: 35 25% 22%;
-    --secondary-foreground: 35 30% 85%;
+    /* === Secondary: Sand Beige on Dark === */
+    --secondary: 38 30% 18%;
+    --secondary-foreground: 38 40% 85%;
 
-    --muted: 210 35% 16%;
-    --muted-foreground: 200 15% 60%;
+    /* === Muted Surfaces === */
+    --muted: 220 40% 10%;
+    --muted-foreground: 220 15% 60%;
 
-    --accent: 15 40% 20%;
-    --accent-foreground: 15 50% 80%;
+    /* === Accent === */
+    --accent: 38 25% 15%;
+    --accent-foreground: 38 40% 85%;
 
-    --destructive: 0 63% 45%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 35% 18%;
-    --input: 210 35% 18%;
-    --ring: 175 65% 50%;
+    --border: 220 35% 14%;
+    --input: 220 35% 14%;
+    --ring: 175 50% 45%;
 
-    --sidebar-background: 210 45% 6%;
-    --sidebar-foreground: 200 15% 95%;
-    --sidebar-primary: 175 65% 55%;
-    --sidebar-primary-foreground: 210 50% 8%;
-    --sidebar-accent: 210 40% 14%;
-    --sidebar-accent-foreground: 200 15% 95%;
-    --sidebar-border: 210 40% 14%;
-    --sidebar-ring: 175 65% 55%;
+    /* === Sidebar - Deeper Navy === */
+    --sidebar-background: 220 55% 3%;
+    --sidebar-foreground: 220 15% 95%;
+    --sidebar-primary: 175 50% 50%;
+    --sidebar-primary-foreground: 220 50% 4%;
+    --sidebar-accent: 220 45% 10%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border: 220 40% 12%;
+    --sidebar-ring: 175 50% 50%;
 
-    --success: 160 60% 45%;
-    --success-foreground: 160 80% 10%;
-    --warning: 35 80% 55%;
-    --warning-foreground: 35 90% 10%;
-    --info: 200 60% 55%;
-    --info-foreground: 200 80% 10%;
+    /* === Status Colors === */
+    --success: 160 84% 39%;
+    --success-foreground: 160 90% 10%;
+    --warning: 45 93% 58%;
+    --warning-foreground: 45 100% 10%;
+    --info: 217 91% 60%;
+    --info-foreground: 217 90% 10%;
 
-    --chart-1: 175 65% 50%;
-    --chart-2: 35 45% 50%;
-    --chart-3: 160 60% 50%;
-    --chart-4: 15 70% 60%;
-    --chart-5: 200 50% 55%;
+    /* === Chart Palette === */
+    --chart-1: 175 50% 45%;
+    --chart-2: 38 40% 55%;
+    --chart-3: 160 70% 45%;
+    --chart-4: 0 70% 55%;
+    --chart-5: 217 80% 60%;
 
-    --gradient-ocean: linear-gradient(135deg, hsl(187 60% 40%) 0%, hsl(175 55% 50%) 100%);
-    --gradient-sunset: linear-gradient(135deg, hsl(35 60% 45%) 0%, hsl(15 70% 50%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(210 40% 8%) 0%, hsl(210 38% 10%) 100%);
+    /* === Premium Gradients === */
+    --gradient-primary: linear-gradient(135deg, hsl(175 50% 40%) 0%, hsl(175 55% 50%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(38 30% 25%) 0%, hsl(38 35% 35%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(220 50% 4%) 0%, hsl(220 45% 6%) 100%);
   }
 }
 
@@ -150,29 +159,47 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.01em;
   }
 
   /* Improved focus styles */
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
+
+  /* Typography scale */
+  h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-semibold tracking-tight;
+  }
+
+  h2 {
+    @apply text-xl sm:text-2xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-lg font-semibold tracking-tight;
+  }
+
+  h4 {
+    @apply text-base font-semibold;
+  }
 }
 
 @layer components {
   /* === Premium Card Styles === */
   .card-luxury {
-    @apply bg-card rounded-2xl shadow-soft border border-border/60 transition-all duration-300;
+    @apply bg-card rounded-2xl shadow-soft border border-border/50 transition-all duration-200;
   }
 
   .card-luxury:hover {
-    @apply shadow-medium border-border;
+    @apply shadow-medium border-border/80;
   }
 
-  /* === Stat Card with Ocean Gradient === */
+  /* === Stat Card === */
   .stat-card {
-    @apply relative bg-card rounded-2xl p-6 border border-border/60 shadow-soft overflow-hidden;
+    @apply relative bg-card rounded-2xl p-6 border border-border/50 shadow-soft overflow-hidden;
   }
 
   .stat-card::before {
@@ -180,27 +207,27 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 120px;
-    height: 120px;
-    background: var(--gradient-ocean);
-    opacity: 0.05;
+    width: 100px;
+    height: 100px;
+    background: var(--gradient-primary);
+    opacity: 0.06;
     border-radius: 50%;
     transform: translate(30%, -30%);
   }
 
   /* === Glass Morphism === */
   .glass {
-    @apply bg-background/70 backdrop-blur-xl border border-border/40;
+    @apply bg-background/80 backdrop-blur-xl border border-border/30;
   }
 
   .glass-dark {
-    @apply bg-card/70 backdrop-blur-xl border border-border/40;
+    @apply bg-card/80 backdrop-blur-xl border border-border/30;
   }
 
   /* === Premium Button Variants === */
   .btn-primary-luxury {
     @apply relative overflow-hidden bg-primary text-primary-foreground 
-           shadow-md hover:shadow-lg transition-all duration-300
+           shadow-sm hover:shadow-md transition-all duration-200
            font-semibold rounded-xl;
   }
 
@@ -208,9 +235,9 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%);
     opacity: 0;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s;
   }
 
   .btn-primary-luxury:hover::after {
@@ -219,19 +246,19 @@
 
   .btn-secondary-luxury {
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/80
-           border border-border shadow-sm hover:shadow-md 
-           transition-all duration-300 font-medium rounded-xl;
+           border border-border/50 shadow-sm hover:shadow-md 
+           transition-all duration-200 font-medium rounded-xl;
   }
 
   /* === Pill Containers === */
   .pill {
     @apply inline-flex items-center px-4 py-2 rounded-full text-sm font-medium
-           bg-muted/60 text-foreground border border-border/40 
+           bg-muted/60 text-foreground border border-border/30 
            transition-all duration-200;
   }
 
   .pill:hover {
-    @apply bg-muted border-border;
+    @apply bg-muted border-border/60;
   }
 
   .pill-active {
@@ -245,12 +272,12 @@
 
   .table-luxury th {
     @apply text-left text-xs font-semibold uppercase tracking-wider 
-           text-muted-foreground py-4 px-5 bg-muted/40 
+           text-muted-foreground py-4 px-5 bg-muted/30 
            first:rounded-tl-xl last:rounded-tr-xl;
   }
 
   .table-luxury td {
-    @apply py-4 px-5 border-b border-border/40;
+    @apply py-4 px-5 border-b border-border/30;
   }
 
   .table-luxury tr:last-child td {
@@ -258,14 +285,14 @@
   }
 
   .table-luxury tbody tr {
-    @apply transition-colors duration-200 hover:bg-muted/30;
+    @apply transition-colors duration-150 hover:bg-muted/20;
   }
 
   /* === Navigation Styles === */
   .nav-link {
     @apply flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
-           transition-all duration-200 text-muted-foreground
-           hover:text-foreground hover:bg-muted/50;
+           transition-all duration-150 text-muted-foreground
+           hover:text-foreground hover:bg-muted/40;
   }
 
   .nav-link.active {
@@ -297,6 +324,10 @@
     @apply bg-muted text-muted-foreground;
   }
 
+  .chip-sand {
+    @apply bg-secondary/60 text-secondary-foreground;
+  }
+
   /* === Wave Divider Container === */
   .wave-divider {
     @apply relative w-full overflow-hidden pointer-events-none select-none;
@@ -309,29 +340,29 @@
 
   .card-stack::before {
     content: '';
-    @apply absolute -bottom-2 left-2 right-2 h-full bg-muted/40 rounded-2xl -z-10;
+    @apply absolute -bottom-2 left-2 right-2 h-full bg-muted/30 rounded-2xl -z-10;
   }
 
   .card-stack::after {
     content: '';
-    @apply absolute -bottom-4 left-4 right-4 h-full bg-muted/20 rounded-2xl -z-20;
+    @apply absolute -bottom-4 left-4 right-4 h-full bg-muted/15 rounded-2xl -z-20;
   }
 
   /* === Hero Pattern Background === */
   .hero-pattern {
     background-image: 
-      radial-gradient(ellipse at 20% 20%, hsl(var(--primary) / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 80%, hsl(var(--accent) / 0.1) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, hsl(var(--secondary) / 0.05) 0%, transparent 70%);
+      radial-gradient(ellipse at 20% 20%, hsl(var(--primary) / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, hsl(var(--secondary) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, hsl(var(--accent) / 0.04) 0%, transparent 70%);
   }
 
   /* === Section Gradient Backgrounds === */
   .section-gradient-ocean {
-    @apply bg-gradient-to-br from-primary/5 via-background to-accent/5;
+    @apply bg-gradient-to-br from-primary/5 via-background to-secondary/5;
   }
 
   .section-gradient-warm {
-    @apply bg-gradient-to-br from-secondary/20 via-background to-primary/5;
+    @apply bg-gradient-to-br from-secondary/15 via-background to-primary/5;
   }
 }
 
@@ -359,40 +390,36 @@
 
   /* Animation Utilities */
   .animate-fade-in {
-    animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
   
   .animate-slide-up {
-    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-scale-in {
-    animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-slide-in-right {
-    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
 
-  .animate-wave {
-    animation: wave 3s ease-in-out infinite;
-  }
-
   /* Hover effects */
   .hover-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-medium;
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:shadow-medium;
   }
 
   .hover-scale {
-    @apply transition-transform duration-300 hover:scale-[1.03];
+    @apply transition-transform duration-200 hover:scale-[1.02];
   }
 
   .hover-glow {
-    @apply transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/20;
+    @apply transition-shadow duration-200 hover:shadow-lg hover:shadow-primary/15;
   }
 
   /* Text utilities */
@@ -403,12 +430,12 @@
   /* Premium gradient text */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-ocean);
+    background-image: var(--gradient-primary);
   }
 
   .text-gradient-warm {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-sunset);
+    background-image: var(--gradient-secondary);
   }
 
   /* Scrollbar styling */
@@ -444,6 +471,15 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Safe area insets for mobile */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
 
 /* Keyframes */
@@ -459,7 +495,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -470,7 +506,7 @@
 @keyframes scaleIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -481,7 +517,7 @@
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(16px);
   }
   to {
     opacity: 1;
@@ -494,16 +530,7 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-10px);
-  }
-}
-
-@keyframes wave {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  50% {
-    transform: translateX(10px);
+    transform: translateY(-8px);
   }
 }
 
@@ -513,132 +540,20 @@
   }
 }
 
-/* Custom selection colors */
+/* Selection color */
 ::selection {
-  background-color: hsl(var(--primary) / 0.25);
+  background-color: hsl(var(--primary) / 0.2);
   color: hsl(var(--foreground));
 }
 
-/* Safe Area Insets for Mobile */
-@supports (padding: env(safe-area-inset-bottom)) {
-  .safe-area-inset-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+/* Mobile form improvements */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
   }
   
-  .safe-area-inset-top {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Touch-friendly tap targets */
-@layer utilities {
   .touch-target {
     min-height: 44px;
     min-width: 44px;
-  }
-}
-
-/* Mobile-first form improvements */
-@layer components {
-  /* Full-width form inputs on mobile */
-  @media (max-width: 640px) {
-    .form-mobile input,
-    .form-mobile select,
-    .form-mobile textarea,
-    .form-mobile button[type="submit"] {
-      width: 100%;
-    }
-    
-    .form-mobile button {
-      min-height: 48px;
-    }
-  }
-  
-  /* Better touch targets for form elements */
-  input[type="date"],
-  input[type="time"],
-  input[type="datetime-local"] {
-    min-height: 44px;
-  }
-  
-  /* Improved select styling on mobile */
-  @media (max-width: 640px) {
-    select {
-      font-size: 16px; /* Prevents iOS zoom on focus */
-    }
-  }
-}
-
-/* Mobile card layout utilities */
-@layer utilities {
-  .card-mobile {
-    @apply p-4;
-  }
-  
-  @media (min-width: 640px) {
-    .card-mobile {
-      @apply p-6;
-    }
-  }
-  
-  /* Stack on mobile, row on desktop */
-  .stack-mobile {
-    @apply flex flex-col gap-3;
-  }
-  
-  @media (min-width: 640px) {
-    .stack-mobile {
-      @apply flex-row items-center;
-    }
-  }
-  
-  /* Table horizontal scroll indicator */
-  .table-scroll-container {
-    @apply relative overflow-x-auto;
-  }
-  
-  .table-scroll-container::after {
-    content: '';
-    @apply absolute top-0 right-0 bottom-0 w-6 pointer-events-none;
-    background: linear-gradient(to right, transparent, hsl(var(--card) / 0.8));
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  
-  .table-scroll-container.has-scroll::after {
-    opacity: 1;
-  }
-  
-  /* Better dialog mobile styling */
-  @media (max-width: 640px) {
-    [role="dialog"] {
-      max-height: 90vh !important;
-      margin: 1rem;
-    }
-    
-    [role="dialog"] form {
-      max-height: 70vh;
-      overflow-y: auto;
-    }
-  }
-  
-  /* Improved touch targets */
-  .touch-target {
-    @apply min-h-[44px] min-w-[44px];
-  }
-  
-  /* Filter bar mobile improvements */
-  @media (max-width: 768px) {
-    .filter-bar {
-      @apply flex-wrap gap-2;
-    }
-    
-    .filter-bar > * {
-      @apply flex-1 min-w-[140px];
-    }
   }
 }
