@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TimePicker } from '@/components/ui/time-picker';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMinutes, parse } from 'date-fns';
+import { AlertCircle } from 'lucide-react';
 
 interface ActivitySessionDialogProps {
   open: boolean;
@@ -125,6 +126,10 @@ export function ActivitySessionDialog({
       toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set start and end times' });
       return;
     }
+    if (!resortId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No resort selected' });
+      return;
+    }
 
     setLoading(true);
 
@@ -161,11 +166,30 @@ export function ActivitySessionDialog({
         onOpenChange(false);
       }
     } catch (err) {
+      console.error('Session save error:', err);
       toast({ variant: 'destructive', title: 'Error', description: 'An unexpected error occurred. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
+
+  // Safety check - don't render if missing required props
+  if (!resortId) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Error</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center gap-3 p-4 bg-destructive/10 rounded-lg">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm">No resort selected. Please select a resort first.</p>
+          </div>
+          <Button onClick={() => onOpenChange(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -177,7 +201,9 @@ export function ActivitySessionDialog({
           <div className="space-y-2">
             <Label>Activity *</Label>
             {activities.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">No activities available. Please create an activity first.</p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">No activities available. Please create an activity first.</p>
+              </div>
             ) : (
               <Select
                 value={formData.activity_id}
@@ -281,7 +307,7 @@ export function ActivitySessionDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || activities.length === 0}>
               {loading ? 'Saving...' : session ? 'Update Session' : 'Create Session'}
             </Button>
           </div>
