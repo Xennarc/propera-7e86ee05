@@ -45,26 +45,14 @@ export default function Auth() {
   const [showSignupConfirm, setShowSignupConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already logged in (but wait for auth to finish loading)
-  if (!authLoading && user) {
+  // Redirect if already logged in
+  if (user) {
     navigate('/staff/dashboard', { replace: true });
     return null;
-  }
-
-  // Show loading state while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground text-sm">Checking authentication...</p>
-        </div>
-      </div>
-    );
   }
 
   const handleLogin = async (e: React.FormEvent) => {
