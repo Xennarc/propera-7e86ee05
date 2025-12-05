@@ -260,14 +260,14 @@ export function ActivitySessionDialog({
           <div className="space-y-2">
             <Label>Resource (optional)</Label>
             <Select
-              value={formData.resource_id}
-              onValueChange={(v) => setFormData({ ...formData, resource_id: v })}
+              value={formData.resource_id || "__none__"}
+              onValueChange={(v) => setFormData({ ...formData, resource_id: v === "__none__" ? "" : v })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="No resource assigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No resource</SelectItem>
+                <SelectItem value="__none__">No resource</SelectItem>
                 {resources.map(r => (
                   <SelectItem key={r.id} value={r.id}>{r.name} ({r.type})</SelectItem>
                 ))}
