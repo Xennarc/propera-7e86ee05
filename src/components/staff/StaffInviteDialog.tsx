@@ -113,7 +113,6 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
             email: formData.email.trim().toLowerCase(),
             name: formData.name.trim() || null,
             resortName: currentResort.name,
-            resortId: currentResort.id,
             role: formData.resort_role,
             inviteLink: link,
             expiresIn: '7 days',

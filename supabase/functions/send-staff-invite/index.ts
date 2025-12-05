@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -13,7 +12,6 @@ interface StaffInviteRequest {
   email: string;
   name: string | null;
   resortName: string;
-  resortId: string;
   role: string;
   inviteLink: string;
   expiresIn: string;
@@ -34,72 +32,9 @@ serve(async (req) => {
   }
 
   try {
-    // Extract and verify JWT token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header provided");
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized - No token provided" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    const { email, name, resortName, role, inviteLink, expiresIn }: StaffInviteRequest = await req.json();
 
-    // Create Supabase client with the user's JWT
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    // Client with user's JWT to get user info
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Get the authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
-      console.error("Failed to get user:", userError?.message);
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized - Invalid token" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    console.log(`User ${user.id} attempting to send staff invite`);
-
-    // Use service role client to check permissions (bypasses RLS)
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Check if user is SUPER_ADMIN
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("global_role")
-      .eq("id", user.id)
-      .single();
-
-    const isSuperAdmin = profile?.global_role === "SUPER_ADMIN";
-
-    // Parse request body
-    const { email, name, resortName, resortId, role, inviteLink, expiresIn }: StaffInviteRequest = await req.json();
-
-    // If not SUPER_ADMIN, check if user has RESORT_ADMIN role for this specific resort
-    if (!isSuperAdmin) {
-      const { data: membership } = await supabaseAdmin
-        .from("resort_memberships")
-        .select("resort_role")
-        .eq("user_id", user.id)
-        .eq("resort_id", resortId)
-        .single();
-
-      if (!membership || membership.resort_role !== "RESORT_ADMIN") {
-        console.error(`User ${user.id} lacks permission to send invites for resort ${resortId}`);
-        return new Response(
-          JSON.stringify({ success: false, error: "Forbidden - Insufficient permissions to send invites" }),
-          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-        );
-      }
-    }
-
-    console.log(`Authorized: Sending staff invite email to ${email} for ${resortName}`);
+    console.log(`Sending staff invite email to ${email} for ${resortName}`);
 
     const roleLabel = ROLE_LABELS[role] || role;
     const greeting = name ? `Hi ${name},` : 'Hi,';
