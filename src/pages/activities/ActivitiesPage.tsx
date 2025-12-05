@@ -181,7 +181,7 @@ export default function ActivitiesPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
-                            <CategoryIcon category={activity.category} size={20} />
+                            <CategoryIcon category={activity.category} iconKey={(activity as any).icon_key} size={20} />
                           </div>
                           <div>
                             <p className="font-medium">{activity.name}</p>
@@ -194,7 +194,7 @@ export default function ActivitiesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <CategoryBadge category={activity.category} size="md" />
+                        <CategoryBadge category={activity.category} iconKey={(activity as any).icon_key} size="md" />
                       </TableCell>
                       <TableCell>{activity.duration_minutes} min</TableCell>
                       <TableCell>${activity.default_price_per_person}</TableCell>

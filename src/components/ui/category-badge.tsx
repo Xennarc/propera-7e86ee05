@@ -1,9 +1,11 @@
 import { getCategoryConfig, ActivityCategoryKey } from '@/lib/activity-category-config';
+import { getActivityIcon } from '@/lib/activity-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface CategoryBadgeProps {
   category: string | null | undefined;
+  iconKey?: string | null;
   showIcon?: boolean;
   showLabel?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -15,13 +17,15 @@ interface CategoryBadgeProps {
  */
 export function CategoryBadge({
   category,
+  iconKey,
   showIcon = true,
   showLabel = true,
   size = 'sm',
   className,
 }: CategoryBadgeProps) {
   const config = getCategoryConfig(category);
-  const Icon = config.icon;
+  // Use custom icon if provided, otherwise use category default
+  const Icon = iconKey ? getActivityIcon(iconKey) : config.icon;
   
   const iconSizes = {
     sm: 12,
@@ -55,6 +59,7 @@ export function CategoryBadge({
 
 interface CategoryIconProps {
   category: string | null | undefined;
+  iconKey?: string | null;
   size?: number;
   className?: string;
 }
@@ -64,11 +69,13 @@ interface CategoryIconProps {
  */
 export function CategoryIcon({
   category,
+  iconKey,
   size = 20,
   className,
 }: CategoryIconProps) {
   const config = getCategoryConfig(category);
-  const Icon = config.icon;
+  // Use custom icon if provided, otherwise use category default
+  const Icon = iconKey ? getActivityIcon(iconKey) : config.icon;
   
   return <Icon size={size} className={cn(config.colorClass, className)} />;
 }

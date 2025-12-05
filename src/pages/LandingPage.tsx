@@ -3,16 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
-  IconActivities, 
-  IconRestaurants, 
   IconCalendar, 
   IconClock,
   IconStay,
   IconArrow,
-  WaveDivider
+  WaveDivider,
+  IconSnorkeling,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
-import { QrCode, LogIn, Sparkles, ChevronRight } from 'lucide-react';
+import { QrCode, LogIn, Sparkles, ChevronRight, UtensilsCrossed } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -96,12 +95,12 @@ export default function LandingPage() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             <FeatureCard
-              icon={<IconActivities className="h-7 w-7" />}
+              icon={<IconSnorkeling className="h-7 w-7" />}
               title="Book Resort Activities"
               description="Snorkelling, diving, spa treatments, and exciting excursions - all bookable in seconds."
             />
             <FeatureCard
-              icon={<IconRestaurants className="h-7 w-7" />}
+              icon={<UtensilsCrossed className="h-7 w-7" />}
               title="Reserve Restaurants"
               description="Secure your dinner reservations and special dining experiences with ease."
             />
