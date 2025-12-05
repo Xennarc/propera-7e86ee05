@@ -11,6 +11,7 @@ import { Plus, Search, Edit, Trash2, Calendar, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ActivityDialog } from './ActivityDialog';
 import { SetupBanner } from '@/components/staff/SetupBanner';
+import { CategoryBadge, CategoryIcon } from '@/components/ui/category-badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,14 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-
-const categoryColors: Record<ActivityCategory, string> = {
-  DIVE: 'bg-info/10 text-info',
-  EXCURSION: 'bg-success/10 text-success',
-  WATERSPORT: 'bg-primary/10 text-primary',
-  SPA: 'bg-accent/10 text-accent',
-  OTHER: 'bg-secondary text-secondary-foreground',
-};
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -186,19 +179,22 @@ export default function ActivitiesPage() {
                   {filteredActivities.map((activity) => (
                     <TableRow key={activity.id}>
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{activity.name}</p>
-                          {activity.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {activity.description}
-                            </p>
-                          )}
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
+                            <CategoryIcon category={activity.category} size={20} />
+                          </div>
+                          <div>
+                            <p className="font-medium">{activity.name}</p>
+                            {activity.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {activity.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={categoryColors[activity.category]}>
-                          {activity.category}
-                        </Badge>
+                        <CategoryBadge category={activity.category} size="md" />
                       </TableCell>
                       <TableCell>{activity.duration_minutes} min</TableCell>
                       <TableCell>${activity.default_price_per_person}</TableCell>

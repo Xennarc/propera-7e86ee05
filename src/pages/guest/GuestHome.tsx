@@ -18,6 +18,7 @@ import {
   IconFeedback,
   IconStay,
 } from '@/components/icons/ProperaIcons';
+import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import {
   createActivityBookingFromInStaySuggestion,
 } from '@/lib/booking-source-helpers';

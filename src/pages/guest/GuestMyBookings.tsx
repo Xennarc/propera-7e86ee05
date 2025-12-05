@@ -27,6 +27,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
+import { IconRestaurants } from '@/components/icons/ProperaIcons';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -257,9 +259,13 @@ export default function GuestMyBookings() {
             booking.status === 'CANCELLED' ? "bg-muted" : "bg-primary/10"
           )}>
             {type === 'activity' ? (
-              <Calendar className={cn("h-6 w-6", booking.status === 'CANCELLED' ? "text-muted-foreground" : "text-primary")} />
+              <CategoryIcon 
+                category={booking.category} 
+                size={24} 
+                className={booking.status === 'CANCELLED' ? "text-muted-foreground" : undefined}
+              />
             ) : (
-              <Utensils className={cn("h-6 w-6", booking.status === 'CANCELLED' ? "text-muted-foreground" : "text-primary")} />
+              <IconRestaurants className={cn("h-6 w-6", booking.status === 'CANCELLED' ? "text-muted-foreground" : "text-primary")} />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -299,6 +305,9 @@ export default function GuestMyBookings() {
                 {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
                 {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
               </span>
+              {type === 'activity' && booking.category && (
+                <CategoryBadge category={booking.category} size="sm" showIcon={false} />
+              )}
               {type === 'restaurant' && booking.meal_period && (
                 <Badge variant="outline" className="text-xs">{booking.meal_period}</Badge>
               )}
