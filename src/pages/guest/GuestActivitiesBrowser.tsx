@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { cn } from '@/lib/utils';
+import { CategoryBadge, CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
+import { coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
 import {
   Tooltip,
   TooltipContent,
@@ -19,13 +21,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const categories = [
+const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
-  { value: 'DIVE', label: 'Diving' },
-  { value: 'EXCURSION', label: 'Excursions' },
-  { value: 'WATERSPORT', label: 'Watersports' },
-  { value: 'SPA', label: 'Spa' },
-  { value: 'OTHER', label: 'Other' },
+  ...coreActivityCategories.map(cat => ({ 
+    value: cat, 
+    label: cat === 'DIVE' ? 'Diving' : cat === 'EXCURSION' ? 'Excursions' : cat === 'WATERSPORT' ? 'Watersports' : cat === 'SPA' ? 'Spa' : 'Other'
+  })),
 ];
 
 export default function GuestActivitiesBrowser() {
@@ -91,18 +92,16 @@ export default function GuestActivitiesBrowser() {
         <p className="text-sm text-muted-foreground">Discover experiences for your stay</p>
       </div>
 
-      {/* Category Pills */}
+      {/* Category Pills with Icons */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-thin">
         {categories.map((cat) => (
-          <Button
+          <CategoryChip
             key={cat.value}
-            variant={selectedCategory === cat.value ? 'default' : 'outline'}
-            size="sm"
+            category={cat.value}
+            label={cat.label}
+            isActive={selectedCategory === cat.value}
             onClick={() => setSelectedCategory(cat.value)}
-            className={cn("shrink-0 rounded-full h-10 px-4", selectedCategory === cat.value && "shadow-sm")}
-          >
-            {cat.label}
-          </Button>
+          />
         ))}
       </div>
 
@@ -180,7 +179,7 @@ export default function GuestActivitiesBrowser() {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-primary" />
                       <span className="font-mono font-medium">{session.start_time?.slice(0, 5)}</span>
-                      <Badge variant="outline" className="text-xs">{session.category}</Badge>
+                      <CategoryBadge category={session.category} size="sm" />
                     </div>
                     {session.requires_approval ? (
                       <Badge variant="pending" className="text-xs">

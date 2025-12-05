@@ -536,6 +536,210 @@ export function IconWave({ className, size = 24 }: IconProps) {
   );
 }
 
+// Activity Category Icons
+
+export function IconSpa({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Lotus flower icon */}
+      <path d="M12 22c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z" />
+      <path d="M12 22c-1.5-2-2.5-4-2.5-6 0-2 1-3.5 2.5-4.5" className="opacity-60" />
+      <path d="M12 22c1.5-2 2.5-4 2.5-6 0-2-1-3.5-2.5-4.5" className="opacity-60" />
+      <path d="M12 2v6" className="opacity-40" />
+      <path d="M8 4l4 4 4-4" className="opacity-40" />
+    </svg>
+  );
+}
+
+export function IconWatersports({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Surfboard/paddle icon */}
+      <ellipse cx="12" cy="12" rx="3" ry="9" />
+      <path d="M12 3v18" className="opacity-50" />
+      <path d="M9 8h6" className="opacity-60" />
+      <path d="M2 18c3-2 6-1 10 0s7-2 10 0" />
+    </svg>
+  );
+}
+
+export function IconExcursion({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Boat/speedboat icon */}
+      <path d="M2 20l2-2h16l2 2" />
+      <path d="M4 18l1-6h14l1 6" />
+      <path d="M12 12V6" />
+      <path d="M9 6h6" />
+      <path d="M12 6l4-3" />
+      <circle cx="8" cy="15" r="1" className="opacity-50" />
+    </svg>
+  );
+}
+
+export function IconSnorkeling({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Snorkel mask and tube */}
+      <ellipse cx="12" cy="10" rx="6" ry="4" />
+      <path d="M18 10v-4c0-1 1-2 2-2h1" />
+      <circle cx="21" cy="3" r="1" />
+      <path d="M6 10l-3 4" />
+      <path d="M18 10l3 4" />
+      <path d="M2 18c4-2 8-1 10 0s6-2 10 0" className="opacity-50" />
+    </svg>
+  );
+}
+
+export function IconFitness({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Dumbbell icon */}
+      <path d="M6.5 6.5a2 2 0 0 0-3 0v11a2 2 0 0 0 3 0" />
+      <path d="M17.5 6.5a2 2 0 0 1 3 0v11a2 2 0 0 1-3 0" />
+      <path d="M6.5 12h11" />
+      <path d="M3.5 9v6" />
+      <path d="M20.5 9v6" />
+    </svg>
+  );
+}
+
+export function IconKids({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Happy face / child icon */}
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <circle cx="9" cy="9" r="1" fill="currentColor" />
+      <circle cx="15" cy="9" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function IconTransfer({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Speedboat transfer icon */}
+      <path d="M3 17l2-1h14l2 1" />
+      <path d="M5 16l1-4h12l1 4" />
+      <path d="M10 12V9h4v3" />
+      <path d="M2 20c4-2 8-1 10 0s6-2 10 0" className="opacity-50" />
+    </svg>
+  );
+}
+
+export function IconBar({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Cocktail glass icon */}
+      <path d="M8 2h8l-4 10" />
+      <path d="M12 12v8" />
+      <path d="M8 22h8" />
+      <circle cx="6" cy="4" r="1" className="opacity-50" />
+      <path d="M10 4h6" className="opacity-60" />
+    </svg>
+  );
+}
+
+export function IconOther({ className, size = 24 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cn('propera-icon', className)}
+    >
+      {/* Star/spark icon */}
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
+    </svg>
+  );
+}
+
 // Wave Divider SVG component for section separators
 export function WaveDivider({ 
   className, 
