@@ -209,6 +209,51 @@ export type Database = {
           },
         ]
       }
+      activity_closures: {
+        Row: {
+          activity_id: string
+          closure_date: string
+          created_at: string
+          id: string
+          reason: string | null
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          closure_date: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          closure_date?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_closures_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_closures_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_recurring_rules: {
         Row: {
           activity_id: string
@@ -819,6 +864,51 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_closures: {
+        Row: {
+          closure_date: string
+          created_at: string
+          id: string
+          reason: string | null
+          resort_id: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          closure_date: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resort_id: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          closure_date?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          resort_id?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_closures_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_closures_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
