@@ -33,9 +33,14 @@ interface CategoryConfig {
   shortLabel: string;
   description: string;
   icon: ComponentType<{ className?: string; size?: number }>;
+  /** Text color class using semantic category tokens */
   colorClass: string;
+  /** Background color class using semantic category tokens */
   bgClass: string;
+  /** Border color class using semantic category tokens */
   borderClass: string;
+  /** Chip class for category badges */
+  chipClass: string;
 }
 
 export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig> = {
@@ -45,9 +50,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Dive',
     description: 'Scuba diving and dive courses',
     icon: IconDiving,
-    colorClass: 'text-info',
-    bgClass: 'bg-info/10',
-    borderClass: 'border-info/30',
+    colorClass: 'text-category-dive',
+    bgClass: 'bg-lagoon/10',
+    borderClass: 'border-lagoon/30',
+    chipClass: 'chip-category-dive',
   },
   EXCURSION: {
     key: 'EXCURSION',
@@ -55,9 +61,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Excursion',
     description: 'Island trips and boat tours',
     icon: IconExcursion,
-    colorClass: 'text-success',
-    bgClass: 'bg-success/10',
-    borderClass: 'border-success/30',
+    colorClass: 'text-category-excursion',
+    bgClass: 'bg-sunset/10',
+    borderClass: 'border-sunset/30',
+    chipClass: 'chip-category-excursion',
   },
   WATERSPORT: {
     key: 'WATERSPORT',
@@ -65,9 +72,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Watersport',
     description: 'Surfing, kayaking, and water activities',
     icon: IconWatersports,
-    colorClass: 'text-primary',
+    colorClass: 'text-category-watersport',
     bgClass: 'bg-primary/10',
     borderClass: 'border-primary/30',
+    chipClass: 'chip-category-watersport',
   },
   SPA: {
     key: 'SPA',
@@ -75,9 +83,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Spa',
     description: 'Relaxation and treatments',
     icon: IconSpa,
-    colorClass: 'text-accent',
-    bgClass: 'bg-accent/10',
-    borderClass: 'border-accent/30',
+    colorClass: 'text-category-spa',
+    bgClass: 'bg-orchid/10',
+    borderClass: 'border-orchid/30',
+    chipClass: 'chip-category-spa',
   },
   SNORKELING: {
     key: 'SNORKELING',
@@ -85,9 +94,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Snorkel',
     description: 'House reef and snorkel trips',
     icon: IconSnorkeling,
-    colorClass: 'text-primary',
-    bgClass: 'bg-primary/10',
-    borderClass: 'border-primary/30',
+    colorClass: 'text-category-snorkeling',
+    bgClass: 'bg-lagoon/10',
+    borderClass: 'border-lagoon/30',
+    chipClass: 'chip-category-dive',
   },
   FITNESS: {
     key: 'FITNESS',
@@ -95,9 +105,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Fitness',
     description: 'Workouts and fitness classes',
     icon: IconFitness,
-    colorClass: 'text-warning',
-    bgClass: 'bg-warning/10',
-    borderClass: 'border-warning/30',
+    colorClass: 'text-category-fitness',
+    bgClass: 'bg-success/10',
+    borderClass: 'border-success/30',
+    chipClass: 'chip-category-fitness',
   },
   KIDS: {
     key: 'KIDS',
@@ -105,9 +116,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Kids',
     description: 'Family-friendly activities',
     icon: IconKids,
-    colorClass: 'text-success',
-    bgClass: 'bg-success/10',
-    borderClass: 'border-success/30',
+    colorClass: 'text-category-kids',
+    bgClass: 'bg-teal-300/10',
+    borderClass: 'border-teal-300/30',
+    chipClass: 'chip-category-kids',
   },
   TRANSFER: {
     key: 'TRANSFER',
@@ -115,9 +127,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Transfer',
     description: 'Airport and island transfers',
     icon: IconTransfer,
-    colorClass: 'text-muted-foreground',
+    colorClass: 'text-category-transfer',
     bgClass: 'bg-muted/50',
     borderClass: 'border-muted',
+    chipClass: 'chip-neutral',
   },
   BAR: {
     key: 'BAR',
@@ -125,9 +138,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Bar',
     description: 'Cocktails and beverages',
     icon: IconBar,
-    colorClass: 'text-accent',
-    bgClass: 'bg-accent/10',
-    borderClass: 'border-accent/30',
+    colorClass: 'text-category-bar',
+    bgClass: 'bg-coral/10',
+    borderClass: 'border-coral/30',
+    chipClass: 'chip-category-bar',
   },
   DINING: {
     key: 'DINING',
@@ -135,9 +149,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Dining',
     description: 'Restaurant reservations',
     icon: IconRestaurants,
-    colorClass: 'text-sand',
-    bgClass: 'bg-sand/10',
+    colorClass: 'text-category-dining',
+    bgClass: 'bg-sand/15',
     borderClass: 'border-sand/30',
+    chipClass: 'chip-category-dining',
   },
   OTHER: {
     key: 'OTHER',
@@ -145,9 +160,10 @@ export const activityCategoryConfig: Record<ActivityCategoryKey, CategoryConfig>
     shortLabel: 'Other',
     description: 'Miscellaneous experiences',
     icon: IconOther,
-    colorClass: 'text-muted-foreground',
+    colorClass: 'text-category-other',
     bgClass: 'bg-muted/50',
     borderClass: 'border-muted',
+    chipClass: 'chip-neutral',
   },
 };
 

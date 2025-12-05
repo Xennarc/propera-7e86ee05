@@ -19,6 +19,8 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        // Core brand colors
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -47,6 +49,77 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+
+        // Brand color scales
+        navy: {
+          950: "hsl(var(--navy-950))",
+          900: "hsl(var(--navy-900))",
+          800: "hsl(var(--navy-800))",
+          700: "hsl(var(--navy-700))",
+          600: "hsl(var(--navy-600))",
+          500: "hsl(var(--navy-500))",
+        },
+        teal: {
+          600: "hsl(var(--teal-600))",
+          500: "hsl(var(--teal-500))",
+          400: "hsl(var(--teal-400))",
+          300: "hsl(var(--teal-300))",
+        },
+        sand: {
+          600: "hsl(var(--sand-600))",
+          500: "hsl(var(--sand-500))",
+          400: "hsl(var(--sand-400))",
+          300: "hsl(var(--sand-300))",
+          200: "hsl(var(--sand-200))",
+          DEFAULT: "hsl(var(--sand-400))",
+        },
+
+        // Extended accent palette
+        coral: {
+          600: "hsl(var(--coral-600))",
+          500: "hsl(var(--coral-500))",
+          400: "hsl(var(--coral-400))",
+          300: "hsl(var(--coral-300))",
+          DEFAULT: "hsl(var(--coral-500))",
+        },
+        lagoon: {
+          600: "hsl(var(--lagoon-600))",
+          500: "hsl(var(--lagoon-500))",
+          400: "hsl(var(--lagoon-400))",
+          300: "hsl(var(--lagoon-300))",
+          DEFAULT: "hsl(var(--lagoon-500))",
+        },
+        sunset: {
+          600: "hsl(var(--sunset-600))",
+          500: "hsl(var(--sunset-500))",
+          400: "hsl(var(--sunset-400))",
+          300: "hsl(var(--sunset-300))",
+          DEFAULT: "hsl(var(--sunset-500))",
+        },
+        orchid: {
+          600: "hsl(var(--orchid-600))",
+          500: "hsl(var(--orchid-500))",
+          400: "hsl(var(--orchid-400))",
+          300: "hsl(var(--orchid-300))",
+          DEFAULT: "hsl(var(--orchid-500))",
+        },
+
+        // Category colors
+        category: {
+          dive: "hsl(var(--category-dive))",
+          watersport: "hsl(var(--category-watersport))",
+          excursion: "hsl(var(--category-excursion))",
+          spa: "hsl(var(--category-spa))",
+          dining: "hsl(var(--category-dining))",
+          bar: "hsl(var(--category-bar))",
+          fitness: "hsl(var(--category-fitness))",
+          kids: "hsl(var(--category-kids))",
+          snorkeling: "hsl(var(--category-snorkeling))",
+          transfer: "hsl(var(--category-transfer))",
+          other: "hsl(var(--category-other))",
+        },
+
+        // Sidebar colors
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -57,6 +130,8 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+
+        // Status colors
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
@@ -69,12 +144,15 @@ export default {
           DEFAULT: "hsl(var(--info))",
           foreground: "hsl(var(--info-foreground))",
         },
+
+        // Chart colors
         chart: {
           "1": "hsl(var(--chart-1))",
           "2": "hsl(var(--chart-2))",
           "3": "hsl(var(--chart-3))",
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
+          "6": "hsl(var(--chart-6))",
         },
       },
       borderRadius: {
@@ -93,6 +171,8 @@ export default {
         "card-hover": "0 4px 16px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04)",
         "inner-glow": "inset 0 1px 2px rgba(255, 255, 255, 0.08)",
         "glow": "0 0 24px rgba(var(--primary), 0.12)",
+        "glow-coral": "0 0 24px rgba(var(--coral-500), 0.2)",
+        "glow-lagoon": "0 0 24px rgba(var(--lagoon-500), 0.2)",
       },
       keyframes: {
         "accordion-down": {

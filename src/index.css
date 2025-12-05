@@ -7,11 +7,57 @@
 /* ========================================
    PROPERA DESIGN SYSTEM
    Premium Resort SaaS Brand Identity
-   Deep Navy + Muted Teal + Sand Beige
+   Expanded Color Palette v2.0
    ======================================== */
 
 @layer base {
   :root {
+    /* === Brand Navy Scale === */
+    --navy-950: 220 60% 2%;
+    --navy-900: 220 50% 4%;
+    --navy-800: 220 45% 7%;
+    --navy-700: 220 40% 11%;
+    --navy-600: 220 35% 16%;
+    --navy-500: 220 30% 22%;
+
+    /* === Brand Teal Scale === */
+    --teal-600: 175 55% 30%;
+    --teal-500: 175 50% 37%;
+    --teal-400: 175 50% 45%;
+    --teal-300: 175 45% 55%;
+
+    /* === Brand Sand Scale === */
+    --sand-600: 38 40% 50%;
+    --sand-500: 38 45% 65%;
+    --sand-400: 38 45% 80%;
+    --sand-300: 38 50% 88%;
+    --sand-200: 38 55% 94%;
+
+    /* === Extended Accent Palette === */
+    /* Coral - alerts, special offers */
+    --coral-600: 8 70% 50%;
+    --coral-500: 8 75% 58%;
+    --coral-400: 8 80% 68%;
+    --coral-300: 8 85% 82%;
+
+    /* Lagoon Blue - water experiences, info */
+    --lagoon-600: 198 80% 45%;
+    --lagoon-500: 198 90% 55%;
+    --lagoon-400: 198 95% 65%;
+    --lagoon-300: 198 100% 82%;
+
+    /* Sunset Amber - time-based, highlights */
+    --sunset-600: 38 90% 45%;
+    --sunset-500: 38 95% 55%;
+    --sunset-400: 38 95% 65%;
+    --sunset-300: 38 100% 80%;
+
+    /* Orchid - spa/wellness */
+    --orchid-600: 280 45% 50%;
+    --orchid-500: 280 50% 60%;
+    --orchid-400: 280 55% 70%;
+    --orchid-300: 280 60% 85%;
+
     /* === Core Palette - Light Mode === */
     --background: 220 20% 97%;
     --foreground: 220 30% 10%;
@@ -23,12 +69,12 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 30% 10%;
 
-    /* === Primary: Muted Teal #2F8C84 === */
-    --primary: 175 50% 37%;
+    /* === Primary: Muted Teal === */
+    --primary: var(--teal-500);
     --primary-foreground: 0 0% 100%;
 
-    /* === Secondary: Warm Sand Beige #E5D4B3 === */
-    --secondary: 38 45% 80%;
+    /* === Secondary: Warm Sand Beige === */
+    --secondary: var(--sand-400);
     --secondary-foreground: 220 30% 15%;
 
     /* === Muted Surfaces === */
@@ -36,7 +82,7 @@
     --muted-foreground: 220 15% 45%;
 
     /* === Accent: Sand Beige Highlight === */
-    --accent: 38 50% 92%;
+    --accent: var(--sand-200);
     --accent-foreground: 38 50% 25%;
 
     /* Destructive */
@@ -46,105 +92,141 @@
     /* Borders & Input */
     --border: 220 15% 88%;
     --input: 220 15% 88%;
-    --ring: 175 50% 40%;
+    --ring: var(--teal-400);
 
-    /* Radius - Modern, generous curves */
+    /* Radius */
     --radius: 0.75rem;
 
     /* === Sidebar - Deep Navy === */
-    --sidebar-background: 220 50% 6%;
+    --sidebar-background: var(--navy-900);
     --sidebar-foreground: 220 15% 95%;
-    --sidebar-primary: 175 50% 50%;
-    --sidebar-primary-foreground: 220 50% 6%;
-    --sidebar-accent: 220 45% 12%;
+    --sidebar-primary: var(--teal-400);
+    --sidebar-primary-foreground: var(--navy-900);
+    --sidebar-accent: var(--navy-700);
     --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border: 220 40% 14%;
-    --sidebar-ring: 175 50% 50%;
+    --sidebar-border: var(--navy-600);
+    --sidebar-ring: var(--teal-400);
 
     /* === Status Colors === */
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 45 93% 58%;
+    --warning: var(--sunset-500);
     --warning-foreground: 45 100% 15%;
-    --info: 217 91% 60%;
+    --info: var(--lagoon-500);
     --info-foreground: 0 0% 100%;
 
+    /* === Category Colors (Light Mode) === */
+    --category-dive: var(--lagoon-500);
+    --category-watersport: var(--teal-500);
+    --category-excursion: var(--sunset-500);
+    --category-spa: var(--orchid-500);
+    --category-dining: var(--sand-500);
+    --category-bar: var(--coral-500);
+    --category-fitness: 160 70% 42%;
+    --category-kids: var(--teal-300);
+    --category-snorkeling: var(--lagoon-400);
+    --category-transfer: 220 15% 50%;
+    --category-other: 220 15% 50%;
+
     /* === Chart Palette === */
-    --chart-1: 175 50% 37%;
-    --chart-2: 38 45% 65%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 0 84% 60%;
-    --chart-5: 217 91% 60%;
+    --chart-1: var(--teal-500);
+    --chart-2: var(--sand-500);
+    --chart-3: var(--lagoon-500);
+    --chart-4: var(--coral-500);
+    --chart-5: var(--orchid-500);
+    --chart-6: var(--sunset-500);
 
     /* === Premium Gradients === */
-    --gradient-primary: linear-gradient(135deg, hsl(175 50% 37%) 0%, hsl(175 60% 45%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(38 45% 75%) 0%, hsl(38 50% 85%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--teal-500)) 0%, hsl(var(--teal-400)) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--sand-400)) 0%, hsl(var(--sand-300)) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(220 20% 97%) 0%, hsl(220 15% 95%) 100%);
+    --gradient-coral: linear-gradient(135deg, hsl(var(--coral-500)) 0%, hsl(var(--coral-400)) 100%);
+    --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-500)) 0%, hsl(var(--sunset-400)) 100%);
+    --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-500)) 0%, hsl(var(--orchid-400)) 100%);
   }
 
   .dark {
-    /* === Dark Theme - Deep Navy Night #050A14 === */
-    --background: 220 50% 4%;
+    /* === Dark Theme - Deep Navy Night === */
+    --background: var(--navy-900);
     --foreground: 220 15% 95%;
 
-    --card: 220 45% 7%;
+    --card: var(--navy-800);
     --card-foreground: 220 15% 95%;
 
-    --popover: 220 45% 7%;
+    --popover: var(--navy-800);
     --popover-foreground: 220 15% 95%;
 
-    /* === Primary: Muted Teal #2F8C84 === */
-    --primary: 175 50% 45%;
-    --primary-foreground: 220 50% 4%;
+    /* === Primary: Muted Teal === */
+    --primary: var(--teal-400);
+    --primary-foreground: var(--navy-950);
 
     /* === Secondary: Sand Beige on Dark === */
     --secondary: 38 30% 18%;
-    --secondary-foreground: 38 40% 85%;
+    --secondary-foreground: var(--sand-400);
 
     /* === Muted Surfaces === */
-    --muted: 220 40% 10%;
+    --muted: var(--navy-700);
     --muted-foreground: 220 15% 60%;
 
     /* === Accent === */
     --accent: 38 25% 15%;
-    --accent-foreground: 38 40% 85%;
+    --accent-foreground: var(--sand-400);
 
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 35% 14%;
-    --input: 220 35% 14%;
-    --ring: 175 50% 45%;
+    --border: var(--navy-600);
+    --input: var(--navy-600);
+    --ring: var(--teal-400);
 
     /* === Sidebar - Deeper Navy === */
-    --sidebar-background: 220 55% 3%;
+    --sidebar-background: var(--navy-950);
     --sidebar-foreground: 220 15% 95%;
-    --sidebar-primary: 175 50% 50%;
-    --sidebar-primary-foreground: 220 50% 4%;
-    --sidebar-accent: 220 45% 10%;
+    --sidebar-primary: var(--teal-400);
+    --sidebar-primary-foreground: var(--navy-950);
+    --sidebar-accent: var(--navy-800);
     --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border: 220 40% 12%;
-    --sidebar-ring: 175 50% 50%;
+    --sidebar-border: var(--navy-700);
+    --sidebar-ring: var(--teal-400);
 
     /* === Status Colors === */
     --success: 160 84% 39%;
     --success-foreground: 160 90% 10%;
-    --warning: 45 93% 58%;
+    --warning: var(--sunset-500);
     --warning-foreground: 45 100% 10%;
-    --info: 217 91% 60%;
+    --info: var(--lagoon-500);
     --info-foreground: 217 90% 10%;
 
-    /* === Chart Palette === */
-    --chart-1: 175 50% 45%;
-    --chart-2: 38 40% 55%;
-    --chart-3: 160 70% 45%;
-    --chart-4: 0 70% 55%;
-    --chart-5: 217 80% 60%;
+    /* === Category Colors (Dark Mode - slightly brighter) === */
+    --category-dive: var(--lagoon-400);
+    --category-watersport: var(--teal-400);
+    --category-excursion: var(--sunset-400);
+    --category-spa: var(--orchid-400);
+    --category-dining: var(--sand-400);
+    --category-bar: var(--coral-400);
+    --category-fitness: 160 70% 50%;
+    --category-kids: var(--teal-300);
+    --category-snorkeling: var(--lagoon-300);
+    --category-transfer: 220 15% 60%;
+    --category-other: 220 15% 60%;
+
+    /* === Chart Palette (Dark Mode) === */
+    --chart-1: var(--teal-400);
+    --chart-2: var(--sand-400);
+    --chart-3: var(--lagoon-400);
+    --chart-4: var(--coral-400);
+    --chart-5: var(--orchid-400);
+    --chart-6: var(--sunset-400);
 
     /* === Premium Gradients === */
-    --gradient-primary: linear-gradient(135deg, hsl(175 50% 40%) 0%, hsl(175 55% 50%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--teal-500)) 0%, hsl(var(--teal-400)) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(38 30% 25%) 0%, hsl(38 35% 35%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(220 50% 4%) 0%, hsl(220 45% 6%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(var(--navy-900)) 0%, hsl(var(--navy-800)) 100%);
+    --gradient-coral: linear-gradient(135deg, hsl(var(--coral-500)) 0%, hsl(var(--coral-400)) 100%);
+    --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-500)) 0%, hsl(var(--sunset-400)) 100%);
+    --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-500)) 0%, hsl(var(--orchid-400)) 100%);
   }
 }
 
@@ -325,7 +407,56 @@
   }
 
   .chip-sand {
-    @apply bg-secondary/60 text-secondary-foreground;
+    @apply bg-sand/20 text-sand-600;
+  }
+
+  .chip-coral {
+    @apply bg-coral/15 text-coral;
+  }
+
+  .chip-lagoon {
+    @apply bg-lagoon/15 text-lagoon;
+  }
+
+  .chip-sunset {
+    @apply bg-sunset/15 text-sunset;
+  }
+
+  .chip-orchid {
+    @apply bg-orchid/15 text-orchid;
+  }
+
+  /* === Category Chip Variants === */
+  .chip-category-dive {
+    @apply bg-lagoon/15 text-lagoon;
+  }
+
+  .chip-category-watersport {
+    @apply bg-primary/15 text-primary;
+  }
+
+  .chip-category-excursion {
+    @apply bg-sunset/15 text-sunset;
+  }
+
+  .chip-category-spa {
+    @apply bg-orchid/15 text-orchid;
+  }
+
+  .chip-category-dining {
+    @apply bg-sand/20 text-sand-600;
+  }
+
+  .chip-category-bar {
+    @apply bg-coral/15 text-coral;
+  }
+
+  .chip-category-fitness {
+    @apply bg-success/15 text-success;
+  }
+
+  .chip-category-kids {
+    @apply bg-primary/10 text-primary;
   }
 
   /* === Wave Divider Container === */
@@ -438,6 +569,16 @@
     background-image: var(--gradient-secondary);
   }
 
+  .text-gradient-coral {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-coral);
+  }
+
+  .text-gradient-lagoon {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-lagoon);
+  }
+
   /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -516,11 +657,9 @@
 
 @keyframes slideInRight {
   from {
-    opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(100%);
   }
   to {
-    opacity: 1;
     transform: translateX(0);
   }
 }
@@ -531,29 +670,5 @@
   }
   50% {
     transform: translateY(-8px);
-  }
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Selection color */
-::selection {
-  background-color: hsl(var(--primary) / 0.2);
-  color: hsl(var(--foreground));
-}
-
-/* Mobile form improvements */
-@media (max-width: 640px) {
-  input, select, textarea {
-    font-size: 16px !important; /* Prevents zoom on iOS */
-  }
-  
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
   }
 }
