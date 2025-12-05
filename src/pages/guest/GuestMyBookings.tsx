@@ -74,16 +74,39 @@ export default function GuestMyBookings() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to cancel booking');
       }
-      return result;
+      return { ...result, bookingId };
+    },
+    onMutate: async (bookingId: string) => {
+      // Cancel any outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      
+      // Snapshot the previous value
+      const previousBookings = queryClient.getQueryData(['guest-bookings', guest?.guestId]);
+      
+      // Optimistically update to set booking status to CANCELLED
+      queryClient.setQueryData(['guest-bookings', guest?.guestId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          activity_bookings: old.activity_bookings.map((b: any) =>
+            b.id === bookingId ? { ...b, status: 'CANCELLED' } : b
+          ),
+        };
+      });
+      
+      return { previousBookings };
     },
     onSuccess: () => {
-      // Immediately invalidate and refetch guest bookings
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
-      queryClient.refetchQueries({ queryKey: ['guest-bookings', guest?.guestId] });
       toast.success('Your booking has been cancelled.');
       setCancelDialog(null);
+      // Refetch to ensure server state is synced
+      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _bookingId, context) => {
+      // Rollback to previous state on error
+      if (context?.previousBookings) {
+        queryClient.setQueryData(['guest-bookings', guest?.guestId], context.previousBookings);
+      }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
       toast.error(friendlyMessage);
@@ -101,16 +124,39 @@ export default function GuestMyBookings() {
       if (!result.success) {
         throw new Error(result.error || 'Failed to cancel reservation');
       }
-      return result;
+      return { ...result, reservationId };
+    },
+    onMutate: async (reservationId: string) => {
+      // Cancel any outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      
+      // Snapshot the previous value
+      const previousBookings = queryClient.getQueryData(['guest-bookings', guest?.guestId]);
+      
+      // Optimistically update to set reservation status to CANCELLED
+      queryClient.setQueryData(['guest-bookings', guest?.guestId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          restaurant_reservations: old.restaurant_reservations.map((r: any) =>
+            r.id === reservationId ? { ...r, status: 'CANCELLED' } : r
+          ),
+        };
+      });
+      
+      return { previousBookings };
     },
     onSuccess: () => {
-      // Immediately invalidate and refetch guest bookings
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
-      queryClient.refetchQueries({ queryKey: ['guest-bookings', guest?.guestId] });
       toast.success('Your reservation has been cancelled.');
       setCancelDialog(null);
+      // Refetch to ensure server state is synced
+      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _reservationId, context) => {
+      // Rollback to previous state on error
+      if (context?.previousBookings) {
+        queryClient.setQueryData(['guest-bookings', guest?.guestId], context.previousBookings);
+      }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
       toast.error(friendlyMessage);
