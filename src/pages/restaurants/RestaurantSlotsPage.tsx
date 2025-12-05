@@ -180,7 +180,7 @@ export default function RestaurantSlotsPage() {
         title="Restaurant Time Slots"
         description="Manage dining availability"
         action={
-          <Button onClick={() => setDialogOpen(true)}>
+          <Button onClick={() => navigate('/staff/restaurants/slots/new')}>
             <Plus className="mr-2 h-4 w-4" />
             New Slot
           </Button>
@@ -265,7 +265,7 @@ export default function RestaurantSlotsPage() {
                     Go to Restaurants
                   </Button>
                 ) : (
-                  <Button onClick={() => setDialogOpen(true)}>
+                <Button onClick={() => navigate('/staff/restaurants/slots/new')}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Slot
                   </Button>
