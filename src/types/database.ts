@@ -257,3 +257,42 @@ export interface RestaurantReservation {
   guest?: Guest;
   slot?: RestaurantTimeSlot & { restaurant?: Restaurant };
 }
+
+export type RecurrenceFrequency = 'DAILY' | 'WEEKLY';
+
+export interface ActivityRecurringRule {
+  id: string;
+  resort_id: string;
+  activity_id: string;
+  start_date: string;
+  end_date: string;
+  frequency: RecurrenceFrequency;
+  days_of_week: number[];
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  activity?: Activity;
+}
+
+export interface RestaurantRecurringRule {
+  id: string;
+  resort_id: string;
+  restaurant_id: string;
+  start_date: string;
+  end_date: string;
+  frequency: RecurrenceFrequency;
+  days_of_week: number[];
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  meal_period: MealPeriod;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  restaurant?: Restaurant;
+}

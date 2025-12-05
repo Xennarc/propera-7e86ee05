@@ -209,6 +209,69 @@ export type Database = {
           },
         ]
       }
+      activity_recurring_rules: {
+        Row: {
+          activity_id: string
+          capacity: number
+          created_at: string
+          days_of_week: number[] | null
+          end_date: string
+          end_time: string
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          is_active: boolean
+          resort_id: string
+          start_date: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          capacity?: number
+          created_at?: string
+          days_of_week?: number[] | null
+          end_date: string
+          end_time: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          is_active?: boolean
+          resort_id: string
+          start_date: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          capacity?: number
+          created_at?: string
+          days_of_week?: number[] | null
+          end_date?: string
+          end_time?: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          is_active?: boolean
+          resort_id?: string
+          start_date?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_recurring_rules_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_recurring_rules_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_sessions: {
         Row: {
           activity_id: string
@@ -756,6 +819,72 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_recurring_rules: {
+        Row: {
+          capacity: number
+          created_at: string
+          days_of_week: number[] | null
+          end_date: string
+          end_time: string
+          frequency: Database["public"]["Enums"]["recurrence_frequency"]
+          id: string
+          is_active: boolean
+          meal_period: Database["public"]["Enums"]["meal_period"]
+          resort_id: string
+          restaurant_id: string
+          start_date: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          days_of_week?: number[] | null
+          end_date: string
+          end_time: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          is_active?: boolean
+          meal_period?: Database["public"]["Enums"]["meal_period"]
+          resort_id: string
+          restaurant_id: string
+          start_date: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          days_of_week?: number[] | null
+          end_date?: string
+          end_time?: string
+          frequency?: Database["public"]["Enums"]["recurrence_frequency"]
+          id?: string
+          is_active?: boolean
+          meal_period?: Database["public"]["Enums"]["meal_period"]
+          resort_id?: string
+          restaurant_id?: string
+          start_date?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_recurring_rules_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_recurring_rules_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -1327,6 +1456,7 @@ export type Database = {
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
       recommendation_response: "YES" | "NO" | "MAYBE"
+      recurrence_frequency: "DAILY" | "WEEKLY"
       resort_role:
         | "RESORT_ADMIN"
         | "MANAGER"
@@ -1488,6 +1618,7 @@ export const Constants = {
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
       recommendation_response: ["YES", "NO", "MAYBE"],
+      recurrence_frequency: ["DAILY", "WEEKLY"],
       resort_role: [
         "RESORT_ADMIN",
         "MANAGER",
