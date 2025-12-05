@@ -68,16 +68,23 @@ export default function ResortGuestLogin() {
       return;
     }
 
-    const fetchResort = async () => {
+    const fetchResort = async (retryCount = 0) => {
       try {
+        // Use ilike for case-insensitive matching
         const { data, error } = await supabase
           .from('resorts')
           .select('id, name, code, status, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
-          .eq('code', code)
+          .ilike('code', code)
           .maybeSingle();
 
         if (error) {
           console.error('Error fetching resort:', error);
+          // Retry on network errors
+          if (retryCount < 2) {
+            console.log(`Retrying resort fetch (attempt ${retryCount + 2})...`);
+            setTimeout(() => fetchResort(retryCount + 1), 500);
+            return;
+          }
           setNotFound(true);
           setLoadingResort(false);
           return;
@@ -85,6 +92,7 @@ export default function ResortGuestLogin() {
 
         if (!data) {
           setNotFound(true);
+          setLoadingResort(false);
         } else {
           const resortData = data as ResortBranding;
           // Check if resort is active
@@ -94,11 +102,17 @@ export default function ResortGuestLogin() {
           } else {
             setResort(resortData);
           }
+          setLoadingResort(false);
         }
       } catch (err) {
         console.error('Error fetching resort:', err);
+        // Retry on network errors
+        if (retryCount < 2) {
+          console.log(`Retrying resort fetch (attempt ${retryCount + 2})...`);
+          setTimeout(() => fetchResort(retryCount + 1), 500);
+          return;
+        }
         setNotFound(true);
-      } finally {
         setLoadingResort(false);
       }
     };
