@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Waves, Loader2, Lock, User, AlertCircle, Home, Building2 } from 'lucide-react';
+import { Loader2, Lock, User, AlertCircle, Home, Building2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 
 type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 
@@ -257,9 +258,7 @@ export default function ResortGuestLogin() {
               />
             </div>
           ) : (
-            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary/10 backdrop-blur-sm mb-4">
-              <Waves className="h-8 w-8 text-primary" />
-            </div>
+            <ProperaMark size={56} className="text-primary mb-4" />
           )}
           <h1 className={`text-2xl font-bold ${resort?.login_hero_image_url ? 'text-white' : 'text-foreground'}`}>
             {title}
