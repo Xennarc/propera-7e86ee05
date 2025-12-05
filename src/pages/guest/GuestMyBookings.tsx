@@ -121,85 +121,36 @@ export default function GuestMyBookings() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Helper to deduplicate bookings - for each slot, keep only the most recent active booking
-  // If there's both a cancelled and confirmed booking for the same slot, only show the active one in upcoming
-  const deduplicateBookings = (bookings: any[], slotIdField: string) => {
-    if (!bookings) return [];
-    
-    // Group by slot ID
-    const bySlot = bookings.reduce((acc: Record<string, any[]>, booking) => {
-      // Use the slot/session date + start_time as a grouping key for same-slot bookings
-      const slotKey = `${booking.date}_${booking.start_time}_${booking[slotIdField === 'activity' ? 'activity_name' : 'restaurant_name']}`;
-      if (!acc[slotKey]) acc[slotKey] = [];
-      acc[slotKey].push(booking);
-      return acc;
-    }, {});
-    
-    // For each slot, return the "best" booking:
-    // 1. Prefer non-cancelled over cancelled
-    // 2. Among same status, prefer most recent (by created_at)
-    return Object.values(bySlot).map((slotBookings: any[]) => {
-      // Sort: non-cancelled first, then by created_at desc
-      slotBookings.sort((a: any, b: any) => {
-        if (a.status === 'CANCELLED' && b.status !== 'CANCELLED') return 1;
-        if (a.status !== 'CANCELLED' && b.status === 'CANCELLED') return -1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-      return slotBookings[0];
-    });
-  };
-
-  // Get all activity bookings deduplicated
+  // Separate bookings by status - upcoming shows only active bookings (non-cancelled)
+  // Past section shows completed, no-show, and cancelled bookings
   const allActivities = bookings?.activity_bookings || [];
-  const deduplicatedActivities = deduplicateBookings(allActivities, 'activity');
-  
-  const upcomingActivities = deduplicatedActivities.filter(
-    (b) => b.date >= today && b.status !== 'CANCELLED'
-  );
-  
-  // For past section, include: past date OR cancelled bookings that don't have an active replacement
-  const pastActivities = allActivities.filter((b) => {
-    // Past by date
-    if (b.date < today) return true;
-    // Cancelled but no active booking exists for this slot
-    if (b.status === 'CANCELLED') {
-      const slotKey = `${b.date}_${b.start_time}_${b.activity_name}`;
-      const hasActiveForSlot = allActivities.some(
-        other => other.id !== b.id && 
-        `${other.date}_${other.start_time}_${other.activity_name}` === slotKey &&
-        other.status !== 'CANCELLED'
-      );
-      // Only show in past if there's no active replacement
-      return !hasActiveForSlot;
-    }
-    return false;
-  });
-
-  // Get all restaurant reservations deduplicated  
   const allReservations = bookings?.restaurant_reservations || [];
-  const deduplicatedReservations = deduplicateBookings(allReservations, 'restaurant');
   
-  const upcomingReservations = deduplicatedReservations.filter(
-    (r) => r.date >= today && r.status !== 'CANCELLED'
-  );
+  // For upcoming: only show CONFIRMED or PENDING bookings for future/today dates
+  // Deduplicate by booking ID to ensure no duplicates
+  const upcomingActivities = allActivities
+    .filter((b) => b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))
+    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
   
-  // For past section, include: past date OR cancelled reservations that don't have an active replacement
-  const pastReservations = allReservations.filter((r) => {
-    // Past by date
-    if (r.date < today) return true;
-    // Cancelled but no active reservation exists for this slot
-    if (r.status === 'CANCELLED') {
-      const slotKey = `${r.date}_${r.start_time}_${r.restaurant_name}`;
-      const hasActiveForSlot = allReservations.some(
-        other => other.id !== r.id && 
-        `${other.date}_${other.start_time}_${other.restaurant_name}` === slotKey &&
-        other.status !== 'CANCELLED'
-      );
-      // Only show in past if there's no active replacement
-      return !hasActiveForSlot;
-    }
-    return false;
-  });
+  const upcomingReservations = allReservations
+    .filter((r) => r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING'))
+    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+  
+  // For past: show past dates OR cancelled/completed/no-show status
+  // Deduplicate by booking ID
+  const pastActivities = allActivities
+    .filter((b) => b.date < today || b.status === 'CANCELLED' || b.status === 'COMPLETED' || b.status === 'NO_SHOW')
+    .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))) // Exclude upcoming
+    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+  
+  const pastReservations = allReservations
+    .filter((r) => r.date < today || r.status === 'CANCELLED' || r.status === 'COMPLETED' || r.status === 'NO_SHOW')
+    .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING'))) // Exclude upcoming
+    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
 
   const canCancelActivity = (booking: any) => {
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
