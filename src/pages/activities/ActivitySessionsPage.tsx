@@ -25,6 +25,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -197,16 +198,17 @@ export default function ActivitySessionsPage() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <PageHeader
-        title="Activity Sessions"
-        description="Manage scheduled activity sessions"
-        action={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Session
-          </Button>
-        }
+    <ErrorBoundary onReset={() => window.location.reload()}>
+      <div className="space-y-6 animate-fade-in">
+        <PageHeader
+          title="Activity Sessions"
+          description="Manage scheduled activity sessions"
+          action={
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Session
+            </Button>
+          }
       />
 
       {/* Stats */}
@@ -520,14 +522,19 @@ export default function ActivitySessionsPage() {
         </Collapsible>
       )}
 
-      <ActivitySessionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        session={null}
-        resortId={currentResort.id}
-        activities={activities}
-        onSuccess={fetchSessions}
-      />
+      {currentResort && (
+        <ActivitySessionDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          session={null}
+          resortId={currentResort.id}
+          activities={activities}
+          onSuccess={() => {
+            fetchSessions();
+            fetchRecurringRules();
+          }}
+        />
+      )}
 
       {selectedActivityForRecurring && (
         <>
@@ -554,5 +561,6 @@ export default function ActivitySessionsPage() {
         </>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
