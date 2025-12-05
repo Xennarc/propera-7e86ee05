@@ -80,22 +80,42 @@ export default function StaffInviteAcceptPage() {
     }
 
     try {
+      // Use secure RPC function to fetch invitation by token
       const { data, error: fetchError } = await supabase
-        .from('staff_invitations')
-        .select(`
-          *,
-          resort:resorts(id, name, code)
-        `)
-        .eq('token', token)
-        .single();
+        .rpc('get_staff_invitation_by_token', { p_token: token });
 
-      if (fetchError || !data) {
+      if (fetchError) {
+        console.error('Error fetching invitation:', fetchError);
         setError('Invitation not found. Please contact your resort admin for a new link.');
         setLoading(false);
         return;
       }
 
-      const inv = data as unknown as Invitation;
+      // RPC returns an array, get first result
+      const invData = Array.isArray(data) ? data[0] : data;
+      
+      if (!invData) {
+        setError('Invitation not found. Please contact your resort admin for a new link.');
+        setLoading(false);
+        return;
+      }
+
+      // Transform RPC result to match expected Invitation interface
+      const inv: Invitation = {
+        id: invData.id,
+        email: invData.email,
+        name: invData.name,
+        resort_id: invData.resort_id,
+        resort_role: invData.resort_role as ResortRole,
+        department: invData.department,
+        status: invData.status,
+        expires_at: invData.expires_at,
+        resort: {
+          id: invData.resort_id,
+          name: invData.resort_name,
+          code: '', // Not needed for display
+        },
+      };
 
       if (inv.status !== 'PENDING') {
         setError('This invitation has already been used or cancelled.');
