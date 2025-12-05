@@ -247,7 +247,16 @@ export function RestaurantSlotDialog({
                 id="start_time"
                 type="time"
                 value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                onChange={(e) => {
+                  const newStartTime = e.target.value;
+                  // Auto-suggest meal period based on start time
+                  const hour = parseInt(newStartTime.split(':')[0], 10);
+                  let suggestedPeriod = formData.meal_period;
+                  if (hour >= 6 && hour < 11) suggestedPeriod = 'BREAKFAST';
+                  else if (hour >= 11 && hour < 15) suggestedPeriod = 'LUNCH';
+                  else if (hour >= 17 && hour < 23) suggestedPeriod = 'DINNER';
+                  setFormData({ ...formData, start_time: newStartTime, meal_period: suggestedPeriod });
+                }}
                 required
                 className="h-12"
               />
