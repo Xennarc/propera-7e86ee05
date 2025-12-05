@@ -1395,6 +1395,20 @@ export type Database = {
       }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
+      get_staff_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          department: string
+          email: string
+          expires_at: string
+          id: string
+          name: string
+          resort_id: string
+          resort_name: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          status: string
+        }[]
+      }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
