@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
-  IconPropera, 
   IconActivities, 
   IconRestaurants, 
   IconCalendar, 
@@ -12,6 +11,7 @@ import {
   IconArrow,
   WaveDivider
 } from '@/components/icons/ProperaIcons';
+import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { QrCode, LogIn, Sparkles, ChevronRight } from 'lucide-react';
 
 export default function LandingPage() {
@@ -21,9 +21,7 @@ export default function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-md">
-              <IconPropera className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <ProperaMark size={40} className="text-primary" />
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </div>
           <div className="flex items-center gap-3">
@@ -194,9 +192,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
-                <IconPropera className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <ProperaMark size={36} className="text-primary" />
               <span className="font-bold text-foreground">Propera</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
