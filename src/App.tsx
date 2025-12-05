@@ -58,6 +58,7 @@ import SalesPerformanceReport from "./pages/reports/SalesPerformanceReport";
 import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
 import TodaysOpportunitiesPage from "./pages/staff/TodaysOpportunitiesPage";
 import StaffInviteAcceptPage from "./pages/staff/StaffInviteAcceptPage";
+import StaffDirectoryPage from "./pages/staff/StaffDirectoryPage";
 import ResortOnboardingPage from "./pages/onboarding/ResortOnboardingPage";
 import GuestLogin from "./pages/guest/GuestLogin";
 import GuestFindResort from "./pages/guest/GuestFindResort";
@@ -121,6 +122,7 @@ const App = () => (
                   <Route path="reports/stay-feedback" element={<StayFeedbackReport />} />
                   <Route path="guest-requests" element={<GuestRequestsPage />} />
                   <Route path="today" element={<TodaysOpportunitiesPage />} />
+                  <Route path="team" element={<StaffDirectoryPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="settings/users" element={<UserManagementPage />} />
                   <Route path="settings/resorts" element={<ResortsPage />} />
