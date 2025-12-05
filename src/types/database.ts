@@ -296,3 +296,27 @@ export interface RestaurantRecurringRule {
   // Joined fields
   restaurant?: Restaurant;
 }
+
+export interface ActivityClosure {
+  id: string;
+  resort_id: string;
+  activity_id: string;
+  closure_date: string;
+  reason: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  activity?: Activity;
+}
+
+export interface RestaurantClosure {
+  id: string;
+  resort_id: string;
+  restaurant_id: string;
+  closure_date: string;
+  reason: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  restaurant?: Restaurant;
+}

@@ -2,19 +2,21 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Activity, ActivitySession, ActivityRecurringRule } from '@/types/database';
+import { Activity, ActivitySession, ActivityRecurringRule, ActivityClosure } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock, RepeatIcon } from 'lucide-react';
+import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock, RepeatIcon, CalendarX } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, addDays } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
 import { ActivityRecurringRuleDialog } from '@/components/recurring/ActivityRecurringRuleDialog';
 import { RecurringRulesList } from '@/components/recurring/RecurringRulesList';
+import { ClosureDialog } from '@/components/closures/ClosureDialog';
+import { ClosuresList } from '@/components/closures/ClosuresList';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/filter-bar';
@@ -34,6 +36,7 @@ export default function ActivitySessionsPage() {
   const [sessions, setSessions] = useState<SessionWithBookings[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [recurringRules, setRecurringRules] = useState<ActivityRecurringRule[]>([]);
+  const [closures, setClosures] = useState<ActivityClosure[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(addDays(new Date(), 7), 'yyyy-MM-dd'));
@@ -41,8 +44,10 @@ export default function ActivitySessionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [closureDialogOpen, setClosureDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<ActivityRecurringRule | null>(null);
   const [recurringOpen, setRecurringOpen] = useState(false);
+  const [closuresOpen, setClosuresOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'agenda'>('table');
 
   const { currentResort } = useResort();
@@ -79,6 +84,22 @@ export default function ActivitySessionsPage() {
     
     const { data } = await query;
     if (data) setRecurringRules(data as ActivityRecurringRule[]);
+  };
+
+  const fetchClosures = async () => {
+    if (!currentResort) return;
+    let query = supabase
+      .from('activity_closures')
+      .select('*, activity:activities(*)')
+      .eq('resort_id', currentResort.id)
+      .order('closure_date', { ascending: true });
+    
+    if (activityFilter !== 'all') {
+      query = query.eq('activity_id', activityFilter);
+    }
+    
+    const { data } = await query;
+    if (data) setClosures(data as ActivityClosure[]);
   };
 
   const fetchSessions = async () => {
@@ -141,6 +162,7 @@ export default function ActivitySessionsPage() {
   useEffect(() => {
     fetchSessions();
     fetchRecurringRules();
+    fetchClosures();
   }, [currentResort, startDate, endDate, activityFilter, statusFilter]);
 
   // Calculate stats
@@ -458,6 +480,46 @@ export default function ActivitySessionsPage() {
         </Collapsible>
       )}
 
+      {/* Closures */}
+      {activities.length > 0 && (
+        <Collapsible open={closuresOpen} onOpenChange={setClosuresOpen}>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <CalendarX className="h-4 w-4" />
+                      Closure Dates
+                      <span className="text-muted-foreground font-normal">({closures.length})</span>
+                    </CardTitle>
+                  </Button>
+                </CollapsibleTrigger>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setClosureDialogOpen(true)}
+                  disabled={!selectedActivityForRecurring}
+                >
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  Add Closure
+                </Button>
+              </div>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <ClosuresList
+                  closures={closures}
+                  type="activity"
+                  onRefresh={fetchClosures}
+                  showEntityName={activityFilter === 'all'}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
       <ActivitySessionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -468,17 +530,28 @@ export default function ActivitySessionsPage() {
       />
 
       {selectedActivityForRecurring && (
-        <ActivityRecurringRuleDialog
-          open={recurringDialogOpen}
-          onOpenChange={setRecurringDialogOpen}
-          rule={editingRule}
-          activity={selectedActivityForRecurring}
-          resortId={currentResort.id}
-          onSuccess={() => {
-            fetchRecurringRules();
-            fetchSessions();
-          }}
-        />
+        <>
+          <ActivityRecurringRuleDialog
+            open={recurringDialogOpen}
+            onOpenChange={setRecurringDialogOpen}
+            rule={editingRule}
+            activity={selectedActivityForRecurring}
+            resortId={currentResort.id}
+            onSuccess={() => {
+              fetchRecurringRules();
+              fetchSessions();
+            }}
+          />
+          <ClosureDialog
+            open={closureDialogOpen}
+            onOpenChange={setClosureDialogOpen}
+            type="activity"
+            entityId={selectedActivityForRecurring.id}
+            entityName={selectedActivityForRecurring.name}
+            resortId={currentResort.id}
+            onSuccess={fetchClosures}
+          />
+        </>
       )}
     </div>
   );

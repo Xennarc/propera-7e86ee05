@@ -4,6 +4,28 @@ import { ActivityRecurringRule, RestaurantRecurringRule } from '@/types/database
 
 const GENERATION_HORIZON_DAYS = 90;
 
+// Fetch closure dates for an activity
+async function getActivityClosureDates(activityId: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('activity_closures')
+    .select('closure_date')
+    .eq('activity_id', activityId)
+    .gte('closure_date', format(new Date(), 'yyyy-MM-dd'));
+  
+  return new Set(data?.map(c => c.closure_date) || []);
+}
+
+// Fetch closure dates for a restaurant
+async function getRestaurantClosureDates(restaurantId: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('restaurant_closures')
+    .select('closure_date')
+    .eq('restaurant_id', restaurantId)
+    .gte('closure_date', format(new Date(), 'yyyy-MM-dd'));
+  
+  return new Set(data?.map(c => c.closure_date) || []);
+}
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function formatDaysOfWeek(days: number[]): string {
@@ -59,6 +81,9 @@ export async function generateActivitySessions(rule: ActivityRecurringRule): Pro
     rule.days_of_week
   );
 
+  // Fetch closure dates to skip
+  const closureDates = await getActivityClosureDates(rule.activity_id);
+
   // Fetch existing sessions to avoid duplicates
   const { data: existingSessions } = await supabase
     .from('activity_sessions')
@@ -71,7 +96,11 @@ export async function generateActivitySessions(rule: ActivityRecurringRule): Pro
   );
 
   const sessionsToCreate = dates
-    .filter(d => !existingSet.has(`${format(d, 'yyyy-MM-dd')}_${rule.start_time.slice(0, 5)}`))
+    .filter(d => {
+      const dateStr = format(d, 'yyyy-MM-dd');
+      // Skip if date is a closure date or already exists
+      return !closureDates.has(dateStr) && !existingSet.has(`${dateStr}_${rule.start_time.slice(0, 5)}`);
+    })
     .map(d => ({
       resort_id: rule.resort_id,
       activity_id: rule.activity_id,
@@ -103,6 +132,9 @@ export async function generateRestaurantSlots(rule: RestaurantRecurringRule): Pr
     rule.days_of_week
   );
 
+  // Fetch closure dates to skip
+  const closureDates = await getRestaurantClosureDates(rule.restaurant_id);
+
   // Fetch existing slots to avoid duplicates
   const { data: existingSlots } = await supabase
     .from('restaurant_time_slots')
@@ -115,7 +147,11 @@ export async function generateRestaurantSlots(rule: RestaurantRecurringRule): Pr
   );
 
   const slotsToCreate = dates
-    .filter(d => !existingSet.has(`${format(d, 'yyyy-MM-dd')}_${rule.start_time.slice(0, 5)}`))
+    .filter(d => {
+      const dateStr = format(d, 'yyyy-MM-dd');
+      // Skip if date is a closure date or already exists
+      return !closureDates.has(dateStr) && !existingSet.has(`${dateStr}_${rule.start_time.slice(0, 5)}`);
+    })
     .map(d => ({
       resort_id: rule.resort_id,
       restaurant_id: rule.restaurant_id,
