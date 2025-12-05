@@ -204,10 +204,10 @@ export default function ActivitySessionsPage() {
           title="Activity Sessions"
           description="Manage scheduled activity sessions"
           action={
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Session
-            </Button>
+          <Button onClick={() => navigate('/staff/activities/sessions/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Session
+          </Button>
           }
       />
 
@@ -316,7 +316,7 @@ export default function ActivitySessionsPage() {
                     Go to Activities
                   </Button>
                 ) : (
-                  <Button onClick={() => setDialogOpen(true)}>
+                  <Button onClick={() => navigate('/staff/activities/sessions/new')}>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Session
                   </Button>

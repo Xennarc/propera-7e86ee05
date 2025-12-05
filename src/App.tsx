@@ -31,7 +31,7 @@ import GuestsPage from "./pages/guests/GuestsPage";
 import GuestDetailPage from "./pages/guests/GuestDetailPage";
 import ActivitiesPage from "./pages/activities/ActivitiesPage";
 import ActivitySessionsPage from "./pages/activities/ActivitySessionsPage";
-import ActivitySessionCreatePage from "./pages/activities/ActivitySessionCreatePage";
+import CreateSessionWizard from "./pages/activities/CreateSessionWizard";
 import ActivitySessionDetailPage from "./pages/activities/ActivitySessionDetailPage";
 import ActivityCheatsheetPage from "./pages/activities/ActivityCheatsheetPage";
 import RestaurantsPage from "./pages/restaurants/RestaurantsPage";
@@ -102,7 +102,7 @@ const App = () => (
                   <Route path="guests/:id" element={<GuestDetailPage />} />
                   <Route path="activities" element={<ActivitiesPage />} />
                   <Route path="activities/sessions" element={<ActivitySessionsPage />} />
-                  <Route path="activities/sessions/new" element={<ActivitySessionCreatePage />} />
+                  <Route path="activities/sessions/new" element={<CreateSessionWizard />} />
                   <Route path="activities/sessions/:id" element={<ActivitySessionDetailPage />} />
                   <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
