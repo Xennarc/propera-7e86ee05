@@ -10,8 +10,8 @@ import { ShieldX, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
-import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
-import { ProperaLoader } from '@/components/icons/ProperaLogo';
+import { IconCalendar } from '@/components/icons/ProperaIcons';
+import { ProperaLoader, ProperaMark } from '@/components/icons/ProperaLogo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -104,7 +104,7 @@ export function AppLayout() {
                 {/* Mobile: Compact header */}
                 <div className="flex items-center gap-3 lg:hidden">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
-                    <IconPropera className="h-5 w-5 text-primary" />
+                    <ProperaMark size={20} />
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-sm font-bold text-foreground truncate max-w-[140px]">
