@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { ActivityIconPicker } from '@/components/ui/activity-icon-picker';
 import { getCategoryConfig } from '@/lib/activity-category-config';
+import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 
 const activitySchema = z.object({
   name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
@@ -47,12 +48,15 @@ const categories: ActivityCategory[] = ['DIVE', 'EXCURSION', 'WATERSPORT', 'SPA'
 
 export function ActivityDialog({ open, onOpenChange, activity, resortId, onSuccess }: ActivityDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 'OTHER' as ActivityCategory,
     icon_key: null as string | null,
+    image_url: null as string | null,
     description: '',
     default_price_per_person: 0,
     duration_minutes: 60,
@@ -76,6 +80,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
         name: activity.name,
         category: activity.category,
         icon_key: (activity as any).icon_key || null,
+        image_url: activity.image_url || null,
         description: activity.description || '',
         default_price_per_person: activity.default_price_per_person,
         duration_minutes: activity.duration_minutes,
@@ -95,6 +100,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
         name: '',
         category: 'OTHER',
         icon_key: null,
+        image_url: null,
         description: '',
         default_price_per_person: 0,
         duration_minutes: 60,
@@ -116,6 +122,55 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       setTimeout(() => nameInputRef.current?.focus(), 100);
     }
   }, [activity, open]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: 'destructive', title: 'Invalid file', description: 'Please upload an image file' });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'Image must be less than 5MB' });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${resortId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('activity-images')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('activity-images')
+        .getPublicUrl(fileName);
+
+      setFormData({ ...formData, image_url: publicUrl });
+      toast({ title: 'Image uploaded', description: 'Hero image has been uploaded successfully' });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+    } finally {
+      setUploading(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, image_url: null });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,6 +203,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       name: formData.name.trim(),
       category: formData.category,
       icon_key: formData.icon_key,
+      image_url: formData.image_url,
       description: formData.description.trim() || null,
       default_price_per_person: formData.default_price_per_person,
       duration_minutes: formData.duration_minutes,
@@ -250,6 +306,74 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
             {errors.icon_key && <p className="text-sm text-destructive">{errors.icon_key}</p>}
             <p className="text-xs text-muted-foreground">
               Select an icon that represents this activity for guests
+            </p>
+          </div>
+
+          {/* Hero Image Upload */}
+          <div className="space-y-2">
+            <Label>Hero Image</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            
+            {formData.image_url ? (
+              <div className="relative rounded-lg overflow-hidden border border-border">
+                <img 
+                  src={formData.image_url} 
+                  alt="Activity hero" 
+                  className="w-full h-40 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8"
+                  onClick={handleRemoveImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-2 right-2"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Replace
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full h-40 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-muted/50 transition-colors disabled:opacity-50"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                    <span className="text-sm text-muted-foreground">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm font-medium">Click to upload hero image</span>
+                    <span className="text-xs text-muted-foreground">JPG, PNG, WebP up to 5MB</span>
+                  </>
+                )}
+              </button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              This image will be displayed on the guest activity detail page
             </p>
           </div>
 
