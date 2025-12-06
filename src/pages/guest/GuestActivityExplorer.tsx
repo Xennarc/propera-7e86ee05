@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Search, Clock, ChevronRight, Waves, ArrowLeft } from 'lucide-react';
-import { IconActivities } from '@/components/icons/ProperaIcons';
+import { getActivityIcon } from '@/lib/activity-icons';
 
 const difficultyColors: Record<DifficultyLevel, string> = {
   EASY: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -138,7 +138,10 @@ export default function GuestActivityExplorer() {
       ) : filteredActivities.length === 0 ? (
         <Card className="border-dashed border-2 bg-muted/20">
           <CardContent className="py-12 text-center">
-            <IconActivities className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+            {(() => {
+              const EmptyIcon = getActivityIcon(null);
+              return <EmptyIcon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />;
+            })()}
             <h3 className="font-semibold text-foreground mb-2">No activities found</h3>
             <p className="text-sm text-muted-foreground">
               {search || difficultyFilter !== 'all'
@@ -157,9 +160,14 @@ export default function GuestActivityExplorer() {
               <Card className="h-full shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                      <IconActivities className="h-6 w-6 text-primary" />
-                    </div>
+                    {(() => {
+                      const ActivityIcon = getActivityIcon(activity.icon_key);
+                      return (
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <ActivityIcon className="h-6 w-6 text-primary" />
+                        </div>
+                      );
+                    })()}
                     <div className="flex flex-wrap gap-1.5 justify-end">
                       {activity.difficulty_level && (
                         <Badge 

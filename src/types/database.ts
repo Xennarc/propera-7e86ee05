@@ -137,6 +137,7 @@ export interface Activity {
   guest_can_cancel: boolean;
   guest_cancel_cutoff_hours: number;
   is_active: boolean;
+  icon_key: string | null;
   created_at: string;
   updated_at: string;
   // New content fields
