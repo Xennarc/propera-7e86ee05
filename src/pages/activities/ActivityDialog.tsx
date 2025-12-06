@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import { z } from 'zod';
 import { ActivityIconPicker } from '@/components/ui/activity-icon-picker';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { ActivitySessionsList } from '@/components/activities/ActivitySessionsList';
 
 const activitySchema = z.object({
   name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
@@ -502,6 +504,19 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
               </div>
             </div>
           </div>
+
+          {/* Sessions Management - Only show when editing */}
+          {activity && (
+            <>
+              <Separator />
+              <ActivitySessionsList
+                activityId={activity.id}
+                activityName={activity.name}
+                resortId={resortId}
+                onClose={() => onOpenChange(false)}
+              />
+            </>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
