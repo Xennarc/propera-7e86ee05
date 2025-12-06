@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -59,53 +61,53 @@
     --orchid-300: 280 60% 85%;
 
     /* === Core Palette - Light Mode === */
-    --background: 220 20% 97%;
-    --foreground: 220 30% 10%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
     /* Cards & Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 10%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 0 0% 0%;
 
     /* === Primary: Muted Teal === */
-    --primary: var(--teal-500);
+    --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
 
     /* === Secondary: Warm Sand Beige === */
-    --secondary: var(--sand-400);
-    --secondary-foreground: 220 30% 15%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
 
     /* === Muted Surfaces === */
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
     /* === Accent: Sand Beige Highlight === */
-    --accent: var(--sand-200);
-    --accent-foreground: 38 50% 25%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 0%;
 
     /* Destructive */
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Borders & Input */
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: var(--teal-400);
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
 
     /* Radius */
-    --radius: 0.75rem;
+    --radius: 0rem;
 
     /* === Sidebar - Deep Navy === */
     --sidebar-background: var(--navy-900);
-    --sidebar-foreground: 220 15% 95%;
-    --sidebar-primary: var(--teal-400);
-    --sidebar-primary-foreground: var(--navy-900);
-    --sidebar-accent: var(--navy-700);
-    --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border: var(--navy-600);
-    --sidebar-ring: var(--teal-400);
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 0%;
+    --sidebar-ring: 0 0% 0%;
 
     /* === Status Colors === */
     --success: 160 84% 39%;
@@ -129,11 +131,11 @@
     --category-other: 220 15% 50%;
 
     /* === Chart Palette === */
-    --chart-1: var(--teal-500);
-    --chart-2: var(--sand-500);
-    --chart-3: var(--lagoon-500);
-    --chart-4: var(--coral-500);
-    --chart-5: var(--orchid-500);
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
     --chart-6: var(--sunset-500);
 
     /* === Premium Gradients === */
@@ -144,51 +146,65 @@
     --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-500)) 0%, hsl(var(--sunset-400)) 100%);
     --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-500)) 0%, hsl(var(--orchid-400)) 100%);
+    --sidebar: 0 0% 98%;
+    --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --shadow-2xs: 1px 1px 0px 0px #000000;
+    --shadow-xs: 2px 2px 0px 0px #000000;
+    --shadow-sm: 3px 3px 0px 0px #000000;
+    --shadow: 5px 5px 0px 0px #000000;
+    --shadow-md: 8px 8px 0px 0px #000000;
+    --shadow-lg: 12px 12px 0px 0px #000000;
+    --shadow-xl: 16px 16px 0px 0px #000000;
+    --shadow-2xl: 24px 24px 0px 0px #000000;
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
   }
 
   .dark {
     /* === Dark Theme - Deep Navy Night === */
-    --background: var(--navy-900);
-    --foreground: 220 15% 95%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: var(--navy-800);
-    --card-foreground: 220 15% 95%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: var(--navy-800);
-    --popover-foreground: 220 15% 95%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
 
     /* === Primary: Muted Teal === */
-    --primary: var(--teal-400);
-    --primary-foreground: var(--navy-950);
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
 
     /* === Secondary: Sand Beige on Dark === */
-    --secondary: 38 30% 18%;
-    --secondary-foreground: var(--sand-400);
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
 
     /* === Muted Surfaces === */
-    --muted: var(--navy-700);
-    --muted-foreground: 220 15% 60%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
 
     /* === Accent === */
-    --accent: 38 25% 15%;
-    --accent-foreground: var(--sand-400);
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: var(--navy-600);
-    --input: var(--navy-600);
-    --ring: var(--teal-400);
+    --border: 0 0% 100%;
+    --input: 0 0% 100%;
+    --ring: 0 0% 100%;
 
     /* === Sidebar - Deeper Navy === */
     --sidebar-background: var(--navy-950);
-    --sidebar-foreground: 220 15% 95%;
-    --sidebar-primary: var(--teal-400);
-    --sidebar-primary-foreground: var(--navy-950);
-    --sidebar-accent: var(--navy-800);
-    --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border: var(--navy-700);
-    --sidebar-ring: var(--teal-400);
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
 
     /* === Status Colors === */
     --success: 160 84% 39%;
@@ -212,11 +228,11 @@
     --category-other: 220 15% 60%;
 
     /* === Chart Palette (Dark Mode) === */
-    --chart-1: var(--teal-400);
-    --chart-2: var(--sand-400);
-    --chart-3: var(--lagoon-400);
-    --chart-4: var(--coral-400);
-    --chart-5: var(--orchid-400);
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
     --chart-6: var(--sunset-400);
 
     /* === Premium Gradients === */
@@ -227,6 +243,16 @@
     --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-500)) 0%, hsl(var(--sunset-400)) 100%);
     --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-500)) 0%, hsl(var(--orchid-400)) 100%);
+    --sidebar: 0 0% 5%;
+    --radius: 0rem;
+    --shadow-2xs: 1px 1px 0px 0px #ffffff;
+    --shadow-xs: 2px 2px 0px 0px #ffffff;
+    --shadow-sm: 3px 3px 0px 0px #ffffff;
+    --shadow: 5px 5px 0px 0px #ffffff;
+    --shadow-md: 8px 8px 0px 0px #ffffff;
+    --shadow-lg: 12px 12px 0px 0px #ffffff;
+    --shadow-xl: 16px 16px 0px 0px #ffffff;
+    --shadow-2xl: 24px 24px 0px 0px #ffffff;
   }
 }
 
@@ -502,19 +528,19 @@
   .status-pending {
     @apply bg-warning/15 text-warning font-semibold;
   }
-  
+
   .status-confirmed {
     @apply bg-success/15 text-success font-semibold;
   }
-  
+
   .status-cancelled {
     @apply bg-destructive/15 text-destructive font-semibold;
   }
-  
+
   .status-completed {
     @apply bg-primary/15 text-primary font-semibold;
   }
-  
+
   .status-no-show {
     @apply bg-muted text-muted-foreground font-semibold;
   }
@@ -523,7 +549,7 @@
   .animate-fade-in {
     animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
