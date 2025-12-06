@@ -391,6 +391,12 @@ export default function GuestActivityBookingPage() {
               <span className="text-muted-foreground">Duration:</span>
               <span>{session.duration_minutes} min</span>
             </div>
+            {session.price_per_person > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Price:</span>
+                <span className="font-semibold">${session.price_per_person.toFixed(2)} / person</span>
+              </div>
+            )}
           </div>
 
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
@@ -434,6 +440,23 @@ export default function GuestActivityBookingPage() {
               />
             </div>
           </div>
+
+          {/* Pricing Summary */}
+          {session.price_per_person > 0 && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground">
+                  ${session.price_per_person.toFixed(2)} × {totalPax} {totalPax === 1 ? 'guest' : 'guests'}
+                </span>
+                <span className="font-semibold text-lg text-foreground">
+                  ${(session.price_per_person * totalPax).toFixed(2)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Estimated total • Payment at resort
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Notes for the team (optional)</Label>
