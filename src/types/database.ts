@@ -61,6 +61,7 @@ export interface StaffInvitation {
 export interface Profile {
   id: string;
   full_name: string | null;
+  username: string | null;
   department: string | null;
   resort_id: string | null;
   global_role: GlobalRole;

@@ -9,17 +9,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle, KeyRound, User } from 'lucide-react';
+import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle, KeyRound, User, AtSign, Pencil, Eye } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StaffInviteDialog } from '@/components/staff/StaffInviteDialog';
 import { CreateStaffAccountDialog } from '@/components/staff/CreateStaffAccountDialog';
 import { ResetPasswordDialog } from '@/components/staff/ResetPasswordDialog';
+import { StaffProfileEditDialog } from '@/components/staff/StaffProfileEditDialog';
+import { StaffProfileViewDialog } from '@/components/staff/StaffProfileViewDialog';
 
 interface MembershipWithProfile extends ResortMembership {
   profile: Profile & { global_role?: GlobalRole };
@@ -54,6 +55,7 @@ export default function ResortStaffPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [createAccountDialogOpen, setCreateAccountDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState<MembershipWithProfile | null>(null);
@@ -213,31 +215,6 @@ export default function ResortStaffPage() {
     }
   };
 
-  const handleUpdateMembership = async () => {
-    if (!selectedMembership) return;
-
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('resort_memberships')
-        .update({
-          resort_role: selectedMembership.resort_role,
-          department: selectedMembership.department,
-        })
-        .eq('id', selectedMembership.id);
-
-      if (error) throw error;
-
-      toast.success('Staff member updated');
-      setEditDialogOpen(false);
-      fetchMemberships();
-    } catch (error) {
-      console.error('Error updating membership:', error);
-      toast.error('Failed to update staff member');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDeleteMembership = async () => {
     if (!selectedMembership) return;
@@ -360,35 +337,58 @@ export default function ResortStaffPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredMemberships.map((membership) => (
-            <Card key={membership.id} className="overflow-hidden">
+            <Card key={membership.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                      <User className="h-6 w-6 text-primary" />
                     </div>
-                    <div>
-                      <CardTitle className="text-base">
+                    <div className="space-y-1">
+                      <CardTitle className="text-base flex items-center gap-2">
                         {membership.profile?.full_name || 'Unnamed User'}
                         {membership.user_id === user?.id && (
-                          <Badge variant="outline" className="ml-2 text-xs">You</Badge>
+                          <Badge variant="outline" className="text-xs">You</Badge>
                         )}
                       </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {membership.department || 'No department'}
-                      </p>
+                      {membership.profile?.username && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <AtSign className="h-3 w-3" />
+                          {membership.profile.username}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Badge
                     variant="outline"
                     className={ROLE_COLORS[membership.resort_role]}
                   >
                     {ROLE_LABELS[membership.resort_role]}
                   </Badge>
+                  {membership.department && (
+                    <span className="text-xs bg-muted px-2 py-1 rounded">
+                      {membership.department}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedMembership(membership);
+                      setViewDialogOpen(true);
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
                   <div className="flex gap-1">
                     <Button
                       variant="outline"
@@ -408,8 +408,9 @@ export default function ResortStaffPage() {
                         setSelectedMembership(membership);
                         setEditDialogOpen(true);
                       }}
+                      title="Edit profile"
                     >
-                      Edit
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
@@ -419,6 +420,7 @@ export default function ResortStaffPage() {
                         setDeleteDialogOpen(true);
                       }}
                       className="text-destructive hover:text-destructive"
+                      title="Remove from resort"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -505,55 +507,34 @@ export default function ResortStaffPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Staff Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Staff Member</DialogTitle>
-            <DialogDescription>
-              Update role and department for {selectedMembership?.profile?.full_name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedMembership && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select 
-                  value={selectedMembership.resort_role} 
-                  onValueChange={(value) => setSelectedMembership(prev => prev ? { ...prev, resort_role: value as ResortRole } : null)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ALL_RESORT_ROLES.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {ROLE_LABELS[role]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Department (optional)</Label>
-                <Input
-                  value={selectedMembership.department || ''}
-                  onChange={(e) => setSelectedMembership(prev => prev ? { ...prev, department: e.target.value } : null)}
-                  placeholder="e.g., Dive Center, Reception"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateMembership} disabled={saving}>
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Staff Profile View Dialog */}
+      {selectedMembership && (
+        <StaffProfileViewDialog
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
+          userId={selectedMembership.user_id}
+          resortRole={selectedMembership.resort_role}
+          department={selectedMembership.department}
+          memberSince={selectedMembership.created_at}
+          onEdit={() => {
+            setViewDialogOpen(false);
+            setEditDialogOpen(true);
+          }}
+        />
+      )}
+
+      {/* Staff Profile Edit Dialog */}
+      {selectedMembership && (
+        <StaffProfileEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          userId={selectedMembership.user_id}
+          membershipId={selectedMembership.id}
+          currentRole={selectedMembership.resort_role}
+          currentDepartment={selectedMembership.department}
+          onSuccess={fetchMemberships}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
