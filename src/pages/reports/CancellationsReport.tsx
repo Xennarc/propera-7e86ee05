@@ -4,13 +4,12 @@ import { useResort } from '@/contexts/ResortContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Download, TrendingDown, Calendar, AlertTriangle } from 'lucide-react';
+import { Download, TrendingDown, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { format, subDays } from 'date-fns';
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
@@ -204,95 +203,62 @@ export default function CancellationsReport() {
         </Button>
       </div>
 
-      <FilterBar>
-        <FilterBarGroup>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-[160px]"
+      {/* Date Presets & Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
             />
+            <div className="flex items-center gap-4">
+              <div className="w-[200px]">
+                <Select value={moduleFilter} onValueChange={(v: any) => setModuleFilter(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Modules</SelectItem>
+                    <SelectItem value="activities">Activities Only</SelectItem>
+                    <SelectItem value="restaurants">Restaurants Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">End Date</label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-[160px]"
-            />
-          </div>
-        </FilterBarGroup>
-        <FilterBarGroup>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Module</label>
-            <Select value={moduleFilter} onValueChange={(v: any) => setModuleFilter(v)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
-                <SelectItem value="activities">Activities Only</SelectItem>
-                <SelectItem value="restaurants">Restaurants Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </FilterBarGroup>
-      </FilterBar>
+        </CardContent>
+      </Card>
 
+      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cancellations</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{reportData.totalCancellations}</span>
-              <TrendingDown className="h-5 w-5 text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Lead Time</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{reportData.avgLeadTime}</span>
-              <span className="text-sm text-muted-foreground">hours</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Last-Minute (&lt;24h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-warning">{reportData.lastMinuteCancellations}</span>
-              <AlertTriangle className="h-5 w-5 text-warning" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Activities vs Restaurants</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold text-primary">{reportData.totalActivityCancellations}</span>
-              <span className="text-muted-foreground">vs</span>
-              <span className="text-lg font-semibold text-chart-2">{reportData.totalRestaurantCancellations}</span>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportStatCard
+          title="Total Cancellations"
+          value={reportData.totalCancellations}
+          icon={<XCircle className="h-5 w-5 text-destructive" />}
+          variant="danger"
+        />
+        <ReportStatCard
+          title="Avg Lead Time"
+          value={`${reportData.avgLeadTime}h`}
+          subtitle="Time before cancellation"
+          icon={<Clock className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Last-Minute (<24h)"
+          value={reportData.lastMinuteCancellations}
+          icon={<AlertTriangle className="h-5 w-5 text-warning" />}
+          variant="warning"
+        />
+        <ReportStatCard
+          title="Activities vs Restaurants"
+          value={`${reportData.totalActivityCancellations} / ${reportData.totalRestaurantCancellations}`}
+          icon={<TrendingDown className="h-5 w-5 text-primary" />}
+        />
       </div>
 
+      {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -315,7 +281,13 @@ export default function CancellationsReport() {
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }} 
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>

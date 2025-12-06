@@ -4,13 +4,13 @@ import { useResort } from '@/contexts/ResortContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Download, Users, Bed, Calendar } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { format, subDays, differenceInDays } from 'date-fns';
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -137,84 +137,55 @@ export default function GuestsReport() {
         </Button>
       </div>
 
-      <FilterBar>
-        <FilterBarGroup>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-[160px]"
+      {/* Date Presets & Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
             />
+            <div className="flex items-center gap-4">
+              <div className="w-[200px]">
+                <Select value={channelFilter} onValueChange={setChannelFilter}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Channels</SelectItem>
+                    {uniqueChannels.map(ch => (
+                      <SelectItem key={ch} value={ch}>{ch}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">End Date</label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-[160px]"
-            />
-          </div>
-        </FilterBarGroup>
-        <FilterBarGroup>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Channel</label>
-            <Select value={channelFilter} onValueChange={setChannelFilter}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Channels</SelectItem>
-                {uniqueChannels.map(ch => (
-                  <SelectItem key={ch} value={ch}>{ch}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </FilterBarGroup>
-      </FilterBar>
+        </CardContent>
+      </Card>
 
+      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Guests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{reportData.totalGuests}</span>
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Room Nights</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{reportData.totalRoomNights}</span>
-              <Bed className="h-5 w-5 text-chart-2" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Length of Stay</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{reportData.avgLengthOfStay}</span>
-              <span className="text-sm text-muted-foreground">nights</span>
-              <Calendar className="h-5 w-5 text-chart-3" />
-            </div>
-          </CardContent>
-        </Card>
+        <ReportStatCard
+          title="Total Guests"
+          value={reportData.totalGuests}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Room Nights"
+          value={reportData.totalRoomNights}
+          icon={<Bed className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Avg Length of Stay"
+          value={`${reportData.avgLengthOfStay} nights`}
+          icon={<Calendar className="h-5 w-5 text-primary" />}
+        />
       </div>
 
+      {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -261,7 +232,13 @@ export default function GuestsReport() {
                     <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }} 
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -269,6 +246,7 @@ export default function GuestsReport() {
         </Card>
       </div>
 
+      {/* Table */}
       <Card>
         <CardHeader>
           <CardTitle>Channel Details</CardTitle>

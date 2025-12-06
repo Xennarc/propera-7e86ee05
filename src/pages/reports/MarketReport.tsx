@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -23,8 +21,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Download, Globe } from 'lucide-react';
+import { Download, Globe, Users, DollarSign } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -175,6 +175,16 @@ export default function MarketReport() {
   const reportData = segmentType === 'activities' ? activitiesData : restaurantsData;
   const isLoading = segmentType === 'activities' ? loadingActivities : loadingRestaurants;
 
+  // Summary stats
+  const summaryStats = useMemo(() => {
+    if (!reportData) return { totalPax: 0, totalRevenue: 0, uniqueGuests: 0, topMarket: '-' };
+    const totalPax = reportData.reduce((sum, item) => sum + item.totalPax, 0);
+    const totalRevenue = reportData.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const uniqueGuests = reportData.reduce((sum, item) => sum + item.uniqueGuests, 0);
+    const topMarket = reportData[0]?.nationality || '-';
+    return { totalPax, totalRevenue, uniqueGuests, topMarket };
+  }, [reportData]);
+
   const chartData = useMemo(() => {
     if (!reportData) return [];
     return reportData.slice(0, 10).map(item => ({
@@ -251,50 +261,64 @@ export default function MarketReport() {
           <h1 className="text-3xl font-bold text-foreground">Market Report</h1>
           <p className="text-muted-foreground">Booking analysis by guest nationality</p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData}>
+        <Button onClick={exportCSV} disabled={!reportData} variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Date Presets & Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Segment</Label>
-              <Select value={segmentType} onValueChange={(v) => setSegmentType(v as SegmentType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="activities">Activities</SelectItem>
-                  <SelectItem value="restaurants">Restaurants</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            <div className="flex items-center gap-4">
+              <div className="w-[200px]">
+                <Select value={segmentType} onValueChange={(v) => setSegmentType(v as SegmentType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="activities">Activities</SelectItem>
+                    <SelectItem value="restaurants">Restaurants</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <ReportStatCard
+          title="Total Pax"
+          value={summaryStats.totalPax}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        {segmentType === 'activities' && (
+          <ReportStatCard
+            title="Total Revenue"
+            value={`${currentResort.currency} ${summaryStats.totalRevenue.toLocaleString()}`}
+            icon={<DollarSign className="h-5 w-5 text-primary" />}
+          />
+        )}
+        <ReportStatCard
+          title="Unique Guests"
+          value={summaryStats.uniqueGuests}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Top Market"
+          value={summaryStats.topMarket}
+          icon={<Globe className="h-5 w-5 text-primary" />}
+        />
+      </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

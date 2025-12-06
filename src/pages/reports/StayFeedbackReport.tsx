@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Star, ThumbsUp, Download, TrendingUp, Users, MessageSquare } from 'lucide-react';
-import { format, parseISO, subDays, startOfMonth, endOfMonth } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { Star, ThumbsUp, Download, MessageSquare, Users } from 'lucide-react';
+import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 
 interface StayFeedbackRow {
   id: string;
@@ -144,11 +144,19 @@ export default function StayFeedbackReport() {
     );
   };
 
+  if (!currentResort) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">Please select a resort to view reports</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">End-of-Stay Feedback</h1>
+          <h1 className="text-3xl font-bold text-foreground">End-of-Stay Feedback</h1>
           <p className="text-muted-foreground">Guest satisfaction and feedback analysis</p>
         </div>
         <Button onClick={exportCSV} disabled={!feedback?.length} variant="outline">
@@ -157,71 +165,43 @@ export default function StayFeedbackReport() {
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Date Presets */}
       <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="space-y-1">
-              <Label className="text-xs">From (Check-out Date)</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">To (Check-out Date)</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
-          </div>
+        <CardContent className="pt-6">
+          <DateRangePresets
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
         </CardContent>
       </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <MessageSquare className="h-4 w-4" />
-              <span className="text-xs font-medium">Responses</span>
-            </div>
-            <p className="text-2xl font-bold">{totalResponses}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Star className="h-4 w-4" />
-              <span className="text-xs font-medium">Avg Overall</span>
-            </div>
-            <p className="text-2xl font-bold">{avgOverall}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <ThumbsUp className="h-4 w-4" />
-              <span className="text-xs font-medium">Would Recommend</span>
-            </div>
-            <p className="text-2xl font-bold">{recommendPercentage}%</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground mb-1">
-              <Users className="h-4 w-4" />
-              <span className="text-xs font-medium">Response Rate</span>
-            </div>
-            <p className="text-2xl font-bold text-muted-foreground">-</p>
-            <p className="text-xs text-muted-foreground">N/A</p>
-          </CardContent>
-        </Card>
+        <ReportStatCard
+          title="Total Responses"
+          value={totalResponses}
+          icon={<MessageSquare className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Avg Overall Rating"
+          value={avgOverall}
+          icon={<Star className="h-5 w-5 text-yellow-500" />}
+          variant={Number(avgOverall) >= 4 ? 'success' : Number(avgOverall) >= 3 ? 'warning' : 'danger'}
+        />
+        <ReportStatCard
+          title="Would Recommend"
+          value={`${recommendPercentage}%`}
+          icon={<ThumbsUp className="h-5 w-5 text-primary" />}
+          variant={recommendPercentage >= 80 ? 'success' : recommendPercentage >= 60 ? 'warning' : 'danger'}
+        />
+        <ReportStatCard
+          title="Response Rate"
+          value="-"
+          subtitle="N/A"
+          icon={<Users className="h-5 w-5 text-muted-foreground" />}
+        />
       </div>
 
       {/* Category Averages */}
@@ -265,10 +245,16 @@ export default function StayFeedbackReport() {
             <CardContent>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={ratingDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="rating" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="rating" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis allowDecimals={false} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }} 
+                  />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -283,10 +269,16 @@ export default function StayFeedbackReport() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={trendData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="period" />
-                    <YAxis domain={[1, 5]} />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis domain={[1, 5]} stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }} 
+                    />
                     <Line type="monotone" dataKey="avg" stroke="hsl(var(--primary))" strokeWidth={2} />
                   </LineChart>
                 </ResponsiveContainer>

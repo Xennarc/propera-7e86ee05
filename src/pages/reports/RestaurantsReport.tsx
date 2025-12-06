@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -22,9 +20,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Download, Users, TrendingDown, Utensils } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { Download, Users, TrendingDown, Utensils, Clock } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 
 const MEAL_PERIOD_COLORS: Record<string, string> = {
   BREAKFAST: 'hsl(var(--chart-1))',
@@ -104,6 +104,9 @@ export default function RestaurantsReport() {
       let totalNoShows = 0;
       let totalConfirmedAndNoShows = 0;
 
+      // Meal period breakdown
+      const mealPeriodMap = new Map<string, number>();
+
       slots?.forEach((slot: any) => {
         const key = `${slot.restaurant_id}-${slot.meal_period}`;
         const restaurantName = slot.restaurants?.name || 'Unknown';
@@ -131,6 +134,9 @@ export default function RestaurantsReport() {
             stats.confirmedAndNoShowCount += 1;
             totalCovers += covers;
             totalConfirmedAndNoShows += 1;
+            
+            // Track meal period
+            mealPeriodMap.set(slot.meal_period, (mealPeriodMap.get(slot.meal_period) || 0) + covers);
           } else if (res.status === 'NO_SHOW') {
             stats.noShowCount += 1;
             stats.confirmedAndNoShowCount += 1;
@@ -175,14 +181,22 @@ export default function RestaurantsReport() {
         chartDataMap.get(stat.restaurantName)![stat.mealPeriod] = stat.totalCovers;
       });
 
+      // Meal period pie data
+      const mealPeriodData = Array.from(mealPeriodMap.entries()).map(([name, value]) => ({
+        name,
+        value,
+      }));
+
       return {
         summary: {
           totalCovers,
           avgCoversPerSlot,
           noShowPercent,
+          totalSlots,
         },
         tableStats,
         chartData: Array.from(chartDataMap.values()),
+        mealPeriodData,
       };
     },
     enabled: !!currentResort,
@@ -228,129 +242,137 @@ export default function RestaurantsReport() {
           <h1 className="text-3xl font-bold text-foreground">Restaurants Report</h1>
           <p className="text-muted-foreground">Restaurant reservation statistics by meal period</p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData}>
+        <Button onClick={exportCSV} disabled={!reportData} variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Date Presets & Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Restaurant</Label>
-              <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Restaurants" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Restaurants</SelectItem>
-                  {restaurants?.map((restaurant) => (
-                    <SelectItem key={restaurant.id} value={restaurant.id}>
-                      {restaurant.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            <div className="flex items-center gap-4">
+              <div className="w-[200px]">
+                <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Restaurants" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Restaurants</SelectItem>
+                    {restaurants?.map((restaurant) => (
+                      <SelectItem key={restaurant.id} value={restaurant.id}>
+                        {restaurant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Covers</p>
-                <p className="text-2xl font-bold">{reportData?.summary.totalCovers || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Utensils className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Covers/Slot</p>
-                <p className="text-2xl font-bold">{reportData?.summary.avgCoversPerSlot || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10">
-                <TrendingDown className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">No-Show Rate</p>
-                <p className="text-2xl font-bold">{reportData?.summary.noShowPercent || 0}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <ReportStatCard
+          title="Total Covers"
+          value={reportData?.summary.totalCovers || 0}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Avg Covers/Slot"
+          value={reportData?.summary.avgCoversPerSlot || 0}
+          icon={<Utensils className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Total Slots"
+          value={reportData?.summary.totalSlots || 0}
+          icon={<Clock className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="No-Show Rate"
+          value={`${reportData?.summary.noShowPercent || 0}%`}
+          icon={<TrendingDown className="h-5 w-5 text-destructive" />}
+          variant={reportData?.summary.noShowPercent && reportData.summary.noShowPercent > 10 ? 'danger' : 'default'}
+        />
       </div>
 
-      {/* Chart */}
-      {reportData?.chartData && reportData.chartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Covers by Restaurant & Meal Period</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={reportData.chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="BREAKFAST" stackId="a" fill={MEAL_PERIOD_COLORS.BREAKFAST} name="Breakfast" />
-                  <Bar dataKey="LUNCH" stackId="a" fill={MEAL_PERIOD_COLORS.LUNCH} name="Lunch" />
-                  <Bar dataKey="DINNER" stackId="a" fill={MEAL_PERIOD_COLORS.DINNER} name="Dinner" />
-                  <Bar dataKey="EVENT" stackId="a" fill={MEAL_PERIOD_COLORS.EVENT} name="Event" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {reportData?.chartData && reportData.chartData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Covers by Restaurant & Meal Period</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={reportData.chartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="name" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="BREAKFAST" stackId="a" fill={MEAL_PERIOD_COLORS.BREAKFAST} name="Breakfast" />
+                    <Bar dataKey="LUNCH" stackId="a" fill={MEAL_PERIOD_COLORS.LUNCH} name="Lunch" />
+                    <Bar dataKey="DINNER" stackId="a" fill={MEAL_PERIOD_COLORS.DINNER} name="Dinner" />
+                    <Bar dataKey="EVENT" stackId="a" fill={MEAL_PERIOD_COLORS.EVENT} name="Event" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {reportData?.mealPeriodData && reportData.mealPeriodData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Covers by Meal Period</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportData.mealPeriodData}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {reportData.mealPeriodData.map((entry) => (
+                        <Cell key={entry.name} fill={MEAL_PERIOD_COLORS[entry.name] || 'hsl(var(--chart-5))'} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Table */}
       <Card>
