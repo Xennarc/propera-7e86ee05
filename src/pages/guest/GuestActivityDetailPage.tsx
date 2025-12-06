@@ -447,7 +447,7 @@ export default function GuestActivityDetailPage() {
         <div className="max-w-lg mx-auto">
           {sessions && sessions.length > 0 ? (
             <>
-              <Link to={`/resort/${code}/guest/activities/book/${sessions[0].id}`}>
+              <Link to={code ? `/resort/${code}/guest/activities/book/${sessions[0].id}` : `/guest/activities/book/${sessions[0].id}`}>
                 <Button className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg gap-2">
                   <IconActivities className="h-5 w-5" />
                   Book this activity
