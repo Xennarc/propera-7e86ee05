@@ -116,6 +116,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         'RESORT_ADMIN': 'Resort Admin',
         'MANAGER': 'Manager',
         'FRONT_OFFICE': 'Front Office',
+        'RESERVATIONS': 'Reservations',
         'ACTIVITIES': 'Activities',
         'FNB': 'F&B',
       };

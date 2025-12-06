@@ -1566,7 +1566,13 @@ export type Database = {
     }
     Enums: {
       activity_category: "DIVE" | "EXCURSION" | "WATERSPORT" | "SPA" | "OTHER"
-      app_role: "ADMIN" | "MANAGER" | "FRONT_OFFICE" | "ACTIVITIES" | "FNB"
+      app_role:
+        | "ADMIN"
+        | "MANAGER"
+        | "FRONT_OFFICE"
+        | "ACTIVITIES"
+        | "FNB"
+        | "RESERVATIONS"
       booking_source:
         | "STAFF_FRONT_DESK"
         | "STAFF_DIVE"
@@ -1594,6 +1600,7 @@ export type Database = {
         | "FRONT_OFFICE"
         | "ACTIVITIES"
         | "FNB"
+        | "RESERVATIONS"
       resort_status: "ACTIVE" | "INACTIVE" | "DEMO"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
@@ -1726,7 +1733,14 @@ export const Constants = {
   public: {
     Enums: {
       activity_category: ["DIVE", "EXCURSION", "WATERSPORT", "SPA", "OTHER"],
-      app_role: ["ADMIN", "MANAGER", "FRONT_OFFICE", "ACTIVITIES", "FNB"],
+      app_role: [
+        "ADMIN",
+        "MANAGER",
+        "FRONT_OFFICE",
+        "ACTIVITIES",
+        "FNB",
+        "RESERVATIONS",
+      ],
       booking_source: [
         "STAFF_FRONT_DESK",
         "STAFF_DIVE",
@@ -1756,6 +1770,7 @@ export const Constants = {
         "FRONT_OFFICE",
         "ACTIVITIES",
         "FNB",
+        "RESERVATIONS",
       ],
       resort_status: ["ACTIVE", "INACTIVE", "DEMO"],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],

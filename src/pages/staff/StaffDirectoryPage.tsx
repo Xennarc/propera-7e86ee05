@@ -30,6 +30,7 @@ const ROLE_COLORS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'bg-primary/10 text-primary border-primary/30',
   MANAGER: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30',
   FRONT_OFFICE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30',
+  RESERVATIONS: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
   ACTIVITIES: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30',
   FNB: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30',
 };
@@ -38,6 +39,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
   MANAGER: 'Manager',
   FRONT_OFFICE: 'Front Office',
+  RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
 };

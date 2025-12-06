@@ -33,6 +33,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
   MANAGER: 'Manager',
   FRONT_OFFICE: 'Front Office',
+  RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
 };
