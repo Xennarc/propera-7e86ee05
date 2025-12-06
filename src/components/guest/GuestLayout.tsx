@@ -12,7 +12,7 @@ import {
   IconBookings,
   IconLogout,
 } from '@/components/icons/ProperaIcons';
-import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
 
 const navItems = [
   { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home' },
@@ -67,12 +67,7 @@ export function GuestLayout() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center hero-pattern">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft">
-            <ProperaMark size={32} className="text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">Loading your experience...</p>
-        </div>
+        <ProperaLoader size={64} text="Loading your experience..." />
       </div>
     );
   }

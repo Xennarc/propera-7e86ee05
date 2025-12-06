@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { IconPropera, IconCalendar } from '@/components/icons/ProperaIcons';
+import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -23,12 +24,7 @@ export function AppLayout() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft shadow-soft">
-            <IconPropera className="h-9 w-9 text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">Loading...</p>
-        </div>
+        <ProperaLoader size={64} text="Loading..." />
       </div>
     );
   }
@@ -41,12 +37,7 @@ export function AppLayout() {
   if (resortLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse-soft shadow-soft">
-            <IconPropera className="h-9 w-9 text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">Loading resorts...</p>
-        </div>
+        <ProperaLoader size={64} text="Loading resorts..." />
       </div>
     );
   }
