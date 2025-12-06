@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ActivityRecurringRule, RestaurantRecurringRule } from '@/types/database';
 import { formatRuleSummary, generateActivitySessions, generateRestaurantSlots } from '@/lib/recurring-schedule';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,8 +26,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { MoreHorizontal, Play, Pause, RefreshCw, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { MoreHorizontal, Play, Pause, RefreshCw, Pencil, Trash2, Loader2, AlertTriangle, Calendar, Users } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 interface RecurringRulesListProps {
   rules: (ActivityRecurringRule | RestaurantRecurringRule)[];
@@ -35,11 +36,21 @@ interface RecurringRulesListProps {
   onRefresh: () => void;
 }
 
+interface AffectedSession {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  bookingCount: number;
+}
+
 export function RecurringRulesList({ rules, type, onEdit, onRefresh }: RecurringRulesListProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<ActivityRecurringRule | RestaurantRecurringRule | null>(null);
   const [deleteFutureSessions, setDeleteFutureSessions] = useState(true);
+  const [affectedSessions, setAffectedSessions] = useState<AffectedSession[]>([]);
+  const [loadingAffected, setLoadingAffected] = useState(false);
   const { toast } = useToast();
 
   const toggleActive = async (rule: ActivityRecurringRule | RestaurantRecurringRule) => {
@@ -79,10 +90,79 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
     setLoadingId(null);
   };
 
+  const fetchAffectedSessions = async (rule: ActivityRecurringRule | RestaurantRecurringRule) => {
+    setLoadingAffected(true);
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    try {
+      if (type === 'activity') {
+        const activityRule = rule as ActivityRecurringRule;
+        const { data: sessions, error } = await supabase
+          .from('activity_sessions')
+          .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            activity_bookings(id, status)
+          `)
+          .eq('activity_id', activityRule.activity_id)
+          .eq('start_time', activityRule.start_time)
+          .eq('end_time', activityRule.end_time)
+          .gte('date', today)
+          .order('date', { ascending: true });
+        
+        if (error) throw error;
+        
+        setAffectedSessions((sessions || []).map(s => ({
+          id: s.id,
+          date: s.date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          bookingCount: (s.activity_bookings || []).filter((b: any) => b.status !== 'CANCELLED').length,
+        })));
+      } else {
+        const restaurantRule = rule as RestaurantRecurringRule;
+        const { data: slots, error } = await supabase
+          .from('restaurant_time_slots')
+          .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            restaurant_reservations(id, status)
+          `)
+          .eq('restaurant_id', restaurantRule.restaurant_id)
+          .eq('start_time', restaurantRule.start_time)
+          .eq('end_time', restaurantRule.end_time)
+          .eq('meal_period', restaurantRule.meal_period)
+          .gte('date', today)
+          .order('date', { ascending: true });
+        
+        if (error) throw error;
+        
+        setAffectedSessions((slots || []).map(s => ({
+          id: s.id,
+          date: s.date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          bookingCount: (s.restaurant_reservations || []).filter((r: any) => r.status !== 'CANCELLED').length,
+        })));
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to load affected sessions' });
+      setAffectedSessions([]);
+    } finally {
+      setLoadingAffected(false);
+    }
+  };
+
   const handleDeleteClick = (rule: ActivityRecurringRule | RestaurantRecurringRule) => {
     setRuleToDelete(rule);
     setDeleteFutureSessions(true);
+    setAffectedSessions([]);
     setDeleteDialogOpen(true);
+    fetchAffectedSessions(rule);
   };
 
   const handleDeleteConfirm = async () => {
@@ -134,7 +214,7 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
       toast({
         title: 'Deleted',
         description: deleteFutureSessions 
-          ? `Schedule and future ${type === 'activity' ? 'sessions' : 'slots'} deleted.`
+          ? `Schedule and ${affectedSessions.length} future ${type === 'activity' ? 'sessions' : 'slots'} deleted.`
           : 'Schedule deleted.',
       });
       onRefresh();
@@ -145,6 +225,9 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
       setRuleToDelete(null);
     }
   };
+
+  const sessionsWithBookings = affectedSessions.filter(s => s.bookingCount > 0);
+  const totalBookings = affectedSessions.reduce((sum, s) => sum + s.bookingCount, 0);
 
   if (rules.length === 0) {
     return (
@@ -231,7 +314,7 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
       </div>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete recurring schedule?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -239,7 +322,7 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="flex items-start space-x-3 py-4">
+          <div className="flex items-start space-x-3 py-2">
             <Checkbox
               id="delete-future"
               checked={deleteFutureSessions}
@@ -250,18 +333,81 @@ export function RecurringRulesList({ rules, type, onEdit, onRefresh }: Recurring
                 Also delete future {type === 'activity' ? 'sessions' : 'slots'}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Delete all future {type === 'activity' ? 'sessions' : 'slots'} that match this schedule's time pattern (from today onwards).
+                Delete all matching {type === 'activity' ? 'sessions' : 'slots'} from today onwards.
               </p>
             </div>
           </div>
+
+          {deleteFutureSessions && (
+            <div className="border rounded-lg p-3 space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">
+                  Affected {type === 'activity' ? 'Sessions' : 'Slots'}
+                </span>
+                {loadingAffected ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Badge variant="secondary">{affectedSessions.length}</Badge>
+                )}
+              </div>
+
+              {!loadingAffected && affectedSessions.length > 0 && (
+                <>
+                  {totalBookings > 0 && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                      <span>
+                        <strong>{totalBookings}</strong> active {totalBookings === 1 ? 'booking' : 'bookings'} across{' '}
+                        <strong>{sessionsWithBookings.length}</strong> {type === 'activity' ? 'sessions' : 'slots'} will also be deleted!
+                      </span>
+                    </div>
+                  )}
+
+                  <ScrollArea className="h-[160px]">
+                    <div className="space-y-1.5 pr-4">
+                      {affectedSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className={`flex items-center justify-between text-sm p-2 rounded-md ${
+                            session.bookingCount > 0 ? 'bg-destructive/5 border border-destructive/20' : 'bg-muted/50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span>{format(parseISO(session.date), 'EEE, MMM d')}</span>
+                            <span className="text-muted-foreground">
+                              {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
+                            </span>
+                          </div>
+                          {session.bookingCount > 0 && (
+                            <div className="flex items-center gap-1 text-destructive">
+                              <Users className="h-3.5 w-3.5" />
+                              <span className="font-medium">{session.bookingCount}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+
+              {!loadingAffected && affectedSessions.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No future {type === 'activity' ? 'sessions' : 'slots'} match this schedule.
+                </p>
+              )}
+            </div>
+          )}
 
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loadingAffected}
             >
-              Delete
+              {deleteFutureSessions && totalBookings > 0 ? 'Delete Anyway' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
