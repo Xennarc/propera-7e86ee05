@@ -28,6 +28,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
+import { getCategoryConfig } from '@/lib/activity-category-config';
 import { IconRestaurants } from '@/components/icons/ProperaIcons';
 
 // Map server error messages to error codes
@@ -250,78 +251,110 @@ export default function GuestMyBookings() {
     booking: any; 
     type: 'activity' | 'restaurant'; 
     canCancel: boolean;
-  }) => (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <div className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
-            booking.status === 'CANCELLED' ? "bg-muted" : "bg-primary/10"
-          )}>
-            {type === 'activity' ? (
-              <CategoryIcon 
-                category={booking.category} 
-                size={24} 
-                className={booking.status === 'CANCELLED' ? "text-muted-foreground" : undefined}
-              />
-            ) : (
-              <IconRestaurants className={cn("h-6 w-6", booking.status === 'CANCELLED' ? "text-muted-foreground" : "text-primary")} />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-foreground truncate">
-                {type === 'activity' ? booking.activity_name : booking.restaurant_name}
-              </h3>
-              <div className="flex items-center gap-2 shrink-0">
-                {getStatusBadge(booking.status)}
-                {canCancel && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCancelDialog({
-                        type,
-                        id: booking.id,
-                        title: type === 'activity' ? booking.activity_name : booking.restaurant_name,
-                      });
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                    <span className="sr-only sm:not-sr-only sm:ml-1">Cancel</span>
-                  </Button>
+  }) => {
+    const isActivity = type === 'activity';
+    const config = isActivity ? getCategoryConfig(booking.category) : null;
+    const isCancelled = booking.status === 'CANCELLED';
+    
+    // Meal period colors for restaurants
+    const mealPeriodConfig: Record<string, { colorClass: string; bgClass: string }> = {
+      BREAKFAST: { colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
+      LUNCH: { colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10' },
+      DINNER: { colorClass: 'text-orchid', bgClass: 'bg-orchid/10' },
+      EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10' },
+    };
+    const restaurantConfig = !isActivity ? (mealPeriodConfig[booking.meal_period] || mealPeriodConfig.DINNER) : null;
+    
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+              isCancelled 
+                ? "bg-muted" 
+                : isActivity && config 
+                  ? config.bgClass 
+                  : restaurantConfig?.bgClass || "bg-sunset/10"
+            )}>
+              {isActivity ? (
+                <CategoryIcon 
+                  category={booking.category} 
+                  size={24} 
+                  className={isCancelled ? "text-muted-foreground" : undefined}
+                />
+              ) : (
+                <IconRestaurants className={cn(
+                  "h-6 w-6", 
+                  isCancelled ? "text-muted-foreground" : restaurantConfig?.colorClass || "text-sunset"
+                )} />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h3 className="font-semibold text-foreground truncate">
+                  {isActivity ? booking.activity_name : booking.restaurant_name}
+                </h3>
+                <div className="flex items-center gap-2 shrink-0">
+                  {getStatusBadge(booking.status)}
+                  {canCancel && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCancelDialog({
+                          type,
+                          id: booking.id,
+                          title: isActivity ? booking.activity_name : booking.restaurant_name,
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only sm:not-sr-only sm:ml-1">Cancel</span>
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className={cn(
+                "flex items-center gap-2 text-sm mb-1",
+                isCancelled 
+                  ? "text-muted-foreground" 
+                  : isActivity && config 
+                    ? config.colorClass 
+                    : restaurantConfig?.colorClass || "text-sunset"
+              )}>
+                <Clock className="h-3.5 w-3.5" />
+                <span className="font-medium">
+                  {format(parseISO(booking.date), 'EEE, MMM d')} at {booking.start_time?.slice(0, 5)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
+                  {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
+                </span>
+                {isActivity && booking.category && (
+                  <CategoryBadge category={booking.category} size="sm" showIcon={false} />
+                )}
+                {!isActivity && booking.meal_period && (
+                  <Badge className={cn("text-xs", 
+                    mealPeriodConfig[booking.meal_period]?.colorClass ? 
+                      `${mealPeriodConfig[booking.meal_period].bgClass} ${mealPeriodConfig[booking.meal_period].colorClass}` : 
+                      'chip-neutral'
+                  )}>
+                    {booking.meal_period}
+                  </Badge>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <Clock className="h-3.5 w-3.5" />
-              {format(parseISO(booking.date), 'EEE, MMM d')} at {booking.start_time?.slice(0, 5)}
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
-                {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
-              </span>
-              {type === 'activity' && booking.category && (
-                <CategoryBadge category={booking.category} size="sm" showIcon={false} />
-              )}
-              {type === 'restaurant' && booking.meal_period && (
-                <Badge variant="outline" className="text-xs">{booking.meal_period}</Badge>
-              )}
-              {booking.created_at && (
-                <span className="text-xs text-muted-foreground/70">
-                  Booked {format(parseISO(booking.created_at), 'MMM d, HH:mm')}
-                </span>
-              )}
-            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -360,9 +393,11 @@ export default function GuestMyBookings() {
           {/* Upcoming Activities */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-lagoon/10">
+                <Calendar className="h-4 w-4 text-lagoon" />
+              </div>
               <h2 className="font-semibold text-foreground">
-                Upcoming Activities ({upcomingActivities.length})
+                Upcoming Activities <span className="text-lagoon">({upcomingActivities.length})</span>
               </h2>
             </div>
             {upcomingActivities.length === 0 ? (
@@ -388,9 +423,11 @@ export default function GuestMyBookings() {
           {/* Upcoming Reservations */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Utensils className="h-4 w-4 text-primary" />
+              <div className="p-1.5 rounded-lg bg-sunset/10">
+                <Utensils className="h-4 w-4 text-sunset" />
+              </div>
               <h2 className="font-semibold text-foreground">
-                Upcoming Reservations ({upcomingReservations.length})
+                Upcoming Reservations <span className="text-sunset">({upcomingReservations.length})</span>
               </h2>
             </div>
             {upcomingReservations.length === 0 ? (

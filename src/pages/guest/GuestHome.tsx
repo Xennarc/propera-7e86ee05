@@ -19,6 +19,8 @@ import {
   IconStay,
 } from '@/components/icons/ProperaIcons';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
+import { getCategoryConfig } from '@/lib/activity-category-config';
+import { cn } from '@/lib/utils';
 import {
   createActivityBookingFromInStaySuggestion,
 } from '@/lib/booking-source-helpers';
@@ -293,45 +295,51 @@ export default function GuestHome() {
 
               <div className="grid gap-3">
                 {/* Activity Suggestions */}
-                {suggestions?.activities?.map((session: any) => (
-                  <Card key={session.id} className="shadow-soft border-primary/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
-                          <IconActivities className="h-6 w-6 text-primary" />
+                {suggestions?.activities?.map((session: any) => {
+                  const config = getCategoryConfig(session.category);
+                  return (
+                    <Card key={session.id} className="shadow-soft overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+                            config.bgClass
+                          )}>
+                            <CategoryIcon category={session.category} size={24} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-foreground mb-1 truncate">
+                              {session.activity_name}
+                            </h4>
+                            <p className="text-sm text-muted-foreground mb-1">
+                              {format(parseISO(session.date), 'MMM d')} at {session.start_time.slice(0, 5)}
+                              {session.duration_minutes && ` • ${session.duration_minutes}min`}
+                            </p>
+                            <Badge className={cn("text-xs", config.chipClass)}>
+                              Guest favourite
+                            </Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => bookActivityMutation.mutate(session.id)}
+                            disabled={bookActivityMutation.isPending}
+                            className="shrink-0"
+                          >
+                            {bookActivityMutation.isPending ? 'Booking...' : 'Book now'}
+                          </Button>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-foreground mb-1 truncate">
-                            {session.activity_name}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            {format(parseISO(session.date), 'MMM d')} at {session.start_time.slice(0, 5)}
-                            {session.duration_minutes && ` • ${session.duration_minutes}min`}
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            Guest favourite
-                          </Badge>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => bookActivityMutation.mutate(session.id)}
-                          disabled={bookActivityMutation.isPending}
-                          className="shrink-0"
-                        >
-                          {bookActivityMutation.isPending ? 'Booking...' : 'Book now'}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
                 {/* Restaurant Suggestions */}
                 {suggestions?.restaurants?.map((slot: any) => (
-                  <Card key={slot.id} className="shadow-soft border-primary/20">
+                  <Card key={slot.id} className="shadow-soft overflow-hidden">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
-                          <IconRestaurants className="h-6 w-6 text-primary" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sunset/10 shrink-0">
+                          <IconRestaurants className="h-6 w-6 text-sunset" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-bold text-foreground mb-1 truncate">
@@ -340,13 +348,13 @@ export default function GuestHome() {
                           <p className="text-sm text-muted-foreground mb-1">
                             Tonight at {slot.start_time.slice(0, 5)}
                           </p>
-                          <Badge variant="outline" className="text-xs">
-                            Still available for tonight
+                          <Badge className="chip-category-dining text-xs">
+                            Still available
                           </Badge>
                         </div>
                         <Link to={`/guest/restaurants/book/${slot.id}`}>
                           <Button size="sm" className="shrink-0">
-                            Reserve table
+                            Reserve
                           </Button>
                         </Link>
                       </div>
@@ -424,39 +432,50 @@ export default function GuestHome() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {todaySchedule.map((item, idx) => (
-              <Card
-                key={idx}
-                className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300"
-              >
-                <CardContent className="flex items-center gap-4 p-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
-                    {item.type === 'activity' ? (
-                      <IconActivities className="h-7 w-7 text-primary" />
-                    ) : (
-                      <IconRestaurants className="h-7 w-7 text-primary" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground truncate">
-                      {item.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground font-medium">
-                      {item.time.slice(0, 5)}
-                      {item.type === 'restaurant' && item.mealPeriod && (
-                        <span className="ml-2">• {item.mealPeriod}</span>
+            {todaySchedule.map((item, idx) => {
+              const isActivity = item.type === 'activity';
+              const config = isActivity ? getCategoryConfig((item as any).category) : null;
+              
+              return (
+                <Card
+                  key={idx}
+                  className="shadow-soft hover:shadow-card-hover transition-all duration-300 overflow-hidden"
+                >
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <div className={cn(
+                      "flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm shrink-0",
+                      isActivity && config ? config.bgClass : "bg-sunset/10"
+                    )}>
+                      {isActivity ? (
+                        <CategoryIcon category={(item as any).category} size={28} />
+                      ) : (
+                        <IconRestaurants className="h-7 w-7 text-sunset" />
                       )}
-                    </p>
-                  </div>
-                  <Badge
-                    variant={item.status === 'CONFIRMED' ? 'confirmed' : 'pending'}
-                    className="shrink-0 rounded-full px-3"
-                  >
-                    {item.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground truncate">
+                        {item.title}
+                      </p>
+                      <p className={cn(
+                        "text-sm font-semibold",
+                        isActivity && config ? config.colorClass : "text-sunset"
+                      )}>
+                        {item.time.slice(0, 5)}
+                        {item.type === 'restaurant' && item.mealPeriod && (
+                          <span className="text-muted-foreground font-normal ml-2">• {item.mealPeriod}</span>
+                        )}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={item.status === 'CONFIRMED' ? 'confirmed' : 'pending'}
+                      className="shrink-0 rounded-full px-3"
+                    >
+                      {item.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
@@ -468,37 +487,37 @@ export default function GuestHome() {
         {/* Explore Activities - links to resort-specific activity explorer */}
         {resort?.code && (
           <Link to={`/resort/${resort.code}/guest/activities`}>
-            <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-primary/5 to-transparent">
+            <Card className="shadow-soft hover:shadow-card-hover hover:border-lagoon/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-lagoon/5 to-transparent">
               <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/30 to-primary/15 shadow-sm group-hover:from-primary/40 group-hover:to-primary/20 transition-all duration-300">
-                  <Compass className="h-8 w-8 text-primary" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-lagoon/10 shadow-sm group-hover:bg-lagoon/15 transition-all duration-300">
+                  <Compass className="h-7 w-7 text-lagoon" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                  <h3 className="font-bold text-foreground group-hover:text-lagoon transition-colors">
                     Explore Activities
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Learn about all experiences we offer
+                    Learn about all experiences
                   </p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-lagoon group-hover:translate-x-1 transition-all" />
               </CardContent>
             </Card>
           </Link>
         )}
 
         <Link to="/guest/activities">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-primary/5 to-transparent">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
-                <IconActivities className="h-8 w-8 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm group-hover:bg-primary/15 transition-all duration-300">
+                <IconActivities className="h-7 w-7 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
                   Book Activities
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Browse available sessions and book
+                  Browse available sessions
                 </p>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -507,39 +526,39 @@ export default function GuestHome() {
         </Link>
 
         <Link to="/guest/restaurants">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-sunset/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-sunset/5 to-transparent">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
-                <IconRestaurants className="h-8 w-8 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sunset/10 shadow-sm group-hover:bg-sunset/15 transition-all duration-300">
+                <IconRestaurants className="h-7 w-7 text-sunset" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="font-bold text-foreground group-hover:text-sunset transition-colors">
                   Book a Restaurant
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Reserve your dining experience
+                  Reserve your dining
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-sunset group-hover:translate-x-1 transition-all" />
             </CardContent>
           </Card>
         </Link>
 
         <Link to="/guest/bookings">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group">
+          <Card className="shadow-soft hover:shadow-card-hover hover:border-orchid/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-orchid/5 to-transparent">
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 shadow-sm group-hover:from-primary/30 group-hover:to-primary/15 transition-all duration-300">
-                <IconBookings className="h-8 w-8 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orchid/10 shadow-sm group-hover:bg-orchid/15 transition-all duration-300">
+                <IconBookings className="h-7 w-7 text-orchid" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
+                <h3 className="font-bold text-foreground group-hover:text-orchid transition-colors">
                   My Bookings
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  View and manage your reservations
+                  View and manage reservations
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orchid group-hover:translate-x-1 transition-all" />
             </CardContent>
           </Card>
         </Link>

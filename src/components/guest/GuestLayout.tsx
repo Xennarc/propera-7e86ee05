@@ -15,10 +15,10 @@ import {
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
 
 const navItems = [
-  { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home' },
-  { icon: IconActivities, label: 'Activities', href: '/guest/activities', key: 'guest-activities' },
-  { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants', key: 'guest-dining' },
-  { icon: IconBookings, label: 'Bookings', href: '/guest/bookings', key: 'guest-bookings' },
+  { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
+  { icon: IconActivities, label: 'Activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
+  { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
+  { icon: IconBookings, label: 'Bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
 ];
 
 // Store scroll positions per tab
@@ -124,14 +124,14 @@ export function GuestLayout() {
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl transition-all duration-300 min-w-[60px]",
                   isActive 
-                    ? "text-primary bg-primary/10" 
+                    ? `${item.activeColor} ${item.activeBg}` 
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
               >
-                <Icon className={cn("h-5 w-5 sm:h-6 sm:w-6", isActive && "text-primary")} />
+                <Icon className={cn("h-5 w-5 sm:h-6 sm:w-6", isActive && item.activeColor)} />
                 <span className={cn(
                   "text-[10px] sm:text-[11px] font-semibold",
-                  isActive && "text-primary"
+                  isActive && item.activeColor
                 )}>
                   {item.label}
                 </span>

@@ -13,7 +13,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { cn } from '@/lib/utils';
 import { CategoryBadge, CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
-import { coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
+import { coreActivityCategories, ActivityCategoryKey, getCategoryConfig } from '@/lib/activity-category-config';
 import {
   Tooltip,
   TooltipContent,
@@ -167,40 +167,64 @@ export default function GuestActivitiesBrowser() {
           {sessions?.map((session: any) => {
             const spotsLeft = session.remaining_spots;
             const isLowAvailability = spotsLeft > 0 && spotsLeft <= 3;
+            const config = getCategoryConfig(session.category);
             
             return (
               <Card
                 key={session.id}
-                className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
+                className={cn(
+                  "hover:shadow-card-hover transition-all cursor-pointer overflow-hidden",
+                  `hover:${config.borderClass}`
+                )}
                 onClick={() => navigate(`/guest/activities/book/${session.id}`)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="font-mono font-medium">{session.start_time?.slice(0, 5)}</span>
-                      <CategoryBadge category={session.category} size="sm" />
+                  <div className="flex items-start gap-3">
+                    {/* Category Icon with colored background */}
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+                      config.bgClass
+                    )}>
+                      <CategoryIcon category={session.category} size={24} />
                     </div>
-                    {session.requires_approval ? (
-                      <Badge variant="pending" className="text-xs">
-                        <Sparkles className="h-3 w-3 mr-1" />On request
-                      </Badge>
-                    ) : (
-                      <Badge variant="confirmed" className="text-xs">Instant</Badge>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">{session.activity_name}</h3>
-                  {session.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{session.description}</p>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span className={isLowAvailability ? 'text-warning font-medium' : ''}>
-                        {spotsLeft} spots left
-                      </span>
-                    </span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("font-mono font-semibold text-sm", config.colorClass)}>
+                            {session.start_time?.slice(0, 5)}
+                          </span>
+                          <CategoryBadge category={session.category} size="sm" showLabel={false} />
+                        </div>
+                        {session.requires_approval ? (
+                          <Badge variant="pending" className="text-xs">
+                            <Sparkles className="h-3 w-3 mr-1" />Request
+                          </Badge>
+                        ) : (
+                          <Badge variant="confirmed" className="text-xs">Instant</Badge>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-foreground mb-1 truncate">{session.activity_name}</h3>
+                      {session.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{session.description}</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-sm">
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {session.duration_minutes}min
+                          </span>
+                          <span className={cn(
+                            "flex items-center gap-1",
+                            isLowAvailability ? 'text-coral font-medium' : 'text-muted-foreground'
+                          )}>
+                            <Users className="h-3.5 w-3.5" />
+                            {spotsLeft} left
+                          </span>
+                        </div>
+                        <ChevronRight className={cn("h-5 w-5", config.colorClass)} />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
