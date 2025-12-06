@@ -10,6 +10,7 @@ import { ArrowLeft, Edit, Plus, Users, Clock, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
+import { BookingAuditTrail } from '@/components/bookings/BookingAuditTrail';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
 import { ActivityBookingDialog } from './ActivityBookingDialog';
 import {
@@ -379,6 +380,24 @@ export default function ActivitySessionDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Booking Audit Trail - Manager and above only */}
+      {bookings.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {bookings.map((booking) => (
+                <div key={booking.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                  <p className="text-sm font-medium mb-2">
+                    {booking.guest.full_name} - Room {booking.room_number}
+                  </p>
+                  <BookingAuditTrail bookingId={booking.id} bookingType="ACTIVITY" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Dialog */}
       <ActivitySessionDialog

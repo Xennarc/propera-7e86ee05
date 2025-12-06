@@ -11,6 +11,7 @@ import { ArrowLeft, Edit, Plus, Users, Utensils } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
+import { BookingAuditTrail } from '@/components/bookings/BookingAuditTrail';
 import { RestaurantSlotDialog } from './RestaurantSlotDialog';
 import { RestaurantReservationDialog } from './RestaurantReservationDialog';
 
@@ -279,6 +280,24 @@ export default function RestaurantSlotDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Booking Audit Trail - Manager and above only */}
+      {reservations.length > 0 && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {reservations.map((reservation) => (
+                <div key={reservation.id} className="border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                  <p className="text-sm font-medium mb-2">
+                    {reservation.guest.full_name} - Room {reservation.room_number}
+                  </p>
+                  <BookingAuditTrail bookingId={reservation.id} bookingType="RESTAURANT" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Dialog */}
       <RestaurantSlotDialog
