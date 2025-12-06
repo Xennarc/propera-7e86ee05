@@ -48,6 +48,7 @@ export function ActivityRecurringRuleDialog({
   onSuccess,
 }: ActivityRecurringRuleDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [regenerateOnSave, setRegenerateOnSave] = useState(true);
   const [formData, setFormData] = useState({
     start_date: format(addDays(new Date(), 1), 'yyyy-MM-dd'),
     end_date: format(addMonths(new Date(), 1), 'yyyy-MM-dd'),
@@ -151,15 +152,17 @@ export function ActivityRecurringRuleDialog({
         savedRule = data as ActivityRecurringRule;
       }
 
-      // Generate sessions if rule is active
-      if (savedRule.is_active) {
+      // Generate sessions if rule is active and regeneration is requested
+      if (savedRule.is_active && regenerateOnSave) {
         const result = await generateActivitySessions(savedRule);
         toast({
           title: 'Success',
           description: `Schedule saved. Created ${result.created} session${result.created !== 1 ? 's' : ''}${result.skipped > 0 ? ` (${result.skipped} already existed)` : ''}.`,
         });
-      } else {
+      } else if (!savedRule.is_active) {
         toast({ title: 'Success', description: 'Recurring schedule saved (inactive)' });
+      } else {
+        toast({ title: 'Success', description: 'Recurring schedule updated. Use "Regenerate Future" to create new sessions.' });
       }
 
       onSuccess();
@@ -284,6 +287,22 @@ export function ActivityRecurringRuleDialog({
               onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
             />
           </div>
+
+          {formData.is_active && (
+            <div className="flex items-center justify-between py-2 border-t pt-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="regenerate">Regenerate future sessions</Label>
+                <p className="text-xs text-muted-foreground">
+                  {rule ? 'Create new sessions based on updated schedule' : 'Create sessions now'}
+                </p>
+              </div>
+              <Switch
+                id="regenerate"
+                checked={regenerateOnSave}
+                onCheckedChange={setRegenerateOnSave}
+              />
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground">
             You can still edit or cancel individual sessions after they are generated.
