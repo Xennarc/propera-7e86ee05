@@ -8,6 +8,7 @@ interface GuestSession {
   checkInDate: string;
   checkOutDate: string;
   resortId: string;
+  resortName?: string;
 }
 
 interface GuestAuthContextType {
@@ -84,6 +85,20 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       }
 
       const guestData = data[0];
+      
+      // Fetch resort name
+      let resortName: string | undefined;
+      try {
+        const { data: resortData } = await supabase
+          .from('resorts')
+          .select('name')
+          .eq('id', guestData.resort_id)
+          .single();
+        resortName = resortData?.name;
+      } catch {
+        // Ignore error, resort name is optional
+      }
+      
       const session: GuestSession = {
         guestId: guestData.guest_id,
         fullName: guestData.full_name,
@@ -91,6 +106,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         checkInDate: guestData.check_in_date,
         checkOutDate: guestData.check_out_date,
         resortId: guestData.resort_id,
+        resortName,
       };
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
