@@ -12,8 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/activity-category-config';
@@ -38,6 +37,7 @@ export default function GuestActivityBookingPage() {
   const queryClient = useQueryClient();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionId || null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
   const [notes, setNotes] = useState('');
@@ -73,7 +73,7 @@ export default function GuestActivityBookingPage() {
   // Get the currently selected session
   const selectedSession = allSessions?.find((s: any) => s.id === selectedSessionId);
 
-  // Group sessions by date for easier navigation
+  // Group sessions by date
   const sessionsByDate = activitySessions.reduce((acc: Record<string, any[]>, session: any) => {
     const date = session.date;
     if (!acc[date]) acc[date] = [];
@@ -83,12 +83,22 @@ export default function GuestActivityBookingPage() {
 
   const sortedDates = Object.keys(sessionsByDate).sort();
 
+  // Initialize selectedDate from initial session
+  useEffect(() => {
+    if (initialSession && !selectedDate) {
+      setSelectedDate(initialSession.date);
+    }
+  }, [initialSession, selectedDate]);
+
   // Update selectedSessionId when sessionId param changes
   useEffect(() => {
     if (sessionId && !selectedSessionId) {
       setSelectedSessionId(sessionId);
     }
   }, [sessionId, selectedSessionId]);
+
+  // Get sessions for the selected date
+  const sessionsForSelectedDate = selectedDate ? (sessionsByDate[selectedDate] || []) : [];
 
   const bookMutation = useMutation({
     mutationFn: async () => {
@@ -263,64 +273,93 @@ export default function GuestActivityBookingPage() {
         </div>
       </Card>
 
-      {/* Session Selector */}
+      {/* Session Selector - Compact Layout */}
       {activitySessions.length > 1 && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
               Choose a Session
             </CardTitle>
-            <CardDescription>
-              {activitySessions.length} sessions available during your stay
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {sortedDates.map((date) => {
-              const dateSessions = sessionsByDate[date];
-              const formattedDate = format(parseISO(date), 'EEE, MMM d');
-              
-              return (
-                <div key={date}>
-                  <p className="text-sm font-medium text-foreground mb-2">{formattedDate}</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                    {dateSessions.map((s: any) => {
-                      const isSelected = s.id === selectedSessionId;
-                      const isLowAvailability = s.remaining_spots > 0 && s.remaining_spots <= 3;
-                      
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setSelectedSessionId(s.id);
-                            setBookingResult(null);
-                          }}
-                          className={cn(
-                            "flex flex-col items-center gap-1 px-4 py-3 rounded-xl border-2 transition-all min-w-[90px] shrink-0",
-                            isSelected
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                              : "border-border hover:border-primary/50 hover:bg-muted/50"
-                          )}
-                        >
-                          <span className={cn(
-                            "font-mono font-bold text-lg",
-                            isSelected ? "text-primary" : "text-foreground"
-                          )}>
-                            {s.start_time.slice(0, 5)}
-                          </span>
-                          <span className={cn(
-                            "text-xs",
-                            isLowAvailability ? "text-coral font-medium" : "text-muted-foreground"
-                          )}>
-                            {s.remaining_spots} spots
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+          <CardContent className="space-y-3">
+            {/* Date Pills - Horizontal Scroll */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+              {sortedDates.map((date) => {
+                const isSelected = date === selectedDate;
+                const sessionCount = sessionsByDate[date]?.length || 0;
+                
+                return (
+                  <button
+                    key={date}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      // Auto-select first session of this date
+                      const firstSession = sessionsByDate[date]?.[0];
+                      if (firstSession) {
+                        setSelectedSessionId(firstSession.id);
+                        setBookingResult(null);
+                      }
+                    }}
+                    className={cn(
+                      "flex flex-col items-center px-3 py-2 rounded-lg border transition-all shrink-0 min-w-[60px]",
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border hover:border-primary/50 bg-background"
+                    )}
+                  >
+                    <span className="text-[10px] uppercase tracking-wide opacity-80">
+                      {format(parseISO(date), 'EEE')}
+                    </span>
+                    <span className="font-bold text-sm">
+                      {format(parseISO(date), 'd')}
+                    </span>
+                    <span className="text-[10px] opacity-70">
+                      {sessionCount} {sessionCount === 1 ? 'slot' : 'slots'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Time Slots Grid for Selected Date */}
+            {selectedDate && sessionsForSelectedDate.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {sessionsForSelectedDate.map((s: any) => {
+                  const isSelected = s.id === selectedSessionId;
+                  const isLowAvailability = s.remaining_spots > 0 && s.remaining_spots <= 3;
+                  
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setSelectedSessionId(s.id);
+                        setBookingResult(null);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all",
+                        isSelected
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                          : "border-border hover:border-primary/50 hover:bg-muted/50"
+                      )}
+                    >
+                      <span className={cn(
+                        "font-mono font-semibold",
+                        isSelected ? "text-primary" : "text-foreground"
+                      )}>
+                        {s.start_time.slice(0, 5)}
+                      </span>
+                      <span className={cn(
+                        "text-xs",
+                        isLowAvailability ? "text-coral font-medium" : "text-muted-foreground"
+                      )}>
+                        {s.remaining_spots} left
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
