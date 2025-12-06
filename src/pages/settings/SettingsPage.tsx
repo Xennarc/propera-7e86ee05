@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette } from 'lucide-react';
+import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 
@@ -25,6 +25,13 @@ export default function SettingsPage() {
       description: 'Share QR codes and links for guests to access the portal',
       icon: LinkIcon,
       href: '/staff/settings/public-links',
+      visible: canManageResortStaff,
+    },
+    {
+      title: 'Pricing & Taxes',
+      description: 'Configure service charges, taxes, and pricing display',
+      icon: Calculator,
+      href: '/staff/settings/pricing',
       visible: canManageResortStaff,
     },
     {
