@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Search, Clock, ChevronRight, Waves, ArrowLeft } from 'lucide-react';
 import { getActivityIcon } from '@/lib/activity-icons';
-
+import { getCategoryConfig } from '@/lib/activity-category-config';
 const difficultyColors: Record<DifficultyLevel, string> = {
   EASY: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   MODERATE: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -162,9 +162,10 @@ export default function GuestActivityExplorer() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     {(() => {
                       const ActivityIcon = getActivityIcon(activity.icon_key);
+                      const categoryConfig = getCategoryConfig(activity.category);
                       return (
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                          <ActivityIcon className="h-6 w-6 text-primary" />
+                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${categoryConfig.bgClass}`}>
+                          <ActivityIcon className={`h-6 w-6 ${categoryConfig.colorClass}`} />
                         </div>
                       );
                     })()}
