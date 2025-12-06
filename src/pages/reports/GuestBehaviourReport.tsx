@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -15,9 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Download, Users, Activity, BarChart3 } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Download, Users, Activity, TrendingUp } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
 
 const DISTRIBUTION_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
 
@@ -100,6 +100,15 @@ export default function GuestBehaviourReport() {
         { name: '4+ activities', value: fourPlusActivities },
       ].filter(d => d.value > 0);
 
+      // Top engaged guests chart data
+      const topGuests = guestStats
+        .sort((a, b) => b.activityCount - a.activityCount)
+        .slice(0, 10)
+        .map(g => ({
+          name: g.fullName.length > 15 ? g.fullName.substring(0, 15) + '...' : g.fullName,
+          activities: g.activityCount,
+        }));
+
       // Sort guests by activity count descending
       guestStats.sort((a, b) => b.activityCount - a.activityCount);
 
@@ -107,8 +116,11 @@ export default function GuestBehaviourReport() {
         summary: {
           uniqueGuests,
           avgActivitiesPerGuest,
+          totalActivities,
+          mostEngaged: guestStats[0]?.activityCount || 0,
         },
         distribution,
+        topGuests,
         guestStats,
       };
     },
@@ -157,110 +169,119 @@ export default function GuestBehaviourReport() {
             Activity engagement analysis (based on booking date)
           </p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData}>
+        <Button onClick={exportCSV} disabled={!reportData} variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Date Presets */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-          <CardDescription>
-            Date range filters based on activity booking creation date
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </div>
+        <CardContent className="pt-6">
+          <DateRangePresets
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+          />
         </CardContent>
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Unique Guests</p>
-                <p className="text-2xl font-bold">{reportData?.summary.uniqueGuests || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Activity className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Activities/Guest</p>
-                <p className="text-2xl font-bold">{reportData?.summary.avgActivitiesPerGuest || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <ReportStatCard
+          title="Unique Guests"
+          value={reportData?.summary.uniqueGuests || 0}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Avg Activities/Guest"
+          value={reportData?.summary.avgActivitiesPerGuest || 0}
+          icon={<Activity className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Total Activities"
+          value={reportData?.summary.totalActivities || 0}
+          icon={<Activity className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Most Engaged"
+          value={`${reportData?.summary.mostEngaged || 0} activities`}
+          icon={<TrendingUp className="h-5 w-5 text-primary" />}
+          variant="success"
+        />
       </div>
 
-      {/* Distribution Chart */}
-      {reportData?.distribution && reportData.distribution.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Guest Distribution by Activity Count</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={reportData.distribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {reportData.distribution.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Distribution Chart */}
+        {reportData?.distribution && reportData.distribution.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Guest Distribution by Activity Count</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportData.distribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {reportData.distribution.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={DISTRIBUTION_COLORS[index % DISTRIBUTION_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Top Engaged Guests */}
+        {reportData?.topGuests && reportData.topGuests.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Most Engaged Guests</CardTitle>
+              <CardDescription>Top 10 by activity bookings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={reportData.topGuests} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis type="number" className="text-xs" />
+                    <YAxis dataKey="name" type="category" width={100} className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Bar dataKey="activities" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Table */}
       <Card>
