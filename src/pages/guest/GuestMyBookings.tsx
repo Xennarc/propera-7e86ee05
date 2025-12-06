@@ -50,20 +50,116 @@ export default function GuestMyBookings() {
     title: string;
   } | null>(null);
 
-  const { data: bookings, isLoading } = useQuery({
-    queryKey: ['guest-bookings', guest?.guestId],
+  // First get room guests to show shared room bookings
+  const { data: roomGuests } = useQuery({
+    queryKey: ['room-guests', guest?.resortId, guest?.roomNumber],
     queryFn: async () => {
-      if (!guest) return null;
-      const { data, error } = await supabase.rpc('guest_get_bookings', {
-        p_guest_id: guest.guestId,
-      });
-      if (error) throw error;
-      return data as {
-        activity_bookings: any[];
-        restaurant_reservations: any[];
-      };
+      if (!guest?.resortId || !guest?.roomNumber) return [];
+      const { data, error } = await supabase
+        .from('guests')
+        .select('id, full_name')
+        .eq('resort_id', guest.resortId)
+        .eq('room_number', guest.roomNumber);
+      if (error) return [];
+      return data || [];
     },
-    enabled: !!guest,
+    enabled: !!guest?.resortId && !!guest?.roomNumber,
+  });
+
+  // Fetch bookings for all guests in the room
+  const { data: bookings, isLoading } = useQuery({
+    queryKey: ['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests],
+    queryFn: async () => {
+      if (!guest || !roomGuests || roomGuests.length === 0) return null;
+      
+      const guestIds = roomGuests.map(g => g.id);
+      
+      // Fetch activity bookings for all room guests
+      const { data: activityData, error: activityError } = await supabase
+        .from('activity_bookings')
+        .select(`
+          id, guest_id, num_adults, num_children, status, notes, created_at,
+          session:activity_sessions(
+            id, date, start_time, end_time, capacity,
+            activity:activities(
+              id, name, category, duration_minutes, guest_can_cancel, guest_cancel_cutoff_hours,
+              image_url
+            )
+          )
+        `)
+        .in('guest_id', guestIds)
+        .order('created_at', { ascending: false });
+
+      // Fetch restaurant reservations for all room guests
+      const { data: restaurantData, error: restaurantError } = await supabase
+        .from('restaurant_reservations')
+        .select(`
+          id, guest_id, num_adults, num_children, status, special_requests, created_at,
+          slot:restaurant_time_slots(
+            id, date, start_time, end_time, meal_period,
+            restaurant:restaurants(
+              id, name, guest_can_cancel, guest_cancel_cutoff_minutes
+            )
+          )
+        `)
+        .in('guest_id', guestIds)
+        .order('created_at', { ascending: false });
+
+      // Transform activity bookings to match expected format
+      const activity_bookings = (activityData || []).map(b => {
+        const session = b.session as any;
+        const activity = session?.activity;
+        const bookedByGuest = roomGuests.find(g => g.id === b.guest_id);
+        return {
+          id: b.id,
+          guest_id: b.guest_id,
+          booked_by: bookedByGuest?.full_name || 'Room guest',
+          is_own_booking: b.guest_id === guest.guestId,
+          num_adults: b.num_adults,
+          num_children: b.num_children,
+          status: b.status,
+          notes: b.notes,
+          date: session?.date,
+          start_time: session?.start_time,
+          end_time: session?.end_time,
+          activity_name: activity?.name,
+          category: activity?.category,
+          duration_minutes: activity?.duration_minutes,
+          guest_can_cancel: activity?.guest_can_cancel,
+          guest_cancel_cutoff_hours: activity?.guest_cancel_cutoff_hours,
+          image_url: activity?.image_url,
+          booking_type: 'activity' as const,
+        };
+      });
+
+      // Transform restaurant reservations to match expected format
+      const restaurant_reservations = (restaurantData || []).map(r => {
+        const slot = r.slot as any;
+        const restaurant = slot?.restaurant;
+        const bookedByGuest = roomGuests.find(g => g.id === r.guest_id);
+        return {
+          id: r.id,
+          guest_id: r.guest_id,
+          booked_by: bookedByGuest?.full_name || 'Room guest',
+          is_own_booking: r.guest_id === guest.guestId,
+          num_adults: r.num_adults,
+          num_children: r.num_children,
+          status: r.status,
+          special_requests: r.special_requests,
+          date: slot?.date,
+          start_time: slot?.start_time,
+          end_time: slot?.end_time,
+          meal_period: slot?.meal_period,
+          restaurant_name: restaurant?.name,
+          guest_can_cancel: restaurant?.guest_can_cancel,
+          guest_cancel_cutoff_minutes: restaurant?.guest_cancel_cutoff_minutes,
+          booking_type: 'restaurant' as const,
+        };
+      });
+
+      return { activity_bookings, restaurant_reservations };
+    },
+    enabled: !!guest && !!roomGuests && roomGuests.length > 0,
   });
 
   const cancelActivityMutation = useMutation({
@@ -202,6 +298,8 @@ export default function GuestMyBookings() {
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
 
   const canCancelActivity = (booking: any) => {
+    // Can only cancel own bookings
+    if (!booking.is_own_booking) return false;
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
     if (!booking.guest_can_cancel) return false;
     const sessionDateTime = new Date(`${booking.date}T${booking.start_time}`);
@@ -210,6 +308,8 @@ export default function GuestMyBookings() {
   };
 
   const canCancelReservation = (reservation: any) => {
+    // Can only cancel own bookings
+    if (!reservation.is_own_booking) return false;
     if (reservation.status !== 'CONFIRMED' && reservation.status !== 'PENDING') return false;
     if (!reservation.guest_can_cancel) return false;
     const slotDateTime = new Date(`${reservation.date}T${reservation.start_time}`);
@@ -348,6 +448,12 @@ export default function GuestMyBookings() {
                     {booking.meal_period}
                   </Badge>
                 )}
+                {/* Show who booked for shared room bookings */}
+                {!booking.is_own_booking && booking.booked_by && (
+                  <Badge variant="outline" className="text-xs">
+                    Booked by {booking.booked_by.split(' ')[0]}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -462,11 +568,11 @@ export default function GuestMyBookings() {
               <CollapsibleContent className="space-y-3 pt-3">
                 {[...pastActivities, ...pastReservations]
                   .sort((a, b) => b.date.localeCompare(a.date))
-                  .map((booking, idx) => (
+                  .map((booking) => (
                     <div key={booking.id} className="opacity-60">
                       <BookingCard
                         booking={booking}
-                        type={booking.activity_name ? 'activity' : 'restaurant'}
+                        type={booking.booking_type}
                         canCancel={false}
                       />
                     </div>

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { NumberStepper } from '@/components/ui/number-stepper';
 import { useToast } from '@/hooks/use-toast';
 import { GuestSearchDialog } from '@/components/bookings/GuestSearchDialog';
 import { format, parseISO } from 'date-fns';
@@ -290,25 +291,20 @@ export function ActivityBookingDialog({
 
             {/* Pax Details */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Adults *</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={formData.num_adults}
-                  onChange={(e) => setFormData({ ...formData, num_adults: parseInt(e.target.value) || 1 })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Children</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.num_children}
-                  onChange={(e) => setFormData({ ...formData, num_children: parseInt(e.target.value) || 0 })}
-                />
-              </div>
+              <NumberStepper
+                label="Adults *"
+                value={formData.num_adults}
+                onChange={(value) => setFormData({ ...formData, num_adults: value })}
+                min={1}
+                max={currentSession?.activity?.max_pax_per_booking || 10}
+              />
+              <NumberStepper
+                label="Children"
+                value={formData.num_children}
+                onChange={(value) => setFormData({ ...formData, num_children: value })}
+                min={0}
+                max={(currentSession?.activity?.max_pax_per_booking || 10) - formData.num_adults}
+              />
             </div>
 
             {/* Total Preview */}
