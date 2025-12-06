@@ -52,7 +52,7 @@ const MODULE_ACCESS: Record<ResortRole | 'SUPER_ADMIN', {
     guestRequests: true,
   },
   MANAGER: {
-    guests: 'read',
+    guests: 'full',
     activities: 'read',
     restaurants: 'read',
     reports: 'full',
@@ -63,6 +63,14 @@ const MODULE_ACCESS: Record<ResortRole | 'SUPER_ADMIN', {
     guests: 'full',
     activities: 'full',
     restaurants: 'full',
+    reports: 'read',
+    settings: false,
+    guestRequests: true,
+  },
+  RESERVATIONS: {
+    guests: 'full',
+    activities: 'read',
+    restaurants: 'read',
     reports: 'read',
     settings: false,
     guestRequests: true,

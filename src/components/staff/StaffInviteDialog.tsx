@@ -19,12 +19,13 @@ import { toast } from 'sonner';
 import { Copy, Check, Mail, UserPlus } from 'lucide-react';
 import { z } from 'zod';
 
-const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'];
+const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB'];
 
 const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
   MANAGER: 'Manager',
   FRONT_OFFICE: 'Front Office',
+  RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
 };
@@ -32,7 +33,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
 const inviteSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   name: z.string().optional(),
-  resort_role: z.enum(['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB']),
+  resort_role: z.enum(['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB']),
   department: z.string().optional(),
 });
 
