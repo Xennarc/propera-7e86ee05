@@ -9,6 +9,7 @@ interface GuestSession {
   checkOutDate: string;
   resortId: string;
   resortName?: string;
+  resortLogoUrl?: string;
 }
 
 interface GuestAuthContextType {
@@ -44,20 +45,21 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
           // Check if stay is still valid
           const today = new Date().toISOString().split('T')[0];
           if (parsed.checkOutDate >= today) {
-            // If resortName is missing, fetch it
-            if (!parsed.resortName && parsed.resortId) {
+            // If resortName or resortLogoUrl is missing, fetch them
+            if ((!parsed.resortName || parsed.resortLogoUrl === undefined) && parsed.resortId) {
               try {
                 const { data: resortData } = await supabase
                   .from('resorts')
-                  .select('name')
+                  .select('name, login_logo_url')
                   .eq('id', parsed.resortId)
                   .single();
-                if (resortData?.name) {
-                  parsed.resortName = resortData.name;
+                if (resortData) {
+                  parsed.resortName = resortData.name || parsed.resortName;
+                  parsed.resortLogoUrl = resortData.login_logo_url || undefined;
                   localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(parsed));
                 }
               } catch {
-                // Ignore, resort name is optional
+                // Ignore, resort info is optional
               }
             }
             setGuest(parsed);
@@ -105,17 +107,19 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
 
       const guestData = data[0];
       
-      // Fetch resort name
+      // Fetch resort info
       let resortName: string | undefined;
+      let resortLogoUrl: string | undefined;
       try {
         const { data: resortData } = await supabase
           .from('resorts')
-          .select('name')
+          .select('name, login_logo_url')
           .eq('id', guestData.resort_id)
           .single();
         resortName = resortData?.name;
+        resortLogoUrl = resortData?.login_logo_url || undefined;
       } catch {
-        // Ignore error, resort name is optional
+        // Ignore error, resort info is optional
       }
       
       const session: GuestSession = {
@@ -126,6 +130,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         checkOutDate: guestData.check_out_date,
         resortId: guestData.resort_id,
         resortName,
+        resortLogoUrl,
       };
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));

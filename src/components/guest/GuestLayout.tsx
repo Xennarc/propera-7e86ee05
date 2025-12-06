@@ -85,7 +85,15 @@ export function GuestLayout() {
             to="/guest/profile" 
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity"
           >
-            <ProperaMark size={40} className="text-primary flex-shrink-0" />
+            {guest.resortLogoUrl ? (
+              <img 
+                src={guest.resortLogoUrl} 
+                alt={guest.resortName || 'Resort'} 
+                className="h-10 w-10 object-contain flex-shrink-0 rounded-lg"
+              />
+            ) : (
+              <ProperaMark size={40} className="text-primary flex-shrink-0" />
+            )}
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
                 {guest.resortName || 'Guest Portal'}
