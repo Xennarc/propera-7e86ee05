@@ -92,12 +92,14 @@ export function IconActivities({ className, size = 24 }: IconProps) {
       strokeLinejoin="round"
       className={cn('propera-icon', className)}
     >
-      {/* Wave with snorkel/fin motif */}
-      <path d="M2 12c2-3 4-4 6-3s4 3 6 3 4-2 6-3 4 0 6 3" />
-      <path d="M2 16c2-2 4-3 6-2s4 2 6 2 4-1 6-2 4 0 6 2" className="opacity-50" />
-      <path d="M10 8V4a2 2 0 0 1 4 0" />
-      <circle cx="12" cy="4" r="1" />
-      <path d="M15 9l3-3" />
+      {/* Compass/adventure icon representing exploration and activities */}
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="none" className="opacity-0" />
+      <path d="M12 8l1.5 3 3.5.5-2.5 2.5.5 3.5-3-1.5-3 1.5.5-3.5-2.5-2.5 3.5-.5L12 8z" />
+      <path d="M12 3v2" />
+      <path d="M12 19v2" />
+      <path d="M3 12h2" />
+      <path d="M19 12h2" />
     </svg>
   );
 }
