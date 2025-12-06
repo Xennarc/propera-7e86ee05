@@ -8,7 +8,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info, CalendarX } from 'lucide-react';
+import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info, CalendarX, Coffee, Sun, Moon, PartyPopper } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import {
@@ -19,6 +21,13 @@ import {
 } from '@/components/ui/tooltip';
 
 const MEAL_PERIOD_ORDER = ['BREAKFAST', 'LUNCH', 'DINNER', 'EVENT'];
+
+const MEAL_PERIOD_CONFIG: Record<string, { icon: typeof Coffee; label: string; colorClass: string; bgClass: string }> = {
+  BREAKFAST: { icon: Coffee, label: 'Breakfast', colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
+  LUNCH: { icon: Sun, label: 'Lunch', colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10' },
+  DINNER: { icon: Moon, label: 'Dinner', colorClass: 'text-orchid', bgClass: 'bg-orchid/10' },
+  EVENT: { icon: PartyPopper, label: 'Event', colorClass: 'text-coral', bgClass: 'bg-coral/10' },
+};
 
 export default function GuestRestaurantBrowser() {
   const { guest } = useGuestAuth();
@@ -199,46 +208,75 @@ export default function GuestRestaurantBrowser() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {MEAL_PERIOD_ORDER.filter(p => slotsByPeriod[p]).map((period) => (
-            <div key={period}>
-              <h2 className="font-semibold text-foreground mb-3">{period.charAt(0) + period.slice(1).toLowerCase()}</h2>
-              <div className="space-y-3">
-                {slotsByPeriod[period].map((slot: any) => (
-                  <Card
-                    key={slot.id}
-                    className="hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
-                    onClick={() => navigate(`/guest/restaurants/book/${slot.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold">{slot.restaurant_name}</h3>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-4 w-4" />
-                              {slot.start_time?.slice(0, 5)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="h-4 w-4" />
-                              {slot.remaining_covers} available
-                            </span>
-                            {slot.requires_approval ? (
-                              <Badge variant="pending" className="text-xs">
-                                <Sparkles className="h-3 w-3 mr-1" />On request
-                              </Badge>
-                            ) : (
-                              <Badge variant="confirmed" className="text-xs">Instant</Badge>
-                            )}
+          {MEAL_PERIOD_ORDER.filter(p => slotsByPeriod[p]).map((period) => {
+            const periodConfig = MEAL_PERIOD_CONFIG[period] || MEAL_PERIOD_CONFIG.DINNER;
+            const PeriodIcon = periodConfig.icon;
+            
+            return (
+              <div key={period}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={cn("p-1.5 rounded-lg", periodConfig.bgClass)}>
+                    <PeriodIcon className={cn("h-4 w-4", periodConfig.colorClass)} />
+                  </div>
+                  <h2 className={cn("font-semibold", periodConfig.colorClass)}>{periodConfig.label}</h2>
+                </div>
+                <div className="space-y-3">
+                  {slotsByPeriod[period].map((slot: any) => {
+                    const isLowAvailability = slot.remaining_covers > 0 && slot.remaining_covers <= 4;
+                    
+                    return (
+                      <Card
+                        key={slot.id}
+                        className={cn(
+                          "hover:shadow-card-hover transition-all cursor-pointer overflow-hidden",
+                          `hover:border-${periodConfig.colorClass.replace('text-', '')}/30`
+                        )}
+                        onClick={() => navigate(`/guest/restaurants/book/${slot.id}`)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            {/* Restaurant Icon with colored background */}
+                            <div className={cn(
+                              "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+                              periodConfig.bgClass
+                            )}>
+                              <IconRestaurants className={cn("h-6 w-6", periodConfig.colorClass)} />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={cn("font-mono font-semibold text-sm", periodConfig.colorClass)}>
+                                  {slot.start_time?.slice(0, 5)}
+                                </span>
+                                {slot.requires_approval ? (
+                                  <Badge variant="pending" className="text-xs">
+                                    <Sparkles className="h-3 w-3 mr-1" />Request
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="confirmed" className="text-xs">Instant</Badge>
+                                )}
+                              </div>
+                              <h3 className="font-semibold text-foreground mb-1 truncate">{slot.restaurant_name}</h3>
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "flex items-center gap-1 text-sm",
+                                  isLowAvailability ? 'text-coral font-medium' : 'text-muted-foreground'
+                                )}>
+                                  <Users className="h-3.5 w-3.5" />
+                                  {slot.remaining_covers} {isLowAvailability ? 'left' : 'available'}
+                                </span>
+                                <ChevronRight className={cn("h-5 w-5", periodConfig.colorClass)} />
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
