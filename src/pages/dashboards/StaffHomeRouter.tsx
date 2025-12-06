@@ -5,6 +5,7 @@ import SuperAdminHome from './SuperAdminHome';
 import ResortAdminHome from './ResortAdminHome';
 import ResortManagerHome from './ResortManagerHome';
 import FrontOfficeHome from './FrontOfficeHome';
+import ReservationsHome from './ReservationsHome';
 import ActivitiesHome from './ActivitiesHome';
 import FnbHome from './FnbHome';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +47,7 @@ export default function StaffHomeRouter() {
   // Get the user's resort role for the current resort
   const resortRole = getResortRole(currentResort.id);
 
-  // Route based on resort role (priority: RESORT_ADMIN > MANAGER > FRONT_OFFICE > ACTIVITIES/FNB)
+  // Route based on resort role (priority: RESORT_ADMIN > MANAGER > FRONT_OFFICE > RESERVATIONS > ACTIVITIES/FNB)
   switch (resortRole) {
     case 'RESORT_ADMIN':
       return <ResortAdminHome />;
@@ -54,6 +55,8 @@ export default function StaffHomeRouter() {
       return <ResortManagerHome />;
     case 'FRONT_OFFICE':
       return <FrontOfficeHome />;
+    case 'RESERVATIONS':
+      return <ReservationsHome />;
     case 'ACTIVITIES':
       return <ActivitiesHome />;
     case 'FNB':
