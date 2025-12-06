@@ -10,6 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ArrowLeft, ArrowRight, Check, Calendar, Users, Clock, CalendarDays, Repeat, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO, getDay, isBefore, isAfter, addMinutes, parse, min } from 'date-fns';
@@ -50,6 +60,7 @@ export default function CreateSessionWizard() {
   const [existingSessions, setExistingSessions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Step 1: Activity selection
@@ -918,7 +929,7 @@ export default function CreateSessionWizard() {
             </Button>
           ) : (
             <Button
-              onClick={handleCreate}
+              onClick={() => setConfirmDialogOpen(true)}
               disabled={!canProceedStep3 || creating}
             >
               {creating ? (
@@ -936,6 +947,73 @@ export default function CreateSessionWizard() {
           )}
         </div>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Session Creation</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>You are about to create the following sessions:</p>
+                <div className="bg-muted rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Activity</span>
+                    <span className="font-medium">{selectedActivity?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Sessions to create</span>
+                    <span className="font-medium">{includedRowsCount}</span>
+                  </div>
+                  {scheduleType === 'recurring' && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Date range</span>
+                        <span className="font-medium">
+                          {format(parseISO(recurringStartDate), 'MMM d')} – {format(parseISO(recurringEndDate), 'MMM d, yyyy')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Time</span>
+                        <span className="font-medium">{recurringStartTime} – {recurringEndTime}</span>
+                      </div>
+                    </>
+                  )}
+                  {scheduleType === 'single' && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Date</span>
+                        <span className="font-medium">{format(parseISO(singleDate), 'EEE, MMM d, yyyy')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Time</span>
+                        <span className="font-medium">{singleStartTime} – {singleEndTime}</span>
+                      </div>
+                    </>
+                  )}
+                  {duplicateRowsCount > 0 && (
+                    <div className="flex justify-between text-sm text-amber-600">
+                      <span>Duplicates (will be skipped)</span>
+                      <span className="font-medium">{duplicateRowsCount}</span>
+                    </div>
+                  )}
+                </div>
+                {scheduleType === 'recurring' && (
+                  <p className="text-xs text-muted-foreground">
+                    A recurring schedule rule will also be created for future reference.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={creating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreate} disabled={creating}>
+              {creating ? 'Creating...' : 'Create Sessions'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
