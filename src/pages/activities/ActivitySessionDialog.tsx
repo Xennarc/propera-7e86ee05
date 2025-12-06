@@ -14,8 +14,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TimePicker } from '@/components/ui/time-picker';
 import { useToast } from '@/hooks/use-toast';
-import { format, addMinutes, parse } from 'date-fns';
-import { AlertCircle } from 'lucide-react';
+import { format, addMinutes, parse, parseISO, getDay } from 'date-fns';
+import { AlertCircle, RefreshCw, Info } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+interface RecurringRuleMatch {
+  id: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  frequency: string;
+}
 
 interface ActivitySessionDialogProps {
   open: boolean;
@@ -36,6 +45,8 @@ export function ActivitySessionDialog({
 }: ActivitySessionDialogProps) {
   const [loading, setLoading] = useState(false);
   const [resources, setResources] = useState<Resource[]>([]);
+  const [matchingRule, setMatchingRule] = useState<RecurringRuleMatch | null>(null);
+  const [isModifiedFromRule, setIsModifiedFromRule] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     activity_id: '',
@@ -62,6 +73,8 @@ export function ActivitySessionDialog({
         status: session.status,
         notes: session.notes || '',
       });
+      // Check if this session matches a recurring rule
+      checkRecurringRule(session.activity_id, session.date, session.start_time.slice(0, 5), session.end_time.slice(0, 5), session.capacity);
     } else {
       setFormData({
         activity_id: activities[0]?.id || '',
@@ -73,6 +86,8 @@ export function ActivitySessionDialog({
         status: 'SCHEDULED',
         notes: '',
       });
+      setMatchingRule(null);
+      setIsModifiedFromRule(false);
     }
     // Auto-focus date field when dialog opens
     if (open) {
@@ -80,13 +95,83 @@ export function ActivitySessionDialog({
     }
   }, [session, open, activities]);
 
+  // Check if session matches a recurring rule
+  const checkRecurringRule = async (activityId: string, date: string, startTime: string, endTime: string, capacity: number) => {
+    if (!resortId || !activityId) return;
+    
+    const sessionDate = parseISO(date);
+    const dayOfWeek = getDay(sessionDate);
+    
+    const { data: rules } = await supabase
+      .from('activity_recurring_rules')
+      .select('id, start_time, end_time, capacity, frequency, days_of_week, start_date, end_date, is_active')
+      .eq('resort_id', resortId)
+      .eq('activity_id', activityId)
+      .eq('is_active', true)
+      .lte('start_date', date)
+      .gte('end_date', date);
+    
+    if (rules && rules.length > 0) {
+      // Find a matching rule
+      const match = rules.find(rule => {
+        const ruleStartTime = rule.start_time.slice(0, 5);
+        const ruleDays = rule.days_of_week || [0, 1, 2, 3, 4, 5, 6];
+        return ruleDays.includes(dayOfWeek) && ruleStartTime === startTime;
+      });
+      
+      if (match) {
+        setMatchingRule({
+          id: match.id,
+          start_time: match.start_time.slice(0, 5),
+          end_time: match.end_time.slice(0, 5),
+          capacity: match.capacity,
+          frequency: match.frequency,
+        });
+        // Check if session differs from rule
+        const ruleEndTime = match.end_time.slice(0, 5);
+        const isModified = endTime !== ruleEndTime || capacity !== match.capacity;
+        setIsModifiedFromRule(isModified);
+      } else {
+        setMatchingRule(null);
+        setIsModifiedFromRule(false);
+      }
+    } else {
+      setMatchingRule(null);
+      setIsModifiedFromRule(false);
+    }
+  };
+
+  // Reset session to recurring rule defaults
+  const resetToRuleDefaults = () => {
+    if (matchingRule) {
+      setFormData(prev => ({
+        ...prev,
+        start_time: matchingRule.start_time,
+        end_time: matchingRule.end_time,
+        capacity: matchingRule.capacity,
+      }));
+      setIsModifiedFromRule(false);
+    }
+  };
+
+  // Track modifications from rule
+  useEffect(() => {
+    if (matchingRule && session) {
+      const isModified = 
+        formData.end_time !== matchingRule.end_time || 
+        formData.capacity !== matchingRule.capacity ||
+        formData.start_time !== matchingRule.start_time;
+      setIsModifiedFromRule(isModified);
+    }
+  }, [formData.start_time, formData.end_time, formData.capacity, matchingRule, session]);
+
   useEffect(() => {
     fetchResources();
   }, [resortId]);
 
-  // Auto-calculate end time based on activity duration
+  // Auto-calculate end time based on activity duration (only for new sessions)
   useEffect(() => {
-    if (formData.activity_id && formData.start_time) {
+    if (formData.activity_id && formData.start_time && !session) {
       const activity = activities.find(a => a.id === formData.activity_id);
       if (activity) {
         const startTime = parse(formData.start_time, 'HH:mm', new Date());
@@ -94,7 +179,7 @@ export function ActivitySessionDialog({
         setFormData(prev => ({
           ...prev,
           end_time: format(endTime, 'HH:mm'),
-          capacity: session ? prev.capacity : activity.default_max_capacity,
+          capacity: prev.capacity === 10 ? activity.default_max_capacity : prev.capacity,
         }));
       }
     }
@@ -217,11 +302,48 @@ export function ActivitySessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{session ? 'Edit Session' : 'New Activity Session'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Recurring rule indicator */}
+          {session && matchingRule && (
+            <div className={`p-3 rounded-lg border ${isModifiedFromRule ? 'bg-amber-500/10 border-amber-300' : 'bg-primary/5 border-primary/20'}`}>
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Part of recurring schedule</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {matchingRule.frequency === 'DAILY' ? 'Daily' : 'Weekly'}
+                    </Badge>
+                    {isModifiedFromRule && (
+                      <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">
+                        Modified
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Changes here only affect this specific date, not the recurring rule.
+                  </p>
+                  {isModifiedFromRule && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs mt-1"
+                      onClick={resetToRuleDefaults}
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Reset to schedule defaults ({matchingRule.start_time} - {matchingRule.end_time}, {matchingRule.capacity} pax)
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Activity *</Label>
             {activities.length === 0 ? (
@@ -232,6 +354,7 @@ export function ActivitySessionDialog({
               <Select
                 value={formData.activity_id}
                 onValueChange={(v) => setFormData({ ...formData, activity_id: v })}
+                disabled={!!session}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select activity" />
@@ -253,8 +376,12 @@ export function ActivitySessionDialog({
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
+              disabled={!!session && !!matchingRule}
               className="h-12"
             />
+            {session && matchingRule && (
+              <p className="text-xs text-muted-foreground">Date cannot be changed for recurring sessions. Create a new session instead.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

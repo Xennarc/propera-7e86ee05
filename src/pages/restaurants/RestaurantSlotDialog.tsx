@@ -21,9 +21,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
-import { Trash2, Clock } from 'lucide-react';
+import { format, parseISO, getDay } from 'date-fns';
+import { Trash2, Clock, Info, RefreshCw } from 'lucide-react';
 
 // Quick time presets for common meal periods
 const TIME_PRESETS = [
@@ -32,6 +33,15 @@ const TIME_PRESETS = [
   { label: 'Dinner', start: '19:00', end: '21:00', period: 'DINNER' as MealPeriod },
   { label: 'Late Dinner', start: '20:00', end: '22:00', period: 'DINNER' as MealPeriod },
 ];
+
+interface RecurringRuleMatch {
+  id: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  meal_period: MealPeriod;
+  frequency: string;
+}
 
 interface RestaurantSlotDialogProps {
   open: boolean;
@@ -54,6 +64,8 @@ export function RestaurantSlotDialog({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [bookingCount, setBookingCount] = useState<number | null>(null);
+  const [matchingRule, setMatchingRule] = useState<RecurringRuleMatch | null>(null);
+  const [isModifiedFromRule, setIsModifiedFromRule] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     restaurant_id: '',
@@ -133,6 +145,8 @@ export function RestaurantSlotDialog({
         capacity: slot.capacity,
         status: slot.status,
       });
+      // Check if this slot matches a recurring rule
+      checkRecurringRule(slot.restaurant_id, slot.date, slot.start_time.slice(0, 5), slot.end_time.slice(0, 5), slot.capacity, slot.meal_period);
     } else {
       const defaultRestaurant = restaurants[0];
       setFormData({
@@ -144,12 +158,87 @@ export function RestaurantSlotDialog({
         capacity: defaultRestaurant?.total_capacity || 50,
         status: 'OPEN',
       });
+      setMatchingRule(null);
+      setIsModifiedFromRule(false);
     }
     // Auto-focus date field when dialog opens
     if (open) {
       setTimeout(() => dateInputRef.current?.focus(), 100);
     }
   }, [slot, open, restaurants]);
+
+  // Check if slot matches a recurring rule
+  const checkRecurringRule = async (restaurantId: string, date: string, startTime: string, endTime: string, capacity: number, mealPeriod: MealPeriod) => {
+    if (!resortId || !restaurantId) return;
+    
+    const slotDate = parseISO(date);
+    const dayOfWeek = getDay(slotDate);
+    
+    const { data: rules } = await supabase
+      .from('restaurant_recurring_rules')
+      .select('id, start_time, end_time, capacity, meal_period, frequency, days_of_week, start_date, end_date, is_active')
+      .eq('resort_id', resortId)
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true)
+      .lte('start_date', date)
+      .gte('end_date', date);
+    
+    if (rules && rules.length > 0) {
+      // Find a matching rule
+      const match = rules.find(rule => {
+        const ruleStartTime = rule.start_time.slice(0, 5);
+        const ruleDays = rule.days_of_week || [0, 1, 2, 3, 4, 5, 6];
+        return ruleDays.includes(dayOfWeek) && ruleStartTime === startTime;
+      });
+      
+      if (match) {
+        setMatchingRule({
+          id: match.id,
+          start_time: match.start_time.slice(0, 5),
+          end_time: match.end_time.slice(0, 5),
+          capacity: match.capacity,
+          meal_period: match.meal_period,
+          frequency: match.frequency,
+        });
+        // Check if slot differs from rule
+        const ruleEndTime = match.end_time.slice(0, 5);
+        const isModified = endTime !== ruleEndTime || capacity !== match.capacity || mealPeriod !== match.meal_period;
+        setIsModifiedFromRule(isModified);
+      } else {
+        setMatchingRule(null);
+        setIsModifiedFromRule(false);
+      }
+    } else {
+      setMatchingRule(null);
+      setIsModifiedFromRule(false);
+    }
+  };
+
+  // Reset slot to recurring rule defaults
+  const resetToRuleDefaults = () => {
+    if (matchingRule) {
+      setFormData(prev => ({
+        ...prev,
+        start_time: matchingRule.start_time,
+        end_time: matchingRule.end_time,
+        capacity: matchingRule.capacity,
+        meal_period: matchingRule.meal_period,
+      }));
+      setIsModifiedFromRule(false);
+    }
+  };
+
+  // Track modifications from rule
+  useEffect(() => {
+    if (matchingRule && slot) {
+      const isModified = 
+        formData.end_time !== matchingRule.end_time || 
+        formData.capacity !== matchingRule.capacity ||
+        formData.start_time !== matchingRule.start_time ||
+        formData.meal_period !== matchingRule.meal_period;
+      setIsModifiedFromRule(isModified);
+    }
+  }, [formData.start_time, formData.end_time, formData.capacity, formData.meal_period, matchingRule, slot]);
 
   // Get selected restaurant's opening hours
   const selectedRestaurant = restaurants.find(r => r.id === formData.restaurant_id);
@@ -256,16 +345,54 @@ export function RestaurantSlotDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{slot ? 'Edit Time Slot' : 'New Time Slot'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Recurring rule indicator */}
+          {slot && matchingRule && (
+            <div className={`p-3 rounded-lg border ${isModifiedFromRule ? 'bg-amber-500/10 border-amber-300' : 'bg-primary/5 border-primary/20'}`}>
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Part of recurring schedule</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {matchingRule.frequency === 'DAILY' ? 'Daily' : 'Weekly'}
+                    </Badge>
+                    {isModifiedFromRule && (
+                      <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">
+                        Modified
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Changes here only affect this specific date, not the recurring rule.
+                  </p>
+                  {isModifiedFromRule && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs mt-1"
+                      onClick={resetToRuleDefaults}
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Reset to defaults ({matchingRule.start_time} - {matchingRule.end_time}, {matchingRule.capacity} covers)
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Restaurant *</Label>
             <Select
               value={formData.restaurant_id}
               onValueChange={(v) => setFormData({ ...formData, restaurant_id: v })}
+              disabled={!!slot}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select restaurant" />
@@ -286,8 +413,12 @@ export function RestaurantSlotDialog({
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required
+              disabled={!!slot && !!matchingRule}
               className="h-12"
             />
+            {slot && matchingRule && (
+              <p className="text-xs text-muted-foreground">Date cannot be changed for recurring slots. Create a new slot instead.</p>
+            )}
           </div>
 
           {/* Quick time presets */}
