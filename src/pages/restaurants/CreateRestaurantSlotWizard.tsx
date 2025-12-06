@@ -11,6 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, parseISO, isAfter, isBefore, addMonths } from 'date-fns';
 import { ArrowLeft, ArrowRight, Check, Utensils, Calendar, Clock, AlertCircle } from 'lucide-react';
@@ -62,6 +72,7 @@ export default function CreateRestaurantSlotWizard() {
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Step 1: Restaurant selection
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>('');
@@ -772,7 +783,7 @@ export default function CreateRestaurantSlotWizard() {
                 Back
               </Button>
               <Button 
-                onClick={handleCreate} 
+                onClick={() => setConfirmDialogOpen(true)} 
                 disabled={creating || includedCount === 0}
               >
                 {creating ? 'Creating...' : `Create ${includedCount} Slot${includedCount !== 1 ? 's' : ''}`}
@@ -781,6 +792,81 @@ export default function CreateRestaurantSlotWizard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Slot Creation</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>You are about to create the following time slots:</p>
+                <div className="bg-muted rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Restaurant</span>
+                    <span className="font-medium">{selectedRestaurant?.name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Slots to create</span>
+                    <span className="font-medium">{includedCount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Meal period</span>
+                    <span className="font-medium">{mealPeriod}</span>
+                  </div>
+                  {scheduleType === 'recurring' && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Date range</span>
+                        <span className="font-medium">
+                          {format(parseISO(startDate), 'MMM d')} – {format(parseISO(endDate), 'MMM d, yyyy')}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Time</span>
+                        <span className="font-medium">{startTime} – {endTime}</span>
+                      </div>
+                    </>
+                  )}
+                  {scheduleType === 'single' && (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Date</span>
+                        <span className="font-medium">{format(parseISO(singleDate), 'EEE, MMM d, yyyy')}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Time</span>
+                        <span className="font-medium">{startTime} – {endTime}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Capacity per slot</span>
+                    <span className="font-medium">{capacity} covers</span>
+                  </div>
+                  {duplicateCount > 0 && (
+                    <div className="flex justify-between text-sm text-amber-600">
+                      <span>Duplicates (will be skipped)</span>
+                      <span className="font-medium">{duplicateCount}</span>
+                    </div>
+                  )}
+                </div>
+                {scheduleType === 'recurring' && (
+                  <p className="text-xs text-muted-foreground">
+                    A recurring schedule rule will also be created for future reference.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={creating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCreate} disabled={creating}>
+              {creating ? 'Creating...' : 'Create Slots'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
