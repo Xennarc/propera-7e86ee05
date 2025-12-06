@@ -153,6 +153,7 @@ export interface Activity {
   health_and_safety_notes?: string | null;
   cancellation_policy_text?: string | null;
   faq?: unknown;
+  image_url?: string | null;
 }
 
 export interface Resource {

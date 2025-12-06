@@ -189,20 +189,34 @@ export default function GuestActivityDetailPage() {
     <div className="pb-28 -mx-4 -mt-4">
       {/* Hero Section */}
       <div className="relative">
-        {/* Hero Background with gradient */}
-        <div className={`h-72 relative overflow-hidden ${categoryConfig.bgClass}`}>
-          {/* Decorative pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-8 left-8">
-              <CategoryIcon className="h-32 w-32" />
-            </div>
-            <div className="absolute bottom-4 right-4">
-              <CategoryIcon className="h-48 w-48 rotate-12" />
-            </div>
-          </div>
-          
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+        {/* Hero Background - Image or Fallback Pattern */}
+        <div className={`h-72 relative overflow-hidden ${!activity.image_url ? categoryConfig.bgClass : ''}`}>
+          {activity.image_url ? (
+            <>
+              {/* Hero Image */}
+              <img 
+                src={activity.image_url} 
+                alt={activity.name}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Dark overlay for readability */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-black/20" />
+            </>
+          ) : (
+            <>
+              {/* Decorative pattern fallback */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-8 left-8">
+                  <CategoryIcon className="h-32 w-32" />
+                </div>
+                <div className="absolute bottom-4 right-4">
+                  <CategoryIcon className="h-48 w-48 rotate-12" />
+                </div>
+              </div>
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+            </>
+          )}
           
           {/* Back button */}
           <Button
@@ -216,7 +230,7 @@ export default function GuestActivityDetailPage() {
           
           {/* Category icon */}
           <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
-            <div className={`h-20 w-20 rounded-2xl flex items-center justify-center shadow-xl ${categoryConfig.bgClass} border border-white/20`}>
+            <div className={`h-20 w-20 rounded-2xl flex items-center justify-center shadow-xl ${activity.image_url ? 'bg-background/90 backdrop-blur-sm' : categoryConfig.bgClass} border border-white/20`}>
               <CategoryIcon className={`h-10 w-10 ${categoryConfig.colorClass}`} />
             </div>
           </div>
