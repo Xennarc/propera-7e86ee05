@@ -22,7 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock } from 'lucide-react';
+import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock, Pencil } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { toast } from 'sonner';
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { IconRestaurants } from '@/components/icons/ProperaIcons';
+import { EditBookingDialog } from '@/components/guest/EditBookingDialog';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -48,6 +49,16 @@ export default function GuestMyBookings() {
     type: 'activity' | 'restaurant';
     id: string;
     title: string;
+  } | null>(null);
+  const [editDialog, setEditDialog] = useState<{
+    id: string;
+    type: 'activity' | 'restaurant';
+    title: string;
+    num_adults: number;
+    num_children: number;
+    session_id?: string;
+    slot_id?: string;
+    max_pax_per_booking?: number;
   } | null>(null);
 
   // First get room guests to show shared room bookings
@@ -83,7 +94,7 @@ export default function GuestMyBookings() {
             id, date, start_time, end_time, capacity,
             activity:activities(
               id, name, category, duration_minutes, guest_can_cancel, guest_cancel_cutoff_hours,
-              image_url
+              image_url, max_pax_per_booking
             )
           )
         `)
@@ -98,7 +109,7 @@ export default function GuestMyBookings() {
           slot:restaurant_time_slots(
             id, date, start_time, end_time, meal_period,
             restaurant:restaurants(
-              id, name, guest_can_cancel, guest_cancel_cutoff_minutes
+              id, name, guest_can_cancel, guest_cancel_cutoff_minutes, max_pax_per_booking
             )
           )
         `)
@@ -122,11 +133,13 @@ export default function GuestMyBookings() {
           date: session?.date,
           start_time: session?.start_time,
           end_time: session?.end_time,
+          session_id: session?.id,
           activity_name: activity?.name,
           category: activity?.category,
           duration_minutes: activity?.duration_minutes,
           guest_can_cancel: activity?.guest_can_cancel,
           guest_cancel_cutoff_hours: activity?.guest_cancel_cutoff_hours,
+          max_pax_per_booking: activity?.max_pax_per_booking,
           image_url: activity?.image_url,
           booking_type: 'activity' as const,
         };
@@ -149,10 +162,12 @@ export default function GuestMyBookings() {
           date: slot?.date,
           start_time: slot?.start_time,
           end_time: slot?.end_time,
+          slot_id: slot?.id,
           meal_period: slot?.meal_period,
           restaurant_name: restaurant?.name,
           guest_can_cancel: restaurant?.guest_can_cancel,
           guest_cancel_cutoff_minutes: restaurant?.guest_cancel_cutoff_minutes,
+          max_pax_per_booking: restaurant?.max_pax_per_booking,
           booking_type: 'restaurant' as const,
         };
       });
@@ -346,11 +361,13 @@ export default function GuestMyBookings() {
   const BookingCard = ({ 
     booking, 
     type, 
-    canCancel 
+    canCancel,
+    canEdit
   }: { 
     booking: any; 
     type: 'activity' | 'restaurant'; 
     canCancel: boolean;
+    canEdit: boolean;
   }) => {
     const isActivity = type === 'activity';
     const config = isActivity ? getCategoryConfig(booking.category) : null;
@@ -397,6 +414,29 @@ export default function GuestMyBookings() {
                 </h3>
                 <div className="flex items-center gap-2 shrink-0">
                   {getStatusBadge(booking.status)}
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditDialog({
+                          id: booking.id,
+                          type,
+                          title: isActivity ? booking.activity_name : booking.restaurant_name,
+                          num_adults: booking.num_adults,
+                          num_children: booking.num_children,
+                          session_id: booking.session_id,
+                          slot_id: booking.slot_id,
+                          max_pax_per_booking: booking.max_pax_per_booking,
+                        });
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only sm:not-sr-only sm:ml-1">Edit</span>
+                    </Button>
+                  )}
                   {canCancel && (
                     <Button
                       variant="ghost"
@@ -520,6 +560,7 @@ export default function GuestMyBookings() {
                     booking={booking}
                     type="activity"
                     canCancel={canCancelActivity(booking)}
+                    canEdit={booking.is_own_booking && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')}
                   />
                 ))}
               </div>
@@ -550,6 +591,7 @@ export default function GuestMyBookings() {
                     booking={reservation}
                     type="restaurant"
                     canCancel={canCancelReservation(reservation)}
+                    canEdit={reservation.is_own_booking && (reservation.status === 'CONFIRMED' || reservation.status === 'PENDING')}
                   />
                 ))}
               </div>
@@ -574,6 +616,7 @@ export default function GuestMyBookings() {
                         booking={booking}
                         type={booking.booking_type}
                         canCancel={false}
+                        canEdit={false}
                       />
                     </div>
                   ))}
@@ -607,6 +650,13 @@ export default function GuestMyBookings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Booking Dialog */}
+      <EditBookingDialog
+        open={!!editDialog}
+        onOpenChange={(open) => !open && setEditDialog(null)}
+        booking={editDialog}
+      />
     </div>
   );
 }
