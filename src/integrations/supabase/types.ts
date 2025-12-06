@@ -390,6 +390,42 @@ export type Database = {
           },
         ]
       }
+      booking_audit_logs: {
+        Row: {
+          action: string
+          booking_id: string
+          booking_type: string
+          change_summary: string | null
+          changed_at: string
+          changed_by_user_id: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+        }
+        Insert: {
+          action: string
+          booking_id: string
+          booking_type: string
+          change_summary?: string | null
+          changed_at?: string
+          changed_by_user_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Update: {
+          action?: string
+          booking_id?: string
+          booking_type?: string
+          change_summary?: string | null
+          changed_at?: string
+          changed_by_user_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+        }
+        Relationships: []
+      }
       guest_requests: {
         Row: {
           activity_booking_id: string | null
