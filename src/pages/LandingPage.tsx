@@ -192,7 +192,10 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <ProperaMark size={36} className="text-primary" />
-              <span className="font-bold text-foreground">Propera</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-foreground">Propera</span>
+                <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
+              </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <span>© {new Date().getFullYear()} Propera. All rights reserved.</span>
