@@ -170,6 +170,7 @@ const App = () => (
                 <Route path="/resort/:code/guest" element={<GuestLayout />}>
                   <Route path="activities" element={<GuestActivityExplorer />} />
                   <Route path="activities/:activityId" element={<GuestActivityDetailPage />} />
+                  <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />
                 </Route>
                 
                 {/* Pre-arrival route (token-based, no auth required) */}
