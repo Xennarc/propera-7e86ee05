@@ -36,23 +36,42 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedSession = localStorage.getItem(GUEST_SESSION_KEY);
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession) as GuestSession;
-        // Check if stay is still valid
-        const today = new Date().toISOString().split('T')[0];
-        if (parsed.checkOutDate >= today) {
-          setGuest(parsed);
-        } else {
+    const restoreSession = async () => {
+      const storedSession = localStorage.getItem(GUEST_SESSION_KEY);
+      if (storedSession) {
+        try {
+          const parsed = JSON.parse(storedSession) as GuestSession;
+          // Check if stay is still valid
+          const today = new Date().toISOString().split('T')[0];
+          if (parsed.checkOutDate >= today) {
+            // If resortName is missing, fetch it
+            if (!parsed.resortName && parsed.resortId) {
+              try {
+                const { data: resortData } = await supabase
+                  .from('resorts')
+                  .select('name')
+                  .eq('id', parsed.resortId)
+                  .single();
+                if (resortData?.name) {
+                  parsed.resortName = resortData.name;
+                  localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(parsed));
+                }
+              } catch {
+                // Ignore, resort name is optional
+              }
+            }
+            setGuest(parsed);
+          } else {
+            localStorage.removeItem(GUEST_SESSION_KEY);
+          }
+        } catch {
           localStorage.removeItem(GUEST_SESSION_KEY);
         }
-      } catch {
-        localStorage.removeItem(GUEST_SESSION_KEY);
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    
+    restoreSession();
   }, []);
 
   const login = async (resortId: string, roomNumber: string, lastName: string, pin: string): Promise<{ error: string | null }> => {
