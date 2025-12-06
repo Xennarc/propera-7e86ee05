@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
@@ -12,8 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { getCategoryConfig } from '@/lib/activity-category-config';
+import { CategoryIcon } from '@/components/ui/category-badge';
 
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
@@ -28,11 +32,12 @@ function mapErrorToCode(error: string): BookingErrorCode {
 }
 
 export default function GuestActivityBookingPage() {
-  const { sessionId } = useParams();
+  const { sessionId, code } = useParams();
   const navigate = useNavigate();
   const { guest } = useGuestAuth();
   const queryClient = useQueryClient();
 
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionId || null);
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
   const [notes, setNotes] = useState('');
@@ -42,29 +47,55 @@ export default function GuestActivityBookingPage() {
     error?: string;
   } | null>(null);
 
-  // Fetch session details
-  const { data: session, isLoading } = useQuery({
-    queryKey: ['guest-session-detail', sessionId, guest?.guestId],
+  // Fetch all available sessions
+  const { data: allSessions, isLoading } = useQuery({
+    queryKey: ['guest-all-sessions', guest?.guestId],
     queryFn: async () => {
-      if (!guest || !sessionId) return null;
+      if (!guest) return [];
       const { data, error } = await supabase.rpc('guest_get_available_sessions', {
         p_guest_id: guest.guestId,
         p_date: null,
         p_category: null,
       });
       if (error) throw error;
-      const sessions = (data as any[]) || [];
-      return sessions.find((s) => s.id === sessionId) || null;
+      return (data as any[]) || [];
     },
-    enabled: !!guest && !!sessionId,
+    enabled: !!guest,
   });
+
+  // Find the initially selected session and get activity_id
+  const initialSession = allSessions?.find((s: any) => s.id === sessionId);
+  const activityId = initialSession?.activity_id;
+
+  // Filter sessions for the same activity
+  const activitySessions = allSessions?.filter((s: any) => s.activity_id === activityId) || [];
+
+  // Get the currently selected session
+  const selectedSession = allSessions?.find((s: any) => s.id === selectedSessionId);
+
+  // Group sessions by date for easier navigation
+  const sessionsByDate = activitySessions.reduce((acc: Record<string, any[]>, session: any) => {
+    const date = session.date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(session);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(sessionsByDate).sort();
+
+  // Update selectedSessionId when sessionId param changes
+  useEffect(() => {
+    if (sessionId && !selectedSessionId) {
+      setSelectedSessionId(sessionId);
+    }
+  }, [sessionId, selectedSessionId]);
 
   const bookMutation = useMutation({
     mutationFn: async () => {
-      if (!guest || !sessionId) throw new Error('Invalid state');
+      if (!guest || !selectedSessionId) throw new Error('Invalid state');
       const { data, error } = await supabase.rpc('guest_create_activity_booking', {
         p_guest_id: guest.guestId,
-        p_session_id: sessionId,
+        p_session_id: selectedSessionId,
         p_num_adults: numAdults,
         p_num_children: numChildren,
         p_notes: notes.trim() || null,
@@ -76,12 +107,12 @@ export default function GuestActivityBookingPage() {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['guest-all-sessions'] });
         setBookingResult({
           success: true,
           requiresApproval: data.requires_approval,
         });
       } else {
-        // Map server error to user-friendly message
         const errorCode = mapErrorToCode(data.error || '');
         const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
         setBookingResult({
@@ -100,6 +131,9 @@ export default function GuestActivityBookingPage() {
     },
   });
 
+  // Determine back navigation path
+  const backPath = code ? `/resort/${code}/guest/activities` : '/guest/activities';
+
   if (!guest) return null;
 
   if (isLoading) {
@@ -112,10 +146,10 @@ export default function GuestActivityBookingPage() {
     );
   }
 
-  if (!session) {
+  if (!initialSession) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/guest/activities')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Activities
         </Button>
@@ -125,7 +159,7 @@ export default function GuestActivityBookingPage() {
             <p className="text-muted-foreground">
               This activity session is no longer available for booking.
             </p>
-            <Button className="mt-4" onClick={() => navigate('/guest/activities')}>
+            <Button className="mt-4" onClick={() => navigate(backPath)}>
               Browse Activities
             </Button>
           </CardContent>
@@ -134,8 +168,12 @@ export default function GuestActivityBookingPage() {
     );
   }
 
+  const session = selectedSession || initialSession;
+  const categoryConfig = getCategoryConfig(session.category);
+
   // Booking success screen
   if (bookingResult?.success) {
+    const guestBookingsPath = code ? `/guest/bookings` : '/guest/bookings';
     return (
       <div className="space-y-4">
         <Card>
@@ -155,10 +193,10 @@ export default function GuestActivityBookingPage() {
                 : "You can find this in 'My Bookings' at any time."}
             </p>
             <div className="space-y-2">
-              <Button className="w-full" onClick={() => navigate('/guest/bookings')}>
+              <Button className="w-full" onClick={() => navigate(guestBookingsPath)}>
                 View My Bookings
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/guest/activities')}>
+              <Button variant="outline" className="w-full" onClick={() => navigate(backPath)}>
                 Back to Activities
               </Button>
             </div>
@@ -173,23 +211,124 @@ export default function GuestActivityBookingPage() {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/guest/activities')}>
+      <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Activities
       </Button>
 
-      {/* Activity Details */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <CardTitle>{session.activity_name}</CardTitle>
-              <CardDescription>{session.category}</CardDescription>
-            </div>
-            {session.requires_approval && (
-              <Badge variant="warning">Request Only</Badge>
+      {/* Activity Header */}
+      <Card className="overflow-hidden">
+        <div className="relative">
+          {/* Hero section with image or fallback */}
+          <div className={cn(
+            "h-32 relative",
+            !session.image_url && categoryConfig.bgClass
+          )}>
+            {session.image_url ? (
+              <>
+                <img 
+                  src={session.image_url} 
+                  alt={session.activity_name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+              </>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                <CategoryIcon category={session.category} size={64} />
+              </div>
             )}
           </div>
+          
+          {/* Activity info */}
+          <CardContent className="pt-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div>
+                <CardTitle className="text-lg">{session.activity_name}</CardTitle>
+                <CardDescription className="flex items-center gap-2 mt-1">
+                  <Badge variant="secondary" className={cn("text-xs", categoryConfig.chipClass)}>
+                    {categoryConfig.label}
+                  </Badge>
+                  <span>{session.duration_minutes} min</span>
+                </CardDescription>
+              </div>
+              {session.requires_approval && (
+                <Badge variant="pending" className="shrink-0">Request Only</Badge>
+              )}
+            </div>
+            {session.description && (
+              <p className="text-sm text-muted-foreground mt-2">{session.description}</p>
+            )}
+          </CardContent>
+        </div>
+      </Card>
+
+      {/* Session Selector */}
+      {activitySessions.length > 1 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              Choose a Session
+            </CardTitle>
+            <CardDescription>
+              {activitySessions.length} sessions available during your stay
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {sortedDates.map((date) => {
+              const dateSessions = sessionsByDate[date];
+              const formattedDate = format(parseISO(date), 'EEE, MMM d');
+              
+              return (
+                <div key={date}>
+                  <p className="text-sm font-medium text-foreground mb-2">{formattedDate}</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                    {dateSessions.map((s: any) => {
+                      const isSelected = s.id === selectedSessionId;
+                      const isLowAvailability = s.remaining_spots > 0 && s.remaining_spots <= 3;
+                      
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedSessionId(s.id);
+                            setBookingResult(null);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center gap-1 px-4 py-3 rounded-xl border-2 transition-all min-w-[90px] shrink-0",
+                            isSelected
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                              : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          )}
+                        >
+                          <span className={cn(
+                            "font-mono font-bold text-lg",
+                            isSelected ? "text-primary" : "text-foreground"
+                          )}>
+                            {s.start_time.slice(0, 5)}
+                          </span>
+                          <span className={cn(
+                            "text-xs",
+                            isLowAvailability ? "text-coral font-medium" : "text-muted-foreground"
+                          )}>
+                            {s.remaining_spots} spots
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Selected Session Details */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Session Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -203,17 +342,17 @@ export default function GuestActivityBookingPage() {
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{session.remaining_spots} spots available</span>
+              <span className={cn(
+                session.remaining_spots <= 3 && "text-coral font-medium"
+              )}>
+                {session.remaining_spots} spots available
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Duration:</span>
               <span>{session.duration_minutes} min</span>
             </div>
           </div>
-
-          {session.description && (
-            <p className="text-sm text-muted-foreground">{session.description}</p>
-          )}
 
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
             <p className="font-medium mb-1">Good to know:</p>
@@ -284,7 +423,7 @@ export default function GuestActivityBookingPage() {
           )}
 
           <Button
-            className="w-full"
+            className="w-full h-12 text-base font-semibold"
             onClick={() => bookMutation.mutate()}
             disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1}
           >
