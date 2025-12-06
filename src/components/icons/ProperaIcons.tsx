@@ -551,12 +551,16 @@ export function IconSpa({ className, size = 24 }: IconProps) {
       strokeLinejoin="round"
       className={cn('propera-icon', className)}
     >
-      {/* Lotus flower icon */}
-      <path d="M12 22c-4-3-7-6-7-10a7 7 0 0 1 14 0c0 4-3 7-7 10z" />
-      <path d="M12 22c-1.5-2-2.5-4-2.5-6 0-2 1-3.5 2.5-4.5" className="opacity-60" />
-      <path d="M12 22c1.5-2 2.5-4 2.5-6 0-2-1-3.5-2.5-4.5" className="opacity-60" />
-      <path d="M12 2v6" className="opacity-40" />
-      <path d="M8 4l4 4 4-4" className="opacity-40" />
+      {/* Therapy hands with healing energy */}
+      {/* Two hands cupping/healing */}
+      <path d="M7 13c-1.5 0-3 1-3 3v2c0 1 .5 2 2 3 1.5 1 4 1 6 0" />
+      <path d="M17 13c1.5 0 3 1 3 3v2c0 1-.5 2-2 3-1.5 1-4 1-6 0" />
+      {/* Heart/energy in center */}
+      <path d="M12 16c-.5-.5-1.5-1-1.5-2 0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5c0 1-1 1.5-1.5 2z" className="opacity-80" />
+      {/* Rising healing energy lines */}
+      <path d="M12 8v3" className="opacity-60" />
+      <path d="M9 9l3 2 3-2" className="opacity-40" />
+      <path d="M10 6l2 1.5 2-1.5" className="opacity-30" />
     </svg>
   );
 }
