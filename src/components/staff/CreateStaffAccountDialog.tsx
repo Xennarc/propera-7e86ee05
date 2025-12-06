@@ -36,7 +36,7 @@ const createAccountSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
   full_name: z.string().optional(),
   email: z.string().email('Please enter a valid email').optional().or(z.literal('')),
-  resort_role: z.enum(['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB']),
+  resort_role: z.enum(['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB']),
   department: z.string().optional(),
 });
 
