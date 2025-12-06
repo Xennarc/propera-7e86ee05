@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
+import { RestaurantSlotsList } from '@/components/restaurants/RestaurantSlotsList';
 
 const restaurantSchema = z.object({
   name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
@@ -292,6 +294,19 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
               </div>
             </div>
           </div>
+
+          {/* Time Slots Management - Only show when editing */}
+          {restaurant && (
+            <>
+              <Separator />
+              <RestaurantSlotsList
+                restaurantId={restaurant.id}
+                restaurantName={restaurant.name}
+                resortId={resortId}
+                onClose={() => onOpenChange(false)}
+              />
+            </>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
