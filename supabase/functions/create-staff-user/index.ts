@@ -12,6 +12,41 @@ serve(async (req) => {
   }
 
   try {
+    // Extract and validate JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - missing token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+
+    // Create a client with the user's token to verify their identity
+    const supabaseUser = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: { autoRefreshToken: false, persistSession: false }
+      }
+    );
+
+    // Get the authenticated user
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
+      console.error('Failed to get user:', userError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized - invalid token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    // Create admin client for privileged operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -23,7 +58,60 @@ serve(async (req) => {
       }
     );
 
+    // Parse request body
     const { username, password, full_name, email, resort_id, resort_role, department } = await req.json();
+
+    // Check if user is SUPER_ADMIN
+    const { data: callerProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('global_role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching caller profile:', profileError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to verify permissions' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    const isSuperAdmin = callerProfile?.global_role === 'SUPER_ADMIN';
+
+    // If not SUPER_ADMIN, check if they are RESORT_ADMIN for the target resort
+    if (!isSuperAdmin) {
+      if (!resort_id) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Resort ID is required' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+
+      const { data: membership, error: membershipError } = await supabaseAdmin
+        .from('resort_memberships')
+        .select('resort_role')
+        .eq('user_id', user.id)
+        .eq('resort_id', resort_id)
+        .single();
+
+      if (membershipError || !membership) {
+        console.error('User has no membership for resort:', resort_id);
+        return new Response(
+          JSON.stringify({ success: false, error: 'You do not have permission to create staff for this resort' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+
+      if (membership.resort_role !== 'RESORT_ADMIN') {
+        console.error('User is not RESORT_ADMIN for resort:', resort_id);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Only Resort Admins can create staff accounts' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+    }
+
+    console.log('Authorization passed. isSuperAdmin:', isSuperAdmin);
 
     // Validate inputs
     if (!username || username.trim().length < 3) {
@@ -110,7 +198,7 @@ serve(async (req) => {
     }
 
     // Update profile with username
-    const { error: profileError } = await supabaseAdmin
+    const { error: profileUpdateError } = await supabaseAdmin
       .from('profiles')
       .update({
         username: username.trim(),
@@ -119,8 +207,8 @@ serve(async (req) => {
       })
       .eq('id', authData.user.id);
 
-    if (profileError) {
-      console.error('Profile error:', profileError);
+    if (profileUpdateError) {
+      console.error('Profile error:', profileUpdateError);
       // Try to clean up the auth user
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return new Response(
@@ -155,6 +243,8 @@ serve(async (req) => {
 
       membershipId = membership?.id;
     }
+
+    console.log('Staff account created successfully:', authData.user.id);
 
     return new Response(
       JSON.stringify({
