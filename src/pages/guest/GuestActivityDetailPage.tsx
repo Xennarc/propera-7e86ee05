@@ -446,12 +446,20 @@ export default function GuestActivityDetailPage() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-xl border-t border-border z-50">
         <div className="max-w-lg mx-auto">
           {sessions && sessions.length > 0 ? (
-            <Link to={`/resort/${code}/guest/activities`}>
-              <Button className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg gap-2">
-                <IconActivities className="h-5 w-5" />
-                Book this activity
-              </Button>
-            </Link>
+            <>
+              <Link to={`/resort/${code}/guest/activities/book/${sessions[0].id}`}>
+                <Button className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg gap-2">
+                  <IconActivities className="h-5 w-5" />
+                  Book this activity
+                </Button>
+              </Link>
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                Next session: <span className="font-medium text-foreground">{sessions[0].start_time?.slice(0, 5)}</span>
+                {sessions.length > 1 && (
+                  <> · <span className="font-medium text-foreground">{sessions.length}</span> sessions available</>
+                )}
+              </p>
+            </>
           ) : (
             <Button 
               className="w-full h-14 text-lg font-semibold rounded-2xl" 
@@ -460,11 +468,6 @@ export default function GuestActivityDetailPage() {
             >
               No sessions available
             </Button>
-          )}
-          {sessions && sessions.length > 0 && (
-            <p className="text-xs text-center text-muted-foreground mt-2">
-              <span className="font-medium text-foreground">{sessions.length}</span> session{sessions.length !== 1 ? 's' : ''} available during your stay
-            </p>
           )}
         </div>
       </div>
