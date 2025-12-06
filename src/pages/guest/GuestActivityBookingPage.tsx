@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
+import { calculatePriceBreakdown, parsePricingCharges } from '@/lib/pricing-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,24 @@ export default function GuestActivityBookingPage() {
     },
     enabled: !!guest,
   });
+
+  // Fetch resort pricing charges
+  const { data: resortPricing } = useQuery({
+    queryKey: ['resort-pricing-guest', guest?.resortId],
+    queryFn: async () => {
+      if (!guest?.resortId) return null;
+      const { data, error } = await supabase
+        .from('resorts')
+        .select('pricing_charges')
+        .eq('id', guest.resortId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!guest?.resortId,
+  });
+
+  const pricingCharges = parsePricingCharges(resortPricing?.pricing_charges);
 
   // Find the initially selected session and get activity_id
   const initialSession = allSessions?.find((s: any) => s.id === sessionId);
@@ -442,21 +461,43 @@ export default function GuestActivityBookingPage() {
           </div>
 
           {/* Pricing Summary */}
-          {session.price_per_person > 0 && (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-muted-foreground">
-                  ${session.price_per_person.toFixed(2)} × {totalPax} {totalPax === 1 ? 'guest' : 'guests'}
-                </span>
-                <span className="font-semibold text-lg text-foreground">
-                  ${(session.price_per_person * totalPax).toFixed(2)}
-                </span>
+          {session.price_per_person > 0 && (() => {
+            const baseAmount = session.price_per_person * totalPax;
+            const breakdown = calculatePriceBreakdown(baseAmount, pricingCharges);
+            
+            return (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    ${session.price_per_person.toFixed(2)} × {totalPax} {totalPax === 1 ? 'guest' : 'guests'}
+                  </span>
+                  <span>${breakdown.subtotal.toFixed(2)}</span>
+                </div>
+                
+                {breakdown.charges.map((charge, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {charge.name} ({charge.percentage}%)
+                    </span>
+                    <span>${charge.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+                
+                {breakdown.charges.length > 0 && (
+                  <div className="border-t border-primary/20 pt-2 mt-2 flex items-center justify-between">
+                    <span className="font-medium">Total</span>
+                    <span className="font-semibold text-lg text-foreground">
+                      ${breakdown.total.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                
+                <p className="text-xs text-muted-foreground pt-1">
+                  Estimated total • Payment at resort
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Estimated total • Payment at resort
-              </p>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="space-y-2">
             <Label>Notes for the team (optional)</Label>

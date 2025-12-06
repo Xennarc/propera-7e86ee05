@@ -831,6 +831,7 @@ export type Database = {
           onboarding_restaurants_done: boolean
           onboarding_staff_done: boolean
           onboarding_status: string
+          pricing_charges: Json
           status: Database["public"]["Enums"]["resort_status"]
           timezone: string
           updated_at: string
@@ -859,6 +860,7 @@ export type Database = {
           onboarding_restaurants_done?: boolean
           onboarding_staff_done?: boolean
           onboarding_status?: string
+          pricing_charges?: Json
           status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
@@ -887,6 +889,7 @@ export type Database = {
           onboarding_restaurants_done?: boolean
           onboarding_staff_done?: boolean
           onboarding_status?: string
+          pricing_charges?: Json
           status?: Database["public"]["Enums"]["resort_status"]
           timezone?: string
           updated_at?: string
