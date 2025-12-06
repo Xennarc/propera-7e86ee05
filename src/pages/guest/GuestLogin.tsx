@@ -30,7 +30,9 @@ export default function GuestLogin() {
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full blur-[60px] pointer-events-none" />
         
         <div className="text-center relative z-10">
-          <ProperaMark size={64} className="text-primary mb-6" />
+          <Link to="/" className="inline-block mx-auto mb-6 hover:opacity-80 transition-opacity">
+            <ProperaMark size={64} className="text-primary" />
+          </Link>
           <h1 className="text-3xl font-bold text-foreground mb-2">Guest Portal</h1>
           <p className="text-muted-foreground">Access your resort experience</p>
         </div>
