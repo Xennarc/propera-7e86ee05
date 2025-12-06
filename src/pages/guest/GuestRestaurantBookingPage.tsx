@@ -7,8 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,8 +20,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Utensils } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Utensils, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NumberStepper } from '@/components/ui/number-stepper';
 
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
@@ -52,22 +51,54 @@ export default function GuestRestaurantBookingPage() {
     error?: string;
   } | null>(null);
 
-  // Check for existing bookings on this slot
-  const { data: existingBooking } = useQuery({
-    queryKey: ['guest-existing-slot-booking', slotId, guest?.guestId],
+  // Fetch room occupancy (number of guests in the same room)
+  const { data: roomOccupancy = 2 } = useQuery({
+    queryKey: ['room-occupancy', guest?.resortId, guest?.roomNumber],
+    queryFn: async () => {
+      if (!guest) return 2;
+      const { count, error } = await supabase
+        .from('guests')
+        .select('*', { count: 'exact', head: true })
+        .eq('resort_id', guest.resortId)
+        .eq('room_number', guest.roomNumber);
+      if (error) return 2;
+      return count || 2;
+    },
+    enabled: !!guest,
+  });
+
+  // Check for existing bookings on this slot by anyone in the same room
+  const { data: roomBooking } = useQuery({
+    queryKey: ['room-slot-booking', slotId, guest?.resortId, guest?.roomNumber],
     queryFn: async () => {
       if (!guest || !slotId) return null;
-      // Get existing bookings for this guest
-      const { data, error } = await supabase.rpc('guest_get_bookings', {
-        p_guest_id: guest.guestId,
-      });
-      if (error) return null;
-      const bookings = data as { restaurant_reservations: any[] };
-      // Check if there's already an active booking for this slot
-      const existing = bookings?.restaurant_reservations?.find(
-        (r) => r.slot_id === slotId && (r.status === 'CONFIRMED' || r.status === 'PENDING')
-      );
-      return existing || null;
+      // Get all guests in the same room
+      const { data: roomGuests, error: roomError } = await supabase
+        .from('guests')
+        .select('id, full_name')
+        .eq('resort_id', guest.resortId)
+        .eq('room_number', guest.roomNumber);
+      if (roomError || !roomGuests?.length) return null;
+      
+      const roomGuestIds = roomGuests.map(g => g.id);
+      
+      // Check for existing reservations for this slot by any room guest
+      const { data: reservations, error } = await supabase
+        .from('restaurant_reservations')
+        .select('id, guest_id, num_adults, num_children, status')
+        .eq('restaurant_slot_id', slotId)
+        .in('guest_id', roomGuestIds)
+        .in('status', ['CONFIRMED', 'PENDING']);
+      
+      if (error || !reservations?.length) return null;
+      
+      const existing = reservations[0];
+      const bookedBy = roomGuests.find(g => g.id === existing.guest_id);
+      return {
+        ...existing,
+        booked_by_name: bookedBy?.full_name || 'Someone in your room',
+        is_own_booking: existing.guest_id === guest.guestId,
+      };
     },
     enabled: !!guest && !!slotId,
   });
@@ -199,10 +230,12 @@ export default function GuestRestaurantBookingPage() {
   }
 
   const totalPax = numAdults + numChildren;
-  const maxPax = slot.max_pax_per_booking;
+  // Max is the minimum of: max_pax_per_booking, remaining_covers, roomOccupancy
+  const effectiveMax = Math.min(slot.max_pax_per_booking, slot.remaining_covers, roomOccupancy);
+  const hasRoomBooking = !!roomBooking;
 
   const handleBooking = () => {
-    if (existingBooking) {
+    if (roomBooking?.is_own_booking) {
       setShowDuplicateWarning(true);
     } else {
       bookMutation.mutate();
@@ -217,7 +250,7 @@ export default function GuestRestaurantBookingPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>You already have a booking</AlertDialogTitle>
             <AlertDialogDescription>
-              You already have a reservation for this time slot ({existingBooking?.num_adults + existingBooking?.num_children} guests). 
+              You already have a reservation for this time slot ({roomBooking?.num_adults + roomBooking?.num_children} guests). 
               Are you sure you want to book another table?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -275,7 +308,7 @@ export default function GuestRestaurantBookingPage() {
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
             <p className="font-medium mb-1">Good to know:</p>
             <ul className="text-muted-foreground space-y-1">
-              <li>• Maximum {maxPax} guests per reservation</li>
+              <li>• Maximum {slot.max_pax_per_booking} guests per reservation</li>
               <li>• Online booking closes {slot.guest_cutoff_minutes} minutes before</li>
               {slot.guest_can_cancel && (
                 <li>• You can cancel online up to {slot.guest_cancel_cutoff_minutes} minutes before</li>
@@ -291,36 +324,45 @@ export default function GuestRestaurantBookingPage() {
           <CardTitle className="text-lg">Number of Guests</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Room booking alert */}
+          {hasRoomBooking && !roomBooking?.is_own_booking && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                {roomBooking?.booked_by_name} has already booked this time slot for your room 
+                ({roomBooking?.num_adults + roomBooking?.num_children} guests). 
+                You can view this in "My Bookings".
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Adults</Label>
-              <Input
-                type="number"
-                min={1}
-                max={maxPax - numChildren}
-                value={numAdults}
-                onChange={(e) => setNumAdults(Math.max(1, Math.min(maxPax - numChildren, parseInt(e.target.value) || 1)))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Children</Label>
-              <Input
-                type="number"
-                min={0}
-                max={maxPax - numAdults}
-                value={numChildren}
-                onChange={(e) => setNumChildren(Math.max(0, Math.min(maxPax - numAdults, parseInt(e.target.value) || 0)))}
-              />
-            </div>
+            <NumberStepper
+              label="Adults"
+              value={numAdults}
+              onChange={setNumAdults}
+              min={1}
+              max={Math.max(1, effectiveMax - numChildren)}
+              disabled={hasRoomBooking && !roomBooking?.is_own_booking}
+            />
+            <NumberStepper
+              label="Children"
+              value={numChildren}
+              onChange={setNumChildren}
+              min={0}
+              max={Math.max(0, effectiveMax - numAdults)}
+              disabled={hasRoomBooking && !roomBooking?.is_own_booking}
+            />
           </div>
 
           <div className="space-y-2">
-            <Label>Special requests (optional)</Label>
+            <label className="text-sm font-medium text-foreground">Special requests (optional)</label>
             <Textarea
               placeholder="e.g., birthday celebration, dietary requirements, highchair needed..."
               value={specialRequests}
               onChange={(e) => setSpecialRequests(e.target.value)}
               maxLength={500}
+              disabled={hasRoomBooking && !roomBooking?.is_own_booking}
             />
           </div>
 
@@ -340,20 +382,30 @@ export default function GuestRestaurantBookingPage() {
             </Alert>
           )}
 
-          <Button
-            className="w-full"
-            onClick={handleBooking}
-            disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
-          >
-            {bookMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Confirming your reservation...
-              </>
-            ) : (
-              slot.requires_approval ? 'Submit Request' : 'Confirm Reservation'
-            )}
-          </Button>
+          {hasRoomBooking && !roomBooking?.is_own_booking ? (
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate('/guest/bookings')}
+            >
+              View My Bookings
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={handleBooking}
+              disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
+            >
+              {bookMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Confirming your reservation...
+                </>
+              ) : (
+                slot.requires_approval ? 'Submit Request' : 'Confirm Reservation'
+              )}
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
