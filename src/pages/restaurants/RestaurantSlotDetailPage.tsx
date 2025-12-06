@@ -27,7 +27,12 @@ interface ReservationWithGuest {
   num_adults: number;
   num_children: number;
   special_requests: string | null;
+  created_by_user_id: string | null;
   guest: Guest;
+  created_by_profile?: {
+    full_name: string | null;
+    username: string | null;
+  } | null;
 }
 
 export default function RestaurantSlotDetailPage() {
@@ -63,7 +68,7 @@ export default function RestaurantSlotDetailPage() {
 
     setSlot(slotData as SlotWithRestaurant);
 
-    // Fetch reservations
+    // Fetch reservations with creator info
     const { data: reservationsData } = await supabase
       .from('restaurant_reservations')
       .select(`*, guest:guests(*)`)
@@ -71,7 +76,32 @@ export default function RestaurantSlotDetailPage() {
       .order('created_at', { ascending: false });
 
     if (reservationsData) {
-      setReservations(reservationsData as ReservationWithGuest[]);
+      // Fetch creator profiles for staff-created reservations
+      const creatorIds = reservationsData
+        .filter(r => r.created_by_user_id)
+        .map(r => r.created_by_user_id);
+      
+      let creatorProfiles: Record<string, { full_name: string | null; username: string | null }> = {};
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', creatorIds);
+        
+        if (profiles) {
+          creatorProfiles = profiles.reduce((acc, p) => {
+            acc[p.id] = { full_name: p.full_name, username: p.username };
+            return acc;
+          }, {} as Record<string, { full_name: string | null; username: string | null }>);
+        }
+      }
+
+      const reservationsWithCreator = reservationsData.map(r => ({
+        ...r,
+        created_by_profile: r.created_by_user_id ? creatorProfiles[r.created_by_user_id] || null : null,
+      }));
+
+      setReservations(reservationsWithCreator as ReservationWithGuest[]);
     }
 
     // Fetch restaurants for edit
@@ -208,6 +238,7 @@ export default function RestaurantSlotDetailPage() {
                     <TableHead>Adults</TableHead>
                     <TableHead>Children</TableHead>
                     <TableHead>Source</TableHead>
+                    <TableHead>Booked By</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Special Requests</TableHead>
                   </TableRow>
@@ -227,6 +258,15 @@ export default function RestaurantSlotDetailPage() {
                       <TableCell>{reservation.num_adults}</TableCell>
                       <TableCell>{reservation.num_children}</TableCell>
                       <TableCell className="text-xs">{reservation.source.replace('STAFF_', '')}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {reservation.source === 'GUEST_PORTAL' ? (
+                          <span className="italic">Guest</span>
+                        ) : reservation.created_by_profile ? (
+                          <span>{reservation.created_by_profile.full_name || reservation.created_by_profile.username || 'Staff'}</span>
+                        ) : (
+                          <span className="italic">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <StatusBadge status={reservation.status} />
                       </TableCell>

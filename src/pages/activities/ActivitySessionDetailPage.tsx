@@ -29,6 +29,10 @@ interface SessionWithDetails extends ActivitySession {
 
 interface BookingWithGuest extends ActivityBooking {
   guest: Guest;
+  created_by_profile?: {
+    full_name: string | null;
+    username: string | null;
+  } | null;
 }
 
 // Validate if string is a valid UUID format
@@ -75,7 +79,7 @@ export default function ActivitySessionDetailPage() {
 
     setSession(sessionData as SessionWithDetails);
 
-    // Fetch bookings
+    // Fetch bookings with creator info
     const { data: bookingsData } = await supabase
       .from('activity_bookings')
       .select(`*, guest:guests(*)`)
@@ -83,7 +87,32 @@ export default function ActivitySessionDetailPage() {
       .order('created_at', { ascending: false });
 
     if (bookingsData) {
-      setBookings(bookingsData as BookingWithGuest[]);
+      // Fetch creator profiles for staff-created bookings
+      const creatorIds = bookingsData
+        .filter(b => b.created_by_user_id)
+        .map(b => b.created_by_user_id);
+      
+      let creatorProfiles: Record<string, { full_name: string | null; username: string | null }> = {};
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, username')
+          .in('id', creatorIds);
+        
+        if (profiles) {
+          creatorProfiles = profiles.reduce((acc, p) => {
+            acc[p.id] = { full_name: p.full_name, username: p.username };
+            return acc;
+          }, {} as Record<string, { full_name: string | null; username: string | null }>);
+        }
+      }
+
+      const bookingsWithCreator = bookingsData.map(b => ({
+        ...b,
+        created_by_profile: b.created_by_user_id ? creatorProfiles[b.created_by_user_id] || null : null,
+      }));
+
+      setBookings(bookingsWithCreator as BookingWithGuest[]);
     }
 
     // Fetch activities for edit dialog
@@ -308,6 +337,7 @@ export default function ActivitySessionDetailPage() {
                     <TableHead>Children</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Source</TableHead>
+                    <TableHead>Booked By</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Notes</TableHead>
                   </TableRow>
@@ -328,6 +358,15 @@ export default function ActivitySessionDetailPage() {
                       <TableCell>{booking.num_children}</TableCell>
                       <TableCell>${booking.total_amount}</TableCell>
                       <TableCell className="text-xs">{booking.source.replace('STAFF_', '')}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {booking.source === 'GUEST_PORTAL' ? (
+                          <span className="italic">Guest</span>
+                        ) : booking.created_by_profile ? (
+                          <span>{booking.created_by_profile.full_name || booking.created_by_profile.username || 'Staff'}</span>
+                        ) : (
+                          <span className="italic">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <StatusBadge status={booking.status} />
                       </TableCell>
