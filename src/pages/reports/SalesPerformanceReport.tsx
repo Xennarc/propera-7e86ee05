@@ -2,19 +2,14 @@ import { useState, useEffect } from 'react';
 import { useResort } from '@/contexts/ResortContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
-import { StatCard } from '@/components/ui/stat-card';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { DollarSign, TrendingUp, Users, UtensilsCrossed, Sparkles, Loader2, CalendarClock, Zap } from 'lucide-react';
-import { format, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { DollarSign, TrendingUp, Users, UtensilsCrossed, CalendarClock, Zap, XCircle } from 'lucide-react';
+import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
-
-interface DateRange {
-  start: string;
-  end: string;
-}
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface SalesMetrics {
   totalRevenue: number;
@@ -69,63 +64,30 @@ interface UpsellItem {
   revenue: number;
 }
 
+const CHART_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
+
 export default function SalesPerformanceReport() {
   const { currentResort } = useResort();
-  const [dateRange, setDateRange] = useState<DateRange>(() => {
-    const end = new Date();
-    const start = subDays(end, 30);
-    return {
-      start: format(start, 'yyyy-MM-dd'),
-      end: format(end, 'yyyy-MM-dd')
-    };
-  });
-  const [datePreset, setDatePreset] = useState('last30');
+  const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<SalesMetrics | null>(null);
   const [activitySales, setActivitySales] = useState<ActivitySales[]>([]);
   const [restaurantSales, setRestaurantSales] = useState<RestaurantSales[]>([]);
   const [channelData, setChannelData] = useState<SegmentData[]>([]);
   const [upsellItems, setUpsellItems] = useState<UpsellItem[]>([]);
-  const [aiInsights, setAiInsights] = useState<string>('');
-  const [generatingAI, setGeneratingAI] = useState(false);
-
-  const applyDatePreset = (preset: string) => {
-    setDatePreset(preset);
-    const end = new Date();
-    let start: Date;
-
-    switch (preset) {
-      case 'last7':
-        start = subDays(end, 7);
-        break;
-      case 'last30':
-        start = subDays(end, 30);
-        break;
-      case 'thisMonth':
-        start = startOfMonth(end);
-        break;
-      case 'lastMonth':
-        start = startOfMonth(subMonths(end, 1));
-        setDateRange({
-          start: format(start, 'yyyy-MM-dd'),
-          end: format(endOfMonth(start), 'yyyy-MM-dd')
-        });
-        return;
-      default:
-        start = subDays(end, 30);
-    }
-
-    setDateRange({
-      start: format(start, 'yyyy-MM-dd'),
-      end: format(end, 'yyyy-MM-dd')
-    });
-  };
 
   useEffect(() => {
     if (currentResort) {
       fetchSalesData();
     }
-  }, [currentResort, dateRange]);
+  }, [currentResort, startDate, endDate]);
 
   const fetchSalesData = async () => {
     if (!currentResort) return;
@@ -137,10 +99,10 @@ export default function SalesPerformanceReport() {
         .from('guests')
         .select('id, channel')
         .eq('resort_id', currentResort.id)
-        .lte('check_in_date', dateRange.end)
-        .gte('check_out_date', dateRange.start);
+        .lte('check_in_date', endDate)
+        .gte('check_out_date', startDate);
 
-      const totalGuests = guestsData?.length || 1; // Avoid division by zero
+      const totalGuests = guestsData?.length || 1;
       const guestIds = guestsData?.map(g => g.id) || [];
 
       // Fetch activity bookings
@@ -158,8 +120,8 @@ export default function SalesPerformanceReport() {
           activity_sessions(activity_id, date, capacity, activities(name))
         `)
         .eq('resort_id', currentResort.id)
-        .gte('created_at', dateRange.start)
-        .lte('created_at', dateRange.end + 'T23:59:59');
+        .gte('created_at', startDate)
+        .lte('created_at', endDate + 'T23:59:59');
 
       // Fetch restaurant reservations
       const { data: restaurantReservations } = await supabase
@@ -176,8 +138,8 @@ export default function SalesPerformanceReport() {
           restaurant_time_slots(restaurant_id, capacity, restaurants(name))
         `)
         .eq('resort_id', currentResort.id)
-        .gte('created_at', dateRange.start)
-        .lte('created_at', dateRange.end + 'T23:59:59');
+        .gte('created_at', startDate)
+        .lte('created_at', endDate + 'T23:59:59');
 
       // Calculate metrics
       const activityRevenue = activityBookings
@@ -459,295 +421,329 @@ export default function SalesPerformanceReport() {
     }
   };
 
-  const generateAIInsights = async () => {
-    if (!currentResort || !metrics) return;
-    
-    setGeneratingAI(true);
-    try {
-      const reportData = {
-        period: { start: dateRange.start, end: dateRange.end },
-        summary: metrics,
-        topActivities: activitySales.slice(0, 5),
-        topRestaurants: restaurantSales.slice(0, 5),
-        channels: channelData,
-        bookingSources: {
-          preStayRevenue: metrics.preStayRevenue,
-          inStayUpsellRevenue: metrics.inStayUpsellRevenue,
-          preStayBookings: metrics.preStayBookings,
-          inStayUpsellBookings: metrics.inStayUpsellBookings,
-          topUpsellItems: upsellItems.slice(0, 5)
-        }
-      };
-
-      const { data, error } = await supabase.functions.invoke('generate-insights', {
-        body: {
-          reportType: 'sales',
-          reportData,
-          resortName: currentResort.name,
-          dateRange
-        }
-      });
-
-      if (error) throw error;
-      setAiInsights(data.insights);
-    } catch (error) {
-      console.error('Error generating AI insights:', error);
-      toast.error('Failed to generate AI insights');
-    } finally {
-      setGeneratingAI(false);
+  // Prepare data for AI insights
+  const reportData = metrics ? {
+    period: { start: startDate, end: endDate },
+    summary: metrics,
+    topActivities: activitySales.slice(0, 5),
+    topRestaurants: restaurantSales.slice(0, 5),
+    channels: channelData,
+    bookingSources: {
+      preStayRevenue: metrics.preStayRevenue,
+      inStayUpsellRevenue: metrics.inStayUpsellRevenue,
+      preStayBookings: metrics.preStayBookings,
+      inStayUpsellBookings: metrics.inStayUpsellBookings,
+      topUpsellItems: upsellItems.slice(0, 5)
     }
-  };
+  } : null;
+
+  // Revenue source breakdown for pie chart
+  const revenueSourceData = metrics ? [
+    { name: 'Normal', value: metrics.normalRevenue },
+    { name: 'Pre-stay', value: metrics.preStayRevenue },
+    { name: 'In-stay Upsell', value: metrics.inStayUpsellRevenue },
+  ].filter(d => d.value > 0) : [];
 
   if (!currentResort) {
-    return <div>Please select a resort</div>;
+    return <div className="text-muted-foreground">Please select a resort</div>;
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Sales Performance</h1>
-        <p className="text-muted-foreground">Revenue metrics and sales analytics</p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Sales Performance</h1>
+          <p className="text-muted-foreground">Revenue metrics and sales analytics</p>
+        </div>
       </div>
 
-      <FilterBar>
-        <FilterBarGroup>
-          <Select value={datePreset} onValueChange={applyDatePreset}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Date range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last7">Last 7 days</SelectItem>
-              <SelectItem value="last30">Last 30 days</SelectItem>
-              <SelectItem value="thisMonth">This month</SelectItem>
-              <SelectItem value="lastMonth">Last month</SelectItem>
-            </SelectContent>
-          </Select>
-        </FilterBarGroup>
-      </FilterBar>
+      {/* Date Range Filter */}
+      <DateRangePresets
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <LoadingSpinner />
         </div>
       ) : (
-        <>
-          {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <StatCard
-              title="Total Revenue"
-              value={`${currentResort.currency} ${metrics?.totalRevenue.toFixed(2) || '0.00'}`}
-              icon={DollarSign}
-              description="Ancillary revenue"
-            />
-            <StatCard
-              title="Revenue per Guest"
-              value={`${currentResort.currency} ${metrics?.revenuePerGuest.toFixed(2) || '0.00'}`}
-              icon={TrendingUp}
-              description="Average per in-house guest"
-            />
-            <StatCard
-              title="Activity Attach Rate"
-              value={`${metrics?.activityAttachRate.toFixed(1) || '0.0'}%`}
-              icon={Users}
-              description="Guests who booked activities"
-            />
-            <StatCard
-              title="F&B Capture Rate"
-              value={`${metrics?.fnbCaptureRate.toFixed(1) || '0.0'}%`}
-              icon={UtensilsCrossed}
-              description="Guests with reservations"
-            />
-            <StatCard
-              title="Cancellation Loss"
-              value={`${currentResort.currency} ${metrics?.cancellationLoss.toFixed(2) || '0.00'}`}
-              icon={DollarSign}
-              description="Revenue lost to cancellations"
-              variant="destructive"
-            />
-          </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <ReportStatCard
+                title="Total Revenue"
+                value={`${currentResort.currency} ${metrics?.totalRevenue.toFixed(2) || '0.00'}`}
+                subtitle="Ancillary revenue"
+                icon={<DollarSign className="h-5 w-5 text-primary" />}
+              />
+              <ReportStatCard
+                title="Revenue per Guest"
+                value={`${currentResort.currency} ${metrics?.revenuePerGuest.toFixed(2) || '0.00'}`}
+                subtitle="Avg per in-house guest"
+                icon={<TrendingUp className="h-5 w-5 text-primary" />}
+              />
+              <ReportStatCard
+                title="Activity Attach Rate"
+                value={`${metrics?.activityAttachRate.toFixed(1) || '0.0'}%`}
+                subtitle="Guests who booked activities"
+                icon={<Users className="h-5 w-5 text-primary" />}
+              />
+              <ReportStatCard
+                title="F&B Capture Rate"
+                value={`${metrics?.fnbCaptureRate.toFixed(1) || '0.0'}%`}
+                subtitle="Guests with reservations"
+                icon={<UtensilsCrossed className="h-5 w-5 text-primary" />}
+              />
+              <ReportStatCard
+                title="Pre-stay Revenue"
+                value={`${currentResort.currency} ${metrics?.preStayRevenue.toFixed(2) || '0.00'}`}
+                subtitle={`${metrics?.preStayBookings || 0} bookings`}
+                icon={<CalendarClock className="h-5 w-5 text-chart-2" />}
+                variant="success"
+              />
+              <ReportStatCard
+                title="Cancellation Loss"
+                value={`${currentResort.currency} ${metrics?.cancellationLoss.toFixed(2) || '0.00'}`}
+                subtitle="Revenue lost"
+                icon={<XCircle className="h-5 w-5 text-destructive" />}
+                variant="danger"
+              />
+            </div>
 
-          {/* Booking Source Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StatCard
-              title="Pre-stay Revenue"
-              value={`${currentResort.currency} ${metrics?.preStayRevenue.toFixed(2) || '0.00'}`}
-              icon={CalendarClock}
-              description={`Bookings before arrival • ${metrics?.preStayBookings || 0} bookings • ${metrics?.totalRevenue > 0 ? ((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}% of total`}
-              variant="success"
-            />
-            <StatCard
-              title="In-stay Upsell Revenue"
-              value={`${currentResort.currency} ${metrics?.inStayUpsellRevenue.toFixed(2) || '0.00'}`}
-              icon={Zap}
-              description={`From portal suggestions • ${metrics?.inStayUpsellBookings || 0} bookings • ${metrics?.totalRevenue > 0 ? ((metrics.inStayUpsellRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}% of total`}
-              variant="success"
-            />
-          </div>
-
-          {/* AI Revenue Coach */}
-          <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-primary" />
-                    Revenue Coach (AI)
-                  </CardTitle>
-                  <CardDescription className="mt-1.5">
-                    Data-driven suggestions to improve ancillary sales
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  {aiInsights && (
-                    <Button
-                      onClick={generateAIInsights}
-                      disabled={generatingAI}
-                      size="sm"
-                      variant="outline"
-                    >
-                      {generatingAI ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Regenerating...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Regenerate
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  {!aiInsights && (
-                    <Button
-                      onClick={generateAIInsights}
-                      disabled={generatingAI}
-                      size="sm"
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      {generatingAI ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Generate Insights
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            {aiInsights && (
+            {/* Revenue Source Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Revenue by Source</CardTitle>
+                <CardDescription>Breakdown of booking channels</CardDescription>
+              </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <div className="space-y-6">
-                    <div className="whitespace-pre-wrap text-sm text-foreground/90 leading-relaxed">
-                      {aiInsights}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Pie Chart */}
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={revenueSourceData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {revenueSourceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                        formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  {/* Bar Chart */}
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart 
+                      data={[
+                        { name: 'Normal', revenue: metrics?.normalRevenue || 0 },
+                        { name: 'Pre-stay', revenue: metrics?.preStayRevenue || 0 },
+                        { name: 'Upsell', revenue: metrics?.inStayUpsellRevenue || 0 }
+                      ]}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={false} />
+                      <XAxis type="number" className="text-xs" tickFormatter={(v) => `${currentResort.currency}${v}`} />
+                      <YAxis dataKey="name" type="category" className="text-xs" width={70} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                        formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
+                      />
+                      <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t mt-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">
+                      {metrics?.totalRevenue && metrics.totalRevenue > 0 
+                        ? ((metrics.normalRevenue / metrics.totalRevenue) * 100).toFixed(1) 
+                        : '0.0'}%
                     </div>
+                    <div className="text-sm text-muted-foreground">Normal</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-chart-2">
+                      {metrics?.totalRevenue && metrics.totalRevenue > 0 
+                        ? ((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1) 
+                        : '0.0'}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">Pre-arrival</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-chart-3">
+                      {metrics?.totalRevenue && metrics.totalRevenue > 0 
+                        ? ((metrics.inStayUpsellRevenue / metrics.totalRevenue) * 100).toFixed(1) 
+                        : '0.0'}%
+                    </div>
+                    <div className="text-sm text-muted-foreground">In-stay Upsell</div>
                   </div>
                 </div>
               </CardContent>
-            )}
-            {!aiInsights && !generatingAI && (
-              <CardContent>
-                <div className="text-center py-8 space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    Get AI-powered analysis of your sales performance with actionable recommendations
-                  </p>
-                  <p className="text-xs text-muted-foreground/70">
-                    The AI will analyze your revenue metrics, attach rates, top performers, and segment data to provide specific suggestions for improvement
-                  </p>
-                </div>
+            </Card>
+
+            {/* Activity Sales */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity Sales</CardTitle>
+                <CardDescription>Revenue performance by activity</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {activitySales.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={activitySales.slice(0, 6)}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="activityName" className="text-xs" />
+                        <YAxis className="text-xs" tickFormatter={(v) => `${currentResort.currency}${v}`} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
+                          formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
+                        />
+                        <Bar dataKey="totalRevenue" fill="hsl(var(--primary))" name="Revenue" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b border-border">
+                          <tr className="text-left">
+                            <th className="pb-2 font-medium">Activity</th>
+                            <th className="pb-2 font-medium text-right">Revenue</th>
+                            <th className="pb-2 font-medium text-right">Pax</th>
+                            <th className="pb-2 font-medium text-right">Avg/Pax</th>
+                            <th className="pb-2 font-medium text-right">Occupancy</th>
+                            <th className="pb-2 font-medium text-right">Cancel %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activitySales.map((activity) => (
+                            <tr key={activity.activityId} className="border-b border-border/50 hover:bg-muted/50">
+                              <td className="py-3">{activity.activityName}</td>
+                              <td className="py-3 text-right font-medium">{currentResort.currency} {activity.totalRevenue.toFixed(2)}</td>
+                              <td className="py-3 text-right">{activity.totalPax}</td>
+                              <td className="py-3 text-right">{currentResort.currency} {activity.avgRevenuePerPax.toFixed(2)}</td>
+                              <td className="py-3 text-right">{activity.avgOccupancy.toFixed(1)}%</td>
+                              <td className="py-3 text-right text-destructive">{activity.cancellationRate.toFixed(1)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No activity sales in this period
+                  </div>
+                )}
               </CardContent>
-            )}
-          </Card>
+            </Card>
 
-          {/* Booking Source Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Where your bookings come from</CardTitle>
-              <CardDescription>Revenue split by booking channel</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart 
-                  data={[
-                    { 
-                      name: 'Normal', 
-                      revenue: metrics?.normalRevenue || 0,
-                      fill: 'hsl(var(--primary))' 
-                    },
-                    { 
-                      name: 'Pre-stay', 
-                      revenue: metrics?.preStayRevenue || 0,
-                      fill: 'hsl(var(--chart-2))' 
-                    },
-                    { 
-                      name: 'In-stay upsell', 
-                      revenue: metrics?.inStayUpsellRevenue || 0,
-                      fill: 'hsl(var(--chart-3))' 
-                    }
-                  ]}
-                >
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                    formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
-                  />
-                  <Bar dataKey="revenue" />
-                </BarChart>
-              </ResponsiveContainer>
+            {/* Restaurant Sales */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Restaurant Sales</CardTitle>
+                <CardDescription>Revenue performance by restaurant</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {restaurantSales.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={restaurantSales}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis dataKey="restaurantName" className="text-xs" />
+                        <YAxis className="text-xs" tickFormatter={(v) => `${currentResort.currency}${v}`} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
+                          formatter={(value: any) => [`${currentResort.currency} ${value.toFixed(2)}`, 'Revenue']}
+                        />
+                        <Bar dataKey="totalRevenue" fill="hsl(var(--chart-2))" name="Revenue" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
 
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-foreground">
-                    {metrics?.totalRevenue > 0 ? ((metrics.normalRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="border-b border-border">
+                          <tr className="text-left">
+                            <th className="pb-2 font-medium">Restaurant</th>
+                            <th className="pb-2 font-medium text-right">Revenue</th>
+                            <th className="pb-2 font-medium text-right">Covers</th>
+                            <th className="pb-2 font-medium text-right">Avg Check</th>
+                            <th className="pb-2 font-medium text-right">Occupancy</th>
+                            <th className="pb-2 font-medium text-right">Cancel %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {restaurantSales.map((restaurant) => (
+                            <tr key={restaurant.restaurantId} className="border-b border-border/50 hover:bg-muted/50">
+                              <td className="py-3">{restaurant.restaurantName}</td>
+                              <td className="py-3 text-right font-medium">{currentResort.currency} {restaurant.totalRevenue.toFixed(2)}</td>
+                              <td className="py-3 text-right">{restaurant.totalCovers}</td>
+                              <td className="py-3 text-right">{currentResort.currency} {restaurant.avgCheckPerCover.toFixed(2)}</td>
+                              <td className="py-3 text-right">{restaurant.avgOccupancy.toFixed(1)}%</td>
+                              <td className="py-3 text-right text-destructive">{restaurant.cancellationRate.toFixed(1)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No restaurant sales in this period
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">Normal bookings</div>
-                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.normalRevenue.toFixed(2) || '0.00'}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-chart-2">
-                    {metrics?.totalRevenue > 0 ? ((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">Pre-arrival</div>
-                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.preStayRevenue.toFixed(2) || '0.00'}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-chart-3">
-                    {metrics?.totalRevenue > 0 ? ((metrics.inStayUpsellRevenue / metrics.totalRevenue) * 100).toFixed(1) : '0.0'}%
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">In-stay upsells</div>
-                  <div className="text-xs text-muted-foreground">{currentResort.currency} {metrics?.inStayUpsellRevenue.toFixed(2) || '0.00'}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* In-stay Upsell Effectiveness */}
-          <Card className="border-chart-3/30 bg-gradient-to-br from-card to-chart-3/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-chart-3" />
-                In-stay Upsell Effectiveness
-              </CardTitle>
-              <CardDescription>
-                Performance of smart suggestions shown during the guest stay
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {metrics && metrics.inStayUpsellRevenue > 0 ? (
-                <>
+            {/* In-stay Upsell Effectiveness */}
+            {metrics && metrics.inStayUpsellRevenue > 0 && (
+              <Card className="border-chart-3/30 bg-gradient-to-br from-card to-chart-3/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-chart-3" />
+                    In-stay Upsell Effectiveness
+                  </CardTitle>
+                  <CardDescription>
+                    Performance of smart suggestions shown during the guest stay
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-card rounded-lg p-4 border">
                       <div className="text-sm text-muted-foreground mb-1">Bookings from suggestions</div>
@@ -796,226 +792,65 @@ export default function SalesPerformanceReport() {
                       </div>
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <Zap className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    No bookings from in-stay suggestions in this period.
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-2">
-                    Smart suggestions appear on guest home when they have light plans.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Pre-stay Planning Impact */}
-          <Card className="border-chart-2/30 bg-gradient-to-br from-card to-chart-2/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarClock className="h-5 w-5 text-chart-2" />
-                Pre-stay Planning Impact
-              </CardTitle>
-              <CardDescription>
-                Revenue secured before guests arrive via pre-arrival links
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {metrics && metrics.preStayRevenue > 0 ? (
-                <>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-card rounded-lg p-4 border">
-                      <div className="text-sm text-muted-foreground mb-1">Bookings before arrival</div>
-                      <div className="text-2xl font-bold text-foreground">{metrics.preStayBookings}</div>
-                    </div>
-                    <div className="bg-card rounded-lg p-4 border">
-                      <div className="text-sm text-muted-foreground mb-1">Pre-stay revenue</div>
-                      <div className="text-2xl font-bold text-foreground">
-                        {currentResort.currency} {metrics.preStayRevenue.toFixed(2)}
-                      </div>
-                    </div>
-                    <div className="bg-card rounded-lg p-4 border">
-                      <div className="text-sm text-muted-foreground mb-1">Share of total revenue</div>
-                      <div className="text-2xl font-bold text-chart-2">
-                        {((metrics.preStayRevenue / metrics.totalRevenue) * 100).toFixed(1)}%
-                      </div>
-                    </div>
+            {/* Channel Performance */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Performance by Channel</CardTitle>
+                <CardDescription>Guest segments and booking channels</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {channelData.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="border-b border-border">
+                        <tr className="text-left">
+                          <th className="pb-2 font-medium">Channel</th>
+                          <th className="pb-2 font-medium text-right">Guests</th>
+                          <th className="pb-2 font-medium text-right">Revenue</th>
+                          <th className="pb-2 font-medium text-right">Rev/Guest</th>
+                          <th className="pb-2 font-medium text-right">Activity %</th>
+                          <th className="pb-2 font-medium text-right">F&B %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {channelData.map((channel) => (
+                          <tr key={channel.segment} className="border-b border-border/50 hover:bg-muted/50">
+                            <td className="py-3 font-medium">{channel.segment}</td>
+                            <td className="py-3 text-right">{channel.guests}</td>
+                            <td className="py-3 text-right font-medium">{currentResort.currency} {channel.totalRevenue.toFixed(2)}</td>
+                            <td className="py-3 text-right">{currentResort.currency} {channel.revenuePerGuest.toFixed(2)}</td>
+                            <td className="py-3 text-right">{channel.activityAttachRate.toFixed(1)}%</td>
+                            <td className="py-3 text-right">{channel.fnbCaptureRate.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-
-                  <div className="bg-card rounded-lg p-4 border">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      <strong className="text-foreground">Pre-stay bookings reduce operational pressure</strong> and increase revenue certainty. 
-                      Guests who plan before arrival are more engaged and have a better experience. Track this metric to measure 
-                      the effectiveness of your pre-arrival communication strategy.
-                    </p>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No channel data available
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <CalendarClock className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    No bookings from pre-arrival planning in this period.
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-2">
-                    Generate pre-arrival links for guests to enable planning before arrival.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Activity Sales */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity Sales & Profitability</CardTitle>
-              <CardDescription>Revenue performance by activity</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={activitySales.slice(0, 8)}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="activityName" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="totalRevenue" fill="hsl(var(--primary))" name="Revenue" />
-                </BarChart>
-              </ResponsiveContainer>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border">
-                    <tr className="text-left">
-                      <th className="pb-2 font-medium">Activity</th>
-                      <th className="pb-2 font-medium text-right">Revenue</th>
-                      <th className="pb-2 font-medium text-right">Pax</th>
-                      <th className="pb-2 font-medium text-right">Avg/Pax</th>
-                      <th className="pb-2 font-medium text-right">Sessions</th>
-                      <th className="pb-2 font-medium text-right">Occupancy</th>
-                      <th className="pb-2 font-medium text-right">Cancel Loss</th>
-                      <th className="pb-2 font-medium text-right">Cancel %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activitySales.map((activity) => (
-                      <tr key={activity.activityId} className="border-b border-border/50">
-                        <td className="py-3">{activity.activityName}</td>
-                        <td className="py-3 text-right font-medium">{currentResort.currency} {activity.totalRevenue.toFixed(2)}</td>
-                        <td className="py-3 text-right">{activity.totalPax}</td>
-                        <td className="py-3 text-right">{currentResort.currency} {activity.avgRevenuePerPax.toFixed(2)}</td>
-                        <td className="py-3 text-right">{activity.sessions}</td>
-                        <td className="py-3 text-right">{activity.avgOccupancy.toFixed(1)}%</td>
-                        <td className="py-3 text-right text-destructive">{currentResort.currency} {activity.cancellationLoss.toFixed(2)}</td>
-                        <td className="py-3 text-right">{activity.cancellationRate.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Restaurant Sales */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Restaurant & F&B Sales</CardTitle>
-              <CardDescription>Revenue performance by restaurant</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={restaurantSales}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="restaurantName" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="totalRevenue" fill="hsl(var(--primary))" name="Revenue" />
-                </BarChart>
-              </ResponsiveContainer>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border">
-                    <tr className="text-left">
-                      <th className="pb-2 font-medium">Restaurant</th>
-                      <th className="pb-2 font-medium text-right">Revenue</th>
-                      <th className="pb-2 font-medium text-right">Covers</th>
-                      <th className="pb-2 font-medium text-right">Avg Check</th>
-                      <th className="pb-2 font-medium text-right">Occupancy</th>
-                      <th className="pb-2 font-medium text-right">Cancel Loss</th>
-                      <th className="pb-2 font-medium text-right">Cancel %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {restaurantSales.map((restaurant) => (
-                      <tr key={restaurant.restaurantId} className="border-b border-border/50">
-                        <td className="py-3">{restaurant.restaurantName}</td>
-                        <td className="py-3 text-right font-medium">{currentResort.currency} {restaurant.totalRevenue.toFixed(2)}</td>
-                        <td className="py-3 text-right">{restaurant.totalCovers}</td>
-                        <td className="py-3 text-right">{currentResort.currency} {restaurant.avgCheckPerCover.toFixed(2)}</td>
-                        <td className="py-3 text-right">{restaurant.avgOccupancy.toFixed(1)}%</td>
-                        <td className="py-3 text-right text-destructive">{currentResort.currency} {restaurant.cancellationLoss.toFixed(2)}</td>
-                        <td className="py-3 text-right">{restaurant.cancellationRate.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Segments & Channels */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance by Channel</CardTitle>
-              <CardDescription>Guest segments and booking channels</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border">
-                    <tr className="text-left">
-                      <th className="pb-2 font-medium">Channel</th>
-                      <th className="pb-2 font-medium text-right">Guests</th>
-                      <th className="pb-2 font-medium text-right">Total Revenue</th>
-                      <th className="pb-2 font-medium text-right">Revenue/Guest</th>
-                      <th className="pb-2 font-medium text-right">Activity Attach</th>
-                      <th className="pb-2 font-medium text-right">F&B Capture</th>
-                      <th className="pb-2 font-medium text-right">Cancel %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {channelData.map((channel) => (
-                      <tr key={channel.segment} className="border-b border-border/50">
-                        <td className="py-3 font-medium">{channel.segment}</td>
-                        <td className="py-3 text-right">{channel.guests}</td>
-                        <td className="py-3 text-right font-medium">{currentResort.currency} {channel.totalRevenue.toFixed(2)}</td>
-                        <td className="py-3 text-right">{currentResort.currency} {channel.revenuePerGuest.toFixed(2)}</td>
-                        <td className="py-3 text-right">{channel.activityAttachRate.toFixed(1)}%</td>
-                        <td className="py-3 text-right">{channel.fnbCaptureRate.toFixed(1)}%</td>
-                        <td className="py-3 text-right">{channel.cancellationRate.toFixed(1)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+          {/* AI Insights Sidebar */}
+          <div className="xl:col-span-1">
+            <div className="sticky top-6">
+              <AIInsightsPanel
+                reportType="sales"
+                reportData={reportData}
+                resortName={currentResort.name}
+                dateRange={{ start: startDate, end: endDate }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
