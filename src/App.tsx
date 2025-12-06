@@ -75,6 +75,7 @@ import GuestRestaurantBookingPage from "./pages/guest/GuestRestaurantBookingPage
 import GuestStayFeedback from "./pages/guest/GuestStayFeedback";
 import GuestActivityExplorer from "./pages/guest/GuestActivityExplorer";
 import GuestActivityDetailPage from "./pages/guest/GuestActivityDetailPage";
+import GuestProfilePage from "./pages/guest/GuestProfilePage";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 import GuestNotificationsPage from "./pages/guest/GuestNotificationsPage";
 import PreArrivalPage from "./pages/guest/PreArrivalPage";
@@ -183,6 +184,7 @@ const App = () => (
                 <Route path="/guest/find" element={<GuestFindResort />} />
                 <Route path="/guest" element={<GuestLayout />}>
                   <Route index element={<GuestHome />} />
+                  <Route path="profile" element={<GuestProfilePage />} />
                   <Route path="bookings" element={<GuestMyBookings />} />
                   <Route path="activities" element={<GuestActivitiesBrowser />} />
                   <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />

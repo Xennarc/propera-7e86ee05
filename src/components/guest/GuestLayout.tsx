@@ -81,7 +81,10 @@ export function GuestLayout() {
       {/* Mobile-optimized Header */}
       <header className="sticky top-0 z-10 glass-dark border-b border-border/30 shadow-soft safe-area-inset-top">
         <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <Link 
+            to="/guest/profile" 
+            className="flex items-center gap-2.5 sm:gap-3 min-w-0 hover:opacity-80 transition-opacity"
+          >
             <ProperaMark size={40} className="text-primary flex-shrink-0" />
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
@@ -89,7 +92,7 @@ export function GuestLayout() {
               </h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Room {guest.roomNumber}</p>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
             <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10" />
             <GuestNotificationBell />
