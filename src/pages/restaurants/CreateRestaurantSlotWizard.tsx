@@ -29,6 +29,8 @@ interface PreviewSlot {
   included: boolean;
   isClosed: boolean;
   hasExisting: boolean;
+  isDuplicate: boolean;
+  duplicateReason: string;
 }
 
 const WEEKDAYS = [
@@ -56,7 +58,8 @@ export default function CreateRestaurantSlotWizard() {
   const [step, setStep] = useState(1);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [closures, setClosures] = useState<RestaurantClosure[]>([]);
-  const [existingSlots, setExistingSlots] = useState<{ date: string; start_time: string }[]>([]);
+  const [existingSlots, setExistingSlots] = useState<Set<string>>(new Set());
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -137,6 +140,7 @@ export default function CreateRestaurantSlotWizard() {
 
   const fetchExistingSlots = async () => {
     if (!currentResort || !selectedRestaurantId) return;
+    setCheckingDuplicates(true);
     const dateRange = scheduleType === 'single' 
       ? { start: singleDate, end: singleDate }
       : { start: startDate, end: endDate };
@@ -149,21 +153,45 @@ export default function CreateRestaurantSlotWizard() {
       .gte('date', dateRange.start)
       .lte('date', dateRange.end);
     
-    if (data) setExistingSlots(data);
+    if (data) {
+      const slotSet = new Set(data.map(s => `${s.date}_${s.start_time.slice(0, 5)}`));
+      setExistingSlots(slotSet);
+    }
+    setCheckingDuplicates(false);
   };
 
   const selectedRestaurant = restaurants.find(r => r.id === selectedRestaurantId);
 
+  // Check if a slot is a duplicate (exists in DB or duplicates another row in preview)
+  const checkDuplicate = (date: string, time: string, currentIndex: number, allSlots: PreviewSlot[]): { isDuplicate: boolean; reason: string } => {
+    const key = `${date}_${time}`;
+    
+    // Check against existing slots in database
+    if (existingSlots.has(key)) {
+      return { isDuplicate: true, reason: 'Already exists in database' };
+    }
+    
+    // Check against other rows in the preview (earlier in list)
+    for (let i = 0; i < currentIndex; i++) {
+      const other = allSlots[i];
+      if (other.date === date && other.startTime === time && other.included) {
+        return { isDuplicate: true, reason: 'Duplicates another row in this batch' };
+      }
+    }
+    
+    return { isDuplicate: false, reason: '' };
+  };
+
   // Generate preview slots
   const generatePreview = () => {
     const closureDates = new Set(closures.map(c => c.closure_date));
-    const existingSet = new Set(existingSlots.map(s => `${s.date}_${s.start_time.slice(0, 5)}`));
     const slots: PreviewSlot[] = [];
 
     if (scheduleType === 'single') {
       const dateObj = parseISO(singleDate);
       const isClosed = closureDates.has(singleDate);
-      const hasExisting = existingSet.has(`${singleDate}_${startTime}`);
+      const hasExisting = existingSlots.has(`${singleDate}_${startTime}`);
+      const isDuplicate = hasExisting;
       slots.push({
         date: singleDate,
         weekday: format(dateObj, 'EEE'),
@@ -171,9 +199,11 @@ export default function CreateRestaurantSlotWizard() {
         endTime,
         capacity,
         mealPeriod,
-        included: !isClosed && !hasExisting,
+        included: !isClosed && !isDuplicate,
         isClosed,
         hasExisting,
+        isDuplicate,
+        duplicateReason: isDuplicate ? 'Already exists in database' : '',
       });
     } else {
       let current = parseISO(startDate);
@@ -188,7 +218,8 @@ export default function CreateRestaurantSlotWizard() {
 
         if (shouldInclude) {
           const isClosed = closureDates.has(dateStr);
-          const hasExisting = existingSet.has(`${dateStr}_${startTime}`);
+          const hasExisting = existingSlots.has(`${dateStr}_${startTime}`);
+          const isDuplicate = hasExisting;
           slots.push({
             date: dateStr,
             weekday: format(current, 'EEE'),
@@ -196,9 +227,11 @@ export default function CreateRestaurantSlotWizard() {
             endTime,
             capacity,
             mealPeriod,
-            included: !isClosed && !hasExisting,
+            included: !isClosed && !isDuplicate,
             isClosed,
             hasExisting,
+            isDuplicate,
+            duplicateReason: isDuplicate ? 'Already exists in database' : '',
           });
         }
         current = addDays(current, 1);
@@ -216,24 +249,45 @@ export default function CreateRestaurantSlotWizard() {
 
   const toggleSlotIncluded = (index: number) => {
     setPreviewSlots(prev => prev.map((slot, i) => 
-      i === index && !slot.isClosed && !slot.hasExisting
+      i === index && !slot.isClosed && !slot.isDuplicate
         ? { ...slot, included: !slot.included }
         : slot
     ));
   };
 
   const updateSlotField = (index: number, field: keyof PreviewSlot, value: any) => {
-    setPreviewSlots(prev => prev.map((slot, i) => 
-      i === index ? { ...slot, [field]: value } : slot
-    ));
+    setPreviewSlots(prev => {
+      const updated = prev.map((slot, i) => 
+        i === index ? { ...slot, [field]: value } : slot
+      );
+      
+      // If start time changed, re-check for duplicates
+      if (field === 'startTime') {
+        return updated.map((slot, i) => {
+          if (i === index) {
+            const { isDuplicate, reason } = checkDuplicate(slot.date, value, i, updated);
+            return {
+              ...slot,
+              isDuplicate,
+              duplicateReason: reason,
+              included: slot.isClosed || isDuplicate ? false : slot.included,
+            };
+          }
+          return slot;
+        });
+      }
+      
+      return updated;
+    });
   };
 
   const includedCount = previewSlots.filter(s => s.included).length;
+  const duplicateCount = previewSlots.filter(s => s.isDuplicate).length;
 
   const handleCreate = async () => {
     if (!currentResort || !selectedRestaurantId) return;
     
-    const slotsToCreate = previewSlots.filter(s => s.included);
+    const slotsToCreate = previewSlots.filter(s => s.included && !s.isDuplicate);
     if (slotsToCreate.length === 0) {
       toast({ variant: 'destructive', title: 'No slots selected', description: 'Please select at least one slot to create.' });
       return;
@@ -601,8 +655,25 @@ export default function CreateRestaurantSlotWizard() {
                   {scheduleType === 'single' ? 'Single slot' : `Recurring: ${frequency === 'daily' ? 'Every day' : 'Selected days'}`}
                 </p>
               </div>
-              <Badge variant="secondary">{includedCount} slot{includedCount !== 1 ? 's' : ''} will be created</Badge>
+              <div className="flex items-center gap-2">
+                {duplicateCount > 0 && (
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">
+                    {duplicateCount} duplicate{duplicateCount !== 1 ? 's' : ''}
+                  </Badge>
+                )}
+                <Badge variant="secondary">{includedCount} will be created</Badge>
+              </div>
             </div>
+
+            {duplicateCount > 0 && (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <p className="text-sm">
+                  {duplicateCount} slot{duplicateCount !== 1 ? 's already exist' : ' already exists'} and will be skipped. 
+                  Change the start time to create a different slot.
+                </p>
+              </div>
+            )}
 
             {previewSlots.length > 10 && (
               <p className="text-sm text-muted-foreground">
@@ -626,12 +697,18 @@ export default function CreateRestaurantSlotWizard() {
                   </thead>
                   <tbody>
                     {previewSlots.map((slot, index) => (
-                      <tr key={slot.date} className={`border-t ${slot.isClosed || slot.hasExisting ? 'opacity-50' : ''}`}>
+                      <tr 
+                        key={`${slot.date}-${index}`} 
+                        className={`border-t ${
+                          slot.isClosed ? 'opacity-50 bg-muted/30' : 
+                          slot.isDuplicate ? 'bg-amber-500/5' : ''
+                        }`}
+                      >
                         <td className="p-2">
                           <Checkbox
                             checked={slot.included}
                             onCheckedChange={() => toggleSlotIncluded(index)}
-                            disabled={slot.isClosed || slot.hasExisting}
+                            disabled={slot.isClosed || slot.isDuplicate}
                           />
                         </td>
                         <td className="p-2 font-medium">{format(parseISO(slot.date), 'MMM d, yyyy')}</td>
@@ -641,8 +718,8 @@ export default function CreateRestaurantSlotWizard() {
                             type="time"
                             value={slot.startTime}
                             onChange={(e) => updateSlotField(index, 'startTime', e.target.value)}
-                            disabled={slot.isClosed || slot.hasExisting || !slot.included}
-                            className="h-8 w-24"
+                            disabled={slot.isClosed}
+                            className={`h-8 w-24 ${slot.isDuplicate ? 'border-amber-400' : ''}`}
                           />
                         </td>
                         <td className="p-2">
@@ -650,7 +727,7 @@ export default function CreateRestaurantSlotWizard() {
                             type="time"
                             value={slot.endTime}
                             onChange={(e) => updateSlotField(index, 'endTime', e.target.value)}
-                            disabled={slot.isClosed || slot.hasExisting || !slot.included}
+                            disabled={slot.isClosed || slot.isDuplicate || !slot.included}
                             className="h-8 w-24"
                           />
                         </td>
@@ -660,15 +737,15 @@ export default function CreateRestaurantSlotWizard() {
                             min={1}
                             value={slot.capacity}
                             onChange={(e) => updateSlotField(index, 'capacity', parseInt(e.target.value) || 1)}
-                            disabled={slot.isClosed || slot.hasExisting || !slot.included}
+                            disabled={slot.isClosed || slot.isDuplicate || !slot.included}
                             className="h-8 w-20"
                           />
                         </td>
                         <td className="p-2">
                           {slot.isClosed ? (
                             <Badge variant="destructive" className="text-xs">Closed</Badge>
-                          ) : slot.hasExisting ? (
-                            <Badge variant="secondary" className="text-xs">Exists</Badge>
+                          ) : slot.isDuplicate ? (
+                            <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">Already exists</Badge>
                           ) : slot.included ? (
                             <Badge variant="default" className="text-xs">Will create</Badge>
                           ) : (
