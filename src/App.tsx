@@ -69,6 +69,8 @@ import ResortPricingPage from "./pages/settings/ResortPricingPage";
 import GuestHome from "./pages/guest/GuestHome";
 import GuestMyBookings from "./pages/guest/GuestMyBookings";
 import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
+import GuestActivityCataloguePage from "./pages/guest/GuestActivityCataloguePage";
+import GuestActivitySessionsPage from "./pages/guest/GuestActivitySessionsPage";
 import GuestActivityBookingPage from "./pages/guest/GuestActivityBookingPage";
 import GuestRestaurantBrowser from "./pages/guest/GuestRestaurantBrowser";
 import GuestRestaurantBookingPage from "./pages/guest/GuestRestaurantBookingPage";
@@ -186,8 +188,10 @@ const App = () => (
                   <Route index element={<GuestHome />} />
                   <Route path="profile" element={<GuestProfilePage />} />
                   <Route path="bookings" element={<GuestMyBookings />} />
-                  <Route path="activities" element={<GuestActivitiesBrowser />} />
+                  <Route path="activities" element={<GuestActivityCataloguePage />} />
+                  <Route path="activities/sessions" element={<GuestActivitySessionsPage />} />
                   <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />
+                  <Route path="activities/:activityId" element={<GuestActivityDetailPage />} />
                   <Route path="restaurants" element={<GuestRestaurantBrowser />} />
                   <Route path="restaurants/book/:slotId" element={<GuestRestaurantBookingPage />} />
                   <Route path="feedback" element={<GuestStayFeedback />} />
