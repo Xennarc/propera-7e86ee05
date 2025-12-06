@@ -29,6 +29,7 @@ import { getCategoryConfig } from '@/lib/activity-category-config';
 const activitySchema = z.object({
   name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
   category: z.string().min(1, 'Category is required'),
+  icon_key: z.string().min(1, 'Please select an icon for this activity'),
   duration_minutes: z.number().min(1, 'Duration must be at least 1 minute'),
   default_price_per_person: z.number().min(0, 'Price cannot be negative'),
   default_max_capacity: z.number().min(1, 'Capacity must be at least 1'),
@@ -123,6 +124,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
     const result = activitySchema.safeParse({
       name: formData.name,
       category: formData.category,
+      icon_key: formData.icon_key || '',
       duration_minutes: formData.duration_minutes,
       default_price_per_person: formData.default_price_per_person,
       default_max_capacity: formData.default_max_capacity,
@@ -235,13 +237,19 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
           </div>
 
           <div className="space-y-2">
-            <Label>Icon</Label>
+            <Label>Icon *</Label>
             <ActivityIconPicker
               value={formData.icon_key}
-              onChange={(value) => setFormData({ ...formData, icon_key: value })}
+              onChange={(value) => {
+                setFormData({ ...formData, icon_key: value });
+                if (value && errors.icon_key) {
+                  setErrors(prev => ({ ...prev, icon_key: '' }));
+                }
+              }}
             />
+            {errors.icon_key && <p className="text-sm text-destructive">{errors.icon_key}</p>}
             <p className="text-xs text-muted-foreground">
-              Choose a custom icon or leave empty to use the category default
+              Select an icon that represents this activity for guests
             </p>
           </div>
 
