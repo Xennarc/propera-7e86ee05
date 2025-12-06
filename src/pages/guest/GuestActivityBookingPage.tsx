@@ -13,11 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { CategoryIcon } from '@/components/ui/category-badge';
+import { NumberStepper } from '@/components/ui/number-stepper';
 
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
@@ -62,6 +63,52 @@ export default function GuestActivityBookingPage() {
       return (data as any[]) || [];
     },
     enabled: !!guest,
+  });
+
+  // Fetch room occupancy (count of guests in the same room for this resort)
+  const { data: roomOccupancy } = useQuery({
+    queryKey: ['room-occupancy', guest?.resortId, guest?.roomNumber],
+    queryFn: async () => {
+      if (!guest?.resortId || !guest?.roomNumber) return 2; // Default fallback
+      const { count, error } = await supabase
+        .from('guests')
+        .select('id', { count: 'exact', head: true })
+        .eq('resort_id', guest.resortId)
+        .eq('room_number', guest.roomNumber);
+      if (error) return 2;
+      return count || 2;
+    },
+    enabled: !!guest?.resortId && !!guest?.roomNumber,
+  });
+
+  // Fetch existing room bookings for this session to prevent double booking
+  const { data: roomBookings } = useQuery({
+    queryKey: ['room-bookings', guest?.resortId, guest?.roomNumber, selectedSessionId],
+    queryFn: async () => {
+      if (!guest?.resortId || !guest?.roomNumber || !selectedSessionId) return [];
+      // Get all guests in this room
+      const { data: roomGuests } = await supabase
+        .from('guests')
+        .select('id')
+        .eq('resort_id', guest.resortId)
+        .eq('room_number', guest.roomNumber);
+      
+      if (!roomGuests || roomGuests.length === 0) return [];
+      
+      const guestIds = roomGuests.map(g => g.id);
+      
+      // Check if any room guest has a booking for this session
+      const { data: bookings, error } = await supabase
+        .from('activity_bookings')
+        .select('id, guest_id, num_adults, num_children, status')
+        .eq('session_id', selectedSessionId)
+        .in('guest_id', guestIds)
+        .in('status', ['CONFIRMED', 'PENDING']);
+      
+      if (error) return [];
+      return bookings || [];
+    },
+    enabled: !!guest?.resortId && !!guest?.roomNumber && !!selectedSessionId,
   });
 
   // Fetch resort pricing charges
@@ -236,7 +283,13 @@ export default function GuestActivityBookingPage() {
   }
 
   const totalPax = numAdults + numChildren;
-  const maxPax = session.max_pax_per_booking;
+  const maxPaxActivity = session.max_pax_per_booking;
+  // Use room occupancy as upper limit, but also respect activity max and remaining spots
+  const effectiveMaxPax = Math.min(maxPaxActivity, roomOccupancy || maxPaxActivity, session.remaining_spots);
+  
+  // Check if there's already a booking from this room
+  const existingRoomBooking = roomBookings && roomBookings.length > 0 ? roomBookings[0] : null;
+  const hasRoomBooking = !!existingRoomBooking;
 
   return (
     <div className="space-y-4">
@@ -421,7 +474,7 @@ export default function GuestActivityBookingPage() {
           <div className="rounded-lg bg-muted/50 p-3 text-sm">
             <p className="font-medium mb-1">Good to know:</p>
             <ul className="text-muted-foreground space-y-1">
-              <li>• Maximum {maxPax} guests per booking</li>
+              <li>• Maximum {effectiveMaxPax} guests per booking</li>
               <li>• Online booking closes {session.guest_cutoff_hours}h before start time</li>
               {session.guest_can_cancel && (
                 <li>• You can cancel online up to {session.guest_cancel_cutoff_hours}h before</li>
@@ -435,29 +488,40 @@ export default function GuestActivityBookingPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Number of Guests</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {roomOccupancy && roomOccupancy > 1 
+              ? `Booking for Room ${guest.roomNumber} (${roomOccupancy} guests)` 
+              : `Booking for Room ${guest.roomNumber}`}
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Room already has a booking notice */}
+          {hasRoomBooking && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Your room already has a booking for this activity session. All guests in room {guest.roomNumber} can view this booking.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Adults</Label>
-              <Input
-                type="number"
-                min={1}
-                max={maxPax - numChildren}
-                value={numAdults}
-                onChange={(e) => setNumAdults(Math.max(1, Math.min(maxPax - numChildren, parseInt(e.target.value) || 1)))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Children</Label>
-              <Input
-                type="number"
-                min={0}
-                max={maxPax - numAdults}
-                value={numChildren}
-                onChange={(e) => setNumChildren(Math.max(0, Math.min(maxPax - numAdults, parseInt(e.target.value) || 0)))}
-              />
-            </div>
+            <NumberStepper
+              label="Adults"
+              value={numAdults}
+              onChange={(value) => setNumAdults(Math.min(value, effectiveMaxPax - numChildren))}
+              min={1}
+              max={effectiveMaxPax - numChildren}
+              disabled={hasRoomBooking}
+            />
+            <NumberStepper
+              label="Children"
+              value={numChildren}
+              onChange={(value) => setNumChildren(Math.min(value, effectiveMaxPax - numAdults))}
+              min={0}
+              max={effectiveMaxPax - numAdults}
+              disabled={hasRoomBooking}
+            />
           </div>
 
           {/* Pricing Summary */}
@@ -528,13 +592,15 @@ export default function GuestActivityBookingPage() {
           <Button
             className="w-full h-12 text-base font-semibold"
             onClick={() => bookMutation.mutate()}
-            disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1}
+            disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1 || hasRoomBooking}
           >
             {bookMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Confirming your booking...
               </>
+            ) : hasRoomBooking ? (
+              'Already Booked'
             ) : (
               session.requires_approval ? 'Submit Request' : 'Confirm Booking'
             )}
