@@ -198,6 +198,24 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
 
     setLoading(true);
 
+    // Check for duplicate activity name (case-insensitive) in the same resort
+    const trimmedName = formData.name.trim().toLowerCase();
+    const { data: existingActivities } = await supabase
+      .from('activities')
+      .select('id, name')
+      .eq('resort_id', resortId)
+      .ilike('name', trimmedName);
+
+    const duplicate = existingActivities?.find(
+      a => a.name.toLowerCase() === trimmedName && a.id !== activity?.id
+    );
+
+    if (duplicate) {
+      setErrors({ name: `An activity named "${duplicate.name}" already exists` });
+      setLoading(false);
+      return;
+    }
+
     const activityData = {
       resort_id: resortId,
       name: formData.name.trim(),
