@@ -35,6 +35,7 @@ export type Database = {
           highlights: Json | null
           icon_key: string | null
           id: string
+          image_url: string | null
           includes: string | null
           is_active: boolean
           is_swimming_required: boolean
@@ -68,6 +69,7 @@ export type Database = {
           highlights?: Json | null
           icon_key?: string | null
           id?: string
+          image_url?: string | null
           includes?: string | null
           is_active?: boolean
           is_swimming_required?: boolean
@@ -101,6 +103,7 @@ export type Database = {
           highlights?: Json | null
           icon_key?: string | null
           id?: string
+          image_url?: string | null
           includes?: string | null
           is_active?: boolean
           is_swimming_required?: boolean
