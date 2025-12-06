@@ -84,7 +84,9 @@ export function GuestLayout() {
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <ProperaMark size={40} className="text-primary flex-shrink-0" />
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold text-foreground truncate">Guest Portal</h1>
+              <h1 className="text-sm sm:text-base font-bold text-foreground truncate">
+                {guest.resortName || 'Guest Portal'}
+              </h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">Room {guest.roomNumber}</p>
             </div>
           </div>
