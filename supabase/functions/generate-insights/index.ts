@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,60 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authorization
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    // Verify user is authenticated
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if user has required role (SUPER_ADMIN, RESORT_ADMIN, or MANAGER)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("global_role")
+      .eq("id", user.id)
+      .single();
+
+    const isSuperAdmin = profile?.global_role === "SUPER_ADMIN";
+
+    if (!isSuperAdmin) {
+      // Check resort membership for RESORT_ADMIN or MANAGER role
+      const { data: memberships } = await supabase
+        .from("resort_memberships")
+        .select("resort_role")
+        .eq("user_id", user.id);
+
+      const hasAllowedRole = memberships?.some(
+        (m) => ["RESORT_ADMIN", "MANAGER"].includes(m.resort_role)
+      );
+
+      if (!hasAllowedRole) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: Insufficient permissions" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { reportType, reportData, resortName, dateRange } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
