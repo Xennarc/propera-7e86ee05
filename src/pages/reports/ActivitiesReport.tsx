@@ -1,12 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -22,9 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, Calendar, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Download, Calendar, Users, DollarSign, TrendingUp, Activity, Percent } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { DateRangePresets } from '@/components/reports/DateRangePresets';
+import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { EmptyState } from '@/components/ui/empty-state';
+
+const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
 export default function ActivitiesReport() {
   const { currentResort } = useResort();
@@ -39,7 +42,7 @@ export default function ActivitiesReport() {
       if (!currentResort) return [];
       const { data, error } = await supabase
         .from('activities')
-        .select('id, name')
+        .select('id, name, category')
         .eq('resort_id', currentResort.id)
         .order('name');
       if (error) throw error;
@@ -62,13 +65,14 @@ export default function ActivitiesReport() {
           date,
           capacity,
           activity_id,
-          activities!inner(id, name),
+          activities!inner(id, name, category),
           activity_bookings(
             id,
             status,
             num_adults,
             num_children,
-            total_amount
+            total_amount,
+            booking_source
           )
         `)
         .eq('resort_id', currentResort.id)
@@ -85,32 +89,45 @@ export default function ActivitiesReport() {
       // Aggregate data
       const activityMap = new Map<string, {
         name: string;
+        category: string;
         totalSessions: number;
         totalCapacity: number;
         confirmedPax: number;
         totalRevenue: number;
         noShowCount: number;
         confirmedAndNoShowCount: number;
+        preStayRevenue: number;
+        inStayRevenue: number;
       }>();
+
+      const categoryMap = new Map<string, number>();
 
       let totalSessions = 0;
       let totalPax = 0;
       let totalRevenue = 0;
       let totalCapacity = 0;
+      let totalNoShows = 0;
+      let totalBookings = 0;
+      let preStayRevenue = 0;
+      let inStayRevenue = 0;
 
       sessions?.forEach((session: any) => {
         const activityName = session.activities?.name || 'Unknown';
+        const activityCategory = session.activities?.category || 'OTHER';
         const activityId = session.activity_id;
 
         if (!activityMap.has(activityId)) {
           activityMap.set(activityId, {
             name: activityName,
+            category: activityCategory,
             totalSessions: 0,
             totalCapacity: 0,
             confirmedPax: 0,
             totalRevenue: 0,
             noShowCount: 0,
             confirmedAndNoShowCount: 0,
+            preStayRevenue: 0,
+            inStayRevenue: 0,
           });
         }
 
@@ -122,33 +139,59 @@ export default function ActivitiesReport() {
 
         session.activity_bookings?.forEach((booking: any) => {
           const pax = (booking.num_adults || 0) + (booking.num_children || 0);
+          const revenue = booking.total_amount || 0;
           
           if (booking.status === 'CONFIRMED' || booking.status === 'COMPLETED') {
             stats.confirmedPax += pax;
-            stats.totalRevenue += booking.total_amount || 0;
+            stats.totalRevenue += revenue;
             stats.confirmedAndNoShowCount += 1;
             totalPax += pax;
-            totalRevenue += booking.total_amount || 0;
+            totalRevenue += revenue;
+            totalBookings += 1;
+
+            // Track by category
+            categoryMap.set(activityCategory, (categoryMap.get(activityCategory) || 0) + pax);
+
+            // Track booking source
+            if (booking.booking_source === 'PRE_STAY') {
+              stats.preStayRevenue += revenue;
+              preStayRevenue += revenue;
+            } else if (booking.booking_source === 'IN_STAY_SUGGESTION') {
+              stats.inStayRevenue += revenue;
+              inStayRevenue += revenue;
+            }
           } else if (booking.status === 'NO_SHOW') {
             stats.noShowCount += 1;
             stats.confirmedAndNoShowCount += 1;
+            totalNoShows += 1;
+            totalBookings += 1;
           }
         });
       });
 
-      const activityStats = Array.from(activityMap.values()).map(stats => ({
-        ...stats,
-        avgOccupancy: stats.totalCapacity > 0 
-          ? Math.round((stats.confirmedPax / stats.totalCapacity) * 100) 
-          : 0,
-        noShowPercent: stats.confirmedAndNoShowCount > 0
-          ? Math.round((stats.noShowCount / stats.confirmedAndNoShowCount) * 100)
-          : 0,
-      }));
+      const activityStats = Array.from(activityMap.values())
+        .map(stats => ({
+          ...stats,
+          avgOccupancy: stats.totalCapacity > 0 
+            ? Math.round((stats.confirmedPax / stats.totalCapacity) * 100) 
+            : 0,
+          noShowPercent: stats.confirmedAndNoShowCount > 0
+            ? Math.round((stats.noShowCount / stats.confirmedAndNoShowCount) * 100)
+            : 0,
+        }))
+        .sort((a, b) => b.totalRevenue - a.totalRevenue);
 
       const avgOccupancy = totalCapacity > 0 
         ? Math.round((totalPax / totalCapacity) * 100) 
         : 0;
+
+      const noShowRate = totalBookings > 0
+        ? Math.round((totalNoShows / totalBookings) * 100)
+        : 0;
+
+      const categoryData = Array.from(categoryMap.entries())
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
 
       return {
         summary: {
@@ -156,32 +199,41 @@ export default function ActivitiesReport() {
           totalPax,
           totalRevenue,
           avgOccupancy,
+          noShowRate,
+          preStayRevenue,
+          inStayRevenue,
+          totalBookings,
         },
         activityStats,
+        categoryData,
       };
     },
     enabled: !!currentResort,
   });
 
   const chartData = useMemo(() => {
-    return reportData?.activityStats.map(stat => ({
-      name: stat.name.length > 15 ? stat.name.substring(0, 15) + '...' : stat.name,
+    return reportData?.activityStats.slice(0, 10).map(stat => ({
+      name: stat.name.length > 20 ? stat.name.substring(0, 20) + '...' : stat.name,
       pax: stat.confirmedPax,
       revenue: stat.totalRevenue,
+      occupancy: stat.avgOccupancy,
     })) || [];
   }, [reportData]);
 
   const exportCSV = () => {
     if (!reportData) return;
 
-    const headers = ['Activity', 'Total Sessions', 'Total Pax', 'Avg Occupancy %', 'Total Revenue', 'No-Show %'];
+    const headers = ['Activity', 'Category', 'Sessions', 'Total Pax', 'Avg Occupancy %', 'Total Revenue', 'No-Show %', 'Pre-Stay Revenue', 'In-Stay Revenue'];
     const rows = reportData.activityStats.map(stat => [
       stat.name,
+      stat.category,
       stat.totalSessions,
       stat.confirmedPax,
       stat.avgOccupancy,
       stat.totalRevenue.toFixed(2),
       stat.noShowPercent,
+      stat.preStayRevenue.toFixed(2),
+      stat.inStayRevenue.toFixed(2),
     ]);
 
     const csvContent = [
@@ -198,20 +250,25 @@ export default function ActivitiesReport() {
 
   if (!currentResort) {
     return (
-      <div className="p-6">
-        <p className="text-muted-foreground">Please select a resort to view reports.</p>
+      <div className="flex items-center justify-center h-[50vh]">
+        <EmptyState
+          icon={Activity}
+          title="No Resort Selected"
+          description="Please select a resort to view activity reports"
+        />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Activities Report</h1>
-          <p className="text-muted-foreground">Activity booking statistics and revenue</p>
+          <h1 className="text-2xl font-bold text-foreground">Activities Report</h1>
+          <p className="text-muted-foreground">Activity booking statistics and revenue analysis</p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData}>
+        <Button onClick={exportCSV} disabled={!reportData || isLoading} variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Export CSV
         </Button>
@@ -219,31 +276,21 @@ export default function ActivitiesReport() {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date</Label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Activity</Label>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_200px] gap-6">
+            <DateRangePresets
+              startDate={startDate}
+              endDate={endDate}
+              onStartDateChange={setStartDate}
+              onEndDateChange={setEndDate}
+            />
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Activity</label>
               <Select value={selectedActivity} onValueChange={setSelectedActivity}>
-                <SelectTrigger>
+                <SelectTrigger className="h-9">
                   <SelectValue placeholder="All Activities" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,138 +308,209 @@ export default function ActivitiesReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <ReportStatCard
+          title="Total Sessions"
+          value={reportData?.summary.totalSessions || 0}
+          icon={<Calendar className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Total Guests"
+          value={reportData?.summary.totalPax || 0}
+          subtitle={`${reportData?.summary.totalBookings || 0} bookings`}
+          icon={<Users className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Total Revenue"
+          value={`${currentResort.currency} ${(reportData?.summary.totalRevenue || 0).toLocaleString()}`}
+          icon={<DollarSign className="h-5 w-5 text-primary" />}
+        />
+        <ReportStatCard
+          title="Avg Occupancy"
+          value={`${reportData?.summary.avgOccupancy || 0}%`}
+          subtitle={`${reportData?.summary.noShowRate || 0}% no-show rate`}
+          icon={<TrendingUp className="h-5 w-5 text-primary" />}
+          variant={
+            (reportData?.summary.avgOccupancy || 0) >= 70 
+              ? 'success' 
+              : (reportData?.summary.avgOccupancy || 0) >= 40 
+                ? 'default' 
+                : 'warning'
+          }
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Bar Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Guests by Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" horizontal={true} vertical={false} />
+                    <XAxis type="number" className="text-xs" />
+                    <YAxis dataKey="name" type="category" width={120} className="text-xs" tick={{ fontSize: 11 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number, name: string) => [
+                        name === 'pax' ? `${value} guests` : `${currentResort.currency} ${value.toLocaleString()}`,
+                        name === 'pax' ? 'Guests' : 'Revenue'
+                      ]}
+                    />
+                    <Bar dataKey="pax" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sessions</p>
-                <p className="text-2xl font-bold">{reportData?.summary.totalSessions || 0}</p>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                No data for the selected period
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Pie Chart */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Users className="h-5 w-5 text-primary" />
+          <CardHeader>
+            <CardTitle className="text-base">By Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {reportData?.categoryData && reportData.categoryData.length > 0 ? (
+              <div className="h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reportData.categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      innerRadius={40}
+                      paddingAngle={2}
+                    >
+                      {reportData.categoryData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`${value} guests`, 'Guests']}
+                    />
+                    <Legend 
+                      formatter={(value) => <span className="text-xs">{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Pax</p>
-                <p className="text-2xl font-bold">{reportData?.summary.totalPax || 0}</p>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
+                No category data
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <DollarSign className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">
-                  {currentResort?.currency} {(reportData?.summary.totalRevenue || 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Occupancy</p>
-                <p className="text-2xl font-bold">{reportData?.summary.avgOccupancy || 0}%</p>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Chart */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pax by Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px'
-                    }}
-                  />
-                  <Bar dataKey="pax" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Booking Source Breakdown */}
+      {(reportData?.summary.preStayRevenue || 0) > 0 || (reportData?.summary.inStayRevenue || 0) > 0 ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <ReportStatCard
+            title="Pre-Stay Bookings"
+            value={`${currentResort.currency} ${(reportData?.summary.preStayRevenue || 0).toLocaleString()}`}
+            subtitle="Booked before arrival"
+            icon={<Calendar className="h-5 w-5 text-blue-500" />}
+          />
+          <ReportStatCard
+            title="In-Stay Upsells"
+            value={`${currentResort.currency} ${(reportData?.summary.inStayRevenue || 0).toLocaleString()}`}
+            subtitle="From suggestions"
+            icon={<TrendingUp className="h-5 w-5 text-green-500" />}
+          />
+        </div>
+      ) : null}
 
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Activity Breakdown</CardTitle>
+          <CardTitle className="text-base">Activity Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <div className="py-8 text-center text-muted-foreground">Loading...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Activity</TableHead>
-                  <TableHead className="text-right">Sessions</TableHead>
-                  <TableHead className="text-right">Total Pax</TableHead>
-                  <TableHead className="text-right">Avg Occupancy</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
-                  <TableHead className="text-right">No-Show %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reportData?.activityStats.length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No data for the selected period
-                    </TableCell>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead className="text-right">Sessions</TableHead>
+                    <TableHead className="text-right">Guests</TableHead>
+                    <TableHead className="text-right">Occupancy</TableHead>
+                    <TableHead className="text-right">Revenue</TableHead>
+                    <TableHead className="text-right">No-Show</TableHead>
                   </TableRow>
-                ) : (
-                  reportData?.activityStats.map((stat, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-medium">{stat.name}</TableCell>
-                      <TableCell className="text-right">{stat.totalSessions}</TableCell>
-                      <TableCell className="text-right">{stat.confirmedPax}</TableCell>
-                      <TableCell className="text-right">{stat.avgOccupancy}%</TableCell>
-                      <TableCell className="text-right">
-                        {currentResort?.currency} {stat.totalRevenue.toLocaleString()}
+                </TableHeader>
+                <TableBody>
+                  {reportData?.activityStats.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No data for the selected period
                       </TableCell>
-                      <TableCell className="text-right">{stat.noShowPercent}%</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    reportData?.activityStats.map((stat, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="font-medium max-w-[200px] truncate">{stat.name}</TableCell>
+                        <TableCell>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted">{stat.category}</span>
+                        </TableCell>
+                        <TableCell className="text-right">{stat.totalSessions}</TableCell>
+                        <TableCell className="text-right">{stat.confirmedPax}</TableCell>
+                        <TableCell className="text-right">
+                          <span className={
+                            stat.avgOccupancy >= 70 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : stat.avgOccupancy >= 40 
+                                ? '' 
+                                : 'text-amber-600 dark:text-amber-400'
+                          }>
+                            {stat.avgOccupancy}%
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {currentResort.currency} {stat.totalRevenue.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={stat.noShowPercent > 10 ? 'text-red-600 dark:text-red-400' : ''}>
+                            {stat.noShowPercent}%
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* AI Insights */}
       <AIInsightsPanel
         reportType="activities"
         reportData={reportData || {}}
