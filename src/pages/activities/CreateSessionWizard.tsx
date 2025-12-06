@@ -29,6 +29,8 @@ interface SessionPreviewRow {
   capacity: number;
   included: boolean;
   isClosed: boolean;
+  isDuplicate: boolean;
+  duplicateReason?: string;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -45,6 +47,7 @@ export default function CreateSessionWizard() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [closureDates, setClosureDates] = useState<Set<string>>(new Set());
+  const [existingSessions, setExistingSessions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,32 +139,53 @@ export default function CreateSessionWizard() {
     }
   }, [selectedActivity]);
 
-  // Fetch closure dates when activity changes
+  // Fetch closure dates and existing sessions when activity changes
   useEffect(() => {
     if (!selectedActivityId) {
       setClosureDates(new Set());
+      setExistingSessions(new Set());
       return;
     }
 
-    const fetchClosures = async () => {
-      const { data } = await supabase
-        .from('activity_closures')
-        .select('closure_date')
-        .eq('activity_id', selectedActivityId)
-        .gte('closure_date', format(new Date(), 'yyyy-MM-dd'));
+    const fetchActivityData = async () => {
+      const [closuresRes, sessionsRes] = await Promise.all([
+        supabase
+          .from('activity_closures')
+          .select('closure_date')
+          .eq('activity_id', selectedActivityId)
+          .gte('closure_date', format(new Date(), 'yyyy-MM-dd')),
+        supabase
+          .from('activity_sessions')
+          .select('date, start_time')
+          .eq('activity_id', selectedActivityId)
+          .neq('status', 'CANCELLED')
+          .gte('date', format(new Date(), 'yyyy-MM-dd'))
+      ]);
       
-      setClosureDates(new Set(data?.map(c => c.closure_date) || []));
+      setClosureDates(new Set(closuresRes.data?.map(c => c.closure_date) || []));
+      setExistingSessions(new Set(
+        sessionsRes.data?.map(s => `${s.date}_${s.start_time.slice(0, 5)}`) || []
+      ));
     };
 
-    fetchClosures();
+    fetchActivityData();
   }, [selectedActivityId]);
 
   // Generate preview rows when entering step 3
   useEffect(() => {
     if (currentStep !== 3) return;
 
+    const checkDuplicateStatus = (date: string, startTime: string): { isDuplicate: boolean; reason?: string } => {
+      const key = `${date}_${startTime.slice(0, 5)}`;
+      if (existingSessions.has(key)) {
+        return { isDuplicate: true, reason: 'Session already exists at this time' };
+      }
+      return { isDuplicate: false };
+    };
+
     if (scheduleType === 'single') {
       const isClosed = closureDates.has(singleDate);
+      const { isDuplicate, reason } = checkDuplicateStatus(singleDate, singleStartTime);
       setPreviewRows([{
         id: '1',
         date: singleDate,
@@ -169,8 +193,10 @@ export default function CreateSessionWizard() {
         startTime: singleStartTime,
         endTime: singleEndTime,
         capacity: singleCapacity,
-        included: !isClosed,
+        included: !isClosed && !isDuplicate,
         isClosed,
+        isDuplicate,
+        duplicateReason: reason,
       }]);
     } else {
       // Generate recurring preview
@@ -191,6 +217,7 @@ export default function CreateSessionWizard() {
         
         if (shouldInclude && !isBefore(current, new Date(format(new Date(), 'yyyy-MM-dd')))) {
           const isClosed = closureDates.has(dateStr);
+          const { isDuplicate, reason } = checkDuplicateStatus(dateStr, recurringStartTime);
           rows.push({
             id: String(idCounter++),
             date: dateStr,
@@ -198,8 +225,10 @@ export default function CreateSessionWizard() {
             startTime: recurringStartTime,
             endTime: recurringEndTime,
             capacity: recurringCapacity,
-            included: !isClosed,
+            included: !isClosed && !isDuplicate,
             isClosed,
+            isDuplicate,
+            duplicateReason: reason,
           });
         }
         current = addDays(current, 1);
@@ -209,21 +238,36 @@ export default function CreateSessionWizard() {
     }
   }, [currentStep, scheduleType, singleDate, singleStartTime, singleEndTime, singleCapacity, 
       recurringStartDate, recurringEndDate, recurringFrequency, selectedDays, 
-      recurringStartTime, recurringEndTime, recurringCapacity, closureDates]);
+      recurringStartTime, recurringEndTime, recurringCapacity, closureDates, existingSessions]);
 
+  // Update duplicate status when time changes in preview
   const updatePreviewRow = (id: string, updates: Partial<SessionPreviewRow>) => {
-    setPreviewRows(prev => prev.map(row => 
-      row.id === id ? { ...row, ...updates } : row
-    ));
+    setPreviewRows(prev => prev.map(row => {
+      if (row.id !== id) return row;
+      const newRow = { ...row, ...updates };
+      
+      // Re-check duplicate status if time changed
+      if (updates.startTime !== undefined) {
+        const key = `${newRow.date}_${newRow.startTime.slice(0, 5)}`;
+        const isDuplicate = existingSessions.has(key);
+        newRow.isDuplicate = isDuplicate;
+        newRow.duplicateReason = isDuplicate ? 'Session already exists at this time' : undefined;
+        // Auto-exclude duplicates
+        if (isDuplicate) newRow.included = false;
+      }
+      
+      return newRow;
+    }));
   };
 
   const toggleRowInclusion = (id: string) => {
     setPreviewRows(prev => prev.map(row => 
-      row.id === id && !row.isClosed ? { ...row, included: !row.included } : row
+      row.id === id && !row.isClosed && !row.isDuplicate ? { ...row, included: !row.included } : row
     ));
   };
 
-  const includedRowsCount = previewRows.filter(r => r.included && !r.isClosed).length;
+  const includedRowsCount = previewRows.filter(r => r.included && !r.isClosed && !r.isDuplicate).length;
+  const duplicateRowsCount = previewRows.filter(r => r.isDuplicate).length;
 
   const canProceedStep1 = !!selectedActivityId;
   const canProceedStep2 = scheduleType === 'single' 
@@ -240,7 +284,7 @@ export default function CreateSessionWizard() {
 
     try {
       const sessionsToCreate = previewRows
-        .filter(r => r.included && !r.isClosed)
+        .filter(r => r.included && !r.isClosed && !r.isDuplicate)
         .map(r => ({
           resort_id: currentResort.id,
           activity_id: selectedActivityId,
@@ -717,10 +761,27 @@ export default function CreateSessionWizard() {
 
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="font-medium">{selectedActivity?.name}</span>
-                <span className="text-sm text-muted-foreground">
-                  {includedRowsCount} session{includedRowsCount !== 1 ? 's' : ''} will be created
-                </span>
+                <div className="flex items-center gap-3 text-sm">
+                  {duplicateRowsCount > 0 && (
+                    <span className="text-amber-600 dark:text-amber-500">
+                      {duplicateRowsCount} duplicate{duplicateRowsCount !== 1 ? 's' : ''} skipped
+                    </span>
+                  )}
+                  <span className="text-muted-foreground">
+                    {includedRowsCount} session{includedRowsCount !== 1 ? 's' : ''} will be created
+                  </span>
+                </div>
               </div>
+
+              {duplicateRowsCount > 0 && (
+                <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg border border-amber-500/20">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <p className="text-sm">
+                    {duplicateRowsCount} session{duplicateRowsCount !== 1 ? 's' : ''} already exist and will be skipped. 
+                    You can change the time to create a new session at a different time.
+                  </p>
+                </div>
+              )}
 
               <div className="border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
@@ -729,10 +790,10 @@ export default function CreateSessionWizard() {
                       <tr>
                         <th className="p-3 text-left w-12">
                           <Checkbox
-                            checked={previewRows.filter(r => !r.isClosed).every(r => r.included)}
+                            checked={previewRows.filter(r => !r.isClosed && !r.isDuplicate).every(r => r.included)}
                             onCheckedChange={(checked) => {
                               setPreviewRows(prev => prev.map(r => 
-                                r.isClosed ? r : { ...r, included: !!checked }
+                                r.isClosed || r.isDuplicate ? r : { ...r, included: !!checked }
                               ));
                             }}
                           />
@@ -751,14 +812,15 @@ export default function CreateSessionWizard() {
                           key={row.id} 
                           className={cn(
                             row.isClosed && "bg-muted/30 opacity-60",
-                            !row.included && !row.isClosed && "opacity-50"
+                            row.isDuplicate && "bg-amber-500/5",
+                            !row.included && !row.isClosed && !row.isDuplicate && "opacity-50"
                           )}
                         >
                           <td className="p-3">
                             <Checkbox
                               checked={row.included}
                               onCheckedChange={() => toggleRowInclusion(row.id)}
-                              disabled={row.isClosed}
+                              disabled={row.isClosed || row.isDuplicate}
                             />
                           </td>
                           <td className="p-3 font-medium">
@@ -797,6 +859,10 @@ export default function CreateSessionWizard() {
                             {row.isClosed ? (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-destructive/10 text-destructive">
                                 Closed
+                              </span>
+                            ) : row.isDuplicate ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400" title={row.duplicateReason}>
+                                Already exists
                               </span>
                             ) : row.included ? (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-primary/10 text-primary">

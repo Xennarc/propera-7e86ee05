@@ -134,6 +134,30 @@ export function ActivitySessionDialog({
     setLoading(true);
 
     try {
+      // Check for duplicate session (same activity, date, and start time)
+      const { data: existingSessions } = await supabase
+        .from('activity_sessions')
+        .select('id, date, start_time')
+        .eq('activity_id', formData.activity_id)
+        .eq('date', formData.date)
+        .neq('status', 'CANCELLED');
+
+      const startTimeNormalized = formData.start_time.slice(0, 5);
+      const duplicate = existingSessions?.find(
+        s => s.start_time.slice(0, 5) === startTimeNormalized && s.id !== session?.id
+      );
+
+      if (duplicate) {
+        const activity = activities.find(a => a.id === formData.activity_id);
+        toast({ 
+          variant: 'destructive', 
+          title: 'Session already exists', 
+          description: `${activity?.name || 'This activity'} already has a session on ${formData.date} at ${formData.start_time}` 
+        });
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         resort_id: resortId,
         activity_id: formData.activity_id,
