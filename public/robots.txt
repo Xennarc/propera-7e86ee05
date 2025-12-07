@@ -56,5 +56,5 @@ Disallow: /settings
 Disallow: /guests
 Disallow: /notifications
 
-# Sitemap location
-Sitemap: https://propera.cc/sitemap.xml
+# Dynamic sitemap location (served via Edge Function)
+Sitemap: https://dstxrbmetabgbijjeoyf.supabase.co/functions/v1/sitemap
