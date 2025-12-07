@@ -1,9 +1,11 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
+import { LanguageSwitcher } from '@/components/guest/LanguageSwitcher';
 import { useEffect, useRef, useState } from 'react';
 import {
   IconStay,
@@ -15,10 +17,10 @@ import {
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
 
 const navItems = [
-  { icon: IconStay, label: 'Home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
-  { icon: IconActivities, label: 'Activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
-  { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
-  { icon: IconBookings, label: 'Bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
+  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
+  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
+  { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
+  { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
 ];
 
 // Store scroll positions per tab
@@ -26,6 +28,7 @@ const scrollPositions = new Map<string, number>();
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
+  const { t } = useTranslation();
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -111,6 +114,7 @@ export function GuestLayout() {
             </div>
           </Link>
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+            <LanguageSwitcher />
             <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
             <GuestNotificationBell />
             <Button 
@@ -118,6 +122,7 @@ export function GuestLayout() {
               size="icon" 
               onClick={logout}
               className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
+              title={t('nav.logout')}
             >
               <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
@@ -165,7 +170,7 @@ export function GuestLayout() {
                   "text-[10px] sm:text-[11px] font-semibold transition-all",
                   isActive && "font-bold"
                 )}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </span>
               </Link>
             );
