@@ -1,10 +1,19 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ComponentType, ReactNode } from 'react';
+
+interface IconProps {
+  className?: string;
+  size?: number;
+}
 
 interface GuestSectionHeaderProps {
   title: string;
-  icon?: React.ReactNode;
+  count?: number;
+  icon?: ReactNode | ComponentType<IconProps>;
+  iconClassName?: string;
+  iconBgClassName?: string;
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
@@ -13,24 +22,52 @@ interface GuestSectionHeaderProps {
 
 export function GuestSectionHeader({
   title,
-  icon,
+  count,
+  icon: Icon,
+  iconClassName,
+  iconBgClassName,
   actionLabel,
   actionHref,
   onAction,
   className,
 }: GuestSectionHeaderProps) {
+  // Render icon - handle both component and ReactNode
+  const renderIcon = () => {
+    if (!Icon) return null;
+    
+    // If it's a component (function), render it
+    if (typeof Icon === 'function') {
+      const IconComponent = Icon as ComponentType<IconProps>;
+      return (
+        <div className={cn("p-1.5 rounded-lg", iconBgClassName || "bg-primary/10")}>
+          <IconComponent className={cn("h-4 w-4", iconClassName || "text-primary")} />
+        </div>
+      );
+    }
+    
+    // If it's already a ReactNode, just render it
+    return Icon;
+  };
+
   return (
-    <div className={cn("flex items-center justify-between mb-4", className)}>
+    <div className={cn("flex items-center justify-between mb-3", className)}>
       <div className="flex items-center gap-2">
-        {icon}
-        <h2 className="text-lg font-bold text-foreground">{title}</h2>
+        {renderIcon()}
+        <h2 className="font-semibold text-foreground">
+          {title}
+          {count !== undefined && (
+            <span className={cn("ml-1.5", iconClassName || "text-primary")}>
+              ({count})
+            </span>
+          )}
+        </h2>
       </div>
       
       {actionLabel && (actionHref || onAction) && (
         actionHref ? (
           <Link 
             to={actionHref}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors tap-target"
           >
             {actionLabel}
             <ChevronRight className="h-4 w-4" />
@@ -38,7 +75,7 @@ export function GuestSectionHeader({
         ) : (
           <button
             onClick={onAction}
-            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors tap-target"
           >
             {actionLabel}
             <ChevronRight className="h-4 w-4" />

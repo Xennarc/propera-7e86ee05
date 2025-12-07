@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
@@ -22,15 +22,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock, Pencil } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock, Pencil, MapPin, AlertCircle, CheckCircle2, XCircle, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { getCategoryConfig } from '@/lib/activity-category-config';
-import { IconRestaurants } from '@/components/icons/ProperaIcons';
+import { IconRestaurants, IconActivities, IconBookings } from '@/components/icons/ProperaIcons';
 import { EditBookingDialog } from '@/components/guest/EditBookingDialog';
+import { GuestBookingsLoading } from '@/components/guest/GuestLoadingSkeleton';
+import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
+import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
+import { Link } from 'react-router-dom';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -41,10 +43,13 @@ function mapCancelErrorToCode(error: string): BookingErrorCode {
   return 'UNKNOWN_ERROR';
 }
 
+type FilterType = 'all' | 'activities' | 'dining';
+
 export default function GuestMyBookings() {
   const { guest } = useGuestAuth();
   const queryClient = useQueryClient();
   const [showPast, setShowPast] = useState(false);
+  const [filter, setFilter] = useState<FilterType>('all');
   const [cancelDialog, setCancelDialog] = useState<{
     type: 'activity' | 'restaurant';
     id: string;
@@ -175,6 +180,7 @@ export default function GuestMyBookings() {
       return { activity_bookings, restaurant_reservations };
     },
     enabled: !!guest && !!roomGuests && roomGuests.length > 0,
+    staleTime: 30000,
   });
 
   const cancelActivityMutation = useMutation({
@@ -191,14 +197,10 @@ export default function GuestMyBookings() {
       return { ...result, bookingId };
     },
     onMutate: async (bookingId: string) => {
-      // Cancel any outgoing refetches so they don't overwrite optimistic update
-      await queryClient.cancelQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      await queryClient.cancelQueries({ queryKey: ['guest-room-bookings'] });
+      const previousBookings = queryClient.getQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests]);
       
-      // Snapshot the previous value
-      const previousBookings = queryClient.getQueryData(['guest-bookings', guest?.guestId]);
-      
-      // Optimistically update to set booking status to CANCELLED
-      queryClient.setQueryData(['guest-bookings', guest?.guestId], (old: any) => {
+      queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -213,13 +215,11 @@ export default function GuestMyBookings() {
     onSuccess: () => {
       toast.success('Your booking has been cancelled.');
       setCancelDialog(null);
-      // Refetch to ensure server state is synced
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
     },
     onError: (error: Error, _bookingId, context) => {
-      // Rollback to previous state on error
       if (context?.previousBookings) {
-        queryClient.setQueryData(['guest-bookings', guest?.guestId], context.previousBookings);
+        queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], context.previousBookings);
       }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
@@ -241,14 +241,10 @@ export default function GuestMyBookings() {
       return { ...result, reservationId };
     },
     onMutate: async (reservationId: string) => {
-      // Cancel any outgoing refetches so they don't overwrite optimistic update
-      await queryClient.cancelQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      await queryClient.cancelQueries({ queryKey: ['guest-room-bookings'] });
+      const previousBookings = queryClient.getQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests]);
       
-      // Snapshot the previous value
-      const previousBookings = queryClient.getQueryData(['guest-bookings', guest?.guestId]);
-      
-      // Optimistically update to set reservation status to CANCELLED
-      queryClient.setQueryData(['guest-bookings', guest?.guestId], (old: any) => {
+      queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], (old: any) => {
         if (!old) return old;
         return {
           ...old,
@@ -263,13 +259,11 @@ export default function GuestMyBookings() {
     onSuccess: () => {
       toast.success('Your reservation has been cancelled.');
       setCancelDialog(null);
-      // Refetch to ensure server state is synced
-      queryClient.invalidateQueries({ queryKey: ['guest-bookings', guest?.guestId] });
+      queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
     },
     onError: (error: Error, _reservationId, context) => {
-      // Rollback to previous state on error
       if (context?.previousBookings) {
-        queryClient.setQueryData(['guest-bookings', guest?.guestId], context.previousBookings);
+        queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], context.previousBookings);
       }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
@@ -281,13 +275,11 @@ export default function GuestMyBookings() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Separate bookings by status - upcoming shows only active bookings (non-cancelled)
-  // Past section shows completed, no-show, and cancelled bookings
+  // Separate bookings by status
   const allActivities = bookings?.activity_bookings || [];
   const allReservations = bookings?.restaurant_reservations || [];
   
   // For upcoming: only show CONFIRMED or PENDING bookings for future/today dates
-  // Deduplicate by booking ID to ensure no duplicates
   const upcomingActivities = allActivities
     .filter((b) => b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))
     .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
@@ -299,21 +291,23 @@ export default function GuestMyBookings() {
     .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
   
   // For past: show past dates OR cancelled/completed/no-show status
-  // Deduplicate by booking ID
   const pastActivities = allActivities
     .filter((b) => b.date < today || b.status === 'CANCELLED' || b.status === 'COMPLETED' || b.status === 'NO_SHOW')
-    .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))) // Exclude upcoming
+    .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING')))
     .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
   
   const pastReservations = allReservations
     .filter((r) => r.date < today || r.status === 'CANCELLED' || r.status === 'COMPLETED' || r.status === 'NO_SHOW')
-    .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING'))) // Exclude upcoming
+    .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING')))
     .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
 
+  // Apply filter
+  const showActivities = filter === 'all' || filter === 'activities';
+  const showDining = filter === 'all' || filter === 'dining';
+
   const canCancelActivity = (booking: any) => {
-    // Can only cancel own bookings
     if (!booking.is_own_booking) return false;
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
     if (!booking.guest_can_cancel) return false;
@@ -323,7 +317,6 @@ export default function GuestMyBookings() {
   };
 
   const canCancelReservation = (reservation: any) => {
-    // Can only cancel own bookings
     if (!reservation.is_own_booking) return false;
     if (reservation.status !== 'CONFIRMED' && reservation.status !== 'PENDING') return false;
     if (!reservation.guest_can_cancel) return false;
@@ -341,159 +334,228 @@ export default function GuestMyBookings() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getDateLabel = (dateStr: string) => {
+    const date = parseISO(dateStr);
+    if (isToday(date)) return 'Today';
+    if (isTomorrow(date)) return 'Tomorrow';
+    return format(date, 'EEE, MMM d');
+  };
+
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'CONFIRMED':
-        return <Badge variant="confirmed">Confirmed</Badge>;
+        return { 
+          icon: CheckCircle2, 
+          label: 'Confirmed', 
+          variant: 'confirmed' as const,
+          className: 'text-emerald-600 dark:text-emerald-400'
+        };
       case 'PENDING':
-        return <Badge variant="pending">Pending approval</Badge>;
+        return { 
+          icon: AlertCircle, 
+          label: 'Awaiting Approval', 
+          variant: 'pending' as const,
+          className: 'text-amber-600 dark:text-amber-400'
+        };
       case 'CANCELLED':
-        return <Badge variant="cancelled">Cancelled</Badge>;
+        return { 
+          icon: XCircle, 
+          label: 'Cancelled', 
+          variant: 'cancelled' as const,
+          className: 'text-red-500'
+        };
       case 'COMPLETED':
-        return <Badge variant="completed">Completed</Badge>;
+        return { 
+          icon: CheckCircle2, 
+          label: 'Completed', 
+          variant: 'completed' as const,
+          className: 'text-muted-foreground'
+        };
       case 'NO_SHOW':
-        return <Badge variant="noShow">No show</Badge>;
+        return { 
+          icon: XCircle, 
+          label: 'No Show', 
+          variant: 'noShow' as const,
+          className: 'text-muted-foreground'
+        };
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return { 
+          icon: AlertCircle, 
+          label: status, 
+          variant: 'secondary' as const,
+          className: 'text-muted-foreground'
+        };
     }
+  };
+
+  const mealPeriodConfig: Record<string, { colorClass: string; bgClass: string; label: string }> = {
+    BREAKFAST: { colorClass: 'text-sunset', bgClass: 'bg-sunset/10', label: 'Breakfast' },
+    LUNCH: { colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10', label: 'Lunch' },
+    DINNER: { colorClass: 'text-orchid', bgClass: 'bg-orchid/10', label: 'Dinner' },
+    EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10', label: 'Event' },
   };
 
   const BookingCard = ({ 
     booking, 
     type, 
     canCancel,
-    canEdit
+    canEdit,
+    isPast = false
   }: { 
     booking: any; 
     type: 'activity' | 'restaurant'; 
     canCancel: boolean;
     canEdit: boolean;
+    isPast?: boolean;
   }) => {
     const isActivity = type === 'activity';
     const config = isActivity ? getCategoryConfig(booking.category) : null;
-    const isCancelled = booking.status === 'CANCELLED';
-    
-    // Meal period colors for restaurants
-    const mealPeriodConfig: Record<string, { colorClass: string; bgClass: string }> = {
-      BREAKFAST: { colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
-      LUNCH: { colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10' },
-      DINNER: { colorClass: 'text-orchid', bgClass: 'bg-orchid/10' },
-      EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10' },
-    };
+    const statusConfig = getStatusConfig(booking.status);
+    const StatusIcon = statusConfig.icon;
     const restaurantConfig = !isActivity ? (mealPeriodConfig[booking.meal_period] || mealPeriodConfig.DINNER) : null;
     
     return (
-      <Card className="overflow-hidden">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className={cn(
-              "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
-              isCancelled 
-                ? "bg-muted" 
-                : isActivity && config 
-                  ? config.bgClass 
-                  : restaurantConfig?.bgClass || "bg-sunset/10"
-            )}>
-              {isActivity ? (
-                <CategoryIcon 
-                  category={booking.category} 
-                  size={24} 
-                  className={isCancelled ? "text-muted-foreground" : undefined}
-                />
-              ) : (
-                <IconRestaurants className={cn(
-                  "h-6 w-6", 
-                  isCancelled ? "text-muted-foreground" : restaurantConfig?.colorClass || "text-sunset"
-                )} />
+      <Card className={cn(
+        "guest-card-interactive overflow-hidden transition-all",
+        isPast && "opacity-60"
+      )}>
+        <CardContent className="p-0">
+          {/* Status bar at top */}
+          <div className={cn(
+            "flex items-center justify-between px-4 py-2 border-b",
+            booking.status === 'CONFIRMED' && "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30",
+            booking.status === 'PENDING' && "bg-amber-50/50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30",
+            booking.status === 'CANCELLED' && "bg-red-50/50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30",
+            (booking.status === 'COMPLETED' || booking.status === 'NO_SHOW') && "bg-muted/30 border-border"
+          )}>
+            <div className="flex items-center gap-2">
+              <StatusIcon className={cn("h-4 w-4", statusConfig.className)} />
+              <span className={cn("text-sm font-medium", statusConfig.className)}>
+                {statusConfig.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-muted-foreground hover:text-foreground tap-target"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditDialog({
+                      id: booking.id,
+                      type,
+                      title: isActivity ? booking.activity_name : booking.restaurant_name,
+                      num_adults: booking.num_adults,
+                      num_children: booking.num_children,
+                      session_id: booking.session_id,
+                      slot_id: booking.slot_id,
+                      max_pax_per_booking: booking.max_pax_per_booking,
+                    });
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Edit</span>
+                </Button>
+              )}
+              {canCancel && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 tap-target"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCancelDialog({
+                      type,
+                      id: booking.id,
+                      title: isActivity ? booking.activity_name : booking.restaurant_name,
+                    });
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Cancel</span>
+                </Button>
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-semibold text-foreground truncate">
+          </div>
+          
+          {/* Main content */}
+          <div className="p-4">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
+                booking.status === 'CANCELLED' 
+                  ? "bg-muted" 
+                  : isActivity && config 
+                    ? config.bgClass 
+                    : restaurantConfig?.bgClass || "bg-sunset/10"
+              )}>
+                {isActivity ? (
+                  <CategoryIcon 
+                    category={booking.category} 
+                    size={24} 
+                    className={booking.status === 'CANCELLED' ? "text-muted-foreground" : undefined}
+                  />
+                ) : (
+                  <IconRestaurants className={cn(
+                    "h-6 w-6", 
+                    booking.status === 'CANCELLED' ? "text-muted-foreground" : restaurantConfig?.colorClass || "text-sunset"
+                  )} />
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-foreground truncate mb-1">
                   {isActivity ? booking.activity_name : booking.restaurant_name}
                 </h3>
-                <div className="flex items-center gap-2 shrink-0">
-                  {getStatusBadge(booking.status)}
-                  {canEdit && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-muted-foreground hover:text-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditDialog({
-                          id: booking.id,
-                          type,
-                          title: isActivity ? booking.activity_name : booking.restaurant_name,
-                          num_adults: booking.num_adults,
-                          num_children: booking.num_children,
-                          session_id: booking.session_id,
-                          slot_id: booking.slot_id,
-                          max_pax_per_booking: booking.max_pax_per_booking,
-                        });
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                      <span className="sr-only sm:not-sr-only sm:ml-1">Edit</span>
-                    </Button>
+                
+                {/* Date and time - prominent */}
+                <div className={cn(
+                  "flex items-center gap-2 text-sm mb-2",
+                  booking.status === 'CANCELLED' 
+                    ? "text-muted-foreground" 
+                    : "text-foreground font-medium"
+                )}>
+                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{getDateLabel(booking.date)}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{booking.start_time?.slice(0, 5)}</span>
+                </div>
+                
+                {/* Meta info row */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {booking.num_adults + booking.num_children} guest{(booking.num_adults + booking.num_children) !== 1 ? 's' : ''}
+                  </span>
+                  
+                  {isActivity && booking.category && (
+                    <CategoryBadge category={booking.category} size="sm" showIcon={false} />
                   )}
-                  {canCancel && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCancelDialog({
-                          type,
-                          id: booking.id,
-                          title: isActivity ? booking.activity_name : booking.restaurant_name,
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only sm:not-sr-only sm:ml-1">Cancel</span>
-                    </Button>
+                  
+                  {!isActivity && booking.meal_period && (
+                    <Badge className={cn("text-[10px] px-1.5 py-0", 
+                      restaurantConfig?.bgClass,
+                      restaurantConfig?.colorClass
+                    )}>
+                      {restaurantConfig?.label}
+                    </Badge>
+                  )}
+                  
+                  {isActivity && booking.duration_minutes && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {booking.duration_minutes}min
+                    </span>
+                  )}
+                  
+                  {!booking.is_own_booking && booking.booked_by && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      By {booking.booked_by.split(' ')[0]}
+                    </Badge>
                   )}
                 </div>
-              </div>
-              <div className={cn(
-                "flex items-center gap-2 text-sm mb-1",
-                isCancelled 
-                  ? "text-muted-foreground" 
-                  : isActivity && config 
-                    ? config.colorClass 
-                    : restaurantConfig?.colorClass || "text-sunset"
-              )}>
-                <Clock className="h-3.5 w-3.5" />
-                <span className="font-medium">
-                  {format(parseISO(booking.date), 'EEE, MMM d')} at {booking.start_time?.slice(0, 5)}
-                </span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5" />
-                  {booking.num_adults} adult{booking.num_adults !== 1 ? 's' : ''}
-                  {booking.num_children > 0 && `, ${booking.num_children} child${booking.num_children !== 1 ? 'ren' : ''}`}
-                </span>
-                {isActivity && booking.category && (
-                  <CategoryBadge category={booking.category} size="sm" showIcon={false} />
-                )}
-                {!isActivity && booking.meal_period && (
-                  <Badge className={cn("text-xs", 
-                    mealPeriodConfig[booking.meal_period]?.colorClass ? 
-                      `${mealPeriodConfig[booking.meal_period].bgClass} ${mealPeriodConfig[booking.meal_period].colorClass}` : 
-                      'chip-neutral'
-                  )}>
-                    {booking.meal_period}
-                  </Badge>
-                )}
-                {/* Show who booked for shared room bookings */}
-                {!booking.is_own_booking && booking.booked_by && (
-                  <Badge variant="outline" className="text-xs">
-                    Booked by {booking.booked_by.split(' ')[0]}
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
@@ -502,123 +564,200 @@ export default function GuestMyBookings() {
     );
   };
 
+  const totalUpcoming = upcomingActivities.length + upcomingReservations.length;
+  const totalPast = pastActivities.length + pastReservations.length;
+  const isEmpty = totalUpcoming === 0 && totalPast === 0;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
+      {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-foreground">My Bookings</h1>
         <p className="text-sm text-muted-foreground">Manage your activities and dining reservations</p>
       </div>
 
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <p className="text-sm text-center text-muted-foreground">Loading your bookings...</p>
+      {/* Quick Filter Tabs */}
+      {!isEmpty && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+          {[
+            { value: 'all', label: 'All', icon: IconBookings, count: totalUpcoming },
+            { value: 'activities', label: 'Activities', icon: IconActivities, count: upcomingActivities.length },
+            { value: 'dining', label: 'Dining', icon: IconRestaurants, count: upcomingReservations.length },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = filter === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setFilter(tab.value as FilterType)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all tap-target",
+                  isActive 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={cn(
+                    "ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+                    isActive ? "bg-primary-foreground/20" : "bg-background"
+                  )}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      ) : upcomingActivities.length === 0 && upcomingReservations.length === 0 && pastActivities.length === 0 && pastReservations.length === 0 ? (
-        // Complete empty state
-        <Card className="border-dashed border-2 bg-muted/20">
-          <CardContent className="py-10 text-center">
-            <Calendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-            <h3 className="font-semibold text-foreground mb-1">No bookings yet</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              You haven't made any bookings during your stay yet.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button asChild>
-                <a href="/guest/activities">Book an Activity</a>
-              </Button>
-              <Button variant="outline" asChild>
-                <a href="/guest/restaurants">Book a Restaurant</a>
-              </Button>
-            </div>
-          </CardContent>
+      )}
+
+      {isLoading ? (
+        <GuestBookingsLoading />
+      ) : isEmpty ? (
+        <Card className="guest-card border-dashed bg-muted/20">
+          <GuestEmptyState
+            icon={Calendar}
+            title="No bookings yet"
+            description="You haven't made any bookings during your stay yet. Explore activities and restaurants to get started."
+            actionLabel="Browse Activities"
+            actionHref="/guest/activities"
+            secondaryActionLabel="View Restaurants"
+            secondaryActionHref="/guest/restaurants"
+          />
         </Card>
       ) : (
         <>
-          {/* Upcoming Activities */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-lagoon/10">
-                <Calendar className="h-4 w-4 text-lagoon" />
+          {/* Upcoming Summary */}
+          {totalUpcoming > 0 && (
+            <div className="guest-card p-4 bg-gradient-to-r from-primary/5 to-lagoon/5 border-primary/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Upcoming</p>
+                  <p className="text-2xl font-bold text-foreground">{totalUpcoming}</p>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-lagoon">{upcomingActivities.length}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Activities</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-lg font-semibold text-sunset">{upcomingReservations.length}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dining</p>
+                  </div>
+                </div>
               </div>
-              <h2 className="font-semibold text-foreground">
-                Upcoming Activities <span className="text-lagoon">({upcomingActivities.length})</span>
-              </h2>
             </div>
-            {upcomingActivities.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-6 text-center">
-                  <p className="text-sm text-muted-foreground">No upcoming activities</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {upcomingActivities.map((booking) => (
-                  <BookingCard
-                    key={booking.id}
-                    booking={booking}
-                    type="activity"
-                    canCancel={canCancelActivity(booking)}
-                    canEdit={booking.is_own_booking && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          )}
+
+          {/* Upcoming Activities */}
+          {showActivities && (
+            <div>
+              <GuestSectionHeader
+                title="Activities"
+                count={upcomingActivities.length}
+                icon={IconActivities}
+                iconClassName="text-lagoon"
+                iconBgClassName="bg-lagoon/10"
+                actionLabel="Book more"
+                actionHref="/guest/activities"
+              />
+              {upcomingActivities.length === 0 ? (
+                <Card className="border-dashed bg-muted/10">
+                  <CardContent className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">No upcoming activities</p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/guest/activities">Browse Activities</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingActivities.map((booking) => (
+                    <BookingCard
+                      key={booking.id}
+                      booking={booking}
+                      type="activity"
+                      canCancel={canCancelActivity(booking)}
+                      canEdit={booking.is_own_booking && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Upcoming Reservations */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="p-1.5 rounded-lg bg-sunset/10">
-                <Utensils className="h-4 w-4 text-sunset" />
-              </div>
-              <h2 className="font-semibold text-foreground">
-                Upcoming Reservations <span className="text-sunset">({upcomingReservations.length})</span>
-              </h2>
+          {showDining && (
+            <div>
+              <GuestSectionHeader
+                title="Dining"
+                count={upcomingReservations.length}
+                icon={IconRestaurants}
+                iconClassName="text-sunset"
+                iconBgClassName="bg-sunset/10"
+                actionLabel="Reserve table"
+                actionHref="/guest/restaurants"
+              />
+              {upcomingReservations.length === 0 ? (
+                <Card className="border-dashed bg-muted/10">
+                  <CardContent className="py-6 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">No upcoming reservations</p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/guest/restaurants">View Restaurants</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingReservations.map((reservation) => (
+                    <BookingCard
+                      key={reservation.id}
+                      booking={reservation}
+                      type="restaurant"
+                      canCancel={canCancelReservation(reservation)}
+                      canEdit={reservation.is_own_booking && (reservation.status === 'CONFIRMED' || reservation.status === 'PENDING')}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            {upcomingReservations.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-6 text-center">
-                  <p className="text-sm text-muted-foreground">No upcoming reservations</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {upcomingReservations.map((reservation) => (
-                  <BookingCard
-                    key={reservation.id}
-                    booking={reservation}
-                    type="restaurant"
-                    canCancel={canCancelReservation(reservation)}
-                    canEdit={reservation.is_own_booking && (reservation.status === 'CONFIRMED' || reservation.status === 'PENDING')}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Past Bookings */}
-          {(pastActivities.length > 0 || pastReservations.length > 0) && (
+          {totalPast > 0 && (
             <Collapsible open={showPast} onOpenChange={setShowPast}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between text-muted-foreground hover:text-foreground">
-                  Past Bookings ({pastActivities.length + pastReservations.length})
-                  <ChevronDown className={cn("h-4 w-4 transition-transform", showPast && "rotate-180")} />
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between text-muted-foreground hover:text-foreground h-12 tap-target"
+                >
+                  <span className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Past Bookings
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">{totalPast}</Badge>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", showPast && "rotate-180")} />
+                  </span>
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-3">
-                {[...pastActivities, ...pastReservations]
+                {[
+                  ...(showActivities ? pastActivities : []), 
+                  ...(showDining ? pastReservations : [])
+                ]
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((booking) => (
-                    <div key={booking.id} className="opacity-60">
-                      <BookingCard
-                        booking={booking}
-                        type={booking.booking_type}
-                        canCancel={false}
-                        canEdit={false}
-                      />
-                    </div>
+                    <BookingCard
+                      key={booking.id}
+                      booking={booking}
+                      type={booking.booking_type}
+                      canCancel={false}
+                      canEdit={false}
+                      isPast
+                    />
                   ))}
               </CollapsibleContent>
             </Collapsible>
@@ -628,24 +767,24 @@ export default function GuestMyBookings() {
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              We'll cancel your booking for "{cancelDialog?.title}". This can't be undone.
+              We'll cancel your booking for "{cancelDialog?.title}". This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto">Keep Booking</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancel}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={cancelActivityMutation.isPending || cancelReservationMutation.isPending}
             >
               {(cancelActivityMutation.isPending || cancelReservationMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Cancel Booking
+              Yes, Cancel
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
