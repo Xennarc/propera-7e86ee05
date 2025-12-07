@@ -623,6 +623,118 @@
   }
 }
 
+/* === Guest Portal Specific Styles === */
+@layer components {
+  /* Guest card with subtle animation */
+  .guest-card {
+    @apply relative bg-card rounded-2xl border border-border/50 overflow-hidden transition-all duration-200;
+  }
+  
+  .guest-card:hover {
+    @apply shadow-soft border-border/80;
+  }
+  
+  .guest-card-interactive {
+    @apply guest-card cursor-pointer;
+  }
+  
+  .guest-card-interactive:hover {
+    @apply shadow-medium -translate-y-0.5;
+  }
+  
+  .guest-card-interactive:active {
+    @apply translate-y-0 shadow-soft;
+  }
+  
+  /* Guest hero section */
+  .guest-hero {
+    @apply relative rounded-2xl overflow-hidden;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--lagoon-500) / 0.05) 50%, hsl(var(--sunset-500) / 0.05) 100%);
+  }
+  
+  .guest-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -25%;
+    width: 100%;
+    height: 200%;
+    background: radial-gradient(ellipse, hsl(var(--primary) / 0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  
+  /* Guest navigation bottom bar */
+  .guest-nav-item {
+    @apply flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200;
+  }
+  
+  .guest-nav-item:active {
+    @apply scale-95;
+  }
+  
+  /* Guest booking card accent strip */
+  .booking-strip-confirmed {
+    background: linear-gradient(180deg, hsl(var(--success)) 0%, hsl(160 84% 30%) 100%);
+  }
+  
+  .booking-strip-pending {
+    background: linear-gradient(180deg, hsl(var(--warning)) 0%, hsl(38 90% 40%) 100%);
+  }
+  
+  .booking-strip-cancelled {
+    background: linear-gradient(180deg, hsl(var(--destructive) / 0.5) 0%, hsl(var(--destructive) / 0.3) 100%);
+  }
+  
+  /* Touch-friendly tap targets */
+  .tap-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  .tap-target-lg {
+    @apply min-h-[48px] min-w-[48px];
+  }
+}
+
+@layer utilities {
+  /* Pull-to-refresh indicator space */
+  .pull-refresh-space {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  /* Haptic feedback simulation */
+  .haptic-light:active {
+    transform: scale(0.98);
+  }
+  
+  .haptic-medium:active {
+    transform: scale(0.96);
+  }
+  
+  /* Smooth momentum scrolling for iOS */
+  .scroll-smooth-touch {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Bottom safe area with extra padding for nav */
+  .pb-safe-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
+  }
+  
+  /* Guest portal specific shadows */
+  .shadow-guest-card {
+    box-shadow: 
+      0 1px 3px 0 rgb(0 0 0 / 0.04),
+      0 4px 12px -2px rgb(0 0 0 / 0.06);
+  }
+  
+  .shadow-guest-elevated {
+    box-shadow: 
+      0 4px 6px -1px rgb(0 0 0 / 0.05),
+      0 10px 20px -5px rgb(0 0 0 / 0.08);
+  }
+}
+
 /* Keyframes */
 @keyframes fadeIn {
   from {

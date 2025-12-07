@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   IconStay,
   IconActivities,
@@ -20,6 +20,161 @@ const navItems = [
   { icon: IconRestaurants, label: 'Dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
   { icon: IconBookings, label: 'Bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
 ];
+
+// Store scroll positions per tab
+const scrollPositions = new Map<string, number>();
+
+export function GuestLayout() {
+  const { guest, loading, logout } = useGuestAuth();
+  const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Get current tab key
+  const currentTab = navItems.find(item => 
+    location.pathname === item.href || 
+    (item.href !== '/guest' && location.pathname.startsWith(item.href))
+  )?.key || 'guest-home';
+
+  // Track scroll for header shadow
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    const handleScroll = () => {
+      scrollPositions.set(currentTab, main.scrollTop);
+      setIsScrolled(main.scrollTop > 10);
+    };
+
+    main.addEventListener('scroll', handleScroll, { passive: true });
+    return () => main.removeEventListener('scroll', handleScroll);
+  }, [currentTab]);
+
+  // Restore scroll position when tab changes
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+
+    const savedPosition = scrollPositions.get(currentTab);
+    if (savedPosition !== undefined) {
+      requestAnimationFrame(() => {
+        main.scrollTop = savedPosition;
+      });
+    } else {
+      main.scrollTop = 0;
+    }
+    setIsScrolled(false);
+  }, [currentTab]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center hero-pattern">
+        <ProperaLoader size={64} text="Loading your experience..." />
+      </div>
+    );
+  }
+
+  if (!guest) {
+    return <Navigate to="/guest/login" replace />;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Mobile-optimized Header with dynamic shadow */}
+      <header className={cn(
+        "sticky top-0 z-20 bg-card/95 backdrop-blur-xl border-b transition-all duration-200 safe-area-inset-top",
+        isScrolled ? "border-border/50 shadow-sm" : "border-transparent"
+      )}>
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
+          <Link 
+            to="/guest/profile" 
+            className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
+          >
+            {guest.resortLogoUrl ? (
+              <img 
+                src={guest.resortLogoUrl} 
+                alt={guest.resortName || 'Resort'} 
+                className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-105">
+                <ProperaMark size={28} className="text-primary" />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                {guest.resortName || 'Guest Portal'}
+              </h1>
+              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
+                Room {guest.roomNumber}
+              </p>
+            </div>
+          </Link>
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+            <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
+            <GuestNotificationBell />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={logout}
+              className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
+            >
+              <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main content with optimized padding */}
+      <main 
+        ref={mainRef} 
+        className="flex-1 overflow-auto pb-24 sm:pb-28 scroll-smooth-touch"
+      >
+        <div className="p-4 max-w-lg mx-auto animate-fade-in">
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Mobile-optimized Bottom Navigation with active indicator */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card/98 backdrop-blur-xl border-t border-border/30 shadow-guest-elevated safe-area-inset-bottom">
+        <div className="flex h-16 sm:h-20 items-center justify-around px-2 max-w-lg mx-auto">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.href || 
+              (item.href !== '/guest' && location.pathname.startsWith(item.href));
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "guest-nav-item relative min-w-[60px] tap-target",
+                  isActive 
+                    ? `${item.activeColor} ${item.activeBg}` 
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                {/* Active indicator dot */}
+                {isActive && (
+                  <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-current" />
+                )}
+                <Icon className={cn(
+                  "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
+                  isActive && "scale-110"
+                )} />
+                <span className={cn(
+                  "text-[10px] sm:text-[11px] font-semibold transition-all",
+                  isActive && "font-bold"
+                )}>
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
