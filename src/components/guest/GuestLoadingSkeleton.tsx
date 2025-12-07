@@ -146,3 +146,45 @@ export function GuestRestaurantsLoading() {
     </div>
   );
 }
+
+export function GuestBookingsLoading() {
+  return (
+    <div className="space-y-5 animate-pulse">
+      {/* Header */}
+      <div className="space-y-1">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      
+      {/* Filter tabs */}
+      <div className="flex gap-2">
+        <Skeleton className="h-10 w-20 rounded-xl" />
+        <Skeleton className="h-10 w-24 rounded-xl" />
+        <Skeleton className="h-10 w-20 rounded-xl" />
+      </div>
+      
+      {/* Summary card */}
+      <Skeleton className="h-20 w-full rounded-xl" />
+      
+      {/* Section header */}
+      <Skeleton className="h-5 w-28" />
+      
+      {/* Booking cards */}
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border/50 overflow-hidden">
+            <Skeleton className="h-10 w-full" />
+            <div className="p-4 flex gap-3">
+              <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
