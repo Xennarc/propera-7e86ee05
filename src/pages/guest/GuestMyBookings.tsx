@@ -290,16 +290,27 @@ export default function GuestMyBookings() {
     .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
     .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
   
-  // For past: show past dates OR cancelled/completed/no-show status
-  const pastActivities = allActivities
-    .filter((b) => b.date < today || b.status === 'CANCELLED' || b.status === 'COMPLETED' || b.status === 'NO_SHOW')
+  // For completed: past dates with COMPLETED status or past dates with CONFIRMED (assumed completed)
+  const completedActivities = allActivities
+    .filter((b) => (b.date < today && b.status !== 'CANCELLED' && b.status !== 'NO_SHOW') || b.status === 'COMPLETED')
     .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING')))
     .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
   
-  const pastReservations = allReservations
-    .filter((r) => r.date < today || r.status === 'CANCELLED' || r.status === 'COMPLETED' || r.status === 'NO_SHOW')
+  const completedReservations = allReservations
+    .filter((r) => (r.date < today && r.status !== 'CANCELLED' && r.status !== 'NO_SHOW') || r.status === 'COMPLETED')
     .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING')))
+    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+
+  // For cancelled/no-show: explicitly cancelled or no-show bookings
+  const cancelledActivities = allActivities
+    .filter((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW')
+    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+  
+  const cancelledReservations = allReservations
+    .filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW')
     .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
 
@@ -565,8 +576,9 @@ export default function GuestMyBookings() {
   };
 
   const totalUpcoming = upcomingActivities.length + upcomingReservations.length;
-  const totalPast = pastActivities.length + pastReservations.length;
-  const isEmpty = totalUpcoming === 0 && totalPast === 0;
+  const totalCompleted = completedActivities.length + completedReservations.length;
+  const totalCancelled = cancelledActivities.length + cancelledReservations.length;
+  const isEmpty = totalUpcoming === 0 && totalCompleted === 0 && totalCancelled === 0;
 
   return (
     <div className="space-y-5">
@@ -725,8 +737,8 @@ export default function GuestMyBookings() {
             </div>
           )}
 
-          {/* Past Bookings */}
-          {totalPast > 0 && (
+          {/* Completed Bookings */}
+          {totalCompleted > 0 && (
             <Collapsible open={showPast} onOpenChange={setShowPast}>
               <CollapsibleTrigger asChild>
                 <Button 
@@ -734,19 +746,57 @@ export default function GuestMyBookings() {
                   className="w-full justify-between text-muted-foreground hover:text-foreground h-12 tap-target"
                 >
                   <span className="flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    Past Bookings
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    Completed
                   </span>
                   <span className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">{totalPast}</Badge>
+                    <Badge variant="secondary" className="text-xs">{totalCompleted}</Badge>
                     <ChevronDown className={cn("h-4 w-4 transition-transform", showPast && "rotate-180")} />
                   </span>
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-3">
                 {[
-                  ...(showActivities ? pastActivities : []), 
-                  ...(showDining ? pastReservations : [])
+                  ...(showActivities ? completedActivities : []), 
+                  ...(showDining ? completedReservations : [])
+                ]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .map((booking) => (
+                    <BookingCard
+                      key={booking.id}
+                      booking={booking}
+                      type={booking.booking_type}
+                      canCancel={false}
+                      canEdit={false}
+                      isPast
+                    />
+                  ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Cancelled Bookings */}
+          {totalCancelled > 0 && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-between text-muted-foreground hover:text-foreground h-12 tap-target"
+                >
+                  <span className="flex items-center gap-2">
+                    <XCircle className="h-4 w-4 text-red-500" />
+                    Cancelled
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">{totalCancelled}</Badge>
+                    <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                  </span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3">
+                {[
+                  ...(showActivities ? cancelledActivities : []), 
+                  ...(showDining ? cancelledReservations : [])
                 ]
                   .sort((a, b) => b.date.localeCompare(a.date))
                   .map((booking) => (
