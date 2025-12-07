@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGuestNotifications } from '@/hooks/useGuestNotifications';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 function getNotificationIcon(type: string) {
   if (type.includes('ACTIVITY')) return Calendar;
@@ -20,23 +21,6 @@ function getNotificationColor(type: string) {
   if (type.includes('CONFIRMED')) return 'text-green-500 bg-green-50 dark:bg-green-950';
   if (type.includes('CANCELLED')) return 'text-red-500 bg-red-50 dark:bg-red-950';
   return 'text-muted-foreground bg-muted';
-}
-
-function formatNotificationDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const isYesterday = date.toDateString() === yesterday.toDateString();
-  
-  if (isToday) {
-    return `Today ${format(date, 'HH:mm')}`;
-  } else if (isYesterday) {
-    return `Yesterday ${format(date, 'HH:mm')}`;
-  } else {
-    return format(date, 'MMM d, HH:mm');
-  }
 }
 
 interface GuestNotification {
@@ -52,13 +36,32 @@ interface GuestNotification {
 
 function NotificationItem({ 
   notification, 
-  onClick 
+  onClick,
+  t
 }: { 
   notification: GuestNotification;
   onClick: () => void;
+  t: (key: string) => string;
 }) {
   const Icon = getNotificationIcon(notification.type);
   const colorClasses = getNotificationColor(notification.type);
+
+  const formatNotificationDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    
+    if (isToday) {
+      return `${t('common.today')} ${format(date, 'HH:mm')}`;
+    } else if (isYesterday) {
+      return `${t('common.yesterday')} ${format(date, 'HH:mm')}`;
+    } else {
+      return format(date, 'MMM d, HH:mm');
+    }
+  };
 
   return (
     <Card 
@@ -112,6 +115,7 @@ function NotificationSkeleton() {
 
 export default function GuestNotificationsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { 
     notifications, 
     unreadCount,
@@ -143,8 +147,8 @@ export default function GuestNotificationsPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">Notifications</h1>
-            <p className="text-sm text-muted-foreground">Updates about your bookings</p>
+            <h1 className="text-xl font-semibold">{t('notifications.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('notifications.subtitle')}</p>
           </div>
         </div>
         {unreadCount > 0 && (
@@ -155,7 +159,7 @@ export default function GuestNotificationsPage() {
             disabled={isMarkingAllRead}
           >
             <CheckCheck className="h-4 w-4 mr-1" />
-            Mark all read
+            {t('notifications.markAllRead')}
           </Button>
         )}
       </div>
@@ -170,12 +174,12 @@ export default function GuestNotificationsPage() {
       ) : notifications.length === 0 ? (
         <Card className="p-8 text-center">
           <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="font-medium mb-2">No notifications yet</h3>
+          <h3 className="font-medium mb-2">{t('notifications.noNotifications')}</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Updates about your bookings will appear here.
+            {t('notifications.noNotificationsDescription')}
           </p>
           <Button onClick={() => navigate('/guest/bookings')}>
-            View my bookings
+            {t('notifications.viewMyBookings')}
           </Button>
         </Card>
       ) : (
@@ -185,6 +189,7 @@ export default function GuestNotificationsPage() {
               key={notification.id}
               notification={notification}
               onClick={() => handleNotificationClick(notification)}
+              t={t}
             />
           ))}
         </div>

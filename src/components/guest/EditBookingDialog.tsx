@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ interface EditBookingDialogProps {
 export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDialogProps) {
   const { guest } = useGuestAuth();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
 
@@ -103,12 +105,12 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Booking updated successfully');
+      toast.success(t('booking.bookingConfirmed'));
       queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update booking');
+      toast.error(error.message || t('common.error'));
     },
   });
 
@@ -123,12 +125,12 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Reservation updated successfully');
+      toast.success(t('booking.bookingConfirmed'));
       queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update reservation');
+      toast.error(error.message || t('common.error'));
     },
   });
 
@@ -150,9 +152,9 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Modify Booking</DialogTitle>
+          <DialogTitle>{t('editBooking.title')}</DialogTitle>
           <DialogDescription>
-            Update the number of guests for "{booking.title}"
+            {t('editBooking.description', { title: booking.title })}
           </DialogDescription>
         </DialogHeader>
 
@@ -173,7 +175,7 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
                 }}
                 min={1}
                 max={Math.max(1, maxPax - numChildren)}
-                label="Adults"
+                label={t('common.adults')}
               />
 
               <NumberStepper
@@ -185,14 +187,16 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
                 }}
                 min={0}
                 max={Math.max(0, maxPax - numAdults)}
-                label="Children"
+                label={t('common.children')}
               />
 
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
                 <Users className="h-4 w-4 shrink-0" />
                 <span>
-                  Total: {totalPax} {totalPax === 1 ? 'guest' : 'guests'}
-                  {maxPax < 99 && ` (max ${maxPax})`}
+                  {totalPax === 1 
+                    ? t('editBooking.total', { count: totalPax })
+                    : t('editBooking.totalPlural', { count: totalPax })}
+                  {maxPax < 99 && ` (${t('common.max')} ${maxPax})`}
                 </span>
               </div>
 
@@ -200,7 +204,7 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Not enough space available. Please reduce the number of guests.
+                    {t('booking.notEnoughSpace')}
                   </AlertDescription>
                 </Alert>
               )}
@@ -210,14 +214,14 @@ export function EditBookingDialog({ open, onOpenChange, booking }: EditBookingDi
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleSave} 
             disabled={!hasChanges || isOverCapacity || isPending || loadingCapacity}
           >
             {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
+            {t('common.saveChanges')}
           </Button>
         </DialogFooter>
       </DialogContent>
