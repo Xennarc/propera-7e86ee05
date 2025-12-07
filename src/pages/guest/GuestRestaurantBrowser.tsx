@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,18 +23,21 @@ import {
 
 const MEAL_PERIOD_ORDER = ['BREAKFAST', 'LUNCH', 'DINNER', 'EVENT'];
 
-const MEAL_PERIOD_CONFIG: Record<string, { icon: typeof Coffee; label: string; colorClass: string; bgClass: string }> = {
-  BREAKFAST: { icon: Coffee, label: 'Breakfast', colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
-  LUNCH: { icon: Sun, label: 'Lunch', colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10' },
-  DINNER: { icon: Moon, label: 'Dinner', colorClass: 'text-orchid', bgClass: 'bg-orchid/10' },
-  EVENT: { icon: PartyPopper, label: 'Event', colorClass: 'text-coral', bgClass: 'bg-coral/10' },
-};
+// Removed hardcoded config - now defined inside component with translations
 
 export default function GuestRestaurantBrowser() {
   const { guest } = useGuestAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>('all');
+
+  const mealPeriodConfig: Record<string, { icon: typeof Coffee; label: string; colorClass: string; bgClass: string }> = {
+    BREAKFAST: { icon: Coffee, label: t('dining.mealPeriods.BREAKFAST'), colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
+    LUNCH: { icon: Sun, label: t('dining.mealPeriods.LUNCH'), colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10' },
+    DINNER: { icon: Moon, label: t('dining.mealPeriods.DINNER'), colorClass: 'text-orchid', bgClass: 'bg-orchid/10' },
+    EVENT: { icon: PartyPopper, label: t('dining.mealPeriods.EVENT'), colorClass: 'text-coral', bgClass: 'bg-coral/10' },
+  };
 
   const { data: restaurants } = useQuery({
     queryKey: ['guest-restaurants', guest?.resortId],
@@ -124,7 +128,7 @@ export default function GuestRestaurantBrowser() {
     <div className="space-y-5">
       <div>
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-foreground">Restaurants</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('dining.title')}</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -133,12 +137,12 @@ export default function GuestRestaurantBrowser() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[250px]">
-                <p>Restaurants appear when they have available time slots for the selected date.</p>
+                <p>{t('dining.noRestaurantsDescription')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-        <p className="text-sm text-muted-foreground">Reserve your dining experience</p>
+        <p className="text-sm text-muted-foreground">{t('dining.subtitle')}</p>
       </div>
 
       {/* Restaurant Filter */}
@@ -163,14 +167,14 @@ export default function GuestRestaurantBrowser() {
         onChange={setSelectedDate}
         minDate={guest.checkInDate}
         maxDate={guest.checkOutDate}
-        hint="Select a date to see available dining times"
+        hint={t('dining.selectDate')}
       />
 
       {isLoading ? (
         <div className="space-y-3">
           <Skeleton className="h-24 w-full rounded-xl" />
           <Skeleton className="h-24 w-full rounded-xl" />
-          <p className="text-sm text-center text-muted-foreground">Loading restaurants...</p>
+          <p className="text-sm text-center text-muted-foreground">{t('common.loading')}</p>
         </div>
       ) : !hasAvailableSlots ? (
         <Card className="border-dashed bg-muted/30">
@@ -189,27 +193,23 @@ export default function GuestRestaurantBrowser() {
             <h3 className="font-semibold text-foreground mb-2">
               {hasConfiguredSlots 
                 ? slotsArePastCutoff 
-                  ? 'Booking time has passed' 
-                  : 'Fully booked for this date'
-                : 'No reservations available'}
+                  ? t('errors.cutoffPassed') 
+                  : t('dining.noRestaurants')
+                : t('dining.noRestaurants')}
             </h3>
             <p className="text-sm text-muted-foreground max-w-xs mb-4">
-              {hasConfiguredSlots 
-                ? slotsArePastCutoff
-                  ? "The booking deadline for today's dining times has passed. Please select a future date or contact Guest Services for walk-in availability."
-                  : 'All dining times are fully booked for this date. Please try another day or contact Guest Services for assistance.'
-                : 'This restaurant is not accepting reservations for this date. Please try selecting another day or contact your concierge.'}
+              {t('dining.noRestaurantsDescription')}
             </p>
             <Button variant="outline" size="sm" className="gap-2">
               <Phone className="h-4 w-4" />
-              Contact Concierge
+              {t('profile.help')}
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
           {MEAL_PERIOD_ORDER.filter(p => slotsByPeriod[p]).map((period) => {
-            const periodConfig = MEAL_PERIOD_CONFIG[period] || MEAL_PERIOD_CONFIG.DINNER;
+            const periodConfig = mealPeriodConfig[period] || mealPeriodConfig.DINNER;
             const PeriodIcon = periodConfig.icon;
             
             return (

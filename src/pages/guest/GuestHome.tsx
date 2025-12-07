@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { format, parseISO, addDays } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +33,7 @@ import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -90,10 +92,10 @@ export default function GuestHome() {
 
   // Get greeting based on time of day
   const getGreeting = () => {
-    if (hour < 12) return { text: 'Good morning', icon: Sun, emoji: '☀️' };
-    if (hour < 17) return { text: 'Good afternoon', icon: Sun, emoji: '🌤️' };
-    if (hour < 21) return { text: 'Good evening', icon: Sunset, emoji: '🌅' };
-    return { text: 'Good night', icon: Moon, emoji: '🌙' };
+    if (hour < 12) return { text: t('home.goodMorning'), icon: Sun, emoji: '☀️' };
+    if (hour < 17) return { text: t('home.goodAfternoon'), icon: Sun, emoji: '🌤️' };
+    if (hour < 21) return { text: t('home.goodEvening'), icon: Sunset, emoji: '🌅' };
+    return { text: t('home.goodEvening'), icon: Moon, emoji: '🌙' };
   };
 
   const greeting = getGreeting();
@@ -159,15 +161,15 @@ export default function GuestHome() {
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-base font-bold text-foreground mb-0.5">
-                  How was your stay?
+                  {t('feedback.title')}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Share your feedback before you leave
+                  {t('profile.feedback')}
                 </p>
               </div>
               <Link to="/guest/feedback">
                 <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl font-semibold shrink-0 tap-target">
-                  Share
+                  {t('feedback.submit').split(' ')[0]}
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </Link>
@@ -210,9 +212,9 @@ export default function GuestHome() {
       {/* Today's Schedule */}
       <div>
         <GuestSectionHeader
-          title="Today's Schedule"
+          title={t('common.today')}
           icon={<IconClock className="h-5 w-5 text-primary" />}
-          actionLabel={todaySchedule.length > 0 ? "View all" : undefined}
+          actionLabel={todaySchedule.length > 0 ? t('common.viewAll') : undefined}
           actionHref="/guest/bookings"
         />
         
@@ -227,22 +229,22 @@ export default function GuestHome() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold mb-1">No plans yet?</h3>
+                    <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Discover activities and dining experiences
+                      {t('home.noPlansDescription')}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Link to="/guest/activities">
                       <Button className="w-full tap-target">
                         <IconActivities className="h-4 w-4 mr-2" />
-                        Explore Activities
+                        {t('home.exploreActivities')}
                       </Button>
                     </Link>
                     <Link to="/guest/restaurants">
                       <Button variant="outline" className="w-full tap-target">
                         <IconRestaurants className="h-4 w-4 mr-2" />
-                        Book a Restaurant
+                        {t('home.exploreDining')}
                       </Button>
                     </Link>
                   </div>
@@ -290,9 +292,9 @@ export default function GuestHome() {
       {totalUpcomingBookings > todaySchedule.length && (
         <div>
           <GuestSectionHeader
-            title="Coming Up"
+            title={t('home.upcoming')}
             icon={<Calendar className="h-5 w-5 text-lagoon" />}
-            actionLabel="See all"
+            actionLabel={t('common.seeMore')}
             actionHref="/guest/bookings"
           />
           
