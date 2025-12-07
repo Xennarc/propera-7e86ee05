@@ -10,6 +10,7 @@ import { Loader2, Search, ArrowLeft, CheckCircle, AlertCircle, Users } from 'luc
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { IconPropera, WaveDivider } from '@/components/icons/ProperaIcons';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 type SearchResult = 
   | { type: 'found'; resortCode: string; resortName: string }
@@ -107,6 +108,12 @@ export default function GuestFindResort() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEOHead
+        title="Find Your Resort"
+        description="Can't find your resort link? Search by your room number and last name to locate your Maldives resort guest portal."
+        canonicalUrl="/guest/find"
+        keywords="find resort, guest portal search, Maldives resort lookup"
+      />
       {/* Theme toggle in top right */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
