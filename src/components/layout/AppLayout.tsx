@@ -14,6 +14,7 @@ import { IconCalendar } from '@/components/icons/ProperaIcons';
 import { ProperaLoader, ProperaMark } from '@/components/icons/ProperaLogo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,6 +72,11 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
+      <SEOHead
+        title="Staff Console"
+        description="Propera staff console for resort operations management."
+        noIndex={true}
+      />
       <div className="flex min-h-screen w-full bg-background">
         {/* Desktop Sidebar */}
         <div className="hidden lg:block">
