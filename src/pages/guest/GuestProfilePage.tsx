@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Home, User, MapPin, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function GuestProfilePage() {
   const { guest } = useGuestAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   if (!guest) {
     return null;
@@ -37,8 +39,8 @@ export default function GuestProfilePage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-foreground">My Profile</h1>
-          <p className="text-sm text-muted-foreground">Your stay details</p>
+          <h1 className="text-xl font-bold text-foreground">{t('profile.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('profile.subtitle')}</p>
         </div>
       </div>
 
@@ -51,7 +53,7 @@ export default function GuestProfilePage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-foreground">{guest.fullName}</h2>
-              <p className="text-muted-foreground">Welcome, {firstName}!</p>
+              <p className="text-muted-foreground">{t('profile.welcome', { name: firstName })}</p>
             </div>
           </div>
         </div>
@@ -62,7 +64,7 @@ export default function GuestProfilePage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            Resort
+            {t('profile.resort')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -77,12 +79,12 @@ export default function GuestProfilePage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Home className="h-4 w-4 text-primary" />
-            Accommodation
+            {t('profile.accommodation')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Room Number</span>
+            <span className="text-muted-foreground">{t('profile.roomNumber')}</span>
             <Badge variant="secondary" className="text-base font-semibold px-3 py-1">
               {guest.roomNumber}
             </Badge>
@@ -95,13 +97,13 @@ export default function GuestProfilePage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
-            Stay Details
+            {t('profile.stayDetails')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Check-in</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('profile.checkInDate')}</p>
               <p className="font-semibold text-foreground">
                 {format(checkInDate, 'EEE, MMM d')}
               </p>
@@ -110,7 +112,7 @@ export default function GuestProfilePage() {
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Check-out</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('profile.checkOutDate')}</p>
               <p className="font-semibold text-foreground">
                 {format(checkOutDate, 'EEE, MMM d')}
               </p>
@@ -124,10 +126,10 @@ export default function GuestProfilePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Total Stay</span>
+                <span className="text-muted-foreground">{t('profile.totalStay')}</span>
               </div>
               <span className="font-semibold text-foreground">
-                {stayLength} {stayLength === 1 ? 'night' : 'nights'}
+                {stayLength} {stayLength === 1 ? t('common.night') : t('common.nights')}
               </span>
             </div>
           </div>
@@ -135,9 +137,9 @@ export default function GuestProfilePage() {
           {/* Progress indicator */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Stay progress</span>
+              <span className="text-muted-foreground">{t('profile.stayProgress')}</span>
               <span className="font-medium text-foreground">
-                Day {daysStayed + 1} of {stayLength + 1}
+                {t('profile.dayOf', { current: daysStayed + 1, total: stayLength + 1 })}
               </span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -150,11 +152,13 @@ export default function GuestProfilePage() {
             </div>
             {daysRemaining > 0 ? (
               <p className="text-xs text-muted-foreground text-center">
-                {daysRemaining} {daysRemaining === 1 ? 'night' : 'nights'} remaining
+                {daysRemaining === 1 
+                  ? t('profile.nightRemaining')
+                  : t('profile.nightsRemaining', { count: daysRemaining })}
               </p>
             ) : (
               <p className="text-xs text-primary text-center font-medium">
-                Check-out day
+                {t('profile.checkoutDay')}
               </p>
             )}
           </div>
@@ -165,7 +169,7 @@ export default function GuestProfilePage() {
       <Card className="bg-muted/30">
         <CardContent className="pt-6">
           <p className="text-sm text-muted-foreground text-center">
-            Need assistance? Please contact the front desk or visit our reception.
+            {t('profile.helpText')}
           </p>
         </CardContent>
       </Card>
