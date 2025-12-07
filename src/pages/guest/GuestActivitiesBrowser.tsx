@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,20 +24,21 @@ import {
 } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 
-const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
-  { value: 'all', label: 'All' },
-  ...coreActivityCategories.map(cat => ({ 
-    value: cat, 
-    label: cat === 'DIVE' ? 'Diving' : cat === 'EXCURSION' ? 'Excursions' : cat === 'WATERSPORT' ? 'Watersports' : cat === 'SPA' ? 'Spa' : 'Other'
-  })),
-];
-
 export default function GuestActivitiesBrowser() {
   const { guest } = useGuestAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
+    { value: 'all', label: t('activities.allCategories') },
+    ...coreActivityCategories.map(cat => ({ 
+      value: cat, 
+      label: t(`activities.categories.${cat}`)
+    })),
+  ];
 
   const { data: sessions, isLoading, isError } = useQuery({
     queryKey: ['guest-available-sessions', guest?.guestId, selectedDate, selectedCategory],
@@ -94,7 +96,7 @@ export default function GuestActivitiesBrowser() {
     <div className="space-y-5">
       <div>
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-foreground">Activities</h1>
+          <h1 className="text-xl font-bold text-foreground">{t('activities.title')}</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -103,19 +105,19 @@ export default function GuestActivitiesBrowser() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[250px]">
-                <p>Activities only appear on dates with available sessions. If you don't see an activity, it may not be scheduled yet.</p>
+                <p>{t('activities.noActivitiesDescription')}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-        <p className="text-sm text-muted-foreground">Discover experiences for your stay</p>
+        <p className="text-sm text-muted-foreground">{t('activities.subtitle')}</p>
       </div>
 
       {/* Search Input */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search activities..."
+          placeholder={t('activities.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10 h-11 tap-target"
@@ -148,9 +150,9 @@ export default function GuestActivitiesBrowser() {
         <Card className="guest-card border-dashed bg-muted/30">
           <GuestEmptyState
             icon={HelpCircle}
-            title="Unable to load activities"
-            description="We couldn't load the available activities. Please try again or contact your concierge."
-            actionLabel="Try Again"
+            title={t('common.error')}
+            description={t('errors.networkError')}
+            actionLabel={t('common.retry')}
             onAction={() => window.location.reload()}
           />
         </Card>
@@ -158,15 +160,13 @@ export default function GuestActivitiesBrowser() {
         <Card className="guest-card border-dashed bg-muted/30">
           <GuestEmptyState
             icon={Calendar}
-            title={searchQuery ? "No matching activities" : activitiesExist === false ? "Activities coming soon" : "No sessions available"}
+            title={searchQuery ? t('common.noResults') : t('activities.noActivities')}
             description={
               searchQuery 
-                ? `No activities match "${searchQuery}". Try a different search or clear your filter.`
-                : activitiesExist === false 
-                  ? "This resort hasn't added any activities yet. Please check back later."
-                  : "There are no activity sessions for this date. Try selecting another day."
+                ? `${t('common.noResults')} "${searchQuery}"`
+                : t('activities.noActivitiesDescription')
             }
-            actionLabel={searchQuery ? "Clear Search" : "Contact Concierge"}
+            actionLabel={searchQuery ? t('common.search') : undefined}
             onAction={searchQuery ? () => setSearchQuery('') : undefined}
           />
         </Card>
@@ -213,18 +213,18 @@ export default function GuestActivitiesBrowser() {
                       {session.description && (
                         <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{session.description}</p>
                       )}
-                      <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3 text-sm">
                           <span className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-3.5 w-3.5" />
-                            {session.duration_minutes}min
+                            {session.duration_minutes}{t('common.minutes').charAt(0)}
                           </span>
                           <span className={cn(
                             "flex items-center gap-1",
                             isLowAvailability ? 'text-coral font-medium' : 'text-muted-foreground'
                           )}>
                             <Users className="h-3.5 w-3.5" />
-                            {spotsLeft} left
+                            {spotsLeft} {t('activities.spotsLeft')}
                           </span>
                         </div>
                         <ChevronRight className={cn("h-5 w-5", config.colorClass)} />

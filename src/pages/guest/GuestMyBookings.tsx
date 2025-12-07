@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
@@ -47,6 +48,7 @@ type FilterType = 'all' | 'activities' | 'dining';
 
 export default function GuestMyBookings() {
   const { guest } = useGuestAuth();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showPast, setShowPast] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -347,8 +349,8 @@ export default function GuestMyBookings() {
 
   const getDateLabel = (dateStr: string) => {
     const date = parseISO(dateStr);
-    if (isToday(date)) return 'Today';
-    if (isTomorrow(date)) return 'Tomorrow';
+    if (isToday(date)) return t('common.today');
+    if (isTomorrow(date)) return t('common.tomorrow');
     return format(date, 'EEE, MMM d');
   };
 
@@ -357,35 +359,35 @@ export default function GuestMyBookings() {
       case 'CONFIRMED':
         return { 
           icon: CheckCircle2, 
-          label: 'Confirmed', 
+          label: t('bookings.status.CONFIRMED'), 
           variant: 'confirmed' as const,
           className: 'text-emerald-600 dark:text-emerald-400'
         };
       case 'PENDING':
         return { 
           icon: AlertCircle, 
-          label: 'Awaiting Approval', 
+          label: t('bookings.status.PENDING'), 
           variant: 'pending' as const,
           className: 'text-amber-600 dark:text-amber-400'
         };
       case 'CANCELLED':
         return { 
           icon: XCircle, 
-          label: 'Cancelled', 
+          label: t('bookings.status.CANCELLED'), 
           variant: 'cancelled' as const,
           className: 'text-red-500'
         };
       case 'COMPLETED':
         return { 
           icon: CheckCircle2, 
-          label: 'Completed', 
+          label: t('bookings.status.COMPLETED'), 
           variant: 'completed' as const,
           className: 'text-muted-foreground'
         };
       case 'NO_SHOW':
         return { 
           icon: XCircle, 
-          label: 'No Show', 
+          label: t('bookings.status.NO_SHOW'), 
           variant: 'noShow' as const,
           className: 'text-muted-foreground'
         };
@@ -400,10 +402,10 @@ export default function GuestMyBookings() {
   };
 
   const mealPeriodConfig: Record<string, { colorClass: string; bgClass: string; label: string }> = {
-    BREAKFAST: { colorClass: 'text-sunset', bgClass: 'bg-sunset/10', label: 'Breakfast' },
-    LUNCH: { colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10', label: 'Lunch' },
-    DINNER: { colorClass: 'text-orchid', bgClass: 'bg-orchid/10', label: 'Dinner' },
-    EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10', label: 'Event' },
+    BREAKFAST: { colorClass: 'text-sunset', bgClass: 'bg-sunset/10', label: t('dining.mealPeriods.BREAKFAST') },
+    LUNCH: { colorClass: 'text-lagoon', bgClass: 'bg-lagoon/10', label: t('dining.mealPeriods.LUNCH') },
+    DINNER: { colorClass: 'text-orchid', bgClass: 'bg-orchid/10', label: t('dining.mealPeriods.DINNER') },
+    EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10', label: t('dining.mealPeriods.EVENT') },
   };
 
   const BookingCard = ({ 
@@ -584,17 +586,17 @@ export default function GuestMyBookings() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-foreground">My Bookings</h1>
-        <p className="text-sm text-muted-foreground">Manage your activities and dining reservations</p>
+        <h1 className="text-xl font-bold text-foreground">{t('bookings.title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('bookings.subtitle')}</p>
       </div>
 
       {/* Quick Filter Tabs */}
       {!isEmpty && (
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
           {[
-            { value: 'all', label: 'All', icon: IconBookings, count: totalUpcoming },
-            { value: 'activities', label: 'Activities', icon: IconActivities, count: upcomingActivities.length },
-            { value: 'dining', label: 'Dining', icon: IconRestaurants, count: upcomingReservations.length },
+            { value: 'all', label: t('bookings.all'), icon: IconBookings, count: totalUpcoming },
+            { value: 'activities', label: t('bookings.filterActivities'), icon: IconActivities, count: upcomingActivities.length },
+            { value: 'dining', label: t('bookings.filterDining'), icon: IconRestaurants, count: upcomingReservations.length },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = filter === tab.value;
@@ -631,11 +633,11 @@ export default function GuestMyBookings() {
         <Card className="guest-card border-dashed bg-muted/20">
           <GuestEmptyState
             icon={Calendar}
-            title="No bookings yet"
-            description="You haven't made any bookings during your stay yet. Explore activities and restaurants to get started."
-            actionLabel="Browse Activities"
+            title={t('bookings.noBookings')}
+            description={t('bookings.noBookingsDescription')}
+            actionLabel={t('bookings.browseActivities')}
             actionHref="/guest/activities"
-            secondaryActionLabel="View Restaurants"
+            secondaryActionLabel={t('bookings.viewRestaurants')}
             secondaryActionHref="/guest/restaurants"
           />
         </Card>
@@ -646,17 +648,17 @@ export default function GuestMyBookings() {
             <div className="guest-card p-4 bg-gradient-to-r from-primary/5 to-lagoon/5 border-primary/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Upcoming</p>
+                  <p className="text-sm text-muted-foreground">{t('bookings.upcoming')}</p>
                   <p className="text-2xl font-bold text-foreground">{totalUpcoming}</p>
                 </div>
                 <div className="flex gap-4 text-sm">
                   <div className="text-center">
                     <p className="text-lg font-semibold text-lagoon">{upcomingActivities.length}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Activities</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('nav.activities')}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-sunset">{upcomingReservations.length}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dining</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{t('nav.dining')}</p>
                   </div>
                 </div>
               </div>
@@ -785,7 +787,7 @@ export default function GuestMyBookings() {
                 >
                   <span className="flex items-center gap-2">
                     <XCircle className="h-4 w-4 text-red-500" />
-                    Cancelled
+                    {t('bookings.cancelled')}
                   </span>
                   <span className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs">{totalCancelled}</Badge>
@@ -819,13 +821,13 @@ export default function GuestMyBookings() {
       <AlertDialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
         <AlertDialogContent className="max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
+            <AlertDialogTitle>{t('bookings.cancelConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              We'll cancel your booking for "{cancelDialog?.title}". This action cannot be undone.
+              {t('bookings.cancelConfirmDescription')} "{cancelDialog?.title}"
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">Keep Booking</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">{t('bookings.keepBooking')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancel}
               className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -834,7 +836,7 @@ export default function GuestMyBookings() {
               {(cancelActivityMutation.isPending || cancelReservationMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Yes, Cancel
+              {t('bookings.yesCancel')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
