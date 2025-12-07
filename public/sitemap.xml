@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Main public landing page -->
+  <url>
+    <loc>https://propera.cc/</loc>
+    <lastmod>2024-12-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  
+  <!-- Guest portal entry points (public, discoverable) -->
+  <url>
+    <loc>https://propera.cc/guest/login</loc>
+    <lastmod>2024-12-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://propera.cc/guest/find</loc>
+    <lastmod>2024-12-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- 
+    Note: Staff routes (/staff/*), authenticated guest routes (/guest/*), 
+    and internal routes are excluded from sitemap.
+    Resort-specific routes (/resort/[code]/*) are dynamic and would need
+    server-side generation for full coverage.
+  -->
+</urlset>
