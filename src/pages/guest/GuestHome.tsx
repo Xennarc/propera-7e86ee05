@@ -6,9 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles } from 'lucide-react';
+import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles, Calendar } from 'lucide-react';
 import {
   IconActivities,
   IconRestaurants,
@@ -24,6 +23,12 @@ import { cn } from '@/lib/utils';
 import {
   createActivityBookingFromInStaySuggestion,
 } from '@/lib/booking-source-helpers';
+import { GuestQuickActions } from '@/components/guest/GuestQuickActions';
+import { GuestStayProgress } from '@/components/guest/GuestStayProgress';
+import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
+import { GuestBookingCard } from '@/components/guest/GuestBookingCard';
+import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
+import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
@@ -44,6 +49,7 @@ export default function GuestHome() {
       };
     },
     enabled: !!guest,
+    staleTime: 30000, // 30 seconds
   });
 
   // Check if guest can submit feedback
@@ -84,10 +90,10 @@ export default function GuestHome() {
 
   // Get greeting based on time of day
   const getGreeting = () => {
-    if (hour < 12) return { text: 'Good morning', icon: Sun };
-    if (hour < 17) return { text: 'Good afternoon', icon: Sun };
-    if (hour < 21) return { text: 'Good evening', icon: Sunset };
-    return { text: 'Good night', icon: Moon };
+    if (hour < 12) return { text: 'Good morning', icon: Sun, emoji: '☀️' };
+    if (hour < 17) return { text: 'Good afternoon', icon: Sun, emoji: '🌤️' };
+    if (hour < 21) return { text: 'Good evening', icon: Sunset, emoji: '🌅' };
+    return { text: 'Good night', icon: Moon, emoji: '🌙' };
   };
 
   const greeting = getGreeting();
@@ -105,16 +111,24 @@ export default function GuestHome() {
   const todaySchedule = [
     ...todayActivities.map((b) => ({
       type: 'activity' as const,
+      id: b.id,
       time: b.start_time,
       title: b.activity_name,
       status: b.status,
+      category: b.category,
+      duration_minutes: b.duration_minutes,
+      num_adults: b.num_adults || 1,
+      num_children: b.num_children || 0,
     })),
     ...todayReservations.map((r) => ({
       type: 'restaurant' as const,
+      id: r.id,
       time: r.start_time,
       title: r.restaurant_name,
       mealPeriod: r.meal_period,
       status: r.status,
+      num_adults: r.num_adults || 1,
+      num_children: r.num_children || 0,
     })),
   ].sort((a, b) => a.time.localeCompare(b.time));
 
@@ -127,442 +141,191 @@ export default function GuestHome() {
   ) || [];
   
   const totalUpcomingBookings = upcomingActivities.length + upcomingReservations.length;
-  const showNudge = !isLoading && totalUpcomingBookings <= 2 && todaySchedule.length === 0;
+  const showNudge = !isLoading && totalUpcomingBookings <= 1 && todaySchedule.length === 0;
 
-  // Fetch smart suggestions for in-stay upsell
-  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
-  const { data: suggestions } = useQuery({
-    queryKey: ['guest-suggestions', guest?.guestId, todayStr],
-    queryFn: async () => {
-      if (!guest) return null;
-
-      // Fetch suggested activities for today and tomorrow
-      const { data: activityData } = await supabase.rpc('guest_get_available_sessions', {
-        p_guest_id: guest.guestId,
-        p_date: null, // Get all upcoming
-      });
-
-      const sessions = (activityData as any[]) || [];
-      
-      // Filter to today/tomorrow and sort by popularity (remaining_spots desc means less popular, so reverse)
-      const todayTomorrowSessions = sessions
-        .filter((s: any) => s.date === todayStr || s.date === tomorrow)
-        .sort((a: any, b: any) => {
-          // Prioritize sessions with more bookings (capacity - remaining = booked)
-          const aBooked = a.capacity - a.remaining_spots;
-          const bBooked = b.capacity - b.remaining_spots;
-          return bBooked - aBooked;
-        })
-        .slice(0, 2); // Top 2 activities
-
-      // Fetch suggested restaurant slots for today
-      const { data: restaurantData } = await supabase.rpc('guest_get_available_slots', {
-        p_guest_id: guest.guestId,
-        p_date: todayStr,
-      });
-
-      const slots = (restaurantData as any[]) || [];
-      
-      // Get dinner slots for tonight
-      const dinnerSlots = slots
-        .filter((s: any) => s.meal_period === 'DINNER' && s.remaining_covers > 0)
-        .slice(0, 1); // Top 1 restaurant
-
-      return {
-        activities: todayTomorrowSessions,
-        restaurants: dinnerSlots,
-      };
-    },
-    enabled: !!guest && showNudge,
-  });
-
-  // Mutation for booking activities from suggestions
-  const bookActivityMutation = useMutation({
-    mutationFn: async (sessionId: string) => {
-      if (!guest) throw new Error('Not authenticated');
-      
-      return createActivityBookingFromInStaySuggestion({
-        guestId: guest.guestId,
-        sessionId,
-        numAdults: 1,
-        numChildren: 0,
-      });
-    },
-    onSuccess: (result, sessionId) => {
-      if ((result.data as any)?.success) {
-        const session = suggestions?.activities.find((s: any) => s.id === sessionId);
-        toast({
-          title: "You're booked!",
-          description: `${session?.activity_name} on ${format(parseISO(session?.date), 'MMM d')} at ${session?.start_time.slice(0, 5)}`,
-        });
-        queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
-        queryClient.invalidateQueries({ queryKey: ['guest-suggestions'] });
-      } else {
-        toast({
-          title: "Couldn't complete booking",
-          description: "This time may no longer be available. Please try another or contact reception.",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Booking failed",
-        description: "Something went wrong. Please try again or contact reception.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const hasSuggestions = (suggestions?.activities?.length || 0) + (suggestions?.restaurants?.length || 0) > 0;
+  if (isLoading) {
+    return <GuestHomeLoading />;
+  }
 
   return (
     <div className="space-y-6">
       {/* Feedback Prompt - Show when eligible */}
       {canSubmitFeedback?.can_submit && (
-        <Card className="bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border-warning/20 overflow-hidden shadow-soft">
-          <CardContent className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-warning/10 shadow-sm">
-                <IconFeedback className="h-7 w-7 text-warning" />
+        <Card className="guest-card bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border-warning/20 overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-warning/15">
+                <IconFeedback className="h-6 w-6 text-warning" />
               </div>
-              <div className="flex-1">
-                <h2 className="text-lg font-bold text-foreground mb-1">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-foreground mb-0.5">
                   How was your stay?
                 </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Your feedback helps us improve. This takes less than a minute.
+                <p className="text-xs text-muted-foreground">
+                  Share your feedback before you leave
                 </p>
-                <Link to="/guest/feedback">
-                  <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-full font-semibold shadow-sm">
-                    Share Feedback
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
               </div>
+              <Link to="/guest/feedback">
+                <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl font-semibold shrink-0 tap-target">
+                  Share
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Premium Greeting Card */}
-      <Card className="relative overflow-hidden border-primary/20 shadow-soft">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" />
-        <CardContent className="p-6 relative">
+      <Card className="guest-hero border-0 shadow-guest-card overflow-hidden">
+        <CardContent className="p-5 relative z-10">
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 shadow-sm">
               <GreetingIcon className="h-7 w-7 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                 {greeting.text}, {firstName}!
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {todaySchedule.length > 0 
-                  ? "Here's what you have planned today."
-                  : "You can book activities and restaurants during your stay."}
+                  ? `You have ${todaySchedule.length} ${todaySchedule.length === 1 ? 'event' : 'events'} today`
+                  : "What would you like to do today?"}
               </p>
             </div>
           </div>
-          <div className="flex items-center justify-between text-sm pt-4 border-t border-primary/10">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <IconStay className="h-4 w-4" />
-              <span className="font-medium">Room {guest.roomNumber}</span>
-            </div>
-            <span className="text-muted-foreground font-medium">
-              {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d, yyyy')}
-            </span>
-          </div>
+          
+          {/* Stay Progress */}
+          <GuestStayProgress 
+            checkInDate={guest.checkInDate} 
+            checkOutDate={guest.checkOutDate}
+            className="pt-3 border-t border-border/30"
+          />
         </CardContent>
       </Card>
 
-      {/* Smart Nudge - No Plans Yet with Suggestions */}
-      {showNudge && hasSuggestions && (
-        <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">No plans for today yet?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Here are some popular options you can still book.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                {/* Activity Suggestions */}
-                {suggestions?.activities?.map((session: any) => {
-                  const config = getCategoryConfig(session.category);
-                  return (
-                    <Card key={session.id} className="shadow-soft overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-3">
-                          <div className={cn(
-                            "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
-                            config.bgClass
-                          )}>
-                            <CategoryIcon category={session.category} size={24} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-foreground mb-1 truncate">
-                              {session.activity_name}
-                            </h4>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {format(parseISO(session.date), 'MMM d')} at {session.start_time.slice(0, 5)}
-                              {session.duration_minutes && ` • ${session.duration_minutes}min`}
-                            </p>
-                            <Badge className={cn("text-xs", config.chipClass)}>
-                              Guest favourite
-                            </Badge>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => bookActivityMutation.mutate(session.id)}
-                            disabled={bookActivityMutation.isPending}
-                            className="shrink-0"
-                          >
-                            {bookActivityMutation.isPending ? 'Booking...' : 'Book now'}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-
-                {/* Restaurant Suggestions */}
-                {suggestions?.restaurants?.map((slot: any) => (
-                  <Card key={slot.id} className="shadow-soft overflow-hidden">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sunset/10 shrink-0">
-                          <IconRestaurants className="h-6 w-6 text-sunset" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-foreground mb-1 truncate">
-                            {slot.restaurant_name}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            Tonight at {slot.start_time.slice(0, 5)}
-                          </p>
-                          <Badge className="chip-category-dining text-xs">
-                            Still available
-                          </Badge>
-                        </div>
-                        <Link to={`/guest/restaurants/book/${slot.id}`}>
-                          <Button size="sm" className="shrink-0">
-                            Reserve
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <div className="pt-2 text-center">
-                <Link to="/guest/activities" className="text-sm text-primary hover:underline font-medium">
-                  See all activities →
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Fallback nudge if no suggestions available */}
-      {showNudge && !hasSuggestions && (
-        <Card className="border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="p-6">
-            <div className="text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                  <Compass className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-2">No plans for today yet?</h3>
-                <p className="text-muted-foreground mb-4">
-                  Explore activities and dining options during your stay.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link to="/guest/activities">
-                  <Button className="w-full sm:w-auto">
-                    <IconActivities className="h-4 w-4 mr-2" />
-                    Explore Activities
-                  </Button>
-                </Link>
-                <Link to="/guest/restaurants">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    <IconRestaurants className="h-4 w-4 mr-2" />
-                    Book a Restaurant
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Quick Actions Grid */}
+      <GuestQuickActions />
 
       {/* Today's Schedule */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <IconClock className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-bold text-foreground">Today's Schedule</h2>
-        </div>
+        <GuestSectionHeader
+          title="Today's Schedule"
+          icon={<IconClock className="h-5 w-5 text-primary" />}
+          actionLabel={todaySchedule.length > 0 ? "View all" : undefined}
+          actionHref="/guest/bookings"
+        />
         
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full rounded-2xl" />
-            <Skeleton className="h-24 w-full rounded-2xl" />
-          </div>
-        ) : todaySchedule.length === 0 ? (
-          <Card className="border-dashed border-2 bg-muted/20">
-            <CardContent className="py-10 text-center">
-              <IconCalendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-              <h3 className="font-semibold text-foreground mb-1">No plans for today yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                You can book activities or a restaurant directly from below.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {todaySchedule.map((item, idx) => {
-              const isActivity = item.type === 'activity';
-              const config = isActivity ? getCategoryConfig((item as any).category) : null;
-              
-              return (
-                <Card
-                  key={idx}
-                  className="shadow-soft hover:shadow-card-hover transition-all duration-300 overflow-hidden"
-                >
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <div className={cn(
-                      "flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm shrink-0",
-                      isActivity && config ? config.bgClass : "bg-sunset/10"
-                    )}>
-                      {isActivity ? (
-                        <CategoryIcon category={(item as any).category} size={28} />
-                      ) : (
-                        <IconRestaurants className="h-7 w-7 text-sunset" />
-                      )}
+        {todaySchedule.length === 0 ? (
+          showNudge ? (
+            <Card className="guest-card border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
+              <CardContent className="p-5">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                      <Compass className="h-7 w-7 text-primary" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground truncate">
-                        {item.title}
-                      </p>
-                      <p className={cn(
-                        "text-sm font-semibold",
-                        isActivity && config ? config.colorClass : "text-sunset"
-                      )}>
-                        {item.time.slice(0, 5)}
-                        {item.type === 'restaurant' && item.mealPeriod && (
-                          <span className="text-muted-foreground font-normal ml-2">• {item.mealPeriod}</span>
-                        )}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={item.status === 'CONFIRMED' ? 'confirmed' : 'pending'}
-                      className="shrink-0 rounded-full px-3"
-                    >
-                      {item.status === 'CONFIRMED' ? 'Confirmed' : 'Pending'}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-bold text-foreground">Explore & Book</h2>
-        
-        {/* Explore Activities - links to resort-specific activity explorer */}
-        {resort?.code && (
-          <Link to={`/resort/${resort.code}/guest/activities`}>
-            <Card className="shadow-soft hover:shadow-card-hover hover:border-lagoon/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-lagoon/5 to-transparent">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-lagoon/10 shadow-sm group-hover:bg-lagoon/15 transition-all duration-300">
-                  <Compass className="h-7 w-7 text-lagoon" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold mb-1">No plans yet?</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Discover activities and dining experiences
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Link to="/guest/activities">
+                      <Button className="w-full tap-target">
+                        <IconActivities className="h-4 w-4 mr-2" />
+                        Explore Activities
+                      </Button>
+                    </Link>
+                    <Link to="/guest/restaurants">
+                      <Button variant="outline" className="w-full tap-target">
+                        <IconRestaurants className="h-4 w-4 mr-2" />
+                        Book a Restaurant
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-foreground group-hover:text-lagoon transition-colors">
-                    Explore Activities
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Learn about all experiences
-                  </p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-lagoon group-hover:translate-x-1 transition-all" />
               </CardContent>
             </Card>
-          </Link>
+          ) : (
+            <Card className="guest-card border-dashed bg-muted/20">
+              <CardContent className="py-8 text-center">
+                <IconCalendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+                <h3 className="font-semibold text-foreground mb-1">Nothing scheduled</h3>
+                <p className="text-sm text-muted-foreground">
+                  Your bookings for today will appear here
+                </p>
+              </CardContent>
+            </Card>
+          )
+        ) : (
+          <div className="space-y-3">
+            {todaySchedule.map((item) => (
+              <GuestBookingCard
+                key={item.id}
+                booking={{
+                  id: item.id,
+                  type: item.type,
+                  title: item.title,
+                  date: todayStr,
+                  start_time: item.time,
+                  status: item.status,
+                  num_adults: item.num_adults,
+                  num_children: item.num_children,
+                  category: item.type === 'activity' ? item.category : undefined,
+                  meal_period: item.type === 'restaurant' ? item.mealPeriod : undefined,
+                  duration_minutes: item.type === 'activity' ? item.duration_minutes : undefined,
+                }}
+                showDate={false}
+                compact={todaySchedule.length > 3}
+              />
+            ))}
+          </div>
         )}
-
-        <Link to="/guest/activities">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-primary/5 to-transparent">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 shadow-sm group-hover:bg-primary/15 transition-all duration-300">
-                <IconActivities className="h-7 w-7 text-primary" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">
-                  Book Activities
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Browse available sessions
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/guest/restaurants">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-sunset/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-sunset/5 to-transparent">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sunset/10 shadow-sm group-hover:bg-sunset/15 transition-all duration-300">
-                <IconRestaurants className="h-7 w-7 text-sunset" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-foreground group-hover:text-sunset transition-colors">
-                  Book a Restaurant
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Reserve your dining
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-sunset group-hover:translate-x-1 transition-all" />
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/guest/bookings">
-          <Card className="shadow-soft hover:shadow-card-hover hover:border-orchid/30 transition-all duration-300 cursor-pointer group bg-gradient-to-br from-orchid/5 to-transparent">
-            <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orchid/10 shadow-sm group-hover:bg-orchid/15 transition-all duration-300">
-                <IconBookings className="h-7 w-7 text-orchid" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-foreground group-hover:text-orchid transition-colors">
-                  My Bookings
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  View and manage reservations
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-orchid group-hover:translate-x-1 transition-all" />
-            </CardContent>
-          </Card>
-        </Link>
       </div>
+
+      {/* Upcoming Bookings Preview */}
+      {totalUpcomingBookings > todaySchedule.length && (
+        <div>
+          <GuestSectionHeader
+            title="Coming Up"
+            icon={<Calendar className="h-5 w-5 text-lagoon" />}
+            actionLabel="See all"
+            actionHref="/guest/bookings"
+          />
+          
+          <div className="space-y-2">
+            {[...upcomingActivities, ...upcomingReservations]
+              .filter(b => b.date > todayStr)
+              .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
+              .slice(0, 3)
+              .map((booking) => {
+                const isActivity = 'activity_name' in booking;
+                return (
+                  <GuestBookingCard
+                    key={booking.id}
+                    booking={{
+                      id: booking.id,
+                      type: isActivity ? 'activity' : 'restaurant',
+                      title: isActivity ? booking.activity_name : booking.restaurant_name,
+                      date: booking.date,
+                      start_time: booking.start_time,
+                      status: booking.status,
+                      num_adults: booking.num_adults || 1,
+                      num_children: booking.num_children || 0,
+                      category: isActivity ? booking.category : undefined,
+                      meal_period: !isActivity ? booking.meal_period : undefined,
+                      duration_minutes: isActivity ? booking.duration_minutes : undefined,
+                    }}
+                    compact
+                  />
+                );
+              })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
