@@ -10,8 +10,8 @@ const BASE_URL = 'https://propera.cc'
 // Static public pages to include in sitemap
 const STATIC_PAGES = [
   { path: '/', changefreq: 'weekly', priority: '1.0' },
-  { path: '/guest/login', changefreq: 'monthly', priority: '0.8' },
-  { path: '/guest/find', changefreq: 'monthly', priority: '0.7' },
+  { path: '/guest/login', changefreq: 'monthly', priority: '0.7' },
+  { path: '/guest/find', changefreq: 'monthly', priority: '0.6' },
 ]
 
 function formatDate(date: Date | string): string {
@@ -70,9 +70,22 @@ Deno.serve(async (req) => {
       )
     ).join('')
 
+    // Generate resort marketing page entries (higher priority)
+    // Pattern: /resorts/{code} (public marketing pages)
+    const resortMarketingEntries = (resorts || [])
+      .map((resort) =>
+        generateUrlEntry(
+          `${BASE_URL}/resorts/${resort.code.toLowerCase()}`,
+          resort.updated_at ? formatDate(resort.updated_at) : today,
+          'weekly',
+          '0.8'
+        )
+      )
+      .join('')
+
     // Generate resort-specific guest login entries
     // Pattern: /resort/{code}/guest/login (existing route structure)
-    const resortEntries = (resorts || [])
+    const resortLoginEntries = (resorts || [])
       .map((resort) =>
         generateUrlEntry(
           `${BASE_URL}/resort/${resort.code}/guest/login`,
@@ -92,7 +105,8 @@ Deno.serve(async (req) => {
     
     Includes:
     - Static public pages (home, guest login, find resort)
-    - Resort-specific guest login pages for ACTIVE resorts only
+    - Resort marketing pages (/resorts/{code}) for ACTIVE resorts
+    - Resort-specific guest login pages for ACTIVE resorts
     
     Excludes:
     - /auth (staff login)
@@ -102,7 +116,8 @@ Deno.serve(async (req) => {
     - INACTIVE and DEMO resorts
   -->
 ${staticEntries}
-${resortEntries}
+${resortMarketingEntries}
+${resortLoginEntries}
 </urlset>`
 
     return new Response(sitemap.trim(), {

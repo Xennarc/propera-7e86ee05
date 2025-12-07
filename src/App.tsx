@@ -82,6 +82,7 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import GuestNotificationsPage from "./pages/guest/GuestNotificationsPage";
 import PreArrivalPage from "./pages/guest/PreArrivalPage";
 import NotFound from "./pages/NotFound";
+import ResortMarketingPage from "./pages/resorts/ResortMarketingPage";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,9 @@ const App = () => (
               <Routes>
                 {/* Public landing page */}
                 <Route path="/" element={<LandingPage />} />
+                
+                {/* Public resort marketing pages */}
+                <Route path="/resorts/:code" element={<ResortMarketingPage />} />
                 
                 {/* Staff routes */}
                 <Route path="/staff/auth" element={<Auth />} />
