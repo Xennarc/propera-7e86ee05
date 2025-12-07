@@ -13,6 +13,7 @@ import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 const loginSchema = z.object({
   identifier: z.string().min(1, 'Please enter your username or email'),
@@ -203,6 +204,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
+      <SEOHead
+        title="Staff Login"
+        description="Sign in to the Propera staff console to manage resort operations, guests, activities, and reservations."
+        noIndex={true}
+      />
       {/* Theme toggle */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
