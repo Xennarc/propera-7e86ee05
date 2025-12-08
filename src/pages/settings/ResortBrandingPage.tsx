@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { useInvalidateResortBranding } from '@/hooks/useResortBranding';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const DEFAULT_ACCENT = '#D8C7A6';
 export default function ResortBrandingPage() {
   const { isSuperAdmin, getResortRole } = useAuth();
   const { currentResort, refetch } = useResort();
+  const invalidateResortBranding = useInvalidateResortBranding();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -128,8 +130,11 @@ export default function ResortBrandingPage() {
           .eq('onboarding_status', 'NOT_STARTED');
       }
 
+      // Invalidate branding cache so guest portal sees changes immediately
+      invalidateResortBranding(currentResort.id);
+      
       await refetch();
-      toast.success('Branding updated. Changes will be visible in the guest portal.');
+      toast.success('Branding updated. Changes are now live in the guest portal.');
     } catch (error) {
       console.error('Error saving branding:', error);
       toast.error('Failed to save branding settings');

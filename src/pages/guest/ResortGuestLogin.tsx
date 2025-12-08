@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,18 +17,11 @@ import { SEOHead, createResortSchema } from '@/components/seo/SEOHead';
 
 type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 
-interface ResortBranding {
+interface ResortBasicInfo {
   id: string;
   name: string;
   code: string;
   status: ResortStatus;
-  login_logo_url: string | null;
-  login_hero_image_url: string | null;
-  login_primary_color: string | null;
-  login_accent_color: string | null;
-  guest_login_title: string | null;
-  guest_login_subtitle: string | null;
-  guest_login_instructions: string | null;
 }
 
 export default function ResortGuestLogin() {
@@ -38,10 +32,14 @@ export default function ResortGuestLogin() {
   const isOnline = useOnlineStatus();
   const [loading, setLoading] = useState(false);
   const [loadingResort, setLoadingResort] = useState(true);
-  const [resort, setResort] = useState<ResortBranding | null>(null);
+  const [resortInfo, setResortInfo] = useState<ResortBasicInfo | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [resortInactive, setResortInactive] = useState(false);
   const [error, setError] = useState('');
+  
+  // Fetch branding dynamically via hook - ensures fresh data after staff saves
+  const { data: brandingData, isLoading: brandingLoading } = useResortBranding(code);
+  const branding = getBrandingWithDefaults(brandingData);
   
   // Initialize form with URL params from "Find Resort" flow
   const [formData, setFormData] = useState(() => ({
@@ -52,19 +50,19 @@ export default function ResortGuestLogin() {
 
   // Handle if already logged in - check for resort mismatch
   useEffect(() => {
-    if (guest && resort) {
+    if (guest && resortInfo) {
       // If logged into a different resort, show mismatch handling
-      if (guest.resortId !== resort.id) {
+      if (guest.resortId !== resortInfo.id) {
         return;
       }
       // Same resort - redirect to portal
       navigate('/guest');
-    } else if (guest && !loadingResort && !resort) {
+    } else if (guest && !loadingResort && !resortInfo) {
       navigate('/guest');
     }
-  }, [guest, resort, loadingResort, navigate]);
+  }, [guest, resortInfo, loadingResort, navigate]);
 
-  // Fetch resort by code
+  // Fetch resort basic info (id, status) - branding comes from the hook
   useEffect(() => {
     if (!code) {
       setNotFound(true);
@@ -74,10 +72,10 @@ export default function ResortGuestLogin() {
 
     const fetchResort = async (retryCount = 0) => {
       try {
-        // Use ilike for case-insensitive matching
+        // Use ilike for case-insensitive matching - only fetch basic info
         const { data, error } = await supabase
           .from('resorts')
-          .select('id, name, code, status, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions')
+          .select('id, name, code, status')
           .ilike('code', code)
           .maybeSingle();
 
@@ -98,14 +96,17 @@ export default function ResortGuestLogin() {
           setNotFound(true);
           setLoadingResort(false);
         } else {
-          const resortData = data as ResortBranding;
+          const info: ResortBasicInfo = {
+            id: data.id,
+            name: data.name,
+            code: data.code,
+            status: data.status as ResortStatus,
+          };
           // Check if resort is active
-          if (resortData.status === 'INACTIVE') {
+          if (info.status === 'INACTIVE') {
             setResortInactive(true);
-            setResort(resortData);
-          } else {
-            setResort(resortData);
           }
+          setResortInfo(info);
           setLoadingResort(false);
         }
       } catch (err) {
@@ -126,18 +127,18 @@ export default function ResortGuestLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resort) return;
+    if (!resortInfo) return;
     
     setError('');
     setLoading(true);
-    const result = await login(resort.id, formData.roomNumber, formData.lastName, formData.pin);
+    const result = await login(resortInfo.id, formData.roomNumber, formData.lastName, formData.pin);
     if (result.error) setError(result.error);
     else navigate('/guest');
     setLoading(false);
   };
 
   // Loading state
-  if (loadingResort) {
+  if (loadingResort || brandingLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -180,7 +181,7 @@ export default function ResortGuestLogin() {
   }
 
   // Resort is inactive
-  if (resortInactive) {
+  if (resortInactive && resortInfo) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
         <SEOHead
@@ -199,7 +200,7 @@ export default function ResortGuestLogin() {
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Portal Unavailable</h1>
             <p className="text-muted-foreground text-center mb-6">
-              The guest portal for {resort?.name} is currently not available. Please contact your resort's front desk for assistance.
+              The guest portal for {resortInfo.name} is currently not available. Please contact your resort's front desk for assistance.
             </p>
             <Link to="/">
               <Button variant="outline" className="gap-2">
@@ -214,12 +215,12 @@ export default function ResortGuestLogin() {
   }
 
   // Session mismatch - guest is logged into a different resort
-  if (guest && resort && guest.resortId !== resort.id) {
+  if (guest && resortInfo && guest.resortId !== resortInfo.id) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
         <SEOHead
-          title={`Login to ${resort.name}`}
-          description={`Access the guest portal for ${resort.name}. Book activities and reserve restaurants during your Maldives resort stay.`}
+          title={`Login to ${resortInfo.name}`}
+          description={`Access the guest portal for ${resortInfo.name}. Book activities and reserve restaurants during your Maldives resort stay.`}
           noIndex={true}
         />
         <div className="absolute top-4 right-4">
@@ -233,7 +234,7 @@ export default function ResortGuestLogin() {
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">Different Resort</h1>
             <p className="text-muted-foreground text-center mb-6">
-              You are currently logged into a different resort. Please log out first to access {resort.name}.
+              You are currently logged into a different resort. Please log out first to access {resortInfo.name}.
             </p>
             <div className="flex flex-col gap-3 w-full">
               <Button onClick={logout} variant="default" className="w-full">
@@ -251,33 +252,33 @@ export default function ResortGuestLogin() {
     );
   }
 
-  // Apply custom colors via CSS variables if provided
+  // Apply custom colors via CSS variables if provided (from branding hook)
   const customStyles: React.CSSProperties = {};
-  if (resort?.login_primary_color) {
-    customStyles['--resort-primary' as string] = resort.login_primary_color;
+  if (branding.login_primary_color) {
+    customStyles['--resort-primary' as string] = branding.login_primary_color;
   }
-  if (resort?.login_accent_color) {
-    customStyles['--resort-accent' as string] = resort.login_accent_color;
+  if (branding.login_accent_color) {
+    customStyles['--resort-accent' as string] = branding.login_accent_color;
   }
 
-  const title = resort?.guest_login_title || `Welcome to ${resort?.name}`;
-  const subtitle = resort?.guest_login_subtitle || 'Access your resort experience';
+  const title = branding.guest_login_title || `Welcome to ${branding.name || resortInfo?.name}`;
+  const subtitle = branding.guest_login_subtitle || 'Access your resort experience';
 
   // Generate resort-specific structured data
-  const resortSchema = resort ? createResortSchema({
-    name: resort.name,
-    code: resort.code,
-    logoUrl: resort.login_logo_url || undefined,
-    description: `${resort.name} - Luxury Maldives resort with digital guest portal powered by Propera`
+  const resortSchema = resortInfo ? createResortSchema({
+    name: resortInfo.name,
+    code: resortInfo.code,
+    logoUrl: branding.login_logo_url || undefined,
+    description: `${resortInfo.name} - Luxury Maldives resort with digital guest portal powered by Propera`
   }) : undefined;
 
   return (
     <>
       <SEOHead
-        title={`${resort?.name || 'Resort'} Guest Portal`}
-        description={`Access the guest portal for ${resort?.name || 'your resort'}. Book activities, reserve restaurants, and manage your Maldives resort stay.`}
+        title={`${resortInfo?.name || 'Resort'} Guest Portal`}
+        description={`Access the guest portal for ${resortInfo?.name || 'your resort'}. Book activities, reserve restaurants, and manage your Maldives resort stay.`}
         canonicalUrl={`/resort/${code}/guest/login`}
-        keywords={`${resort?.name || ''} guest portal, Maldives resort booking, resort activities, restaurant reservations`}
+        keywords={`${resortInfo?.name || ''} guest portal, Maldives resort booking, resort activities, restaurant reservations`}
         structuredData={resortSchema}
       />
       {!isOnline && <OfflineBanner />}
@@ -286,11 +287,11 @@ export default function ResortGuestLogin() {
         style={customStyles}
       >
       {/* Background - either hero image or gradient */}
-      {resort?.login_hero_image_url ? (
+      {branding.login_hero_image_url ? (
         <>
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${resort.login_hero_image_url})` }}
+            style={{ backgroundImage: `url(${branding.login_hero_image_url})` }}
             aria-hidden="true"
           />
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
@@ -307,27 +308,27 @@ export default function ResortGuestLogin() {
 
       {/* Theme toggle */}
       <div className="absolute top-4 right-4 z-10">
-        <ThemeToggle className={resort?.login_hero_image_url ? "text-white/80 hover:text-white" : "text-muted-foreground hover:text-foreground"} />
+        <ThemeToggle className={branding.login_hero_image_url ? "text-white/80 hover:text-white" : "text-muted-foreground hover:text-foreground"} />
       </div>
 
       <main className="w-full max-w-md relative z-10">
-        {/* Header with logo or icon */}
+        {/* Header with logo or icon - uses branding from hook for immediate updates */}
         <header className="text-center mb-8">
-          {resort?.login_logo_url ? (
+          {branding.login_logo_url ? (
             <div className="mb-4">
               <img 
-                src={resort.login_logo_url} 
-                alt={`${resort.name} logo`}
+                src={branding.login_logo_url} 
+                alt={`${branding.name || resortInfo?.name} logo`}
                 className="h-16 mx-auto object-contain"
               />
             </div>
           ) : (
             <ProperaMark size={56} className="text-primary mb-4" />
           )}
-          <h1 className={`text-2xl font-bold ${resort?.login_hero_image_url ? 'text-white' : 'text-foreground'}`}>
+          <h1 className={`text-2xl font-bold ${branding.login_hero_image_url ? 'text-white' : 'text-foreground'}`}>
             {title}
           </h1>
-          <p className={`mt-1 ${resort?.login_hero_image_url ? 'text-white/80' : 'text-muted-foreground'}`}>
+          <p className={`mt-1 ${branding.login_hero_image_url ? 'text-white/80' : 'text-muted-foreground'}`}>
             {subtitle}
           </p>
         </header>
@@ -380,10 +381,10 @@ export default function ResortGuestLogin() {
                 />
               </div>
               
-              {/* Custom instructions */}
-              {resort?.guest_login_instructions && (
+              {/* Custom instructions from branding */}
+              {branding.guest_login_instructions && (
                 <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                  {resort.guest_login_instructions}
+                  {branding.guest_login_instructions}
                 </p>
               )}
               
@@ -396,9 +397,9 @@ export default function ResortGuestLogin() {
               <Button 
                 type="submit" 
                 className="w-full h-12 text-base font-semibold"
-                style={resort?.login_primary_color ? { 
-                  backgroundColor: resort.login_primary_color,
-                  borderColor: resort.login_primary_color 
+                style={branding.login_primary_color ? { 
+                  backgroundColor: branding.login_primary_color,
+                  borderColor: branding.login_primary_color 
                 } : undefined}
                 disabled={loading || !formData.roomNumber || !formData.lastName || !formData.pin}
               >
@@ -415,7 +416,7 @@ export default function ResortGuestLogin() {
           </CardContent>
         </Card>
         
-        <p className={`text-center text-xs mt-6 ${resort?.login_hero_image_url ? 'text-white/60' : 'text-muted-foreground'}`}>
+        <p className={`text-center text-xs mt-6 ${branding.login_hero_image_url ? 'text-white/60' : 'text-muted-foreground'}`}>
           Need help? Please contact your front desk
         </p>
       </main>
