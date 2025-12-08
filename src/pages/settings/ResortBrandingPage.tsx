@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
@@ -15,10 +15,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { 
-  Palette, ExternalLink, Image, Type, Save, Shield, RotateCcw, 
+  Palette, Image, Type, Save, Shield, RotateCcw, 
   Sun, Moon, Monitor, Eye, Sparkles, Check, AlertCircle, Copy
 } from 'lucide-react';
 import { BrandingPreview } from '@/components/branding/BrandingPreview';
+import { ImageUploader } from '@/components/branding/ImageUploader';
 import { cn } from '@/lib/utils';
 
 const THEME_OPTIONS = [
@@ -492,51 +493,19 @@ export default function ResortBrandingPage() {
                     Logo
                   </CardTitle>
                   <CardDescription>
-                    Your resort logo appears in the portal header and login page
+                    Your resort logo appears in the portal header and login page. PNG or SVG recommended.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="logo">Logo URL</Label>
-                    <Input
-                      id="logo"
-                      value={formData.login_logo_url}
-                      onChange={(e) => setFormData({ ...formData, login_logo_url: e.target.value })}
-                      placeholder="https://example.com/logo.png"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      PNG or SVG recommended. Minimum size: 256×256 pixels.
-                    </p>
-                  </div>
-
-                  {formData.login_logo_url && (
-                    <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border">
-                      <div className="h-16 w-16 rounded-lg border bg-background flex items-center justify-center overflow-hidden">
-                        <img 
-                          src={formData.login_logo_url} 
-                          alt="Logo preview" 
-                          className="h-14 w-14 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.parentElement!.innerHTML = '<span class="text-xs text-destructive">Failed</span>';
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Logo Preview</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                          {formData.login_logo_url}
-                        </p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive h-auto p-0 mt-1"
-                          onClick={() => setFormData({ ...formData, login_logo_url: '' })}
-                        >
-                          Remove logo
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                <CardContent>
+                  <ImageUploader
+                    label="Resort Logo"
+                    description="Minimum size: 256×256 pixels"
+                    value={formData.login_logo_url}
+                    onChange={(url) => setFormData({ ...formData, login_logo_url: url })}
+                    resortId={currentResort.id}
+                    imageType="logo"
+                    aspectRatio="square"
+                  />
                 </CardContent>
               </Card>
 
@@ -547,45 +516,19 @@ export default function ResortBrandingPage() {
                     Hero Background
                   </CardTitle>
                   <CardDescription>
-                    Background image for the guest login page
+                    Background image for the guest login page. High-quality resort imagery works best.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="hero">Hero Image URL</Label>
-                    <Input
-                      id="hero"
-                      value={formData.login_hero_image_url}
-                      onChange={(e) => setFormData({ ...formData, login_hero_image_url: e.target.value })}
-                      placeholder="https://example.com/hero.jpg"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: 1920×1080 pixels or larger. High-quality resort imagery works best.
-                    </p>
-                  </div>
-
-                  {formData.login_hero_image_url && (
-                    <div className="space-y-3">
-                      <div className="relative rounded-lg overflow-hidden border">
-                        <img 
-                          src={formData.login_hero_image_url} 
-                          alt="Hero preview" 
-                          className="h-32 w-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.parentElement!.innerHTML = '<div class="h-32 flex items-center justify-center bg-muted text-destructive text-sm">Failed to load image</div>';
-                          }}
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setFormData({ ...formData, login_hero_image_url: '' })}
-                      >
-                        Remove hero image
-                      </Button>
-                    </div>
-                  )}
+                <CardContent>
+                  <ImageUploader
+                    label="Hero Image"
+                    description="Recommended: 1920×1080 pixels or larger"
+                    value={formData.login_hero_image_url}
+                    onChange={(url) => setFormData({ ...formData, login_hero_image_url: url })}
+                    resortId={currentResort.id}
+                    imageType="hero"
+                    aspectRatio="wide"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
