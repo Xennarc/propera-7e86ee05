@@ -3,9 +3,11 @@ import { format, differenceInDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, Home, User, MapPin, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Home, User, MapPin, Clock, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/guest/LanguageSwitcher';
+import { supportedLanguages } from '@/i18n';
 
 export default function GuestProfilePage() {
   const { guest } = useGuestAuth();
@@ -161,6 +163,22 @@ export default function GuestProfilePage() {
                 {t('profile.checkoutDay')}
               </p>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language Settings */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Globe className="h-4 w-4 text-primary" />
+            {t('profile.language')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t('profile.selectLanguage')}</span>
+            <LanguageSwitcher />
           </div>
         </CardContent>
       </Card>
