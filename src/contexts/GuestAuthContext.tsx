@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
-interface GuestSession {
+export interface GuestSession {
   guestId: string;
   fullName: string;
   roomNumber: string;
@@ -11,6 +12,9 @@ interface GuestSession {
   resortName?: string;
   resortLogoUrl?: string;
 }
+
+// Re-export for backward compatibility - branding now fetched dynamically via useResortBranding hook
+// resortLogoUrl in session is kept for backward compat but useResortBranding is preferred
 
 interface GuestAuthContextType {
   guest: GuestSession | null;
@@ -145,6 +149,8 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem(GUEST_SESSION_KEY);
     setGuest(null);
+    // Note: If you need to invalidate branding cache on logout, 
+    // use queryClient.invalidateQueries from the component
   };
 
   return (

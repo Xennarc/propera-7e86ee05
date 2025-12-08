@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -32,6 +33,10 @@ export function GuestLayout() {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Fetch branding dynamically from DB - this ensures immediate updates after staff saves
+  const { data: brandingData } = useResortBranding(guest?.resortId);
+  const branding = getBrandingWithDefaults(brandingData);
 
   // Get current tab key
   const currentTab = navItems.find(item => 
@@ -93,10 +98,11 @@ export function GuestLayout() {
             to="/guest/profile" 
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
           >
-            {guest.resortLogoUrl ? (
+            {/* Use branding logo from DB (fresh on each load) */}
+            {branding.login_logo_url ? (
               <img 
-                src={guest.resortLogoUrl} 
-                alt={guest.resortName || 'Resort'} 
+                src={branding.login_logo_url} 
+                alt={branding.name || guest?.resortName || 'Resort'} 
                 className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
               />
             ) : (
@@ -106,10 +112,10 @@ export function GuestLayout() {
             )}
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                {guest.resortName || 'Guest Portal'}
+                {branding.name || guest?.resortName || 'Guest Portal'}
               </h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                Room {guest.roomNumber}
+                Room {guest?.roomNumber}
               </p>
             </div>
           </Link>
