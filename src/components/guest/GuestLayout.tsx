@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
-import { LanguageSwitcher } from '@/components/guest/LanguageSwitcher';
 import { useEffect, useRef, useState } from 'react';
 import {
   IconStay,
@@ -120,7 +119,6 @@ export function GuestLayout() {
             </div>
           </Link>
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-            <LanguageSwitcher />
             <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
             <GuestNotificationBell />
             <Button 
