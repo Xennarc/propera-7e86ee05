@@ -88,9 +88,9 @@ export function AppLayout() {
         description="Propera staff console for resort operations management."
         noIndex={true}
       />
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen w-full bg-background animate-fade-in">
         {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block animate-fade-in">
           <AppSidebar />
         </div>
         
