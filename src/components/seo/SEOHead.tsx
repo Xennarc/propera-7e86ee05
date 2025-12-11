@@ -8,15 +8,12 @@ interface SEOHeadProps {
   ogType?: 'website' | 'article';
   noIndex?: boolean;
   keywords?: string;
-  // Geo/Local SEO
-  geoRegion?: string;
-  geoPlacename?: string;
   // Structured data
   structuredData?: object | object[];
 }
 
-const DEFAULT_TITLE = 'Propera | Maldives Resort Activity Booking & Operations Platform';
-const DEFAULT_DESCRIPTION = 'Propera is the leading multi-resort booking and operations platform for Maldives island resorts. Real-time activity bookings, restaurant reservations, guest portal, and staff console.';
+const DEFAULT_TITLE = 'Propera | Resort Activity Booking & Operations Platform';
+const DEFAULT_DESCRIPTION = 'Propera is the leading multi-resort booking and operations platform for luxury resorts worldwide. Real-time activity bookings, restaurant reservations, guest portal, and staff console.';
 const DEFAULT_IMAGE = 'https://storage.googleapis.com/gpt-engineer-file-uploads/Pw9i6gy3BsNxT8hWRoiXMNSzcZh1/social-images/social-1765043952873-propera-logo-mark-512.png';
 const SITE_URL = 'https://propera.cc';
 
@@ -28,8 +25,6 @@ export function SEOHead({
   ogType = 'website',
   noIndex = false,
   keywords,
-  geoRegion = 'MV',
-  geoPlacename = 'Maldives',
   structuredData,
 }: SEOHeadProps) {
   const fullTitle = title ? `${title} | Propera` : DEFAULT_TITLE;
@@ -52,10 +47,6 @@ export function SEOHead({
       
       {/* Canonical URL */}
       {fullCanonicalUrl && <link rel="canonical" href={fullCanonicalUrl} />}
-      
-      {/* Geo/Local SEO Meta Tags */}
-      <meta name="geo.region" content={geoRegion} />
-      <meta name="geo.placename" content={geoPlacename} />
       
       {/* Open Graph */}
       <meta property="og:type" content={ogType} />
@@ -89,7 +80,7 @@ export const PROPERA_WEBSITE_SCHEMA = {
   '@type': 'WebSite',
   name: 'Propera',
   url: 'https://propera.cc',
-  description: 'Multi-resort booking and operations platform for Maldives island resorts',
+  description: 'Multi-resort booking and operations platform for luxury resorts worldwide',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
@@ -106,7 +97,7 @@ export const PROPERA_ORGANIZATION_SCHEMA = {
   name: 'Propera',
   url: 'https://propera.cc',
   logo: 'https://storage.googleapis.com/gpt-engineer-file-uploads/Pw9i6gy3BsNxT8hWRoiXMNSzcZh1/uploads/1765043941172-propera-logo-mark-512.png',
-  description: 'Leading multi-resort booking and operations platform for Maldives luxury island resorts',
+  description: 'Leading multi-resort booking and operations platform for luxury resorts worldwide',
   sameAs: [
     'https://twitter.com/properaapp'
   ],
@@ -114,10 +105,6 @@ export const PROPERA_ORGANIZATION_SCHEMA = {
     '@type': 'ContactPoint',
     contactType: 'customer service',
     availableLanguage: ['English', 'Chinese']
-  },
-  areaServed: {
-    '@type': 'Country',
-    name: 'Maldives'
   }
 };
 
@@ -132,14 +119,9 @@ export function createResortSchema(resort: {
     '@context': 'https://schema.org',
     '@type': 'Resort',
     name: resort.name,
-    description: resort.description || `${resort.name} - Luxury Maldives resort powered by Propera`,
+    description: resort.description || `${resort.name} - Luxury resort powered by Propera`,
     url: `https://propera.cc/resort/${resort.code}/guest/login`,
     image: resort.logoUrl,
-    address: {
-      '@type': 'PostalAddress',
-      addressCountry: 'MV',
-      addressRegion: 'Maldives'
-    },
     amenityFeature: [
       { '@type': 'LocationFeatureSpecification', name: 'Digital Guest Portal' },
       { '@type': 'LocationFeatureSpecification', name: 'Online Activity Booking' },

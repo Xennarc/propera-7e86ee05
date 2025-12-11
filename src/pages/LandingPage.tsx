@@ -18,8 +18,8 @@ import { QrCode, LogIn, Sparkles, ChevronRight, UtensilsCrossed } from 'lucide-r
 const LANDING_PAGE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
-  name: 'Propera - Maldives Resort Booking Platform',
-  description: 'Digital resort concierge for Maldives island resorts. Book activities, reserve restaurants, and manage your stay.',
+  name: 'Propera - Resort Booking Platform',
+  description: 'Digital resort concierge for luxury resorts worldwide. Book activities, reserve restaurants, and manage your stay.',
   url: 'https://propera.cc/',
   mainEntity: {
     '@type': 'SoftwareApplication',
@@ -37,10 +37,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="Maldives Resort Activity Booking & Guest Portal"
-        description="Propera is the leading multi-resort booking platform for Maldives island resorts. Book activities, reserve restaurants, and manage your stay with our digital guest portal."
+        title="Resort Activity Booking & Guest Portal"
+        description="Propera is the leading multi-resort booking platform for luxury resorts worldwide. Book activities, reserve restaurants, and manage your stay with our digital guest portal."
         canonicalUrl="/"
-        keywords="Maldives resort booking, resort activity booking system, guest portal, resort management, island resort operations, restaurant reservations"
+        keywords="resort booking, resort activity booking system, guest portal, resort management, resort operations, restaurant reservations"
         structuredData={[PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA, LANDING_PAGE_SCHEMA]}
       />
       
@@ -79,13 +79,13 @@ export default function LandingPage() {
               </div>
               
               <h1 id="hero-heading" className="text-4xl md:text-5xl lg:text-display font-extrabold text-foreground mb-6 text-balance animate-slide-up">
-                Plan Your Perfect Maldives Stay with{' '}
+                Plan Your Perfect Resort Stay with{' '}
                 <span className="text-gradient">Propera</span>
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-balance animate-slide-up leading-relaxed">
                 View your schedule, book resort activities, and reserve restaurants from your phone 
-                while you stay at Maldives island resorts. Everything you need, at your fingertips.
+                while you stay at luxury resorts worldwide. Everything you need, at your fingertips.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up">
@@ -117,7 +117,7 @@ export default function LandingPage() {
                 Everything You Need for Your Resort Stay
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                Make the most of your Maldives resort experience with easy access to activities, 
+                Make the most of your resort experience with easy access to activities, 
                 dining, and your daily schedule.
               </p>
             </div>
@@ -126,12 +126,12 @@ export default function LandingPage() {
               <FeatureCard
                 icon={<IconSnorkeling className="h-7 w-7" />}
                 title="Book Resort Activities"
-                description="Snorkelling, diving, spa treatments, and exciting Maldives excursions - all bookable in seconds."
+                description="Snorkelling, diving, spa treatments, and exciting excursions - all bookable in seconds."
               />
               <FeatureCard
                 icon={<UtensilsCrossed className="h-7 w-7" />}
                 title="Reserve Restaurants"
-                description="Secure your dinner reservations and special dining experiences at island resort restaurants."
+                description="Secure your dinner reservations and special dining experiences at resort restaurants."
               />
               <FeatureCard
                 icon={<IconCalendar className="h-7 w-7" />}
@@ -198,7 +198,7 @@ export default function LandingPage() {
                   <IconStay className="h-10 w-10 text-primary" />
                 </div>
                 <h2 id="cta-heading" className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                  Already Staying at a Maldives Resort?
+                  Already Staying at a Resort?
                 </h2>
                 <p className="text-muted-foreground mb-8 text-lg">
                   Access your personalized guest portal to view your bookings, 
