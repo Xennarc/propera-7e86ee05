@@ -52,6 +52,12 @@ export default function LandingPage() {
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </div>
           <div className="flex items-center gap-3">
+            <Link 
+              to="/pricing" 
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              Pricing
+            </Link>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
             <Button asChild size="sm" className="rounded-full px-5 font-semibold shadow-md">
               <Link to="/guest/login" aria-label="Access guest login portal">
@@ -228,6 +234,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
               <span>© {new Date().getFullYear()} Propera. All rights reserved.</span>
             </div>
           </div>
