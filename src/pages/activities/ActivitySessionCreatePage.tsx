@@ -5,6 +5,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { Activity, Resource } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -262,13 +263,13 @@ export default function ActivitySessionCreatePage() {
               <div className="space-y-2">
                 <Label htmlFor="capacity">Capacity *</Label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+                  <NumericInput
                     id="capacity"
-                    type="number"
                     min={1}
                     value={formData.capacity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, capacity: parseInt(e.target.value) || 1 }))}
+                    onChange={(value) => setFormData(prev => ({ ...prev, capacity: value }))}
+                    defaultValue={1}
                     className="pl-10"
                   />
                 </div>

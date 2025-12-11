@@ -5,6 +5,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { Restaurant, MealPeriod, RestaurantClosure } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -622,11 +623,11 @@ export default function CreateRestaurantSlotWizard() {
                 </div>
                 <div className="space-y-2">
                   <Label>Capacity *</Label>
-                  <Input
-                    type="number"
+                  <NumericInput
                     min={1}
                     value={capacity}
-                    onChange={(e) => setCapacity(parseInt(e.target.value) || 1)}
+                    onChange={(value) => setCapacity(value)}
+                    defaultValue={1}
                   />
                 </div>
               </div>
@@ -743,12 +744,12 @@ export default function CreateRestaurantSlotWizard() {
                           />
                         </td>
                         <td className="p-2">
-                          <Input
-                            type="number"
+                          <NumericInput
                             min={1}
                             value={slot.capacity}
-                            onChange={(e) => updateSlotField(index, 'capacity', parseInt(e.target.value) || 1)}
+                            onChange={(value) => updateSlotField(index, 'capacity', value)}
                             disabled={slot.isClosed || slot.isDuplicate || !slot.included}
+                            defaultValue={1}
                             className="h-8 w-20"
                           />
                         </td>

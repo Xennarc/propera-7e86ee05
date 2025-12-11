@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -270,12 +271,11 @@ export function ActivityRecurringRuleDialog({
 
           <div className="space-y-2">
             <Label>Capacity per session</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={1}
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 1 })}
-              required
+              onChange={(value) => setFormData({ ...formData, capacity: value })}
+              defaultValue={1}
             />
           </div>
 

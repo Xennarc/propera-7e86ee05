@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -399,12 +400,11 @@ export function ActivitySessionDialog({
 
           <div className="space-y-2">
             <Label>Capacity *</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={1}
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 1 })}
-              required
+              onChange={(value) => setFormData({ ...formData, capacity: value })}
+              defaultValue={1}
             />
           </div>
 

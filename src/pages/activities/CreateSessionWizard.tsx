@@ -5,6 +5,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { Activity, Resource } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -583,11 +584,11 @@ export default function CreateSessionWizard() {
                       </div>
                       <div className="space-y-2">
                         <Label>Capacity *</Label>
-                        <Input
-                          type="number"
+                        <NumericInput
                           min={1}
                           value={singleCapacity}
-                          onChange={(e) => setSingleCapacity(parseInt(e.target.value) || 1)}
+                          onChange={(value) => setSingleCapacity(value)}
+                          defaultValue={1}
                           className="h-12"
                         />
                       </div>
@@ -734,11 +735,11 @@ export default function CreateSessionWizard() {
                       </div>
                       <div className="space-y-2">
                         <Label>Capacity *</Label>
-                        <Input
-                          type="number"
+                        <NumericInput
                           min={1}
                           value={recurringCapacity}
-                          onChange={(e) => setRecurringCapacity(parseInt(e.target.value) || 1)}
+                          onChange={(value) => setRecurringCapacity(value)}
+                          defaultValue={1}
                           className="h-12"
                         />
                       </div>
@@ -857,12 +858,12 @@ export default function CreateSessionWizard() {
                             />
                           </td>
                           <td className="p-3">
-                            <Input
-                              type="number"
+                            <NumericInput
                               min={1}
                               value={row.capacity}
-                              onChange={(e) => updatePreviewRow(row.id, { capacity: parseInt(e.target.value) || 1 })}
+                              onChange={(value) => updatePreviewRow(row.id, { capacity: value })}
                               disabled={row.isClosed || !row.included}
+                              defaultValue={1}
                               className="w-20 h-9"
                             />
                           </td>

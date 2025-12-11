@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Resource, ResourceType } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -168,12 +169,12 @@ export function ResourceDialog({ open, onOpenChange, resource, resortId, onSucce
 
           <div className="space-y-2">
             <Label htmlFor="capacity">Capacity</Label>
-            <Input
+            <NumericInput
               id="capacity"
-              type="number"
-              min="1"
+              min={1}
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 10 })}
+              onChange={(value) => setFormData({ ...formData, capacity: value })}
+              defaultValue={10}
             />
             {errors.capacity && <p className="text-sm text-destructive">{errors.capacity}</p>}
           </div>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -147,13 +148,13 @@ export default function ResortPricingPage() {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs">Percentage (%)</Label>
-                        <Input
-                          type="number"
+                        <NumericInput
                           min={0}
                           max={100}
-                          step={0.1}
                           value={charge.percentage}
-                          onChange={(e) => updateCharge(index, { percentage: parseFloat(e.target.value) || 0 })}
+                          onChange={(value) => updateCharge(index, { percentage: value })}
+                          allowDecimal
+                          defaultValue={0}
                           className="h-9"
                         />
                       </div>
