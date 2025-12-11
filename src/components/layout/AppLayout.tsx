@@ -18,10 +18,11 @@ import { SEOHead } from '@/components/seo/SEOHead';
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, profile, loading, signOut } = useAuth();
+  const { user, profile, loading, userDataLoading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
 
+  // Show loading while auth is initializing
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
@@ -32,6 +33,16 @@ export function AppLayout() {
 
   if (!user) {
     return <Navigate to="/staff/auth" replace />;
+  }
+
+  // Wait for user data (profile, memberships) to load after auth
+  // This prevents the "No Access" flash while memberships are being fetched
+  if (userDataLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background hero-pattern">
+        <ProperaLoader size={64} text="Loading your profile..." />
+      </div>
+    );
   }
 
   // Wait for resort loading to complete
