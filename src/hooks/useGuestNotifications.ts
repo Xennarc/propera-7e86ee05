@@ -1,5 +1,6 @@
-// Hook for guest notifications
+// Hook for guest notifications with realtime updates
 
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -20,6 +21,33 @@ export function useGuestNotifications() {
   const queryClient = useQueryClient();
   const guestId = guest?.guestId;
 
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!guestId) return;
+
+    const channel = supabase
+      .channel(`guest-notifications-${guestId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `guest_id=eq.${guestId}`,
+        },
+        () => {
+          // Invalidate queries to refetch on any change
+          queryClient.invalidateQueries({ queryKey: ['guest-notifications', guestId] });
+          queryClient.invalidateQueries({ queryKey: ['guest-notifications-count', guestId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [guestId, queryClient]);
+
   // Fetch notifications
   const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ['guest-notifications', guestId],
@@ -34,7 +62,7 @@ export function useGuestNotifications() {
       return (data as unknown as GuestNotification[]) || [];
     },
     enabled: !!guestId,
-    refetchInterval: 30000, // Poll every 30 seconds
+    staleTime: Infinity, // Don't refetch automatically, rely on realtime
   });
 
   // Unread count query
@@ -51,7 +79,7 @@ export function useGuestNotifications() {
       return data as number;
     },
     enabled: !!guestId,
-    refetchInterval: 30000,
+    staleTime: Infinity, // Don't refetch automatically, rely on realtime
   });
 
   // Mark as read mutation
