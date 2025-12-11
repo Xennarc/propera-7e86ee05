@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
+import { createGuestNotification, createStaffNotificationsForRoles, formatRestaurantReservationMessage } from '@/lib/notifications';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -133,7 +134,7 @@ export default function GuestRestaurantBookingPage() {
       if (error) throw error;
       return data as { success: boolean; reservation_id?: string; status?: string; requires_approval?: boolean; error?: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-slots'] });
@@ -141,6 +142,44 @@ export default function GuestRestaurantBookingPage() {
           success: true,
           requiresApproval: data.requires_approval,
         });
+
+        // Send notifications (fire and forget)
+        if (slot && guest) {
+          const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
+          const timeStr = slot.start_time.slice(0, 5);
+          const messages = formatRestaurantReservationMessage(
+            slot.restaurant_name,
+            dateStr,
+            timeStr,
+            numAdults + numChildren,
+            guest.fullName,
+            guest.roomNumber
+          );
+
+          // Guest notification
+          const notifType = data.requires_approval ? 'RESTAURANT_RESERVATION_PENDING' : 'RESTAURANT_RESERVATION_CONFIRMED';
+          const notifMessage = data.requires_approval ? messages.guest.pending : messages.guest.confirmed;
+          createGuestNotification({
+            resort_id: guest.resortId,
+            guest_id: guest.guestId,
+            type: notifType,
+            title: data.requires_approval ? 'Reservation Request Sent' : 'Table Reserved',
+            message: notifMessage,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+
+          // Staff notification for pending requests
+          if (data.requires_approval) {
+            createStaffNotificationsForRoles({
+              resort_id: guest.resortId,
+              roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'FNB'],
+              type: 'RESTAURANT_RESERVATION_PENDING',
+              title: 'New Restaurant Request',
+              message: messages.staff.pending,
+              link_url: '/staff/guest-requests',
+            }).catch(console.error);
+          }
+        }
       } else {
         // Map server error to user-friendly message
         const errorCode = mapErrorToCode(data.error || '');

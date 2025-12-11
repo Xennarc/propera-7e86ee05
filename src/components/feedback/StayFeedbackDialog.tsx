@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Guest } from '@/types/database';
+import { createStaffNotificationsForRoles, formatFeedbackMessage } from '@/lib/notifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -123,6 +124,20 @@ export function StayFeedbackDialog({ open, onOpenChange, guest, onSuccess }: Sta
         title: 'Feedback Recorded',
         description: 'End-of-stay feedback has been saved.',
       });
+
+      // Notify management staff about feedback
+      if (overallRating) {
+        const checkOutStr = new Date(guest.check_out_date).toLocaleDateString();
+        createStaffNotificationsForRoles({
+          resort_id: guest.resort_id,
+          roles: ['RESORT_ADMIN', 'MANAGER'],
+          type: 'STAY_FEEDBACK_SUBMITTED',
+          title: 'New Guest Feedback (Staff Recorded)',
+          message: formatFeedbackMessage(guest.full_name, checkOutStr, overallRating),
+          link_url: '/staff/reports/feedback',
+        }).catch(console.error);
+      }
+
       resetForm();
       onOpenChange(false);
       onSuccess?.();

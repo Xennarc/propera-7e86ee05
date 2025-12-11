@@ -5,6 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
+import { createGuestNotification, createStaffNotificationsForRoles, formatActivityBookingMessage } from '@/lib/notifications';
 import { calculatePriceBreakdown, parsePricingCharges } from '@/lib/pricing-utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -179,7 +180,7 @@ export default function GuestActivityBookingPage() {
       if (error) throw error;
       return data as { success: boolean; booking_id?: string; status?: string; requires_approval?: boolean; error?: string };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-sessions'] });
@@ -188,6 +189,44 @@ export default function GuestActivityBookingPage() {
           success: true,
           requiresApproval: data.requires_approval,
         });
+
+        // Send notifications (fire and forget)
+        const session = selectedSession || initialSession;
+        if (session && guest) {
+          const dateStr = format(parseISO(session.date), 'EEE, MMM d');
+          const timeStr = session.start_time.slice(0, 5);
+          const messages = formatActivityBookingMessage(
+            session.activity_name,
+            dateStr,
+            timeStr,
+            guest.fullName,
+            guest.roomNumber
+          );
+
+          // Guest notification
+          const notifType = data.requires_approval ? 'ACTIVITY_BOOKING_PENDING' : 'ACTIVITY_BOOKING_CONFIRMED';
+          const notifMessage = data.requires_approval ? messages.guest.pending : messages.guest.confirmed;
+          createGuestNotification({
+            resort_id: guest.resortId,
+            guest_id: guest.guestId,
+            type: notifType,
+            title: data.requires_approval ? 'Booking Request Sent' : 'Booking Confirmed',
+            message: notifMessage,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+
+          // Staff notification for pending requests
+          if (data.requires_approval) {
+            createStaffNotificationsForRoles({
+              resort_id: guest.resortId,
+              roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'],
+              type: 'ACTIVITY_BOOKING_PENDING',
+              title: 'New Activity Request',
+              message: messages.staff.pending,
+              link_url: '/staff/guest-requests',
+            }).catch(console.error);
+          }
+        }
       } else {
         const errorCode = mapErrorToCode(data.error || '');
         const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
