@@ -11,6 +11,7 @@ interface AuthContextType {
   globalRole: GlobalRole;
   memberships: ResortMembership[];
   loading: boolean;
+  userDataLoading: boolean; // True while fetching profile/memberships after auth
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -32,41 +33,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [globalRole, setGlobalRole] = useState<GlobalRole>('STANDARD');
   const [memberships, setMemberships] = useState<ResortMembership[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userDataLoading, setUserDataLoading] = useState(false);
 
   const fetchUserData = async (userId: string) => {
-    // Fetch profile with global_role
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    setUserDataLoading(true);
+    try {
+      // Fetch profile with global_role
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (profileData) {
-      setProfile(profileData as Profile);
-      setGlobalRole((profileData.global_role as GlobalRole) || 'STANDARD');
-    }
+      if (profileData) {
+        setProfile(profileData as Profile);
+        setGlobalRole((profileData.global_role as GlobalRole) || 'STANDARD');
+      }
 
-    // Fetch legacy roles (for backwards compatibility)
-    const { data: rolesData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+      // Fetch legacy roles (for backwards compatibility)
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
 
-    if (rolesData) {
-      setRoles(rolesData.map(r => r.role as AppRole));
-    }
+      if (rolesData) {
+        setRoles(rolesData.map(r => r.role as AppRole));
+      }
 
-    // Fetch resort memberships
-    const { data: membershipsData } = await supabase
-      .from('resort_memberships')
-      .select(`
-        *,
-        resort:resorts(*)
-      `)
-      .eq('user_id', userId);
+      // Fetch resort memberships
+      const { data: membershipsData } = await supabase
+        .from('resort_memberships')
+        .select(`
+          *,
+          resort:resorts(*)
+        `)
+        .eq('user_id', userId);
 
-    if (membershipsData) {
-      setMemberships(membershipsData as ResortMembership[]);
+      if (membershipsData) {
+        setMemberships(membershipsData as ResortMembership[]);
+      }
+    } finally {
+      setUserDataLoading(false);
     }
   };
 
@@ -174,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         globalRole,
         memberships,
         loading,
+        userDataLoading,
         signIn,
         signUp,
         signOut,
