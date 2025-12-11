@@ -1,6 +1,6 @@
-// Hook for staff notifications
+// Hook for staff notifications with realtime updates
 
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,32 @@ import type { Notification } from '@/types/notifications';
 export function useStaffNotifications() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`staff-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Invalidate queries to refetch on any change
+          queryClient.invalidateQueries({ queryKey: ['staff-notifications', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   // Fetch notifications
   const { data: notifications = [], isLoading, refetch } = useQuery({
@@ -28,7 +54,7 @@ export function useStaffNotifications() {
       return data as Notification[];
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Poll every 30 seconds
+    staleTime: Infinity, // Don't refetch automatically, rely on realtime
   });
 
   // Unread count
