@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -172,21 +173,20 @@ export function RestaurantReservationDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Adults *</Label>
-                <Input
-                  type="number"
+                <NumericInput
                   min={1}
                   value={formData.num_adults}
-                  onChange={(e) => setFormData({ ...formData, num_adults: parseInt(e.target.value) || 1 })}
-                  required
+                  onChange={(value) => setFormData({ ...formData, num_adults: value })}
+                  defaultValue={1}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Children</Label>
-                <Input
-                  type="number"
+                <NumericInput
                   min={0}
                   value={formData.num_children}
-                  onChange={(e) => setFormData({ ...formData, num_children: parseInt(e.target.value) || 0 })}
+                  onChange={(value) => setFormData({ ...formData, num_children: value })}
+                  defaultValue={0}
                 />
               </div>
             </div>

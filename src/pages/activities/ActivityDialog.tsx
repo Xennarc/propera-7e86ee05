@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Activity, ActivityCategory } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -411,33 +412,33 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="price">Price per Person ($)</Label>
-              <Input
+              <NumericInput
                 id="price"
-                type="number"
-                min="0"
-                step="0.01"
+                min={0}
                 value={formData.default_price_per_person}
-                onChange={(e) => setFormData({ ...formData, default_price_per_person: parseFloat(e.target.value) || 0 })}
+                onChange={(value) => setFormData({ ...formData, default_price_per_person: value })}
+                allowDecimal
+                defaultValue={0}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="duration">Duration (min)</Label>
-              <Input
+              <NumericInput
                 id="duration"
-                type="number"
-                min="1"
+                min={1}
                 value={formData.duration_minutes}
-                onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 60 })}
+                onChange={(value) => setFormData({ ...formData, duration_minutes: value })}
+                defaultValue={60}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="capacity">Max Capacity</Label>
-              <Input
+              <NumericInput
                 id="capacity"
-                type="number"
-                min="1"
+                min={1}
                 value={formData.default_max_capacity}
-                onChange={(e) => setFormData({ ...formData, default_max_capacity: parseInt(e.target.value) || 10 })}
+                onChange={(value) => setFormData({ ...formData, default_max_capacity: value })}
+                defaultValue={10}
               />
             </div>
           </div>

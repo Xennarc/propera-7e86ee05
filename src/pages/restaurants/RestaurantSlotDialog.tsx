@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -515,12 +516,11 @@ export function RestaurantSlotDialog({
 
           <div className="space-y-2">
             <Label>Capacity *</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={1}
               value={formData.capacity}
-              onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 1 })}
-              required
+              onChange={(value) => setFormData({ ...formData, capacity: value })}
+              defaultValue={1}
             />
           </div>
 

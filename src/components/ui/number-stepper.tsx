@@ -23,22 +23,61 @@ export function NumberStepper({
   disabled = false,
   className,
 }: NumberStepperProps) {
+  const [displayValue, setDisplayValue] = React.useState<string>(value.toString());
+
+  // Sync display value when external value changes
+  React.useEffect(() => {
+    setDisplayValue(value.toString());
+  }, [value]);
+
   const handleDecrement = () => {
     if (value > min) {
-      onChange(value - 1);
+      const newValue = value - 1;
+      onChange(newValue);
+      setDisplayValue(newValue.toString());
     }
   };
 
   const handleIncrement = () => {
     if (value < max) {
-      onChange(value + 1);
+      const newValue = value + 1;
+      onChange(newValue);
+      setDisplayValue(newValue.toString());
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value) || min;
-    const clampedValue = Math.max(min, Math.min(max, newValue));
-    onChange(clampedValue);
+    const inputValue = e.target.value;
+    
+    // Allow empty string while typing
+    if (inputValue === '') {
+      setDisplayValue('');
+      return;
+    }
+    
+    // Only allow digits
+    if (/^\d*$/.test(inputValue)) {
+      setDisplayValue(inputValue);
+    }
+  };
+
+  const handleBlur = () => {
+    let numValue: number;
+    
+    if (displayValue === '') {
+      numValue = min;
+    } else {
+      numValue = parseInt(displayValue, 10);
+      if (isNaN(numValue)) {
+        numValue = min;
+      }
+    }
+    
+    // Clamp to min/max
+    numValue = Math.max(min, Math.min(max, numValue));
+    
+    setDisplayValue(numValue.toString());
+    onChange(numValue);
   };
 
   return (
@@ -59,11 +98,11 @@ export function NumberStepper({
           <Minus className="h-4 w-4" />
         </Button>
         <Input
-          type="number"
-          value={value}
+          type="text"
+          inputMode="numeric"
+          value={displayValue}
           onChange={handleInputChange}
-          min={min}
-          max={max}
+          onBlur={handleBlur}
           disabled={disabled}
           className="h-10 w-16 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           aria-label={label || 'Number input'}

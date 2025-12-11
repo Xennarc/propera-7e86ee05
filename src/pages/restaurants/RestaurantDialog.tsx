@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Restaurant } from '@/types/database';
 import { Button } from '@/components/ui/button';
+import { NumericInput } from '@/components/ui/numeric-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -204,22 +205,22 @@ export function RestaurantDialog({ open, onOpenChange, restaurant, resortId, onS
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="capacity">Total Capacity (seats)</Label>
-              <Input
+              <NumericInput
                 id="capacity"
-                type="number"
-                min="1"
+                min={1}
                 value={formData.total_capacity}
-                onChange={(e) => setFormData({ ...formData, total_capacity: parseInt(e.target.value) || 50 })}
+                onChange={(value) => setFormData({ ...formData, total_capacity: value })}
+                defaultValue={50}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="max_pax">Max Pax per Booking</Label>
-              <Input
+              <NumericInput
                 id="max_pax"
-                type="number"
-                min="1"
+                min={1}
                 value={formData.max_pax_per_booking}
-                onChange={(e) => setFormData({ ...formData, max_pax_per_booking: parseInt(e.target.value) || 6 })}
+                onChange={(value) => setFormData({ ...formData, max_pax_per_booking: value })}
+                defaultValue={6}
               />
             </div>
           </div>
