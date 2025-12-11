@@ -53,6 +53,12 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link 
+              to="/about" 
+              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            >
+              About
+            </Link>
+            <Link 
               to="/pricing" 
               className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
@@ -234,6 +240,7 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
               <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
               <span>© {new Date().getFullYear()} Propera. All rights reserved.</span>
             </div>
