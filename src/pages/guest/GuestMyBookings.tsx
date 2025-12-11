@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
+import { createStaffNotificationsForRoles } from '@/lib/notifications';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -214,10 +215,24 @@ export default function GuestMyBookings() {
       
       return { previousBookings };
     },
-    onSuccess: () => {
+    onSuccess: (data, bookingId) => {
       toast.success('Your booking has been cancelled.');
       setCancelDialog(null);
       queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
+
+      // Notify staff about cancellation
+      const booking = allActivities?.find(b => b.id === bookingId);
+      if (booking && guest) {
+        const dateStr = format(parseISO(booking.date), 'EEE, MMM d');
+        createStaffNotificationsForRoles({
+          resort_id: guest.resortId,
+          roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'],
+          type: 'ACTIVITY_BOOKING_CANCELLED',
+          title: 'Activity Booking Cancelled',
+          message: `${guest.fullName} (Room ${guest.roomNumber}) cancelled ${booking.activity_name} on ${dateStr} at ${booking.start_time?.slice(0, 5)}.`,
+          link_url: `/staff/activities/sessions/${booking.session_id}`,
+        }).catch(console.error);
+      }
     },
     onError: (error: Error, _bookingId, context) => {
       if (context?.previousBookings) {
@@ -258,10 +273,24 @@ export default function GuestMyBookings() {
       
       return { previousBookings };
     },
-    onSuccess: () => {
+    onSuccess: (data, reservationId) => {
       toast.success('Your reservation has been cancelled.');
       setCancelDialog(null);
       queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
+
+      // Notify staff about cancellation
+      const reservation = allReservations?.find(r => r.id === reservationId);
+      if (reservation && guest) {
+        const dateStr = format(parseISO(reservation.date), 'EEE, MMM d');
+        createStaffNotificationsForRoles({
+          resort_id: guest.resortId,
+          roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'FNB'],
+          type: 'RESTAURANT_RESERVATION_CANCELLED',
+          title: 'Restaurant Reservation Cancelled',
+          message: `${guest.fullName} (Room ${guest.roomNumber}) cancelled ${reservation.restaurant_name} reservation on ${dateStr} at ${reservation.start_time?.slice(0, 5)}.`,
+          link_url: `/staff/restaurants/slots/${reservation.slot_id}`,
+        }).catch(console.error);
+      }
     },
     onError: (error: Error, _reservationId, context) => {
       if (context?.previousBookings) {

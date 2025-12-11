@@ -6,6 +6,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { validateActivityBooking, validateRestaurantReservation } from '@/lib/booking-validation';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
+import { createGuestNotification } from '@/lib/notifications';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -249,10 +250,26 @@ export default function GuestRequestsPage() {
         .update({ status: 'CONFIRMED' })
         .eq('id', bookingId);
       if (error) throw error;
+      return { bookingId, booking };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pending-activity-requests'] });
       toast.success('Booking approved');
+
+      // Notify guest
+      const booking = data.booking;
+      if (booking && currentResort) {
+        const session = booking.activity_sessions;
+        const dateStr = format(parseISO(session.date), 'EEE, MMM d');
+        createGuestNotification({
+          resort_id: currentResort.id,
+          guest_id: booking.guests.id,
+          type: 'ACTIVITY_BOOKING_CONFIRMED',
+          title: 'Booking Confirmed',
+          message: `Your booking for ${session.activities.name} on ${dateStr} at ${session.start_time.slice(0, 5)} is confirmed.`,
+          link_url: '/guest/bookings',
+        }).catch(console.error);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -262,17 +279,34 @@ export default function GuestRequestsPage() {
   // Reject activity booking
   const rejectActivityMutation = useMutation({
     mutationFn: async ({ bookingId, reason }: { bookingId: string; reason: string }) => {
+      const booking = activityRequests?.find((r: any) => r.id === bookingId);
       const { error } = await supabase
         .from('activity_bookings')
         .update({ status: 'CANCELLED', notes: reason })
         .eq('id', bookingId);
       if (error) throw error;
+      return { bookingId, booking };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pending-activity-requests'] });
       toast.success('Booking rejected');
       setRejectDialog(null);
       setRejectReason('');
+
+      // Notify guest
+      const booking = data.booking;
+      if (booking && currentResort) {
+        const session = booking.activity_sessions;
+        const dateStr = format(parseISO(session.date), 'EEE, MMM d');
+        createGuestNotification({
+          resort_id: currentResort.id,
+          guest_id: booking.guests.id,
+          type: 'ACTIVITY_BOOKING_CANCELLED',
+          title: 'Booking Not Approved',
+          message: `Your request for ${session.activities.name} on ${dateStr} at ${session.start_time.slice(0, 5)} was not approved. Please contact front desk for details.`,
+          link_url: '/guest/bookings',
+        }).catch(console.error);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -312,10 +346,26 @@ export default function GuestRequestsPage() {
         .update({ status: 'CONFIRMED' })
         .eq('id', reservationId);
       if (error) throw error;
+      return { reservationId, reservation };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pending-restaurant-requests'] });
       toast.success('Reservation approved');
+
+      // Notify guest
+      const reservation = data.reservation;
+      if (reservation && currentResort) {
+        const slot = reservation.restaurant_time_slots;
+        const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
+        createGuestNotification({
+          resort_id: currentResort.id,
+          guest_id: reservation.guests.id,
+          type: 'RESTAURANT_RESERVATION_CONFIRMED',
+          title: 'Table Confirmed',
+          message: `Your reservation at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time.slice(0, 5)} is confirmed.`,
+          link_url: '/guest/bookings',
+        }).catch(console.error);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -325,17 +375,34 @@ export default function GuestRequestsPage() {
   // Reject restaurant reservation
   const rejectReservationMutation = useMutation({
     mutationFn: async ({ reservationId, reason }: { reservationId: string; reason: string }) => {
+      const reservation = restaurantRequests?.find((r: any) => r.id === reservationId);
       const { error } = await supabase
         .from('restaurant_reservations')
         .update({ status: 'CANCELLED', special_requests: reason })
         .eq('id', reservationId);
       if (error) throw error;
+      return { reservationId, reservation };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['pending-restaurant-requests'] });
       toast.success('Reservation rejected');
       setRejectDialog(null);
       setRejectReason('');
+
+      // Notify guest
+      const reservation = data.reservation;
+      if (reservation && currentResort) {
+        const slot = reservation.restaurant_time_slots;
+        const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
+        createGuestNotification({
+          resort_id: currentResort.id,
+          guest_id: reservation.guests.id,
+          type: 'RESTAURANT_RESERVATION_CANCELLED',
+          title: 'Reservation Not Approved',
+          message: `Your reservation request at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time.slice(0, 5)} was not approved. Please contact front desk for details.`,
+          link_url: '/guest/bookings',
+        }).catch(console.error);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);

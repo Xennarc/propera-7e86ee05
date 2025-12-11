@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { createStaffNotificationsForRoles, formatFeedbackMessage } from '@/lib/notifications';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -125,6 +126,20 @@ export default function GuestStayFeedback() {
         title: 'Thank you for your feedback!',
         description: 'We really appreciate it. Have a safe journey home.',
       });
+
+      // Notify staff about feedback
+      if (guest && overallRating) {
+        const checkOutStr = guest.checkOutDate ? new Date(guest.checkOutDate).toLocaleDateString() : 'N/A';
+        createStaffNotificationsForRoles({
+          resort_id: guest.resortId,
+          roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'],
+          type: 'STAY_FEEDBACK_SUBMITTED',
+          title: 'New Guest Feedback',
+          message: formatFeedbackMessage(guest.fullName, checkOutStr, overallRating),
+          link_url: '/staff/reports/feedback',
+        }).catch(console.error);
+      }
+
       navigate('/guest');
     },
     onError: (error: Error) => {
