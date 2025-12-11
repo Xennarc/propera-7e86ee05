@@ -110,9 +110,9 @@ export default function GuestFindResort() {
     <div className="min-h-screen flex flex-col bg-background">
       <SEOHead
         title="Find Your Resort"
-        description="Can't find your resort link? Search by your room number and last name to locate your Maldives resort guest portal."
+        description="Can't find your resort link? Search by your room number and last name to locate your resort guest portal."
         canonicalUrl="/guest/find"
-        keywords="find resort, guest portal search, Maldives resort lookup"
+        keywords="find resort, guest portal search, resort lookup"
       />
       {/* Theme toggle in top right */}
       <div className="absolute top-4 right-4 z-10">

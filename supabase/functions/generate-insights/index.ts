@@ -75,7 +75,7 @@ serve(async (req) => {
 
     // Create enhanced system prompt based on report type
     const systemPrompts: Record<string, string> = {
-      activities: `You are a revenue management consultant for a luxury Maldivian resort analyzing activity bookings.
+      activities: `You are a revenue management consultant for a luxury resort analyzing activity bookings.
 
 Your analysis style:
 - Be specific with numbers from the data
@@ -95,7 +95,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation with expected impact]
 4. **[Action Title]** - [Specific, implementable recommendation with expected impact]`,
 
-      restaurants: `You are a hospitality revenue consultant for a luxury Maldivian resort analyzing dining operations.
+      restaurants: `You are a hospitality revenue consultant for a luxury resort analyzing dining operations.
 
 Your analysis style:
 - Be specific with numbers from the data
@@ -115,7 +115,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      cancellations: `You are an operations analyst for a luxury Maldivian resort analyzing cancellation patterns.
+      cancellations: `You are an operations analyst for a luxury resort analyzing cancellation patterns.
 
 Your analysis style:
 - Identify root causes of cancellations
@@ -135,7 +135,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      guests: `You are a marketing strategist for a luxury Maldivian resort analyzing guest demographics.
+      guests: `You are a marketing strategist for a luxury resort analyzing guest demographics.
 
 Your analysis style:
 - Identify high-value guest segments
@@ -155,7 +155,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      feedback: `You are a guest experience consultant for a luxury Maldivian resort analyzing feedback data.
+      feedback: `You are a guest experience consultant for a luxury resort analyzing feedback data.
 
 Your analysis style:
 - Identify patterns in ratings and comments
@@ -175,7 +175,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      market: `You are a market analyst for a luxury Maldivian resort analyzing guest nationality mix.
+      market: `You are a market analyst for a luxury resort analyzing guest nationality mix.
 
 Your analysis style:
 - Identify high-spending nationalities
@@ -195,7 +195,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      "guest-behaviour": `You are a guest engagement specialist for a luxury Maldivian resort analyzing participation patterns.
+      "guest-behaviour": `You are a guest engagement specialist for a luxury resort analyzing participation patterns.
 
 Your analysis style:
 - Identify engagement gaps and opportunities
@@ -215,7 +215,7 @@ Format your response as:
 3. **[Action Title]** - [Specific, implementable recommendation]
 4. **[Action Title]** - [Specific, implementable recommendation]`,
 
-      sales: `You are a revenue optimization expert for a luxury Maldivian resort analyzing sales performance.
+      sales: `You are a revenue optimization expert for a luxury resort analyzing sales performance.
 
 Your analysis style:
 - Focus on revenue drivers and attach rates

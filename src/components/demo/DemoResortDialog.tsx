@@ -92,7 +92,7 @@ export function DemoResortDialog({ open, onOpenChange, onSuccess }: DemoResortDi
           is_demo: true,
           demo_expires_at: expiresAt.toISOString(),
           demo_note: formData.note.trim() || null,
-          timezone: 'Indian/Maldives',
+          timezone: 'UTC',
           currency: 'USD',
           onboarding_status: 'COMPLETED',
           onboarding_basics_done: true,

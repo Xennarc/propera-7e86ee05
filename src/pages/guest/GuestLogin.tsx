@@ -21,9 +21,9 @@ export default function GuestLogin() {
     <div className="min-h-screen flex flex-col bg-background">
       <SEOHead
         title="Guest Portal Login"
-        description="Access your Maldives resort guest portal. View your schedule, book activities, and reserve restaurants during your stay. Login with your room number and PIN."
+        description="Access your resort guest portal. View your schedule, book activities, and reserve restaurants during your stay. Login with your room number and PIN."
         canonicalUrl="/guest/login"
-        keywords="guest portal login, resort guest access, Maldives resort booking, activity booking"
+        keywords="guest portal login, resort guest access, resort booking, activity booking"
       />
       
       {/* Theme toggle in top right */}
@@ -42,7 +42,7 @@ export default function GuestLogin() {
             <ProperaMark size={64} className="text-primary" />
           </Link>
           <h1 className="text-3xl font-bold text-foreground mb-2">Guest Portal</h1>
-          <p className="text-muted-foreground">Access your Maldives resort experience</p>
+          <p className="text-muted-foreground">Access your resort experience</p>
         </div>
 
         {/* Wave divider */}

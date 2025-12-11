@@ -220,7 +220,7 @@ export default function ResortGuestLogin() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
         <SEOHead
           title={`Login to ${resortInfo.name}`}
-          description={`Access the guest portal for ${resortInfo.name}. Book activities and reserve restaurants during your Maldives resort stay.`}
+          description={`Access the guest portal for ${resortInfo.name}. Book activities and reserve restaurants during your resort stay.`}
           noIndex={true}
         />
         <div className="absolute top-4 right-4">
@@ -269,16 +269,16 @@ export default function ResortGuestLogin() {
     name: resortInfo.name,
     code: resortInfo.code,
     logoUrl: branding.login_logo_url || undefined,
-    description: `${resortInfo.name} - Luxury Maldives resort with digital guest portal powered by Propera`
+    description: `${resortInfo.name} - Luxury resort with digital guest portal powered by Propera`
   }) : undefined;
 
   return (
     <>
       <SEOHead
         title={`${resortInfo?.name || 'Resort'} Guest Portal`}
-        description={`Access the guest portal for ${resortInfo?.name || 'your resort'}. Book activities, reserve restaurants, and manage your Maldives resort stay.`}
+        description={`Access the guest portal for ${resortInfo?.name || 'your resort'}. Book activities, reserve restaurants, and manage your resort stay.`}
         canonicalUrl={`/resort/${code}/guest/login`}
-        keywords={`${resortInfo?.name || ''} guest portal, Maldives resort booking, resort activities, restaurant reservations`}
+        keywords={`${resortInfo?.name || ''} guest portal, resort booking, resort activities, restaurant reservations`}
         structuredData={resortSchema}
       />
       {!isOnline && <OfflineBanner />}

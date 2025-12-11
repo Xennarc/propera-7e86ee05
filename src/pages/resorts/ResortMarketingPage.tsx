@@ -49,8 +49,8 @@ export default function ResortMarketingPage() {
     return <ResortNotFound />;
   }
 
-  const pageTitle = `${resort.name} – Maldives Island Resort`;
-  const pageDescription = `Stay at ${resort.name} in the Maldives. Explore activities, diving excursions, spa experiences, and fine dining with real-time bookings powered by Propera.`;
+  const pageTitle = `${resort.name} – Luxury Resort`;
+  const pageDescription = `Stay at ${resort.name}. Explore activities, diving excursions, spa experiences, and fine dining with real-time bookings powered by Propera.`;
   const canonicalUrl = `/resorts/${resort.code.toLowerCase()}`;
   const heroImage = resort.login_hero_image_url || 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200';
   const logoImage = resort.login_logo_url;
@@ -97,9 +97,7 @@ export default function ResortMarketingPage() {
         canonicalUrl={canonicalUrl}
         ogImage={heroImage}
         ogType="website"
-        keywords={`${resort.name}, Maldives resort, luxury hotel, island resort, guest portal, activity booking, restaurant reservation`}
-        geoRegion="MV"
-        geoPlacename="Maldives"
+        keywords={`${resort.name}, luxury resort, island resort, guest portal, activity booking, restaurant reservation`}
         structuredData={[resortSchema, breadcrumbSchema, PROPERA_ORGANIZATION_SCHEMA]}
       />
 
@@ -143,7 +141,7 @@ export default function ResortMarketingPage() {
               {resort.name}
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              Luxury island resort in the Maldives, powered by Propera
+              Luxury resort experience, powered by Propera
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="gap-2">
@@ -172,7 +170,7 @@ export default function ResortMarketingPage() {
               <p className="text-lg text-muted-foreground">
                 Discover a paradise where crystal-clear waters meet pristine white beaches. 
                 {resort.name} offers an unforgettable escape with world-class amenities, 
-                exceptional dining, and extraordinary experiences in the heart of the Maldives.
+                exceptional dining, and extraordinary experiences.
               </p>
             </div>
 
@@ -190,7 +188,7 @@ export default function ResortMarketingPage() {
               <FeatureCard
                 icon={<Ship className="h-8 w-8" />}
                 title="Marine Adventures"
-                description="Explore vibrant coral reefs, swim with marine life, and discover the underwater wonders of the Maldives."
+                description="Explore vibrant coral reefs, swim with marine life, and discover underwater wonders."
               />
             </div>
           </div>
@@ -284,18 +282,17 @@ export default function ResortMarketingPage() {
               Located in Paradise
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-              Nestled in the pristine waters of the Maldives, {resort.name} offers easy access 
-              via seaplane or speedboat transfer from Malé International Airport. Your journey 
+              {resort.name} offers easy access with convenient transfer options. Your journey 
               to paradise begins the moment you arrive.
             </p>
             <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
               <span className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> Maldives
+                <MapPin className="h-4 w-4" /> Paradise Location
               </span>
               <span>•</span>
-              <span>Seaplane Transfer Available</span>
+              <span>Easy Transfer Access</span>
               <span>•</span>
-              <span>Year-Round Tropical Climate</span>
+              <span>Year-Round Destination</span>
             </div>
           </div>
         </section>
