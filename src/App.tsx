@@ -84,6 +84,7 @@ import PreArrivalPage from "./pages/guest/PreArrivalPage";
 import NotFound from "./pages/NotFound";
 import ResortMarketingPage from "./pages/resorts/ResortMarketingPage";
 import PricingPage from "./pages/PricingPage";
+import AboutPage from "./pages/AboutPage";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +102,7 @@ const App = () => (
                 {/* Public landing page */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/about" element={<AboutPage />} />
                 
                 {/* Public resort marketing pages */}
                 <Route path="/resorts/:code" element={<ResortMarketingPage />} />
