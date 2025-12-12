@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LogOut, User, Palette, TrendingUp } from 'lucide-react';
+import { ChevronDown, LogOut, User, Palette, TrendingUp, Crown } from 'lucide-react';
 import {
   IconDashboard,
   IconGuests,
@@ -364,6 +364,25 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                     >
                       <IconResort className="h-5 w-5" />
                       <span>Resorts</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+
+              {isSuperAdmin() && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/staff/settings/subscriptions"
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      onClick={onNavigate}
+                    >
+                      <Crown className="h-5 w-5" />
+                      <span>Subscriptions</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
