@@ -13,6 +13,7 @@ export type ResourceType = 'BOAT' | 'VAN' | 'CABANA' | 'OTHER';
 export type ResortStatus = 'ACTIVE' | 'INACTIVE' | 'DEMO';
 export type OnboardingStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED';
+export type SubscriptionTier = 'ESSENTIAL' | 'PROFESSIONAL' | 'ELITE';
 
 export interface Resort {
   id: string;
@@ -37,6 +38,9 @@ export interface Resort {
   is_demo: boolean;
   demo_expires_at: string | null;
   demo_note: string | null;
+  subscription_tier: SubscriptionTier;
+  subscription_started_at: string | null;
+  subscription_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }

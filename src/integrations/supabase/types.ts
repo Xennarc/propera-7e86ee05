@@ -833,6 +833,9 @@ export type Database = {
           onboarding_status: string
           pricing_charges: Json
           status: Database["public"]["Enums"]["resort_status"]
+          subscription_expires_at: string | null
+          subscription_started_at: string | null
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           timezone: string
           updated_at: string
         }
@@ -862,6 +865,9 @@ export type Database = {
           onboarding_status?: string
           pricing_charges?: Json
           status?: Database["public"]["Enums"]["resort_status"]
+          subscription_expires_at?: string | null
+          subscription_started_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           timezone?: string
           updated_at?: string
         }
@@ -891,6 +897,9 @@ export type Database = {
           onboarding_status?: string
           pricing_charges?: Json
           status?: Database["public"]["Enums"]["resort_status"]
+          subscription_expires_at?: string | null
+          subscription_started_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           timezone?: string
           updated_at?: string
         }
@@ -1647,6 +1656,7 @@ export type Database = {
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
+      subscription_tier: "ESSENTIAL" | "PROFESSIONAL" | "ELITE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1818,6 +1828,7 @@ export const Constants = {
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],
       session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
       slot_status: ["OPEN", "CLOSED", "FULL"],
+      subscription_tier: ["ESSENTIAL", "PROFESSIONAL", "ELITE"],
     },
   },
 } as const
