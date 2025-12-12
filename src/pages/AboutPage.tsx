@@ -21,33 +21,6 @@ import {
 // CONFIGURATION
 // ==========================================
 
-const TEAM_MEMBERS = [
-  {
-    name: 'Alex Chen',
-    role: 'Co-Founder & CEO',
-    bio: 'Former resort operations director with 15 years in luxury hospitality across Asia-Pacific.',
-    avatar: null,
-  },
-  {
-    name: 'Sarah Mitchell',
-    role: 'Co-Founder & CTO',
-    bio: 'Previously led engineering at a leading hospitality tech company. Passionate about simplifying complex operations.',
-    avatar: null,
-  },
-  {
-    name: 'James Ranaweera',
-    role: 'Head of Product',
-    bio: 'Background in guest experience design at five-star island resorts. Obsessed with delightful UX.',
-    avatar: null,
-  },
-  {
-    name: 'Maria Santos',
-    role: 'Head of Customer Success',
-    bio: 'Spent a decade in resort management before joining Propera. Knows exactly what operators need.',
-    avatar: null,
-  },
-];
-
 const VALUES = [
   {
     icon: Heart,
@@ -74,8 +47,8 @@ const VALUES = [
 const ABOUT_PAGE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'AboutPage',
-  name: 'About Propera - Our Story & Team',
-  description: 'Learn about Propera, the team behind the resort booking platform, and our mission to transform guest experiences.',
+  name: 'About Propera - Our Story & Mission',
+  description: 'Learn about Propera, the resort booking platform, and our mission to transform guest experiences.',
   url: 'https://propera.cc/about',
 };
 
@@ -87,10 +60,10 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="About Us - Our Story & Team"
-        description="Propera was founded by hospitality veterans who understood that resort operations needed a modern, guest-centric solution. Meet the team and learn our story."
+        title="About Us - Our Story & Mission"
+        description="Propera was founded by hospitality veterans who understood that resort operations needed a modern, guest-centric solution. Learn our story."
         canonicalUrl="/about"
-        keywords="about propera, resort technology company, hospitality software team, guest experience platform"
+        keywords="about propera, resort technology company, hospitality software, guest experience platform"
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]}
       />
 
@@ -102,18 +75,6 @@ export default function AboutPage() {
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link 
-              to="/about" 
-              className="hidden sm:inline-flex text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              About
-            </Link>
-            <Link 
-              to="/pricing" 
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-            >
-              Pricing
-            </Link>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
             <Button asChild size="sm" className="rounded-full px-5 font-semibold shadow-md">
               <Link to="/guest/login" aria-label="Access guest login portal">
@@ -244,29 +205,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Wave transition */}
-        <WaveDivider flip className="text-card" aria-hidden="true" />
-
-        {/* Team Section */}
-        <section className="py-20 md:py-28 bg-background" aria-labelledby="team-heading">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 id="team-heading" className="text-3xl md:text-headline font-bold text-foreground mb-4">
-                Meet the Team
-              </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-                Hospitality veterans and technologists united by a passion for great guest experiences.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto">
-              {TEAM_MEMBERS.map((member, index) => (
-                <TeamMemberCard key={index} member={member} />
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="py-20 md:py-28 bg-card relative overflow-hidden" aria-labelledby="about-cta-heading">
           <div className="absolute top-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-[60px] pointer-events-none" aria-hidden="true" />
@@ -341,21 +279,6 @@ function ValueCard({ value }: { value: typeof VALUES[0] }) {
         </div>
         <h3 className="text-lg font-bold text-foreground mb-2">{value.title}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">{value.description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function TeamMemberCard({ member }: { member: typeof TEAM_MEMBERS[0] }) {
-  return (
-    <Card className="card-luxury text-center">
-      <CardContent className="p-6">
-        <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mx-auto mb-4" aria-hidden="true">
-          <Users className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-lg font-bold text-foreground mb-1">{member.name}</h3>
-        <p className="text-sm text-primary font-medium mb-3">{member.role}</p>
-        <p className="text-sm text-muted-foreground leading-relaxed">{member.bio}</p>
       </CardContent>
     </Card>
   );
