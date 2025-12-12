@@ -5,51 +5,35 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { WaveDivider } from '@/components/icons/ProperaIcons';
-import { 
-  Sparkles, 
-  LogIn, 
-  ArrowRight,
-  Heart,
-  Target,
-  Lightbulb,
-  Users,
-  Globe,
-  Zap
-} from 'lucide-react';
+import { Sparkles, LogIn, ArrowRight, Heart, Target, Lightbulb, Users, Globe, Zap } from 'lucide-react';
 
 // ==========================================
 // CONFIGURATION
 // ==========================================
 
-const VALUES = [
-  {
-    icon: Heart,
-    title: 'Guest-First Thinking',
-    description: "Every feature we build starts with one question: will this make the guest experience better?",
-  },
-  {
-    icon: Lightbulb,
-    title: 'Simplicity Over Complexity',
-    description: "Resort operations are complicated enough. Our software should make things simpler, not harder.",
-  },
-  {
-    icon: Zap,
-    title: 'Speed Matters',
-    description: "Whether it's loading times, onboarding, or support responses—we respect your time.",
-  },
-  {
-    icon: Users,
-    title: 'Built With Operators',
-    description: "We don't just build for resorts—we build with them. Your feedback shapes our roadmap.",
-  },
-];
-
+const VALUES = [{
+  icon: Heart,
+  title: 'Guest-First Thinking',
+  description: "Every feature we build starts with one question: will this make the guest experience better?"
+}, {
+  icon: Lightbulb,
+  title: 'Simplicity Over Complexity',
+  description: "Resort operations are complicated enough. Our software should make things simpler, not harder."
+}, {
+  icon: Zap,
+  title: 'Speed Matters',
+  description: "Whether it's loading times, onboarding, or support responses—we respect your time."
+}, {
+  icon: Users,
+  title: 'Built With Operators',
+  description: "We don't just build for resorts—we build with them. Your feedback shapes our roadmap."
+}];
 const ABOUT_PAGE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'AboutPage',
   name: 'About Propera - Our Story & Mission',
   description: 'Learn about Propera, the resort booking platform, and our mission to transform guest experiences.',
-  url: 'https://propera.cc/about',
+  url: 'https://propera.cc/about'
 };
 
 // ==========================================
@@ -57,15 +41,8 @@ const ABOUT_PAGE_SCHEMA = {
 // ==========================================
 
 export default function AboutPage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <SEOHead
-        title="About Us - Our Story & Mission"
-        description="Propera was founded by hospitality veterans who understood that resort operations needed a modern, guest-centric solution. Learn our story."
-        canonicalUrl="/about"
-        keywords="about propera, resort technology company, hospitality software, guest experience platform"
-        structuredData={[PROPERA_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]}
-      />
+  return <div className="min-h-screen bg-background">
+      <SEOHead title="About Us - Our Story & Mission" description="Propera was founded by hospitality veterans who understood that resort operations needed a modern, guest-centric solution. Learn our story." canonicalUrl="/about" keywords="about propera, resort technology company, hospitality software, guest experience platform" structuredData={[PROPERA_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]} />
 
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
@@ -173,7 +150,7 @@ export default function AboutPage() {
                       Our founders spent years working inside resorts—managing dive centres, overseeing F&B operations, and coordinating guest activities. They saw firsthand how fragmented systems led to double-bookings, missed opportunities, and stressed staff.
                     </p>
                     <p>
-                      In 2023, they set out to build the platform they wished they had: one that puts guests in control of their stay, gives staff real-time visibility, and helps management make smarter decisions with data.
+                      In 2025, they set out to build the platform they wished they had: one that puts guests in control of their stay, gives staff real-time visibility, and helps management make smarter decisions with data.
                     </p>
                     <p className="text-foreground font-medium">
                       Today, Propera powers guest experiences at resorts around the world—and we are just getting started.
@@ -198,9 +175,7 @@ export default function AboutPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto">
-              {VALUES.map((value, index) => (
-                <ValueCard key={index} value={value} />
-              ))}
+              {VALUES.map((value, index) => <ValueCard key={index} value={value} />)}
             </div>
           </div>
         </section>
@@ -260,19 +235,20 @@ export default function AboutPage() {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }
 
 // ==========================================
 // SUB-COMPONENTS
 // ==========================================
 
-function ValueCard({ value }: { value: typeof VALUES[0] }) {
+function ValueCard({
+  value
+}: {
+  value: typeof VALUES[0];
+}) {
   const Icon = value.icon;
-  
-  return (
-    <Card className="card-luxury hover-lift group">
+  return <Card className="card-luxury hover-lift group">
       <CardContent className="p-7">
         <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 shadow-sm" aria-hidden="true">
           <Icon className="h-7 w-7" />
@@ -280,6 +256,5 @@ function ValueCard({ value }: { value: typeof VALUES[0] }) {
         <h3 className="text-lg font-bold text-foreground mb-2">{value.title}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed">{value.description}</p>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 }
