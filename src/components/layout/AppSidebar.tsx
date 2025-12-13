@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LogOut, User, Palette, TrendingUp, Crown, Phone } from 'lucide-react';
+import { ChevronDown, LogOut, User, Palette, TrendingUp, Crown, Phone, Lock } from 'lucide-react';
 import {
   IconDashboard,
   IconGuests,
@@ -44,6 +44,14 @@ import {
   IconResort,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { useTierAccess } from '@/hooks/useTierAccess';
+import { TierFeature } from '@/lib/tier-features';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Define which resort roles can view each nav item
 type NavItem = {
@@ -51,20 +59,21 @@ type NavItem = {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   resortRoles: ResortRole[] | null;
+  tierFeature?: TierFeature;
 };
 
 const mainNavItems: NavItem[] = [
   { title: 'Dashboard', url: '/staff/dashboard', icon: IconDashboard, resortRoles: null },
-  { title: "Today's Opportunities", url: '/staff/today', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+  { title: "Today's Opportunities", url: '/staff/today', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities' },
   { title: 'Team Directory', url: '/staff/team', icon: IconGuests, resortRoles: null },
   { title: 'Guests', url: '/staff/guests', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-  { title: 'Guest Requests', url: '/staff/guest-requests', icon: IconGuestRequests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+  { title: 'Guest Requests', url: '/staff/guest-requests', icon: IconGuestRequests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests' },
 ];
 
 const activitiesNavItems: NavItem[] = [
   { title: 'Activities', url: '/staff/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
   { title: 'Sessions', url: '/staff/activities/sessions', icon: IconCalendar, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-  { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'] },
+  { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
 ];
 
 const restaurantNavItems: NavItem[] = [
@@ -74,12 +83,12 @@ const restaurantNavItems: NavItem[] = [
 
 const reportNavItems: NavItem[] = [
   { title: 'Overview', url: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { title: 'Activities', url: '/staff/reports/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'] },
-  { title: 'Restaurants', url: '/staff/reports/restaurants', icon: IconRestaurants, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FNB'] },
-  { title: 'Cancellations', url: '/staff/reports/cancellations', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-  { title: 'Guests', url: '/staff/reports/guests', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-  { title: 'Guest Behaviour', url: '/staff/reports/guest-behaviour', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { title: 'Market', url: '/staff/reports/market', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
+  { title: 'Activities', url: '/staff/reports/activities', icon: IconActivities, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'], tierFeature: 'reports_activities' },
+  { title: 'Restaurants', url: '/staff/reports/restaurants', icon: IconRestaurants, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FNB'], tierFeature: 'reports_restaurants' },
+  { title: 'Cancellations', url: '/staff/reports/cancellations', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_cancellations' },
+  { title: 'Guests', url: '/staff/reports/guests', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests' },
+  { title: 'Guest Behaviour', url: '/staff/reports/guest-behaviour', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_guests' },
+  { title: 'Market', url: '/staff/reports/market', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_guests' },
 ];
 
 interface AppSidebarProps {
