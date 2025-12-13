@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/guest/LanguageSwitcher';
 import { supportedLanguages } from '@/i18n';
+import { ResortDirectory } from '@/components/guest/ResortDirectory';
 
 export default function GuestProfilePage() {
   const { guest } = useGuestAuth();
@@ -166,6 +167,9 @@ export default function GuestProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Resort Directory */}
+      <ResortDirectory />
 
       {/* Language Settings */}
       <Card>

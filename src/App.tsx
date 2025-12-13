@@ -67,6 +67,7 @@ import ResortPublicLinksPage from "./pages/settings/ResortPublicLinksPage";
 import ResortBrandingPage from "./pages/settings/ResortBrandingPage";
 import ResortPricingPage from "./pages/settings/ResortPricingPage";
 import SubscriptionTiersPage from "./pages/settings/SubscriptionTiersPage";
+import ResortDirectoryPage from "./pages/settings/ResortDirectoryPage";
 import GuestHome from "./pages/guest/GuestHome";
 import GuestMyBookings from "./pages/guest/GuestMyBookings";
 import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
@@ -148,6 +149,7 @@ const App = () => (
                   <Route path="settings/branding" element={<ResortBrandingPage />} />
                   <Route path="settings/pricing" element={<ResortPricingPage />} />
                   <Route path="settings/subscriptions" element={<SubscriptionTiersPage />} />
+                  <Route path="settings/directory" element={<ResortDirectoryPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
                 </Route>
