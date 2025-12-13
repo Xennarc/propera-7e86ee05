@@ -87,6 +87,11 @@ import NotFound from "./pages/NotFound";
 import ResortMarketingPage from "./pages/resorts/ResortMarketingPage";
 import PricingPage from "./pages/PricingPage";
 import AboutPage from "./pages/AboutPage";
+import LoyaltyOverviewPage from "./pages/loyalty/LoyaltyOverviewPage";
+import LoyaltyProgramSettingsPage from "./pages/loyalty/LoyaltyProgramSettingsPage";
+import LoyaltyTiersPage from "./pages/loyalty/LoyaltyTiersPage";
+import LoyaltyMemberDetailPage from "./pages/loyalty/LoyaltyMemberDetailPage";
+import GuestLoyaltyPage from "./pages/guest/GuestLoyaltyPage";
 
 const queryClient = new QueryClient();
 
@@ -152,6 +157,10 @@ const App = () => (
                   <Route path="settings/directory" element={<ResortDirectoryPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
+                  <Route path="loyalty" element={<LoyaltyOverviewPage />} />
+                  <Route path="loyalty/program" element={<LoyaltyProgramSettingsPage />} />
+                  <Route path="loyalty/tiers" element={<LoyaltyTiersPage />} />
+                  <Route path="loyalty/members/:id" element={<LoyaltyMemberDetailPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
@@ -208,6 +217,7 @@ const App = () => (
                   <Route path="restaurants/book/:slotId" element={<GuestRestaurantBookingPage />} />
                   <Route path="feedback" element={<GuestStayFeedback />} />
                   <Route path="notifications" element={<GuestNotificationsPage />} />
+                  <Route path="loyalty" element={<GuestLoyaltyPage />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />

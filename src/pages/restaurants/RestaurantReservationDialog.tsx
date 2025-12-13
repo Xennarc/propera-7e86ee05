@@ -6,6 +6,7 @@ import { RestaurantTimeSlot, Restaurant, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
 import { validateRestaurantReservation } from '@/lib/booking-validation';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
+import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ export function RestaurantReservationDialog({
       return;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('restaurant_reservations')
       .insert({
         resort_id: currentResort.id,
@@ -105,12 +106,28 @@ export function RestaurantReservationDialog({
         num_children: formData.num_children,
         special_requests: formData.special_requests || null,
         created_by_user_id: user?.id || null,
-      });
+      })
+      .select('id')
+      .single();
 
     if (error) {
       setValidationError(error.message);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
+      // Award loyalty points (fire and forget)
+      if (data?.id && currentGuest) {
+        const totalPax = formData.num_adults + formData.num_children;
+        const pointsToAward = totalPax * 25; // 25 points per person
+        awardLoyaltyPoints(
+          currentGuest.id,
+          currentResort.id,
+          'dining_booking',
+          pointsToAward,
+          data.id,
+          'restaurant_reservation',
+          `Restaurant: ${slot.restaurant?.name || 'Restaurant'}`
+        ).catch(console.error);
+      }
       toast({ title: 'Success', description: 'Reservation created successfully' });
       onSuccess();
       onOpenChange(false);

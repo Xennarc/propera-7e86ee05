@@ -44,7 +44,8 @@
     "bookings": "预订",
     "profile": "个人中心",
     "logout": "退出",
-    "notifications": "通知"
+    "notifications": "通知",
+    "loyalty": "奖励"
   },
   "home": {
     "goodMorning": "早上好",

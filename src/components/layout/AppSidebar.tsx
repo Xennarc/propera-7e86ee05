@@ -91,6 +91,12 @@ const reportNavItems: NavItem[] = [
   { title: 'Market', url: '/staff/reports/market', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_guests' },
 ];
 
+const loyaltyNavItems: NavItem[] = [
+  { title: 'Members', url: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_program' },
+  { title: 'Program Settings', url: '/staff/loyalty/program', icon: IconSettings, resortRoles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program' },
+  { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Crown, resortRoles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program' },
+];
+
 interface AppSidebarProps {
   onNavigate?: () => void;
 }
@@ -289,6 +295,40 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-1">
                 {reportNavItems.map((item) => {
+                  if (!canViewItem(item.resortRoles)) return null;
+                  const Icon = item.icon;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <NavLink 
+                          to={item.url}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                            "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          )}
+                          activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                          onClick={onNavigate}
+                        >
+                          <Icon className="h-5 w-5" />
+                          <span>{item.title}</span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        )}
+
+        {canViewSection(loyaltyNavItems) && (
+          <SidebarGroup className="mt-6">
+            <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
+              Loyalty
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                {loyaltyNavItems.map((item) => {
                   if (!canViewItem(item.resortRoles)) return null;
                   const Icon = item.icon;
                   return (

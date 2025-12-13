@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { createGuestNotification, createStaffNotificationsForRoles, formatActivityBookingMessage } from '@/lib/notifications';
 import { calculatePriceBreakdown, parsePricingCharges } from '@/lib/pricing-utils';
+import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -225,6 +226,21 @@ export default function GuestActivityBookingPage() {
               message: messages.staff.pending,
               link_url: '/staff/guest-requests',
             }).catch(console.error);
+          }
+
+          // Award loyalty points for confirmed bookings (fire and forget)
+          if (!data.requires_approval && data.booking_id) {
+            const totalPax = numAdults + numChildren;
+            const pointsToAward = totalPax * 50; // 50 points per person
+            awardLoyaltyPoints(
+              guest.guestId,
+              guest.resortId,
+              'activity_booking',
+              pointsToAward,
+              data.booking_id,
+              'activity_booking',
+              `Activity: ${session.activity_name}`
+            ).catch(console.error);
           }
         }
       } else {
