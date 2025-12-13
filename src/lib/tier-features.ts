@@ -14,6 +14,7 @@ export type TierFeature =
   | 'guest_portal_pre_arrival'
   | 'guest_portal_branding'
   | 'guest_portal_ai_concierge'
+  | 'guest_portal_loyalty'
   // Staff Console - Guest Management
   | 'guest_management_basic'
   | 'guest_management_pin'
@@ -21,6 +22,12 @@ export type TierFeature =
   | 'guest_management_loyalty'
   | 'guest_management_360_profile'
   | 'guest_management_guest_requests'
+  // Loyalty Program (Elite only)
+  | 'loyalty_program'
+  | 'loyalty_tiers'
+  | 'loyalty_earn_rules'
+  | 'loyalty_rewards'
+  | 'loyalty_member_management'
   // Staff Console - Activities
   | 'activities_basic'
   | 'activities_recurring'
@@ -108,9 +115,15 @@ const FEATURE_TIER_MAP: Partial<Record<TierFeature, SubscriptionTier>> = {
 
   // ELITE - Premium features
   guest_portal_ai_concierge: 'ELITE',
+  guest_portal_loyalty: 'ELITE',
   reports_sales_performance: 'ELITE',
   reports_ai_insights: 'ELITE',
   settings_booking_health: 'ELITE',
+  loyalty_program: 'ELITE',
+  loyalty_tiers: 'ELITE',
+  loyalty_earn_rules: 'ELITE',
+  loyalty_rewards: 'ELITE',
+  loyalty_member_management: 'ELITE',
 };
 
 // Tier hierarchy for comparison
@@ -264,12 +277,18 @@ export const FEATURE_NAMES: Record<TierFeature, string> = {
   guest_portal_pre_arrival: 'Pre-Arrival Booking',
   guest_portal_branding: 'Custom Branding',
   guest_portal_ai_concierge: 'AI Concierge',
+  guest_portal_loyalty: 'Guest Loyalty Portal',
   guest_management_basic: 'Guest Records',
   guest_management_pin: 'Portal PIN Management',
   guest_management_csv_import: 'CSV Import',
   guest_management_loyalty: 'Loyalty Tiers',
   guest_management_360_profile: 'Guest 360° Profile',
   guest_management_guest_requests: 'Guest Requests Queue',
+  loyalty_program: 'Loyalty Program',
+  loyalty_tiers: 'Loyalty Tiers Configuration',
+  loyalty_earn_rules: 'Loyalty Earn Rules',
+  loyalty_rewards: 'Loyalty Rewards',
+  loyalty_member_management: 'Loyalty Member Management',
   activities_basic: 'Activity Management',
   activities_recurring: 'Recurring Schedules',
   activities_closures: 'Closure Days',
