@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { GuestLayout } from '@/components/guest/GuestLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -39,43 +38,38 @@ export default function GuestLoyaltyPage() {
 
   if (isLoading) {
     return (
-      <GuestLayout>
-        <div className="space-y-6">
-          <Skeleton className="h-48" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-64" />
-        </div>
-      </GuestLayout>
+      <div className="space-y-6">
+        <Skeleton className="h-48" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-64" />
+      </div>
     );
   }
 
   if (!isEnrolled) {
     return (
-      <GuestLayout>
-        <Card className="text-center py-12">
-          <CardContent>
-            <Crown className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Loyalty Program</h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Start earning rewards on your bookings! You'll automatically join our loyalty program when you make your first booking.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/guest/activities')}>
-                Browse Activities
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/guest/restaurants')}>
-                Book a Table
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </GuestLayout>
+      <Card className="text-center py-12">
+        <CardContent>
+          <Crown className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Loyalty Program</h2>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Start earning rewards on your bookings! You'll automatically join our loyalty program when you make your first booking.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => navigate('/guest/activities')}>
+              Browse Activities
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/guest/restaurants')}>
+              Book a Table
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <GuestLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Loyalty Card */}
         <LoyaltyCard
           tierName={currentTier?.name || 'Member'}
@@ -223,17 +217,17 @@ export default function GuestLoyaltyPage() {
         )}
 
         {/* Program Info */}
-        {program?.description && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">About {program.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{program.description}</p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    </GuestLayout>
+      {/* Program Info */}
+      {program?.description && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">About {program.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">{program.description}</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
