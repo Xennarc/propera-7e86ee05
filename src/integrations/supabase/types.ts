@@ -768,6 +768,53 @@ export type Database = {
         }
         Relationships: []
       }
+      resort_directory: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean
+          name: string
+          phone_number: string
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone_number: string
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone_number?: string
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_directory_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resort_memberships: {
         Row: {
           created_at: string
