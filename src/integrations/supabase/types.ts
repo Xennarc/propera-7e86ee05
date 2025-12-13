@@ -592,6 +592,445 @@ export type Database = {
           },
         ]
       }
+      loyalty_earn_rules: {
+        Row: {
+          category: string
+          created_at: string
+          earn_rate: number
+          earn_type: string
+          id: string
+          is_active: boolean
+          program_id: string
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          earn_rate?: number
+          earn_type?: string
+          id?: string
+          is_active?: boolean
+          program_id: string
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          earn_rate?: number
+          earn_type?: string
+          id?: string
+          is_active?: boolean
+          program_id?: string
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_earn_rules_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_earn_rules_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_members: {
+        Row: {
+          current_tier_id: string | null
+          guest_id: string
+          id: string
+          joined_at: string
+          lifetime_points: number
+          points_balance: number
+          program_id: string
+          resort_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          current_tier_id?: string | null
+          guest_id: string
+          id?: string
+          joined_at?: string
+          lifetime_points?: number
+          points_balance?: number
+          program_id: string
+          resort_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          current_tier_id?: string | null
+          guest_id?: string
+          id?: string
+          joined_at?: string
+          lifetime_points?: number
+          points_balance?: number
+          program_id?: string
+          resort_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_members_current_tier_id_fkey"
+            columns: ["current_tier_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_members_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_programs: {
+        Row: {
+          base_earn_rate: number
+          created_at: string
+          currency_name: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          resort_id: string
+          tier_mode: Database["public"]["Enums"]["loyalty_tier_mode"]
+          updated_at: string
+          welcome_bonus_points: number
+        }
+        Insert: {
+          base_earn_rate?: number
+          created_at?: string
+          currency_name?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          resort_id: string
+          tier_mode?: Database["public"]["Enums"]["loyalty_tier_mode"]
+          updated_at?: string
+          welcome_bonus_points?: number
+        }
+        Update: {
+          base_earn_rate?: number
+          created_at?: string
+          currency_name?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          resort_id?: string
+          tier_mode?: Database["public"]["Enums"]["loyalty_tier_mode"]
+          updated_at?: string
+          welcome_bonus_points?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_programs_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_redemptions: {
+        Row: {
+          expires_at: string | null
+          id: string
+          member_id: string
+          note: string | null
+          points_spent: number
+          redeemed_at: string
+          resort_id: string
+          reward_id: string
+          status: string
+          transaction_id: string | null
+          used_at: string | null
+          voucher_code: string | null
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          member_id: string
+          note?: string | null
+          points_spent: number
+          redeemed_at?: string
+          resort_id: string
+          reward_id: string
+          status?: string
+          transaction_id?: string | null
+          used_at?: string | null
+          voucher_code?: string | null
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          member_id?: string
+          note?: string | null
+          points_spent?: number
+          redeemed_at?: string
+          resort_id?: string
+          reward_id?: string
+          status?: string
+          transaction_id?: string | null
+          used_at?: string | null
+          voucher_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_redemptions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_redemptions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_redemptions_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_redemptions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_rewards: {
+        Row: {
+          available_quantity: number | null
+          cost_points: number
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          min_tier_id: string | null
+          name: string
+          program_id: string
+          resort_id: string
+          reward_type: Database["public"]["Enums"]["loyalty_reward_type"]
+          reward_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          available_quantity?: number | null
+          cost_points: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          min_tier_id?: string | null
+          name: string
+          program_id: string
+          resort_id: string
+          reward_type?: Database["public"]["Enums"]["loyalty_reward_type"]
+          reward_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          available_quantity?: number | null
+          cost_points?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          min_tier_id?: string | null
+          name?: string
+          program_id?: string
+          resort_id?: string
+          reward_type?: Database["public"]["Enums"]["loyalty_reward_type"]
+          reward_value?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_rewards_min_tier_id_fkey"
+            columns: ["min_tier_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_tiers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_rewards_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_tiers: {
+        Row: {
+          badge_color: string
+          badge_icon: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_default: boolean
+          is_elite: boolean
+          min_points: number
+          name: string
+          perks_json: Json
+          priority: number
+          program_id: string
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          badge_color?: string
+          badge_icon?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          is_elite?: boolean
+          min_points?: number
+          name: string
+          perks_json?: Json
+          priority?: number
+          program_id: string
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          badge_color?: string
+          badge_icon?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          is_elite?: boolean
+          min_points?: number
+          name?: string
+          perks_json?: Json
+          priority?: number
+          program_id?: string
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_tiers_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_tiers_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loyalty_transactions: {
+        Row: {
+          created_at: string
+          created_by_user_id: string | null
+          id: string
+          member_id: string
+          note: string | null
+          points_balance_after: number
+          points_change: number
+          reference_id: string | null
+          reference_type: string | null
+          resort_id: string
+          source: Database["public"]["Enums"]["loyalty_earn_source"]
+          type: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          member_id: string
+          note?: string | null
+          points_balance_after: number
+          points_change: number
+          reference_id?: string | null
+          reference_type?: string | null
+          resort_id: string
+          source: Database["public"]["Enums"]["loyalty_earn_source"]
+          type: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string | null
+          id?: string
+          member_id?: string
+          note?: string | null
+          points_balance_after?: number
+          points_change?: number
+          reference_id?: string | null
+          reference_type?: string | null
+          resort_id?: string
+          source?: Database["public"]["Enums"]["loyalty_earn_source"]
+          type?: Database["public"]["Enums"]["loyalty_transaction_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loyalty_transactions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "loyalty_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loyalty_transactions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           audience: Database["public"]["Enums"]["notification_audience"]
@@ -1469,8 +1908,29 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      adjust_loyalty_points: {
+        Args: {
+          p_member_id: string
+          p_note?: string
+          p_points: number
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       admin_reset_staff_password: {
         Args: { p_new_password: string; p_user_id: string }
+        Returns: Json
+      }
+      award_loyalty_points: {
+        Args: {
+          p_guest_id: string
+          p_note?: string
+          p_points: number
+          p_reference_id?: string
+          p_reference_type?: string
+          p_resort_id: string
+          p_source: Database["public"]["Enums"]["loyalty_earn_source"]
+        }
         Returns: Json
       }
       create_guest_notification: {
@@ -1520,6 +1980,10 @@ export type Database = {
       }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
+      get_or_create_loyalty_member: {
+        Args: { p_guest_id: string; p_resort_id: string }
+        Returns: string
+      }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -1576,6 +2040,7 @@ export type Database = {
         Returns: Json
       }
       guest_get_bookings: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_loyalty_info: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_notifications: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
       guest_get_unread_notification_count: {
@@ -1687,6 +2152,24 @@ export type Database = {
       global_role: "SUPER_ADMIN" | "STANDARD"
       guest_request_source: "ACTIVITY" | "RESTAURANT"
       guest_request_status: "OPEN" | "IN_PROGRESS" | "COMPLETED"
+      loyalty_earn_source:
+        | "activity_booking"
+        | "dining_booking"
+        | "room_night"
+        | "spa_booking"
+        | "manual_adjustment"
+        | "welcome_bonus"
+        | "tier_bonus"
+        | "referral"
+      loyalty_reward_type:
+        | "discount_percent"
+        | "discount_fixed"
+        | "free_activity"
+        | "upgrade"
+        | "voucher"
+        | "perk"
+      loyalty_tier_mode: "points" | "nights" | "spend"
+      loyalty_transaction_type: "earn" | "redeem" | "adjustment" | "expire"
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
@@ -1858,6 +2341,26 @@ export const Constants = {
       global_role: ["SUPER_ADMIN", "STANDARD"],
       guest_request_source: ["ACTIVITY", "RESTAURANT"],
       guest_request_status: ["OPEN", "IN_PROGRESS", "COMPLETED"],
+      loyalty_earn_source: [
+        "activity_booking",
+        "dining_booking",
+        "room_night",
+        "spa_booking",
+        "manual_adjustment",
+        "welcome_bonus",
+        "tier_bonus",
+        "referral",
+      ],
+      loyalty_reward_type: [
+        "discount_percent",
+        "discount_fixed",
+        "free_activity",
+        "upgrade",
+        "voucher",
+        "perk",
+      ],
+      loyalty_tier_mode: ["points", "nights", "spend"],
+      loyalty_transaction_type: ["earn", "redeem", "adjustment", "expire"],
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
