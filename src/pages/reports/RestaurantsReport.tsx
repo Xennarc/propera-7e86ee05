@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -20,11 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { Download, Users, TrendingDown, Utensils, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { Download, Users, TrendingDown, Utensils, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { TrendChart } from '@/components/reports/TrendChart';
+import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
+import { TierGate } from '@/components/tier/TierGate';
 
 const MEAL_PERIOD_COLORS: Record<string, string> = {
   BREAKFAST: 'hsl(var(--chart-1))',
@@ -106,6 +109,12 @@ export default function RestaurantsReport() {
 
       // Meal period breakdown
       const mealPeriodMap = new Map<string, number>();
+      
+      // Daily trend data
+      const dailyMap = new Map<string, number>();
+      
+      // Day of week data
+      const dowCovers = [0, 0, 0, 0, 0, 0, 0];
 
       slots?.forEach((slot: any) => {
         const key = `${slot.restaurant_id}-${slot.meal_period}`;
@@ -137,6 +146,14 @@ export default function RestaurantsReport() {
             
             // Track meal period
             mealPeriodMap.set(slot.meal_period, (mealPeriodMap.get(slot.meal_period) || 0) + covers);
+            
+            // Track daily trend
+            const dateKey = slot.date;
+            dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + covers);
+            
+            // Track day of week
+            const dayOfWeek = new Date(slot.date).getDay();
+            dowCovers[dayOfWeek] += covers;
           } else if (res.status === 'NO_SHOW') {
             stats.noShowCount += 1;
             stats.confirmedAndNoShowCount += 1;
@@ -186,6 +203,14 @@ export default function RestaurantsReport() {
         name,
         value,
       }));
+      
+      // Daily trend for chart
+      const dailyTrend = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, value]) => ({
+          date: format(new Date(date), 'MMM d'),
+          value,
+        }));
 
       return {
         summary: {
@@ -197,6 +222,8 @@ export default function RestaurantsReport() {
         tableStats,
         chartData: Array.from(chartDataMap.values()),
         mealPeriodData,
+        dailyTrend,
+        dayOfWeekCovers: dowCovers,
       };
     },
     enabled: !!currentResort,
@@ -303,6 +330,28 @@ export default function RestaurantsReport() {
           variant={reportData?.summary.noShowPercent && reportData.summary.noShowPercent > 10 ? 'danger' : 'default'}
         />
       </div>
+
+      {/* Elite: Trend Analysis */}
+      <TierGate feature="reports_trend_analysis" fallback="hide">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            title="Daily Covers Trend"
+            description="Covers over the selected period"
+            data={reportData?.dailyTrend || []}
+            valueLabel="Covers"
+            valueFormatter={(v) => `${v} covers`}
+            color="success"
+          />
+          <DayOfWeekChart
+            title="Covers by Day of Week"
+            description="Identify peak dining days"
+            data={reportData?.dayOfWeekCovers || [0, 0, 0, 0, 0, 0, 0]}
+            valueLabel="Covers"
+            valueFormatter={(v) => `${v} covers`}
+            highlightPeak
+          />
+        </div>
+      </TierGate>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

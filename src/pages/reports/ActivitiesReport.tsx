@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -26,6 +26,9 @@ import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { EmptyState } from '@/components/ui/empty-state';
+import { TrendChart } from '@/components/reports/TrendChart';
+import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
+import { TierGate } from '@/components/tier/TierGate';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -110,6 +113,12 @@ export default function ActivitiesReport() {
       let totalBookings = 0;
       let preStayRevenue = 0;
       let inStayRevenue = 0;
+      
+      // Daily trend data
+      const dailyMap = new Map<string, { pax: number; revenue: number }>();
+      
+      // Day of week data
+      const dowPax = [0, 0, 0, 0, 0, 0, 0];
 
       sessions?.forEach((session: any) => {
         const activityName = session.activities?.name || 'Unknown';
@@ -152,6 +161,19 @@ export default function ActivitiesReport() {
             // Track by category
             categoryMap.set(activityCategory, (categoryMap.get(activityCategory) || 0) + pax);
 
+            // Track daily trend
+            const dateKey = session.date;
+            if (!dailyMap.has(dateKey)) {
+              dailyMap.set(dateKey, { pax: 0, revenue: 0 });
+            }
+            const dayData = dailyMap.get(dateKey)!;
+            dayData.pax += pax;
+            dayData.revenue += revenue;
+            
+            // Track day of week
+            const dayOfWeek = new Date(session.date).getDay();
+            dowPax[dayOfWeek] += pax;
+
             // Track booking source
             if (booking.booking_source === 'PRE_STAY') {
               stats.preStayRevenue += revenue;
@@ -192,6 +214,14 @@ export default function ActivitiesReport() {
       const categoryData = Array.from(categoryMap.entries())
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
+      
+      // Daily trend for chart
+      const dailyTrend = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, data]) => ({
+          date: format(new Date(date), 'MMM d'),
+          value: data.pax,
+        }));
 
       return {
         summary: {
@@ -206,6 +236,8 @@ export default function ActivitiesReport() {
         },
         activityStats,
         categoryData,
+        dailyTrend,
+        dayOfWeekPax: dowPax,
       };
     },
     enabled: !!currentResort,
@@ -339,6 +371,28 @@ export default function ActivitiesReport() {
           }
         />
       </div>
+
+      {/* Elite: Trend Analysis */}
+      <TierGate feature="reports_trend_analysis" fallback="hide">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            title="Daily Guest Trend"
+            description="Activity participants over the period"
+            data={reportData?.dailyTrend || []}
+            valueLabel="Guests"
+            valueFormatter={(v) => `${v} guests`}
+            color="primary"
+          />
+          <DayOfWeekChart
+            title="Guests by Day of Week"
+            description="Identify peak activity days"
+            data={reportData?.dayOfWeekPax || [0, 0, 0, 0, 0, 0, 0]}
+            valueLabel="Guests"
+            valueFormatter={(v) => `${v} guests`}
+            highlightPeak
+          />
+        </div>
+      </TierGate>
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-3 gap-4">
