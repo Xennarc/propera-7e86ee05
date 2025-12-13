@@ -6,6 +6,7 @@ import { ActivitySession, Activity, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
 import { validateActivityBooking } from '@/lib/booking-validation';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
+import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import {
   Dialog,
   DialogContent,
@@ -149,7 +150,7 @@ export function ActivityBookingDialog({
     const totalPax = formData.num_adults + formData.num_children;
     const totalAmount = totalPax * pricePerPerson;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('activity_bookings')
       .insert({
         resort_id: currentResort.id,
@@ -165,12 +166,27 @@ export function ActivityBookingDialog({
         total_amount: totalAmount,
         notes: formData.notes || null,
         created_by_user_id: user?.id || null,
-      });
+      })
+      .select('id')
+      .single();
 
     if (error) {
       setValidationError(error.message);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
+      // Award loyalty points (fire and forget)
+      if (data?.id && currentGuest) {
+        const pointsToAward = totalPax * 50; // 50 points per person
+        awardLoyaltyPoints(
+          currentGuest.id,
+          currentResort.id,
+          'activity_booking',
+          pointsToAward,
+          data.id,
+          'activity_booking',
+          `Activity: ${currentSession.activity?.name || 'Activity'}`
+        ).catch(console.error);
+      }
       toast({ title: 'Success', description: 'Booking created successfully' });
       onSuccess();
       onOpenChange(false);

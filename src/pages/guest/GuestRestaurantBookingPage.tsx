@@ -6,6 +6,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { createGuestNotification, createStaffNotificationsForRoles, formatRestaurantReservationMessage } from '@/lib/notifications';
+import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -178,6 +179,21 @@ export default function GuestRestaurantBookingPage() {
               message: messages.staff.pending,
               link_url: '/staff/guest-requests',
             }).catch(console.error);
+          }
+
+          // Award loyalty points for confirmed reservations (fire and forget)
+          if (!data.requires_approval && data.reservation_id) {
+            const totalPax = numAdults + numChildren;
+            const pointsToAward = totalPax * 25; // 25 points per person
+            awardLoyaltyPoints(
+              guest.guestId,
+              guest.resortId,
+              'dining_booking',
+              pointsToAward,
+              data.reservation_id,
+              'restaurant_reservation',
+              `Restaurant: ${slot.restaurant_name}`
+            ).catch(console.error);
           }
         }
       } else {

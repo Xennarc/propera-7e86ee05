@@ -15,12 +15,14 @@ import {
   IconLogout,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
+import { Crown } from 'lucide-react';
 
 const navItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
   { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
   { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
   { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
+  { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty', activeColor: 'text-amber-500', activeBg: 'bg-amber-500/10' },
 ];
 
 // Store scroll positions per tab

@@ -44,7 +44,8 @@
     "bookings": "Bookings",
     "profile": "Profile",
     "logout": "Logout",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "loyalty": "Rewards"
   },
   "home": {
     "goodMorning": "Good morning",
