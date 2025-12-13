@@ -13,10 +13,14 @@ import {
   AlertTriangle,
   Target,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Lock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { TierGate } from '@/components/tier/TierGate';
+import { useTierAccess } from '@/hooks/useTierAccess';
+import { getTierInfo } from '@/lib/tier-features';
 
 interface AIInsightsPanelProps {
   reportType: string;
@@ -31,7 +35,7 @@ interface ParsedInsight {
   content: string;
 }
 
-export function AIInsightsPanel({ reportType, reportData, resortName, dateRange }: AIInsightsPanelProps) {
+function AIInsightsPanelContent({ reportType, reportData, resortName, dateRange }: AIInsightsPanelProps) {
   const [insights, setInsights] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -395,4 +399,49 @@ export function AIInsightsPanel({ reportType, reportData, resortName, dateRange 
       )}
     </Card>
   );
+}
+
+// Wrapper that gates the AI Insights Panel by tier
+export function AIInsightsPanel(props: AIInsightsPanelProps) {
+  const { hasFeature, getUpgradeTier } = useTierAccess();
+  
+  if (!hasFeature('reports_ai_insights')) {
+    const upgradeTier = getUpgradeTier('reports_ai_insights');
+    const tierInfo = upgradeTier ? getTierInfo(upgradeTier) : null;
+    
+    return (
+      <Card className="border-dashed border-muted-foreground/30">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">AI Insights</CardTitle>
+            </div>
+            <Badge variant="outline" className={cn("text-white", tierInfo?.color)}>
+              {tierInfo?.name}
+            </Badge>
+          </div>
+          <CardDescription>
+            Get AI-powered analysis and recommendations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mx-auto mb-4">
+              <Sparkles className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground mb-2">
+              AI-powered insights require {tierInfo?.name} tier
+            </p>
+            <Button variant="outline" size="sm" className="gap-1.5 mt-2">
+              <Sparkles className="h-3.5 w-3.5" />
+              Upgrade to {tierInfo?.name}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return <AIInsightsPanelContent {...props} />;
 }

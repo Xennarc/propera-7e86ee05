@@ -18,6 +18,8 @@ import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArri
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 import { GuestPinManager } from '@/components/guest/GuestPinManager';
 import { ErrorState } from '@/components/ui/error-state';
+import { TierGate } from '@/components/tier/TierGate';
+import { useTierAccess } from '@/hooks/useTierAccess';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -216,12 +218,14 @@ export default function GuestDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {canEdit && (
-            <Button variant="outline" onClick={() => setPreArrivalDialogOpen(true)}>
-              <LinkIcon className="h-4 w-4 mr-2" />
-              Pre-Arrival Link
-            </Button>
-          )}
+          <TierGate feature="pre_arrival_links" fallback="hide">
+            {canEdit && (
+              <Button variant="outline" onClick={() => setPreArrivalDialogOpen(true)}>
+                <LinkIcon className="h-4 w-4 mr-2" />
+                Pre-Arrival Link
+              </Button>
+            )}
+          </TierGate>
           {canEdit && (
             <Button variant="outline" onClick={() => setFeedbackDialogOpen(true)}>
               <MessageSquareHeart className="h-4 w-4 mr-2" />
@@ -300,60 +304,62 @@ export default function GuestDetailPage() {
       </Card>
 
       {/* Loyalty & Internal Notes */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5" />
-            Loyalty & Internal Notes
-          </CardTitle>
-          {canEditLoyalty && (
-            <Button variant="outline" size="sm" onClick={() => setLoyaltyDialogOpen(true)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <dt className="text-sm text-muted-foreground mb-1">VIP Status</dt>
-              <dd>
-                {guest.is_vip ? (
-                  <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-                    <Crown className="h-3 w-3 mr-1" />
-                    VIP Guest
-                  </Badge>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Standard</span>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground mb-1">Loyalty Tier</dt>
-              <dd>
-                {guest.loyalty_tier ? (
-                  <Badge variant="outline" className="border-primary">
-                    <Star className="h-3 w-3 mr-1" />
-                    {guest.loyalty_tier}
-                  </Badge>
-                ) : (
-                  <span className="text-sm text-muted-foreground">None</span>
-                )}
-              </dd>
-            </div>
-            <div className="md:col-span-1">
-              <dt className="text-sm text-muted-foreground mb-1">Internal Notes</dt>
-              <dd className="text-sm">
-                {guest.notes_internal ? (
-                  <span className="whitespace-pre-wrap">{guest.notes_internal}</span>
-                ) : (
-                  <span className="text-muted-foreground italic">No notes</span>
-                )}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <TierGate feature="guest_management_loyalty" fallback="hide">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Loyalty & Internal Notes
+            </CardTitle>
+            {canEditLoyalty && (
+              <Button variant="outline" size="sm" onClick={() => setLoyaltyDialogOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <dt className="text-sm text-muted-foreground mb-1">VIP Status</dt>
+                <dd>
+                  {guest.is_vip ? (
+                    <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+                      <Crown className="h-3 w-3 mr-1" />
+                      VIP Guest
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Standard</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground mb-1">Loyalty Tier</dt>
+                <dd>
+                  {guest.loyalty_tier ? (
+                    <Badge variant="outline" className="border-primary">
+                      <Star className="h-3 w-3 mr-1" />
+                      {guest.loyalty_tier}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">None</span>
+                  )}
+                </dd>
+              </div>
+              <div className="md:col-span-1">
+                <dt className="text-sm text-muted-foreground mb-1">Internal Notes</dt>
+                <dd className="text-sm">
+                  {guest.notes_internal ? (
+                    <span className="whitespace-pre-wrap">{guest.notes_internal}</span>
+                  ) : (
+                    <span className="text-muted-foreground italic">No notes</span>
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      </TierGate>
 
       {/* Guest Portal PIN */}
       {canEdit && (
