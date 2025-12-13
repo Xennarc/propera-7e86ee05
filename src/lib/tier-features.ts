@@ -55,6 +55,9 @@ export type TierFeature =
   | 'reports_sales_performance'
   | 'reports_ai_insights'
   | 'reports_csv_export'
+  | 'reports_trend_analysis'
+  | 'reports_day_of_week_patterns'
+  | 'reports_lead_time_analysis'
   // Settings
   | 'settings_basic'
   | 'settings_pricing_charges'
@@ -312,6 +315,9 @@ export const FEATURE_NAMES: Record<TierFeature, string> = {
   reports_sales_performance: 'Sales Performance',
   reports_ai_insights: 'AI Insights',
   reports_csv_export: 'CSV Export',
+  reports_trend_analysis: 'Trend Analysis',
+  reports_day_of_week_patterns: 'Day of Week Patterns',
+  reports_lead_time_analysis: 'Lead Time Analysis',
   settings_basic: 'Basic Settings',
   settings_pricing_charges: 'Pricing Configuration',
   settings_staff_management: 'Staff Management',
