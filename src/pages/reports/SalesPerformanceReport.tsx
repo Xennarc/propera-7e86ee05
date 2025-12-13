@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { TrendChart } from '@/components/reports/TrendChart';
+import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
+import { TierGate } from '@/components/tier/TierGate';
 import { DollarSign, TrendingUp, Users, UtensilsCrossed, CalendarClock, Zap, XCircle } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -64,6 +67,18 @@ interface UpsellItem {
   revenue: number;
 }
 
+interface DailyTrend {
+  date: string;
+  revenue: number;
+  bookings: number;
+}
+
+interface HourlyPattern {
+  hour: number;
+  bookings: number;
+  revenue: number;
+}
+
 const CHART_COLORS = [
   'hsl(var(--primary))',
   'hsl(var(--chart-2))',
@@ -82,6 +97,9 @@ export default function SalesPerformanceReport() {
   const [restaurantSales, setRestaurantSales] = useState<RestaurantSales[]>([]);
   const [channelData, setChannelData] = useState<SegmentData[]>([]);
   const [upsellItems, setUpsellItems] = useState<UpsellItem[]>([]);
+  const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>([]);
+  const [dayOfWeekData, setDayOfWeekData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+  const [hourlyPattern, setHourlyPattern] = useState<HourlyPattern[]>([]);
 
   useEffect(() => {
     if (currentResort) {
@@ -117,7 +135,8 @@ export default function SalesPerformanceReport() {
           guest_id,
           session_id,
           booking_source,
-          activity_sessions(activity_id, date, capacity, activities(name))
+          created_at,
+          activity_sessions(activity_id, date, capacity, start_time, activities(name))
         `)
         .eq('resort_id', currentResort.id)
         .gte('created_at', startDate)
@@ -135,7 +154,8 @@ export default function SalesPerformanceReport() {
           guest_id,
           restaurant_slot_id,
           booking_source,
-          restaurant_time_slots(restaurant_id, capacity, restaurants(name))
+          created_at,
+          restaurant_time_slots(restaurant_id, capacity, start_time, restaurants(name))
         `)
         .eq('resort_id', currentResort.id)
         .gte('created_at', startDate)
@@ -413,6 +433,80 @@ export default function SalesPerformanceReport() {
 
       setChannelData(channelSegmentData.sort((a, b) => b.totalRevenue - a.totalRevenue));
 
+      // Build daily trend data
+      const dailyMap = new Map<string, { revenue: number; bookings: number }>();
+      const allBookings = [
+        ...(activityBookings?.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED') || []).map(b => ({
+          date: b.created_at?.split('T')[0],
+          amount: b.total_amount || 0
+        })),
+        ...(restaurantReservations?.filter(r => r.status === 'CONFIRMED' || r.status === 'COMPLETED') || []).map(r => ({
+          date: r.created_at?.split('T')[0],
+          amount: r.total_amount || 0
+        }))
+      ];
+
+      allBookings.forEach(booking => {
+        if (!booking.date) return;
+        if (!dailyMap.has(booking.date)) {
+          dailyMap.set(booking.date, { revenue: 0, bookings: 0 });
+        }
+        const day = dailyMap.get(booking.date)!;
+        day.revenue += booking.amount;
+        day.bookings += 1;
+      });
+
+      const sortedDays = Array.from(dailyMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, data]) => ({
+          date: format(new Date(date), 'MMM d'),
+          revenue: data.revenue,
+          bookings: data.bookings
+        }));
+      setDailyTrend(sortedDays);
+
+      // Build day of week revenue data
+      const dowRevenue = [0, 0, 0, 0, 0, 0, 0];
+      allBookings.forEach(booking => {
+        if (!booking.date) return;
+        const dayOfWeek = new Date(booking.date).getDay();
+        dowRevenue[dayOfWeek] += booking.amount;
+      });
+      setDayOfWeekData(dowRevenue);
+
+      // Build hourly booking pattern (based on session/slot times)
+      const hourlyMap = new Map<number, { bookings: number; revenue: number }>();
+      activityBookings?.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED').forEach(b => {
+        const session = b.activity_sessions as any;
+        if (!session?.start_time) return;
+        const hour = parseInt(session.start_time.split(':')[0], 10);
+        if (!hourlyMap.has(hour)) {
+          hourlyMap.set(hour, { bookings: 0, revenue: 0 });
+        }
+        const h = hourlyMap.get(hour)!;
+        h.bookings += 1;
+        h.revenue += b.total_amount || 0;
+      });
+
+      restaurantReservations?.filter(r => r.status === 'CONFIRMED' || r.status === 'COMPLETED').forEach(r => {
+        const slot = r.restaurant_time_slots as any;
+        if (!slot?.start_time) return;
+        const hour = parseInt(slot.start_time.split(':')[0], 10);
+        if (!hourlyMap.has(hour)) {
+          hourlyMap.set(hour, { bookings: 0, revenue: 0 });
+        }
+        const h = hourlyMap.get(hour)!;
+        h.bookings += 1;
+        h.revenue += r.total_amount || 0;
+      });
+
+      const hourlyPatternData = Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        bookings: hourlyMap.get(i)?.bookings || 0,
+        revenue: hourlyMap.get(i)?.revenue || 0
+      })).filter(h => h.bookings > 0 || (h.hour >= 6 && h.hour <= 22));
+      setHourlyPattern(hourlyPatternData);
+
     } catch (error) {
       console.error('Error fetching sales data:', error);
       toast.error('Failed to load sales data');
@@ -434,6 +528,11 @@ export default function SalesPerformanceReport() {
       preStayBookings: metrics.preStayBookings,
       inStayUpsellBookings: metrics.inStayUpsellBookings,
       topUpsellItems: upsellItems.slice(0, 5)
+    },
+    trends: {
+      dailyRevenue: dailyTrend,
+      dayOfWeekRevenue: dayOfWeekData,
+      hourlyPattern: hourlyPattern
     }
   } : null;
 
@@ -443,6 +542,12 @@ export default function SalesPerformanceReport() {
     { name: 'Pre-stay', value: metrics.preStayRevenue },
     { name: 'In-stay Upsell', value: metrics.inStayUpsellRevenue },
   ].filter(d => d.value > 0) : [];
+
+  // Revenue trend data for chart
+  const revenueTrendData = dailyTrend.map(d => ({
+    date: d.date,
+    value: d.revenue
+  }));
 
   if (!currentResort) {
     return <div className="text-muted-foreground">Please select a resort</div>;
@@ -515,6 +620,76 @@ export default function SalesPerformanceReport() {
                 variant="danger"
               />
             </div>
+
+            {/* Elite: Revenue Trend & Day of Week Analysis */}
+            <TierGate feature="reports_trend_analysis" fallback="hide">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <TrendChart
+                  title="Revenue Trend"
+                  description="Daily revenue over period"
+                  data={revenueTrendData}
+                  valueLabel="Revenue"
+                  valueFormatter={(v) => `${currentResort.currency} ${v.toLocaleString()}`}
+                  color="primary"
+                />
+                <DayOfWeekChart
+                  title="Revenue by Day of Week"
+                  description="Identify peak revenue days"
+                  data={dayOfWeekData}
+                  valueLabel="Revenue"
+                  valueFormatter={(v) => `${currentResort.currency} ${v.toLocaleString()}`}
+                  highlightPeak
+                />
+              </div>
+            </TierGate>
+
+            {/* Elite: Hourly Booking Pattern */}
+            <TierGate feature="reports_trend_analysis" fallback="hide">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Peak Booking Hours</CardTitle>
+                  <CardDescription>When guests book activities and dining</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={hourlyPattern}>
+                      <defs>
+                        <linearGradient id="hourlyGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
+                      <XAxis 
+                        dataKey="hour" 
+                        tickFormatter={(h) => `${h}:00`}
+                        className="text-xs"
+                      />
+                      <YAxis className="text-xs" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                        labelFormatter={(h) => `${h}:00 - ${h + 1}:00`}
+                        formatter={(value: number, name: string) => [
+                          name === 'bookings' ? `${value} bookings` : `${currentResort.currency} ${value.toLocaleString()}`,
+                          name === 'bookings' ? 'Bookings' : 'Revenue'
+                        ]}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="bookings"
+                        stroke="hsl(var(--primary))"
+                        fill="url(#hourlyGradient)"
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TierGate>
 
             {/* Revenue Source Breakdown */}
             <Card>
