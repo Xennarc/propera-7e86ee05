@@ -1,12 +1,13 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import {
   IconStay,
   IconActivities,
@@ -16,14 +17,16 @@ import {
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
 import { Crown } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const navItems = [
+const baseNavItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
   { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
   { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
   { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
-  { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty', activeColor: 'text-amber-500', activeBg: 'bg-amber-500/10' },
 ];
+
+const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty', activeColor: 'text-amber-500', activeBg: 'bg-amber-500/10' };
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
@@ -38,6 +41,30 @@ export function GuestLayout() {
   // Fetch branding dynamically from DB - this ensures immediate updates after staff saves
   const { data: brandingData } = useResortBranding(guest?.resortId);
   const branding = getBrandingWithDefaults(brandingData);
+
+  // Check if loyalty program is enabled for this resort
+  const { data: loyaltyProgram } = useQuery({
+    queryKey: ['guest-loyalty-program', guest?.resortId],
+    queryFn: async () => {
+      if (!guest?.resortId) return null;
+      const { data, error } = await supabase
+        .from('loyalty_programs')
+        .select('is_enabled')
+        .eq('resort_id', guest.resortId)
+        .eq('is_enabled', true)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!guest?.resortId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+  const isLoyaltyEnabled = !!loyaltyProgram?.is_enabled;
+
+  // Build nav items based on loyalty status
+  const navItems = useMemo(() => {
+    return isLoyaltyEnabled ? [...baseNavItems, loyaltyNavItem] : baseNavItems;
+  }, [isLoyaltyEnabled]);
 
   // Get current tab key
   const currentTab = navItems.find(item => 
