@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -99,16 +100,23 @@ export default function GuestRestaurantBrowser() {
     enabled: !!guest,
   });
 
-  // Determine if slots are past their booking cutoff
+  // Determine if slots are past their booking cutoff (using resort timezone)
   const slotsArePastCutoff = (() => {
     if (!allSlotsForDate || allSlotsForDate.length === 0) return false;
-    const now = new Date();
+    
+    // Use resort timezone for accurate cutoff calculation
+    const resortTimezone = guest?.resortTimezone || 'UTC';
+    const nowInResort = toZonedTime(new Date(), resortTimezone);
     
     return allSlotsForDate.every((slot: any) => {
+      // Parse slot time as resort-local time
+      const [hours, minutes] = slot.start_time.split(':').map(Number);
       const slotDateTime = new Date(`${selectedDate}T${slot.start_time}`);
       const cutoffMinutes = slot.restaurant?.guest_cutoff_minutes || 30;
       const cutoffTime = new Date(slotDateTime.getTime() - cutoffMinutes * 60 * 1000);
-      return now > cutoffTime;
+      
+      // Compare in resort timezone
+      return nowInResort > cutoffTime;
     });
   })();
 

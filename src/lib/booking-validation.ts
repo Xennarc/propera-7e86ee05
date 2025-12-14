@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { toZonedTime } from 'date-fns-tz';
 import {
   BookingValidationResult,
   createValidationError,
@@ -56,14 +57,15 @@ export async function validateActivityBooking(
     return createValidationError('INVALID_PAX');
   }
 
-  // 2. Fetch session with activity details
+  // 2. Fetch session with activity and resort details
   const { data: session, error: sessionError } = await supabase
     .from('activity_sessions')
     .select(`
       id, resort_id, date, start_time, end_time, capacity, status,
       activity:activities(
         id, name, guest_can_book, guest_cutoff_hours, max_pax_per_booking, requires_approval
-      )
+      ),
+      resort:resorts(timezone)
     `)
     .eq('id', sessionId)
     .maybeSingle();
@@ -83,7 +85,7 @@ export async function validateActivityBooking(
   }
 
   const activity = session.activity as any;
-
+  const resortTimezone = (session.resort as any)?.timezone || 'UTC';
   // 5. Max pax per booking
   if (activity?.max_pax_per_booking && totalPax > activity.max_pax_per_booking) {
     return createValidationError('MAX_PAX_EXCEEDED', `Maximum ${activity.max_pax_per_booking} guests per booking`);
@@ -96,12 +98,15 @@ export async function validateActivityBooking(
       return createValidationError('GUEST_BOOKING_DISABLED');
     }
 
-    // Check cutoff time
+    // Check cutoff time using resort timezone
     const sessionDateTime = new Date(`${session.date}T${session.start_time}`);
     const cutoffHours = activity?.guest_cutoff_hours || 0;
     const cutoffTime = new Date(sessionDateTime.getTime() - cutoffHours * 60 * 60 * 1000);
     
-    if (new Date() > cutoffTime) {
+    // Get current time in resort timezone
+    const nowInResort = toZonedTime(new Date(), resortTimezone);
+    
+    if (nowInResort > cutoffTime) {
       return createValidationError('CUTOFF_PAST');
     }
   }
@@ -196,14 +201,15 @@ export async function validateRestaurantReservation(
     return createValidationError('INVALID_PAX');
   }
 
-  // 2. Fetch slot with restaurant details
+  // 2. Fetch slot with restaurant and resort details
   const { data: slot, error: slotError } = await supabase
     .from('restaurant_time_slots')
     .select(`
       id, resort_id, date, start_time, end_time, capacity, status,
       restaurant:restaurants(
         id, name, guest_can_book, guest_cutoff_minutes, max_pax_per_booking, requires_approval
-      )
+      ),
+      resort:resorts(timezone)
     `)
     .eq('id', slotId)
     .maybeSingle();
@@ -223,7 +229,7 @@ export async function validateRestaurantReservation(
   }
 
   const restaurant = slot.restaurant as any;
-
+  const resortTimezone = (slot.resort as any)?.timezone || 'UTC';
   // 5. Max pax per booking
   if (restaurant?.max_pax_per_booking && totalPax > restaurant.max_pax_per_booking) {
     return createValidationError('MAX_PAX_EXCEEDED', `Maximum ${restaurant.max_pax_per_booking} guests per booking`);
@@ -236,12 +242,15 @@ export async function validateRestaurantReservation(
       return createValidationError('GUEST_BOOKING_DISABLED');
     }
 
-    // Check cutoff time
+    // Check cutoff time using resort timezone
     const slotDateTime = new Date(`${slot.date}T${slot.start_time}`);
     const cutoffMinutes = restaurant?.guest_cutoff_minutes || 0;
     const cutoffTime = new Date(slotDateTime.getTime() - cutoffMinutes * 60 * 1000);
     
-    if (new Date() > cutoffTime) {
+    // Get current time in resort timezone
+    const nowInResort = toZonedTime(new Date(), resortTimezone);
+    
+    if (nowInResort > cutoffTime) {
       return createValidationError('CUTOFF_PAST');
     }
   }
