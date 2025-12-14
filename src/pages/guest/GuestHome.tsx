@@ -191,10 +191,16 @@ export default function GuestHome() {
               </h1>
               <p className="text-sm text-muted-foreground">
                 {todaySchedule.length > 0 
-                  ? `You have ${todaySchedule.length} ${todaySchedule.length === 1 ? 'event' : 'events'} today`
-                  : "What would you like to do today?"}
+                  ? t('home.eventsToday', { count: todaySchedule.length })
+                  : t('home.whatToDo')}
               </p>
             </div>
+          </div>
+          
+          {/* Today's Date Display */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+            <Calendar className="h-4 w-4" />
+            <span>{format(new Date(), 'EEEE, MMMM d, yyyy')}</span>
           </div>
           
           {/* Stay Progress */}

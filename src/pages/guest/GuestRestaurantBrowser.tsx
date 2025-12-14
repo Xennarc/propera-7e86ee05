@@ -185,30 +185,34 @@ export default function GuestRestaurantBrowser() {
           <p className="text-sm text-center text-muted-foreground">{t('common.loading')}</p>
         </div>
       ) : !hasAvailableSlots ? (
-        <Card className="border-dashed bg-muted/30">
+        <Card className="guest-card border-dashed bg-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
+            <div className="rounded-full bg-muted/60 p-4 mb-4">
               {hasConfiguredSlots ? (
                 slotsArePastCutoff ? (
-                  <Clock className="h-10 w-10 text-muted-foreground/50" />
+                  <Clock className="h-12 w-12 text-muted-foreground/40" />
                 ) : (
-                  <Users className="h-10 w-10 text-muted-foreground/50" />
+                  <Users className="h-12 w-12 text-muted-foreground/40" />
                 )
               ) : (
-                <CalendarX className="h-10 w-10 text-muted-foreground/50" />
+                <CalendarX className="h-12 w-12 text-muted-foreground/40" />
               )}
             </div>
-            <h3 className="font-semibold text-foreground mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               {hasConfiguredSlots 
                 ? slotsArePastCutoff 
                   ? t('errors.cutoffPassed') 
-                  : t('dining.noRestaurants')
+                  : t('dining.fullyBooked')
                 : t('dining.noRestaurants')}
             </h3>
-            <p className="text-sm text-muted-foreground max-w-xs mb-4">
-              {t('dining.noRestaurantsDescription')}
+            <p className="text-sm text-muted-foreground max-w-xs mb-5">
+              {hasConfiguredSlots 
+                ? slotsArePastCutoff
+                  ? t('dining.cutoffDescription')
+                  : t('dining.fullyBookedDescription')
+                : t('dining.noRestaurantsDescription')}
             </p>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="default" className="gap-2 tap-target">
               <Phone className="h-4 w-4" />
               {t('profile.help')}
             </Button>
@@ -230,15 +234,22 @@ export default function GuestRestaurantBrowser() {
                 </div>
                 <div className="space-y-3">
                   {slotsByPeriod[period].map((slot: any) => {
-                    const isLowAvailability = slot.remaining_covers > 0 && slot.remaining_covers <= 4;
+                    const remaining = slot.remaining_covers;
+                    const isLowAvailability = remaining > 0 && remaining <= 4;
+                    const isScarce = remaining > 0 && remaining <= 2;
+                    
+                    // Availability label logic
+                    const getAvailabilityLabel = () => {
+                      if (remaining <= 0) return t('dining.fullyBooked');
+                      if (isScarce) return `${remaining} ${t('dining.tablesLeft')}`;
+                      if (isLowAvailability) return `${t('dining.fillingFast')} • ${remaining} ${t('common.left')}`;
+                      return `${remaining} ${t('common.available')}`;
+                    };
                     
                     return (
                       <Card
                         key={slot.id}
-                        className={cn(
-                          "hover:shadow-card-hover transition-all cursor-pointer overflow-hidden",
-                          `hover:border-${periodConfig.colorClass.replace('text-', '')}/30`
-                        )}
+                        className="guest-card-interactive"
                         onClick={() => navigate(`/guest/restaurants/book/${slot.id}`)}
                       >
                         <CardContent className="p-4">
@@ -258,20 +269,22 @@ export default function GuestRestaurantBrowser() {
                                 </span>
                                 {slot.requires_approval ? (
                                   <Badge variant="pending" className="text-xs">
-                                    <Sparkles className="h-3 w-3 mr-1" />Request
+                                    <Sparkles className="h-3 w-3 mr-1" />{t('common.request')}
                                   </Badge>
                                 ) : (
-                                  <Badge variant="confirmed" className="text-xs">Instant</Badge>
+                                  <Badge variant="confirmed" className="text-xs">{t('common.instant')}</Badge>
                                 )}
                               </div>
-                              <h3 className="font-semibold text-foreground mb-1 truncate">{slot.restaurant_name}</h3>
+                              <h3 className="font-semibold text-foreground mb-1.5 truncate">{slot.restaurant_name}</h3>
                               <div className="flex items-center justify-between">
                                 <span className={cn(
-                                  "flex items-center gap-1 text-sm",
-                                  isLowAvailability ? 'text-coral font-medium' : 'text-muted-foreground'
+                                  "flex items-center gap-1.5 text-sm",
+                                  isScarce ? 'text-coral font-semibold' : 
+                                  isLowAvailability ? 'text-warning font-medium' : 
+                                  'text-muted-foreground'
                                 )}>
                                   <Users className="h-3.5 w-3.5" />
-                                  {slot.remaining_covers} {isLowAvailability ? 'left' : 'available'}
+                                  {getAvailabilityLabel()}
                                 </span>
                                 <ChevronRight className={cn("h-5 w-5", periodConfig.colorClass)} />
                               </div>

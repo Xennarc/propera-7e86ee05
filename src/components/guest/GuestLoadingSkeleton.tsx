@@ -1,25 +1,40 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 interface GuestLoadingSkeletonProps {
   variant?: 'card' | 'list' | 'page' | 'booking';
   count?: number;
   className?: string;
+  /** Delay before showing skeleton (prevents flash on fast loads) */
+  delay?: number;
 }
 
 export function GuestLoadingSkeleton({
   variant = 'card',
   count = 3,
   className,
+  delay = 150,
 }: GuestLoadingSkeletonProps) {
+  const [show, setShow] = useState(delay === 0);
+
+  useEffect(() => {
+    if (delay > 0) {
+      const timer = setTimeout(() => setShow(true), delay);
+      return () => clearTimeout(timer);
+    }
+  }, [delay]);
+
+  if (!show) return null;
+
   if (variant === 'page') {
     return (
-      <div className={cn("space-y-6 animate-pulse", className)}>
-        <Skeleton className="h-32 w-full rounded-2xl" />
+      <div className={cn("space-y-6", className)}>
+        <Skeleton className="h-32 w-full rounded-2xl shimmer" />
         <div className="space-y-3">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-24 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-6 w-32 shimmer" />
+          <Skeleton className="h-24 w-full rounded-xl shimmer" />
+          <Skeleton className="h-24 w-full rounded-xl shimmer" />
         </div>
       </div>
     );
@@ -29,13 +44,13 @@ export function GuestLoadingSkeleton({
     return (
       <div className={cn("space-y-3", className)}>
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-border/50">
-            <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+          <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card">
+            <Skeleton className="h-12 w-12 rounded-xl shrink-0 shimmer" />
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-4 w-3/4 shimmer" />
+              <Skeleton className="h-3 w-1/2 shimmer" />
             </div>
-            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full shimmer" />
           </div>
         ))}
       </div>
@@ -47,10 +62,10 @@ export function GuestLoadingSkeleton({
       <div className={cn("space-y-2", className)}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 p-3">
-            <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+            <Skeleton className="h-10 w-10 rounded-lg shrink-0 shimmer" />
             <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="h-4 w-2/3 shimmer" />
+              <Skeleton className="h-3 w-1/3 shimmer" />
             </div>
           </div>
         ))}
@@ -61,11 +76,8 @@ export function GuestLoadingSkeleton({
   return (
     <div className={cn("space-y-3", className)}>
       {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-28 w-full rounded-xl" />
+        <Skeleton key={i} className="h-28 w-full rounded-xl shimmer" />
       ))}
-      <p className="text-sm text-center text-muted-foreground animate-pulse">
-        Loading...
-      </p>
     </div>
   );
 }
