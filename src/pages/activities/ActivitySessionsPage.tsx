@@ -30,6 +30,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { SessionCalendarView } from '@/components/activities/SessionCalendarView';
 import { BulkSessionActions } from '@/components/activities/BulkSessionActions';
 import { ResourceScheduleView } from '@/components/activities/ResourceScheduleView';
+import { SessionTemplatesList } from '@/components/activities/SessionTemplatesList';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -609,6 +610,9 @@ function ActivitySessionsPageContent() {
           </Card>
         </Collapsible>
       )}
+
+      {/* Session Templates */}
+      {activities.length > 0 && <SessionTemplatesList />}
 
       {currentResort && (
         <ActivitySessionDialog

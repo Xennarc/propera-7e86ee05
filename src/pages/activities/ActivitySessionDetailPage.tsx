@@ -6,11 +6,13 @@ import { ActivitySession, ActivityBooking, Activity, Guest } from '@/types/datab
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Edit, Plus, Users, Clock, MapPin } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Edit, Plus, Users, Clock, MapPin, ListOrdered } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { BookingAuditTrail } from '@/components/bookings/BookingAuditTrail';
+import { SessionWaitlist } from '@/components/activities/SessionWaitlist';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
 import { ActivityBookingDialog } from './ActivityBookingDialog';
 import {
@@ -311,75 +313,100 @@ export default function ActivitySessionDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Bookings */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Bookings ({bookings.length})</CardTitle>
-          {canEdit && session.status === 'SCHEDULED' && remainingSpots > 0 && (
-            <Button onClick={() => setBookingDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Booking
-            </Button>
-          )}
-        </CardHeader>
-        <CardContent>
-          {bookings.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No bookings yet
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Guest</TableHead>
-                    <TableHead>Room</TableHead>
-                    <TableHead>Adults</TableHead>
-                    <TableHead>Children</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Booked By</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bookings.map((booking) => (
-                    <TableRow key={booking.id}>
-                      <TableCell className="font-medium">
-                        <button 
-                          className="text-primary hover:underline"
-                          onClick={() => navigate(`/staff/guests/${booking.guest_id}`)}
-                        >
-                          {booking.guest.full_name}
-                        </button>
-                      </TableCell>
-                      <TableCell className="font-mono">{booking.room_number}</TableCell>
-                      <TableCell>{booking.num_adults}</TableCell>
-                      <TableCell>{booking.num_children}</TableCell>
-                      <TableCell>${booking.total_amount}</TableCell>
-                      <TableCell className="text-xs">{booking.source.replace('STAFF_', '')}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {booking.source === 'GUEST_PORTAL' ? (
-                          <span className="italic">Guest</span>
-                        ) : booking.created_by_profile ? (
-                          <span>{booking.created_by_profile.full_name || booking.created_by_profile.username || 'Staff'}</span>
-                        ) : (
-                          <span className="italic">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={booking.status} />
-                      </TableCell>
-                      <TableCell className="max-w-32 truncate">{booking.notes || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Bookings & Waitlist Tabs */}
+      <Tabs defaultValue="bookings" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="bookings">
+            <Users className="h-4 w-4 mr-2" />
+            Bookings ({bookings.length})
+          </TabsTrigger>
+          <TabsTrigger value="waitlist">
+            <ListOrdered className="h-4 w-4 mr-2" />
+            Waitlist
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="bookings">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Bookings</CardTitle>
+              {canEdit && session.status === 'SCHEDULED' && remainingSpots > 0 && (
+                <Button onClick={() => setBookingDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Booking
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {bookings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No bookings yet
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Guest</TableHead>
+                        <TableHead>Room</TableHead>
+                        <TableHead>Adults</TableHead>
+                        <TableHead>Children</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Booked By</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Notes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bookings.map((booking) => (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-medium">
+                            <button 
+                              className="text-primary hover:underline"
+                              onClick={() => navigate(`/staff/guests/${booking.guest_id}`)}
+                            >
+                              {booking.guest.full_name}
+                            </button>
+                          </TableCell>
+                          <TableCell className="font-mono">{booking.room_number}</TableCell>
+                          <TableCell>{booking.num_adults}</TableCell>
+                          <TableCell>{booking.num_children}</TableCell>
+                          <TableCell>${booking.total_amount}</TableCell>
+                          <TableCell className="text-xs">{booking.source.replace('STAFF_', '')}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {booking.source === 'GUEST_PORTAL' ? (
+                              <span className="italic">Guest</span>
+                            ) : booking.created_by_profile ? (
+                              <span>{booking.created_by_profile.full_name || booking.created_by_profile.username || 'Staff'}</span>
+                            ) : (
+                              <span className="italic">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={booking.status} />
+                          </TableCell>
+                          <TableCell className="max-w-32 truncate">{booking.notes || '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="waitlist">
+          <SessionWaitlist 
+            sessionId={session.id} 
+            resortId={session.resort_id}
+            sessionCapacity={session.capacity}
+            currentBooked={confirmedPax}
+            onPromote={fetchSession}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Booking Audit Trail - Manager and above only */}
       {bookings.length > 0 && (
