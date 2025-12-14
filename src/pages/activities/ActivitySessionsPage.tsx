@@ -33,7 +33,7 @@ interface SessionWithBookings extends ActivitySession {
   pendingPax: number;
 }
 
-export default function ActivitySessionsPage() {
+function ActivitySessionsPageContent() {
   const [sessions, setSessions] = useState<SessionWithBookings[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [recurringRules, setRecurringRules] = useState<ActivityRecurringRule[]>([]);
@@ -198,17 +198,16 @@ export default function ActivitySessionsPage() {
   }
 
   return (
-    <ErrorBoundary onReset={() => window.location.reload()}>
-      <div className="space-y-6 animate-fade-in">
-        <PageHeader
-          title="Activity Sessions"
-          description="Manage scheduled activity sessions"
-          action={
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Activity Sessions"
+        description="Manage scheduled activity sessions"
+        action={
           <Button onClick={() => navigate('/staff/activities/sessions/new')}>
             <Plus className="mr-2 h-4 w-4" />
             New Session
           </Button>
-          }
+        }
       />
 
       {/* Stats */}
@@ -561,6 +560,13 @@ export default function ActivitySessionsPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function ActivitySessionsPage() {
+  return (
+    <ErrorBoundary onReset={() => window.location.reload()}>
+      <ActivitySessionsPageContent />
     </ErrorBoundary>
   );
 }

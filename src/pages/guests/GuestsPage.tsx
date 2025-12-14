@@ -34,7 +34,7 @@ import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 
 type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures';
 
-export default function GuestsPage() {
+function GuestsPageContent() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -168,7 +168,6 @@ export default function GuestsPage() {
   }
 
   return (
-    <ErrorBoundary onReset={() => window.location.reload()}>
     <div className="space-y-6 animate-fade-in">
       <PageHeader
         title="Guests"
@@ -374,6 +373,13 @@ export default function GuestsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function GuestsPage() {
+  return (
+    <ErrorBoundary onReset={() => window.location.reload()}>
+      <GuestsPageContent />
     </ErrorBoundary>
   );
 }

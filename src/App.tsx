@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, QueryErrorResetBoundary } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { queryClient } from "@/lib/query-client-config";
 import { ConnectionBanner } from "@/components/ui/connection-banner";
@@ -97,17 +97,19 @@ import LoyaltyMemberDetailPage from "./pages/loyalty/LoyaltyMemberDetailPage";
 import GuestLoyaltyPage from "./pages/guest/GuestLoyaltyPage";
 
 const App = () => (
-  <ConnectionErrorBoundary>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <AuthProvider>
-            <ResortProvider>
-              <GuestAuthProvider>
-                <ConnectionBanner />
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
+  <QueryClientProvider client={queryClient}>
+    <QueryErrorResetBoundary>
+      {({ reset }) => (
+        <ConnectionErrorBoundary onReset={reset}>
+          <ThemeProvider>
+            <TooltipProvider>
+              <AuthProvider>
+                <ResortProvider>
+                  <GuestAuthProvider>
+                    <ConnectionBanner />
+                    <Toaster />
+                    <Sonner />
+                    <BrowserRouter>
               <Routes>
                 {/* Public landing page */}
                 <Route path="/" element={<LandingPage />} />
@@ -226,13 +228,15 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
               </BrowserRouter>
-            </GuestAuthProvider>
-          </ResortProvider>
-        </AuthProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-    </ThemeProvider>
-  </ConnectionErrorBoundary>
+                  </GuestAuthProvider>
+                </ResortProvider>
+              </AuthProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </ConnectionErrorBoundary>
+      )}
+    </QueryErrorResetBoundary>
+  </QueryClientProvider>
 );
 
 export default App;

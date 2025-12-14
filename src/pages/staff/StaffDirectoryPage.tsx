@@ -44,7 +44,9 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   FNB: 'F&B',
 };
 
-export default function StaffDirectoryPage() {
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+
+function StaffDirectoryPageContent() {
   const { currentResort } = useResort();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
@@ -296,5 +298,13 @@ export default function StaffDirectoryPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function StaffDirectoryPage() {
+  return (
+    <ErrorBoundary onReset={() => window.location.reload()}>
+      <StaffDirectoryPageContent />
+    </ErrorBoundary>
   );
 }
