@@ -28,7 +28,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { format, isWithinInterval, parseISO, isToday, startOfDay, endOfDay } from 'date-fns';
+import { isWithinInterval, isToday, startOfDay } from 'date-fns';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 
 type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures';
 
@@ -86,30 +88,27 @@ export default function GuestsPage() {
 
   const isCurrentGuest = (guest: Guest) => {
     const today = new Date();
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    const checkOut = safeParseDateISO(guest.check_out_date);
+    if (!checkIn || !checkOut) return false;
+    
     try {
-      return isWithinInterval(today, {
-        start: parseISO(guest.check_in_date),
-        end: parseISO(guest.check_out_date),
-      });
+      return isWithinInterval(today, { start: checkIn, end: checkOut });
     } catch {
       return false;
     }
   };
 
   const isArrivalToday = (guest: Guest) => {
-    try {
-      return isToday(parseISO(guest.check_in_date));
-    } catch {
-      return false;
-    }
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    if (!checkIn) return false;
+    return isToday(checkIn);
   };
 
   const isDepartureToday = (guest: Guest) => {
-    try {
-      return isToday(parseISO(guest.check_out_date));
-    } catch {
-      return false;
-    }
+    const checkOut = safeParseDateISO(guest.check_out_date);
+    if (!checkOut) return false;
+    return isToday(checkOut);
   };
 
   // Calculate stats
@@ -153,8 +152,8 @@ export default function GuestsPage() {
   const getGuestStatus = (guest: Guest) => {
     if (isCurrentGuest(guest)) return { label: 'In-House', variant: 'confirmed' as const };
     const today = startOfDay(new Date());
-    const checkIn = parseISO(guest.check_in_date);
-    if (checkIn > today) return { label: 'Upcoming', variant: 'pending' as const };
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    if (checkIn && checkIn > today) return { label: 'Upcoming', variant: 'pending' as const };
     return { label: 'Checked Out', variant: 'secondary' as const };
   };
 
@@ -169,6 +168,7 @@ export default function GuestsPage() {
   }
 
   return (
+    <ErrorBoundary onReset={() => window.location.reload()}>
     <div className="space-y-6 animate-fade-in">
       <PageHeader
         title="Guests"
@@ -292,11 +292,11 @@ export default function GuestsPage() {
                 },
                 {
                   header: 'Check-in',
-                  accessor: (guest) => format(parseISO(guest.check_in_date), 'MMM d, yyyy'),
+                  accessor: (guest) => safeFormatDate(guest.check_in_date, 'MMM d, yyyy'),
                 },
                 {
                   header: 'Check-out',
-                  accessor: (guest) => format(parseISO(guest.check_out_date), 'MMM d, yyyy'),
+                  accessor: (guest) => safeFormatDate(guest.check_out_date, 'MMM d, yyyy'),
                 },
                 {
                   header: 'Status',
@@ -374,5 +374,6 @@ export default function GuestsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </ErrorBoundary>
   );
 }

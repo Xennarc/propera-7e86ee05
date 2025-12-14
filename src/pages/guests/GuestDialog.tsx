@@ -23,17 +23,34 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 
+// Validate that a date string is a valid, reasonable date (year 1900-2100)
+const isValidDateString = (dateStr: string): boolean => {
+  if (!dateStr) return false;
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const year = parseInt(match[1], 10);
+  if (year < 1900 || year > 2100) return false;
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+};
+
 const guestSchema = z.object({
   full_name: z.string().transform(val => val.trim()).pipe(z.string().min(2, 'Name must be at least 2 characters')),
   room_number: z.string().transform(val => val.trim()).pipe(z.string().min(1, 'Room number is required')),
-  check_in_date: z.string().min(1, 'Check-in date is required'),
-  check_out_date: z.string().min(1, 'Check-out date is required'),
+  check_in_date: z.string().min(1, 'Check-in date is required').refine(isValidDateString, 'Invalid check-in date'),
+  check_out_date: z.string().min(1, 'Check-out date is required').refine(isValidDateString, 'Invalid check-out date'),
   nationality: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   phone: z.string().optional(),
   booking_reference: z.string().optional(),
   channel: z.string().optional(),
   notes: z.string().optional(),
+}).refine(data => {
+  if (!isValidDateString(data.check_in_date) || !isValidDateString(data.check_out_date)) return true;
+  return new Date(data.check_in_date) <= new Date(data.check_out_date);
+}, {
+  message: 'Check-out must be after check-in',
+  path: ['check_out_date'],
 });
 
 interface GuestDialogProps {
