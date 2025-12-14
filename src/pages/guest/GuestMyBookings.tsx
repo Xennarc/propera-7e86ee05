@@ -85,9 +85,12 @@ export default function GuestMyBookings() {
     enabled: !!guest?.resortId && !!guest?.roomNumber,
   });
 
+  // Create stable query key - use sorted guest IDs instead of object reference
+  const roomGuestIds = roomGuests?.map(g => g.id)?.sort()?.join(',') || '';
+
   // Fetch bookings for all guests in the room
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests],
+    queryKey: ['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuestIds],
     queryFn: async () => {
       if (!guest || !roomGuests || roomGuests.length === 0) return null;
       
@@ -200,18 +203,28 @@ export default function GuestMyBookings() {
       return { ...result, bookingId };
     },
     onMutate: async (bookingId: string) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['guest-room-bookings'] });
-      const previousBookings = queryClient.getQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests]);
       
-      queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          activity_bookings: old.activity_bookings.map((b: any) =>
-            b.id === bookingId ? { ...b, status: 'CANCELLED' } : b
-          ),
-        };
-      });
+      // Get ALL matching queries with fuzzy key match
+      const queries = queryClient.getQueriesData<any>({ queryKey: ['guest-room-bookings'] });
+      
+      // Snapshot the previous values for rollback
+      const previousBookings = queries;
+      
+      // Optimistically update ALL matching cache entries using setQueriesData
+      queryClient.setQueriesData<any>(
+        { queryKey: ['guest-room-bookings'] },
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            activity_bookings: old.activity_bookings.map((b: any) =>
+              b.id === bookingId ? { ...b, status: 'CANCELLED' } : b
+            ),
+          };
+        }
+      );
       
       return { previousBookings };
     },
@@ -235,8 +248,11 @@ export default function GuestMyBookings() {
       }
     },
     onError: (error: Error, _bookingId, context) => {
+      // Restore all previous query states on error
       if (context?.previousBookings) {
-        queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], context.previousBookings);
+        context.previousBookings.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
@@ -258,18 +274,28 @@ export default function GuestMyBookings() {
       return { ...result, reservationId };
     },
     onMutate: async (reservationId: string) => {
+      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['guest-room-bookings'] });
-      const previousBookings = queryClient.getQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests]);
       
-      queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          restaurant_reservations: old.restaurant_reservations.map((r: any) =>
-            r.id === reservationId ? { ...r, status: 'CANCELLED' } : r
-          ),
-        };
-      });
+      // Get ALL matching queries with fuzzy key match
+      const queries = queryClient.getQueriesData<any>({ queryKey: ['guest-room-bookings'] });
+      
+      // Snapshot the previous values for rollback
+      const previousBookings = queries;
+      
+      // Optimistically update ALL matching cache entries using setQueriesData
+      queryClient.setQueriesData<any>(
+        { queryKey: ['guest-room-bookings'] },
+        (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            restaurant_reservations: old.restaurant_reservations.map((r: any) =>
+              r.id === reservationId ? { ...r, status: 'CANCELLED' } : r
+            ),
+          };
+        }
+      );
       
       return { previousBookings };
     },
@@ -293,8 +319,11 @@ export default function GuestMyBookings() {
       }
     },
     onError: (error: Error, _reservationId, context) => {
+      // Restore all previous query states on error
       if (context?.previousBookings) {
-        queryClient.setQueryData(['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuests], context.previousBookings);
+        context.previousBookings.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
       const errorCode = mapCancelErrorToCode(error.message);
       const friendlyMessage = getBookingErrorMessage(errorCode, 'guest');
