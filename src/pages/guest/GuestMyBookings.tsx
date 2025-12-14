@@ -196,11 +196,11 @@ export default function GuestMyBookings() {
         p_booking_id: bookingId,
       });
       if (error) throw error;
-      const result = data as { success: boolean; error?: string };
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to cancel booking');
+      // RPC now returns boolean directly
+      if (!data) {
+        throw new Error('Failed to cancel booking');
       }
-      return { ...result, bookingId };
+      return { success: true, bookingId };
     },
     onMutate: async (bookingId: string) => {
       // Cancel any outgoing refetches
@@ -267,11 +267,11 @@ export default function GuestMyBookings() {
         p_reservation_id: reservationId,
       });
       if (error) throw error;
-      const result = data as { success: boolean; error?: string };
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to cancel reservation');
+      // RPC now returns boolean directly
+      if (!data) {
+        throw new Error('Failed to cancel reservation');
       }
-      return { ...result, reservationId };
+      return { success: true, reservationId };
     },
     onMutate: async (reservationId: string) => {
       // Cancel any outgoing refetches
