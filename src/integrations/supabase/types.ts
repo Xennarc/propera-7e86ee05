@@ -2070,6 +2070,15 @@ export type Database = {
         }
         Returns: Json
       }
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_max_attempts: number
+          p_window_minutes: number
+        }
+        Returns: undefined
+      }
       create_guest_notification: {
         Args: {
           p_guest_id: string
@@ -2138,11 +2147,11 @@ export type Database = {
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
-        Returns: Json
+        Returns: boolean
       }
       guest_cancel_restaurant_reservation: {
         Args: { p_guest_id: string; p_reservation_id: string }
-        Returns: Json
+        Returns: boolean
       }
       guest_create_activity_booking: {
         Args: {
@@ -2176,7 +2185,24 @@ export type Database = {
         Args: { p_date?: string; p_guest_id: string; p_restaurant_id?: string }
         Returns: Json
       }
-      guest_get_bookings: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_bookings: {
+        Args: { p_guest_id: string }
+        Returns: {
+          booked_by_guest_id: string
+          booked_by_name: string
+          booking_id: string
+          booking_type: string
+          date: string
+          end_time: string
+          location: string
+          name: string
+          notes: string
+          num_adults: number
+          num_children: number
+          start_time: string
+          status: string
+        }[]
+      }
       guest_get_loyalty_info: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_notifications: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
@@ -2192,22 +2218,42 @@ export type Database = {
         Args: { p_guest_id: string; p_notification_id: string }
         Returns: boolean
       }
-      guest_portal_login: {
-        Args: {
-          p_last_name: string
-          p_pin_hash: string
-          p_resort_id: string
-          p_room_number: string
-        }
-        Returns: {
-          check_in_date: string
-          check_out_date: string
-          full_name: string
-          guest_id: string
-          resort_id: string
-          room_number: string
-        }[]
-      }
+      guest_portal_login:
+        | {
+            Args: {
+              p_last_name: string
+              p_pin_hash: string
+              p_resort_id: string
+              p_room_number: string
+            }
+            Returns: {
+              check_in_date: string
+              check_out_date: string
+              full_name: string
+              guest_id: string
+              resort_id: string
+              room_number: string
+            }[]
+          }
+        | {
+            Args: {
+              p_last_name: string
+              p_pin: string
+              p_resort_id: string
+              p_room_number: string
+            }
+            Returns: {
+              check_in_date: string
+              check_out_date: string
+              full_name: string
+              guest_id: string
+              resort_code: string
+              resort_id: string
+              resort_logo_url: string
+              resort_name: string
+              room_number: string
+            }[]
+          }
       guest_submit_stay_feedback: {
         Args: {
           p_guest_id: string
