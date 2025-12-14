@@ -41,6 +41,22 @@ export default function GuestHome() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  interface BookingItem {
+    booking_id: string;
+    booking_type: string;
+    name: string;
+    date: string;
+    start_time: string;
+    end_time: string;
+    status: string;
+    location: string;
+    notes: string;
+    num_adults: number;
+    num_children: number;
+    booked_by_guest_id: string;
+    booked_by_name: string;
+  }
+
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['guest-bookings', guest?.guestId],
     queryFn: async () => {
@@ -49,10 +65,7 @@ export default function GuestHome() {
         p_guest_id: guest.guestId,
       });
       if (error) throw error;
-      return data as {
-        activity_bookings: any[];
-        restaurant_reservations: any[];
-      };
+      return data as BookingItem[];
     },
     enabled: !!guest,
     staleTime: 30000, // 30 seconds
@@ -121,33 +134,36 @@ export default function GuestHome() {
   const greeting = getGreeting();
   const GreetingIcon = greeting.icon;
 
+  // Filter bookings by type - now using flat array with booking_type
+  const allBookings = bookings || [];
+  
   // Filter today's bookings
-  const todayActivities = bookings?.activity_bookings?.filter(
-    (b) => b.date === todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
-  ) || [];
+  const todayActivities = allBookings.filter(
+    (b) => b.booking_type === 'activity' && b.date === todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
 
-  const todayReservations = bookings?.restaurant_reservations?.filter(
-    (r) => r.date === todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
-  ) || [];
+  const todayReservations = allBookings.filter(
+    (b) => b.booking_type === 'restaurant' && b.date === todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
 
   const todaySchedule = [
     ...todayActivities.map((b) => ({
       type: 'activity' as const,
-      id: b.id,
+      id: b.booking_id,
       time: b.start_time,
-      title: b.activity_name,
+      title: b.name,
       status: b.status,
-      category: b.category,
-      duration_minutes: b.duration_minutes,
+      category: (b as any).category,
+      duration_minutes: (b as any).duration_minutes,
       num_adults: b.num_adults || 1,
       num_children: b.num_children || 0,
     })),
     ...todayReservations.map((r) => ({
       type: 'restaurant' as const,
-      id: r.id,
+      id: r.booking_id,
       time: r.start_time,
-      title: r.restaurant_name,
-      mealPeriod: r.meal_period,
+      title: r.name,
+      mealPeriod: (r as any).meal_period,
       status: r.status,
       num_adults: r.num_adults || 1,
       num_children: r.num_children || 0,
@@ -155,21 +171,21 @@ export default function GuestHome() {
   ].sort((a, b) => a.time.localeCompare(b.time));
 
   // Tomorrow's bookings count
-  const tomorrowActivities = bookings?.activity_bookings?.filter(
-    (b) => b.date === tomorrowStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
-  ) || [];
-  const tomorrowReservations = bookings?.restaurant_reservations?.filter(
-    (r) => r.date === tomorrowStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
-  ) || [];
+  const tomorrowActivities = allBookings.filter(
+    (b) => b.booking_type === 'activity' && b.date === tomorrowStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
+  const tomorrowReservations = allBookings.filter(
+    (b) => b.booking_type === 'restaurant' && b.date === tomorrowStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
   const tomorrowCount = tomorrowActivities.length + tomorrowReservations.length;
 
   // Calculate if guest has "no plans yet" - check if they have few bookings
-  const upcomingActivities = bookings?.activity_bookings?.filter(
-    (b) => b.date >= todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
-  ) || [];
-  const upcomingReservations = bookings?.restaurant_reservations?.filter(
-    (r) => r.date >= todayStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
-  ) || [];
+  const upcomingActivities = allBookings.filter(
+    (b) => b.booking_type === 'activity' && b.date >= todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
+  const upcomingReservations = allBookings.filter(
+    (b) => b.booking_type === 'restaurant' && b.date >= todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  );
   
   const totalUpcomingBookings = upcomingActivities.length + upcomingReservations.length;
   const showNudge = !isLoading && totalUpcomingBookings <= 1 && todaySchedule.length === 0;
@@ -381,22 +397,22 @@ export default function GuestHome() {
               .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time))
               .slice(0, 3)
               .map((booking) => {
-                const isActivity = 'activity_name' in booking;
+                const isActivity = booking.booking_type === 'activity';
                 return (
                   <GuestBookingCard
-                    key={booking.id}
+                    key={booking.booking_id}
                     booking={{
-                      id: booking.id,
+                      id: booking.booking_id,
                       type: isActivity ? 'activity' : 'restaurant',
-                      title: isActivity ? booking.activity_name : booking.restaurant_name,
+                      title: booking.name,
                       date: booking.date,
                       start_time: booking.start_time,
                       status: booking.status,
                       num_adults: booking.num_adults || 1,
                       num_children: booking.num_children || 0,
-                      category: isActivity ? booking.category : undefined,
-                      meal_period: !isActivity ? booking.meal_period : undefined,
-                      duration_minutes: isActivity ? booking.duration_minutes : undefined,
+                      category: (booking as any).category,
+                      meal_period: (booking as any).meal_period,
+                      duration_minutes: (booking as any).duration_minutes,
                     }}
                     compact
                   />
