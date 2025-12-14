@@ -35,7 +35,9 @@
     "max": "max",
     "left": "left",
     "available": "available",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "request": "Request",
+    "instant": "Instant"
   },
   "nav": {
     "home": "Home",
@@ -64,7 +66,9 @@
     "upcomingDining": "Upcoming Dining",
     "noUpcoming": "No upcoming bookings",
     "exploreActivities": "Explore Activities",
-    "exploreDining": "View Restaurants"
+    "exploreDining": "View Restaurants",
+    "eventsToday": "{{count}} event(s) scheduled for today",
+    "whatToDo": "What would you like to do today?"
   },
   "activities": {
     "title": "Activities",
@@ -105,6 +109,11 @@
     "selectDate": "Select a date",
     "selectTime": "Select time",
     "coversAvailable": "covers available",
+    "fullyBooked": "Fully booked",
+    "fullyBookedDescription": "All tables are reserved for this date. Please try another date or contact the front desk.",
+    "fillingFast": "Filling fast",
+    "tablesLeft": "tables left",
+    "cutoffDescription": "Reservation cutoff has passed. Please contact the front desk for assistance.",
     "mealPeriods": {
       "BREAKFAST": "Breakfast",
       "LUNCH": "Lunch",

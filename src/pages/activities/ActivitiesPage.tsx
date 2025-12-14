@@ -99,12 +99,12 @@ export default function ActivitiesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="page-header">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Activities</h1>
-          <p className="text-muted-foreground">Manage resort activities and excursions</p>
+          <h1 className="page-header-title">Activities</h1>
+          <p className="page-header-subtitle">Manage resort activities and excursions</p>
         </div>
-        <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }}>
+        <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target">
           <Plus className="mr-2 h-4 w-4" />
           Add Activity
         </Button>
@@ -138,24 +138,24 @@ export default function ActivitiesPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-16">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
           ) : filteredActivities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="rounded-full bg-muted p-4 mb-4">
-                <Sparkles className="h-12 w-12 text-muted-foreground/50" />
+            <div className="empty-state">
+              <div className="rounded-full bg-muted/60 p-4 mb-4">
+                <Sparkles className="h-12 w-12 text-muted-foreground/40" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
+              <h3 className="empty-state-title">
                 {search ? 'No activities found' : 'No activities yet'}
               </h3>
-              <p className="text-muted-foreground max-w-sm mb-4">
+              <p className="empty-state-description">
                 {search 
-                  ? 'Try a different search term'
-                  : "Click 'Add Activity' to create your first excursion, dive, or experience for guests."}
+                  ? 'Try adjusting your search terms'
+                  : "Create your first activity to get started with bookings."}
               </p>
               {!search && (
-                <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }}>
+                <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Activity
                 </Button>
