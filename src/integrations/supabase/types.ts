@@ -393,6 +393,76 @@ export type Database = {
           },
         ]
       }
+      activity_waitlist: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          guest_id: string
+          id: string
+          notes: string | null
+          num_adults: number
+          num_children: number
+          priority: number
+          promoted_at: string | null
+          resort_id: string
+          session_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          guest_id: string
+          id?: string
+          notes?: string | null
+          num_adults?: number
+          num_children?: number
+          priority?: number
+          promoted_at?: string | null
+          resort_id: string
+          session_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          guest_id?: string
+          id?: string
+          notes?: string | null
+          num_adults?: number
+          num_children?: number
+          priority?: number
+          promoted_at?: string | null
+          resort_id?: string
+          session_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_waitlist_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_waitlist_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_waitlist_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_audit_logs: {
         Row: {
           action: string
