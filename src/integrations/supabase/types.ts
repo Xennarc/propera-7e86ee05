@@ -323,6 +323,73 @@ export type Database = {
           },
         ]
       }
+      activity_session_templates: {
+        Row: {
+          activity_id: string
+          capacity: number
+          created_at: string
+          end_time: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          resort_id: string
+          resource_id: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          capacity?: number
+          created_at?: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          resort_id: string
+          resource_id?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          capacity?: number
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          resort_id?: string
+          resource_id?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_session_templates_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_session_templates_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_session_templates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_sessions: {
         Row: {
           activity_id: string
