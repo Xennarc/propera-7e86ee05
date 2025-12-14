@@ -11,6 +11,7 @@ export interface GuestSession {
   resortId: string;
   resortName?: string;
   resortLogoUrl?: string;
+  resortTimezone?: string;
 }
 
 // Re-export for backward compatibility - branding now fetched dynamically via useResortBranding hook
@@ -50,16 +51,17 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
           const today = new Date().toISOString().split('T')[0];
           if (parsed.checkOutDate >= today) {
             // If resortName or resortLogoUrl is missing, fetch them
-            if ((!parsed.resortName || parsed.resortLogoUrl === undefined) && parsed.resortId) {
+            if ((!parsed.resortName || parsed.resortLogoUrl === undefined || !parsed.resortTimezone) && parsed.resortId) {
               try {
                 const { data: resortData } = await supabase
                   .from('resorts')
-                  .select('name, login_logo_url')
+                  .select('name, login_logo_url, timezone')
                   .eq('id', parsed.resortId)
                   .single();
                 if (resortData) {
                   parsed.resortName = resortData.name || parsed.resortName;
                   parsed.resortLogoUrl = resortData.login_logo_url || undefined;
+                  parsed.resortTimezone = resortData.timezone || 'UTC';
                   localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(parsed));
                 }
               } catch {
@@ -114,14 +116,16 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       // Fetch resort info
       let resortName: string | undefined;
       let resortLogoUrl: string | undefined;
+      let resortTimezone: string = 'UTC';
       try {
         const { data: resortData } = await supabase
           .from('resorts')
-          .select('name, login_logo_url')
+          .select('name, login_logo_url, timezone')
           .eq('id', guestData.resort_id)
           .single();
         resortName = resortData?.name;
         resortLogoUrl = resortData?.login_logo_url || undefined;
+        resortTimezone = resortData?.timezone || 'UTC';
       } catch {
         // Ignore error, resort info is optional
       }
@@ -135,6 +139,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         resortId: guestData.resort_id,
         resortName,
         resortLogoUrl,
+        resortTimezone,
       };
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
