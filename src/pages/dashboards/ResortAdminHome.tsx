@@ -12,6 +12,7 @@ import { StatCardGridSkeleton, ListItemSkeleton, FeedbackItemSkeleton } from '@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
+import { TodayAtAGlance } from '@/components/staff/TodayAtAGlance';
 import { useState, useEffect } from 'react';
 
 export default function ResortAdminHome() {
@@ -312,6 +313,9 @@ export default function ResortAdminHome() {
 
       {/* Onboarding Banner */}
       <OnboardingBanner />
+
+      {/* Today at a Glance - Quick Overview Panel */}
+      <TodayAtAGlance />
 
       <PageHeader
         title={`${currentResort?.name || 'Resort'} – Today`}

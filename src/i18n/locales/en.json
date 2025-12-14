@@ -68,7 +68,36 @@
     "exploreActivities": "Explore Activities",
     "exploreDining": "View Restaurants",
     "eventsToday": "{{count}} event(s) scheduled for today",
-    "whatToDo": "What would you like to do today?"
+    "whatToDo": "What would you like to do today?",
+    "nextUp": "Next up",
+    "tomorrowBookings": "Tomorrow: {{count}} booking(s)",
+    "noTomorrowBookings": "No bookings tomorrow yet",
+    "bookSomething": "Book something"
+  },
+  "onboarding": {
+    "homeTitle": "Your Resort Hub",
+    "homeDescription": "See your daily schedule, upcoming bookings, and personalized suggestions all in one place.",
+    "activitiesTitle": "Book Activities",
+    "activitiesDescription": "Explore diving, excursions, spa treatments, and more. Book directly from your phone.",
+    "diningTitle": "Reserve Dining",
+    "diningDescription": "Browse restaurants and reserve tables for breakfast, lunch, or dinner.",
+    "bookingsTitle": "Your Schedule",
+    "bookingsDescription": "View all your bookings, make changes, or cancel if plans change.",
+    "loyaltyTitle": "Earn Rewards",
+    "loyaltyDescription": "Collect points on every booking and unlock exclusive perks with our loyalty program.",
+    "getStarted": "Get Started"
+  },
+  "suggestions": {
+    "forYou": "Suggested for you",
+    "excursionTitle": "Try an excursion",
+    "excursionDescription": "Explore the island with a half-day adventure",
+    "viewExcursions": "View Excursions",
+    "dinnerTitle": "Reserve dinner tonight",
+    "dinnerDescription": "Secure your table for a memorable evening",
+    "browseDining": "Browse Dining",
+    "todayTitle": "Plan something today",
+    "todayDescription": "See what is available right now",
+    "viewToday": "View Today"
   },
   "activities": {
     "title": "Activities",

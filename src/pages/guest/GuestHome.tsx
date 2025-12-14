@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, differenceInDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,9 @@ import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { GuestBookingCard } from '@/components/guest/GuestBookingCard';
 import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
+import { GuestOnboardingTour, useGuestOnboarding } from '@/components/guest/GuestOnboardingTour';
+import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions';
+import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
@@ -84,11 +88,27 @@ export default function GuestHome() {
     enabled: !!guest,
   });
 
+  // Session-based dismissed suggestions
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+
+  // Onboarding tour
+  const { showOnboarding, completeOnboarding, skipOnboarding } = useGuestOnboarding(
+    guest?.guestId || '',
+    guest?.resortId || ''
+  );
+
   if (!guest) return null;
 
   const firstName = guest.fullName.split(' ')[0];
   const todayStr = new Date().toISOString().split('T')[0];
+  const tomorrowStr = addDays(new Date(), 1).toISOString().split('T')[0];
   const hour = new Date().getHours();
+
+  // Calculate stay nights
+  const stayNights = differenceInDays(
+    parseISO(guest.checkOutDate),
+    parseISO(guest.checkInDate)
+  );
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -134,6 +154,15 @@ export default function GuestHome() {
     })),
   ].sort((a, b) => a.time.localeCompare(b.time));
 
+  // Tomorrow's bookings count
+  const tomorrowActivities = bookings?.activity_bookings?.filter(
+    (b) => b.date === tomorrowStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
+  ) || [];
+  const tomorrowReservations = bookings?.restaurant_reservations?.filter(
+    (r) => r.date === tomorrowStr && (r.status === 'CONFIRMED' || r.status === 'PENDING')
+  ) || [];
+  const tomorrowCount = tomorrowActivities.length + tomorrowReservations.length;
+
   // Calculate if guest has "no plans yet" - check if they have few bookings
   const upcomingActivities = bookings?.activity_bookings?.filter(
     (b) => b.date >= todayStr && (b.status === 'CONFIRMED' || b.status === 'PENDING')
@@ -145,12 +174,33 @@ export default function GuestHome() {
   const totalUpcomingBookings = upcomingActivities.length + upcomingReservations.length;
   const showNudge = !isLoading && totalUpcomingBookings <= 1 && todaySchedule.length === 0;
 
+  // Check for dining tonight (after 5pm = 17:00)
+  const hasDiningTonight = hour >= 17 
+    ? false 
+    : todayReservations.some(r => r.start_time >= '17:00');
+
+  // Has any activity bookings
+  const hasActivities = upcomingActivities.length > 0;
+
+  const handleDismissSuggestion = (suggestionId: string) => {
+    setDismissedSuggestions(prev => [...prev, suggestionId]);
+  };
+
   if (isLoading) {
     return <GuestHomeLoading />;
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      {/* Onboarding Tour */}
+      {showOnboarding && (
+        <GuestOnboardingTour
+          onComplete={completeOnboarding}
+          onSkip={skipOnboarding}
+        />
+      )}
+
+      <div className="space-y-6">
       {/* Feedback Prompt - Show when eligible */}
       {canSubmitFeedback?.can_submit && (
         <Card className="guest-card bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border-warning/20 overflow-hidden">
@@ -215,6 +265,18 @@ export default function GuestHome() {
       {/* Quick Actions Grid */}
       <GuestQuickActions />
 
+      {/* Smart Suggestions - contextual nudges */}
+      {!showNudge && (
+        <GuestSmartSuggestions
+          stayNights={stayNights}
+          hasActivities={hasActivities}
+          hasDiningTonight={hasDiningTonight}
+          todayBookingsCount={todaySchedule.length}
+          dismissedIds={dismissedSuggestions}
+          onDismiss={handleDismissSuggestion}
+        />
+      )}
+
       {/* Today's Schedule */}
       <div>
         <GuestSectionHeader
@@ -223,6 +285,15 @@ export default function GuestHome() {
           actionLabel={todaySchedule.length > 0 ? t('common.viewAll') : undefined}
           actionHref="/guest/bookings"
         />
+        
+        {/* Today & Tomorrow Timeline */}
+        {todaySchedule.length > 0 && (
+          <GuestTodayTimeline
+            todaySchedule={todaySchedule}
+            tomorrowCount={tomorrowCount}
+            className="mb-4"
+          />
+        )}
         
         {todaySchedule.length === 0 ? (
           showNudge ? (
@@ -335,5 +406,6 @@ export default function GuestHome() {
         </div>
       )}
     </div>
+    </>
   );
 }
