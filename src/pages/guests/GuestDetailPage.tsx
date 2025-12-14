@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Link as LinkIcon, Star, Crown, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, isBefore, startOfDay } from 'date-fns';
+import { isBefore, startOfDay } from 'date-fns';
+import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
@@ -158,18 +159,26 @@ export default function GuestDetailPage() {
 
   // Split bookings into upcoming and past
   const today = startOfDay(new Date());
-  const upcomingActivityBookings = activityBookings.filter(b => 
-    b.session && !isBefore(parseISO(b.session.date), today)
-  );
-  const pastActivityBookings = activityBookings.filter(b => 
-    b.session && isBefore(parseISO(b.session.date), today)
-  );
-  const upcomingReservations = restaurantReservations.filter(r => 
-    r.slot && !isBefore(parseISO(r.slot.date), today)
-  );
-  const pastReservations = restaurantReservations.filter(r => 
-    r.slot && isBefore(parseISO(r.slot.date), today)
-  );
+  const upcomingActivityBookings = activityBookings.filter(b => {
+    if (!b.session) return false;
+    const date = safeParseDateISO(b.session.date);
+    return date && !isBefore(date, today);
+  });
+  const pastActivityBookings = activityBookings.filter(b => {
+    if (!b.session) return false;
+    const date = safeParseDateISO(b.session.date);
+    return date && isBefore(date, today);
+  });
+  const upcomingReservations = restaurantReservations.filter(r => {
+    if (!r.slot) return false;
+    const date = safeParseDateISO(r.slot.date);
+    return date && !isBefore(date, today);
+  });
+  const pastReservations = restaurantReservations.filter(r => {
+    if (!r.slot) return false;
+    const date = safeParseDateISO(r.slot.date);
+    return date && isBefore(date, today);
+  });
 
   if (loading) {
     return (
@@ -214,7 +223,7 @@ export default function GuestDetailPage() {
             )}
           </div>
           <p className="text-muted-foreground">
-            Room {guest.room_number} • {format(parseISO(guest.check_in_date), 'MMM d')} - {format(parseISO(guest.check_out_date), 'MMM d, yyyy')}
+            Room {guest.room_number} • {safeFormatDate(guest.check_in_date, 'MMM d')} - {safeFormatDate(guest.check_out_date, 'MMM d, yyyy')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -257,11 +266,11 @@ export default function GuestDetailPage() {
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Check-in</dt>
-              <dd className="font-medium">{format(parseISO(guest.check_in_date), 'MMM d, yyyy')}</dd>
+              <dd className="font-medium">{safeFormatDate(guest.check_in_date, 'MMM d, yyyy')}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Check-out</dt>
-              <dd className="font-medium">{format(parseISO(guest.check_out_date), 'MMM d, yyyy')}</dd>
+              <dd className="font-medium">{safeFormatDate(guest.check_out_date, 'MMM d, yyyy')}</dd>
             </div>
             {guest.nationality && (
               <div>
@@ -389,7 +398,7 @@ export default function GuestDetailPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">
-                        {format(parseISO(fb.check_out_date), 'MMM d, yyyy')}
+                        {safeFormatDate(fb.check_out_date, 'MMM d, yyyy')}
                       </Badge>
                       <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (
@@ -509,7 +518,7 @@ export default function GuestDetailPage() {
                             onClick={() => navigate(`/activities/sessions/${booking.session.id}`)}
                           >
                             <TableCell className="font-medium">{booking.session.activity.name}</TableCell>
-                            <TableCell>{format(parseISO(booking.session.date), 'EEE, MMM d')}</TableCell>
+                            <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
@@ -539,7 +548,7 @@ export default function GuestDetailPage() {
                         {pastActivityBookings.map((booking) => (
                           <TableRow key={booking.id}>
                             <TableCell className="font-medium">{booking.session.activity.name}</TableCell>
-                            <TableCell>{format(parseISO(booking.session.date), 'EEE, MMM d')}</TableCell>
+                            <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
@@ -591,7 +600,7 @@ export default function GuestDetailPage() {
                             onClick={() => navigate(`/restaurants/slots/${reservation.slot.id}`)}
                           >
                             <TableCell className="font-medium">{reservation.slot.restaurant.name}</TableCell>
-                            <TableCell>{format(parseISO(reservation.slot.date), 'EEE, MMM d')}</TableCell>
+                            <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
@@ -623,7 +632,7 @@ export default function GuestDetailPage() {
                         {pastReservations.map((reservation) => (
                           <TableRow key={reservation.id}>
                             <TableCell className="font-medium">{reservation.slot.restaurant.name}</TableCell>
-                            <TableCell>{format(parseISO(reservation.slot.date), 'EEE, MMM d')}</TableCell>
+                            <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
