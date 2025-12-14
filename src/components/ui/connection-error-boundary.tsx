@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { WifiOff, RefreshCw, AlertTriangle, Home } from 'lucide-react';
+import { queryClient } from '@/lib/query-client-config';
 
 interface ConnectionErrorBoundaryState {
   hasError: boolean;
@@ -46,6 +47,8 @@ export class ConnectionErrorBoundary extends React.Component<
   }
 
   handleRetry = () => {
+    // Clear React Query cache to prevent stale error states from persisting
+    queryClient.clear();
     this.setState({ hasError: false, error: undefined, isConnectionError: false });
     this.props.onReset?.();
   };

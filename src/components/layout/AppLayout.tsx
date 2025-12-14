@@ -15,6 +15,8 @@ import { ProperaLoader, ProperaMark } from '@/components/icons/ProperaLogo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { RouteErrorFallback } from '@/components/ui/route-error-fallback';
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -167,7 +169,12 @@ export function AppLayout() {
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
             <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
-              <Outlet />
+              <ErrorBoundary 
+                fallback={<RouteErrorFallback />}
+                onReset={() => window.location.reload()}
+              >
+                <Outlet />
+              </ErrorBoundary>
             </div>
           </main>
         </div>
