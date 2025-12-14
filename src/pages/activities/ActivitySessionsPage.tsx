@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Activity, ActivitySession, ActivityRecurringRule, ActivityClosure } from '@/types/database';
+import { Activity, ActivitySession, ActivityRecurringRule, ActivityClosure, Resource } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock, RepeatIcon, CalendarX } from 'lucide-react';
+import { Plus, Calendar, List, CalendarDays, Users, TrendingUp, Clock, RepeatIcon, CalendarX, LayoutGrid, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, addDays } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
@@ -26,6 +27,9 @@ import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { SessionCalendarView } from '@/components/activities/SessionCalendarView';
+import { BulkSessionActions } from '@/components/activities/BulkSessionActions';
+import { ResourceScheduleView } from '@/components/activities/ResourceScheduleView';
 
 interface SessionWithBookings extends ActivitySession {
   activity?: Activity;
@@ -36,11 +40,12 @@ interface SessionWithBookings extends ActivitySession {
 function ActivitySessionsPageContent() {
   const [sessions, setSessions] = useState<SessionWithBookings[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [recurringRules, setRecurringRules] = useState<ActivityRecurringRule[]>([]);
   const [closures, setClosures] = useState<ActivityClosure[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(addDays(new Date(), 7), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(addDays(new Date(), 30), 'yyyy-MM-dd'));
   const [activityFilter, setActivityFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -49,7 +54,8 @@ function ActivitySessionsPageContent() {
   const [editingRule, setEditingRule] = useState<ActivityRecurringRule | null>(null);
   const [recurringOpen, setRecurringOpen] = useState(false);
   const [closuresOpen, setClosuresOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'agenda'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'agenda' | 'calendar' | 'resources'>('table');
+  const [selectedSessionIds, setSelectedSessionIds] = useState<string[]>([]);
 
   const { currentResort } = useResort();
   const { toast } = useToast();
@@ -69,6 +75,17 @@ function ActivitySessionsPageContent() {
       .eq('is_active', true)
       .order('name');
     if (data) setActivities(data as Activity[]);
+  };
+
+  const fetchResources = async () => {
+    if (!currentResort) return;
+    const { data } = await supabase
+      .from('resources')
+      .select('*')
+      .eq('resort_id', currentResort.id)
+      .eq('is_active', true)
+      .order('name');
+    if (data) setResources(data as Resource[]);
   };
 
   const fetchRecurringRules = async () => {
@@ -158,7 +175,25 @@ function ActivitySessionsPageContent() {
 
   useEffect(() => {
     fetchActivities();
+    fetchResources();
   }, [currentResort]);
+
+  // Toggle session selection
+  const toggleSessionSelection = (sessionId: string) => {
+    setSelectedSessionIds(prev => 
+      prev.includes(sessionId) 
+        ? prev.filter(id => id !== sessionId)
+        : [...prev, sessionId]
+    );
+  };
+
+  const selectAllSessions = () => {
+    setSelectedSessionIds(sessions.map(s => s.id));
+  };
+
+  const clearSelection = () => {
+    setSelectedSessionIds([]);
+  };
 
   useEffect(() => {
     fetchSessions();
@@ -284,15 +319,23 @@ function ActivitySessionsPageContent() {
                 </Select>
               </FilterBarGroup>
               <div className="ml-auto">
-                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'agenda')}>
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'agenda' | 'calendar' | 'resources')}>
                   <TabsList className="bg-background">
                     <TabsTrigger value="table" className="gap-1.5">
                       <List className="h-4 w-4" />
-                      Table
+                      <span className="hidden sm:inline">Table</span>
                     </TabsTrigger>
                     <TabsTrigger value="agenda" className="gap-1.5">
                       <CalendarDays className="h-4 w-4" />
-                      Agenda
+                      <span className="hidden sm:inline">Agenda</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="calendar" className="gap-1.5">
+                      <LayoutGrid className="h-4 w-4" />
+                      <span className="hidden sm:inline">Calendar</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="resources" className="gap-1.5">
+                      <Layers className="h-4 w-4" />
+                      <span className="hidden sm:inline">Resources</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -322,11 +365,56 @@ function ActivitySessionsPageContent() {
                 )
               }
             />
+          ) : viewMode === 'calendar' ? (
+            <div className="p-4">
+              <SessionCalendarView
+                sessions={sessions}
+                onSessionClick={(session) => navigate(`/staff/activities/sessions/${session.id}`)}
+                onDateClick={(date) => {
+                  setStartDate(format(date, 'yyyy-MM-dd'));
+                  setEndDate(format(date, 'yyyy-MM-dd'));
+                  setViewMode('table');
+                }}
+              />
+            </div>
+          ) : viewMode === 'resources' ? (
+            <div className="p-4">
+              <ResourceScheduleView
+                resources={resources}
+                sessions={sessions}
+                startDate={parseISO(startDate)}
+                onSessionClick={(session) => navigate(`/staff/activities/sessions/${session.id}`)}
+              />
+            </div>
           ) : viewMode === 'table' ? (
-            <DataTable
-              data={sessions}
-              onRowClick={(session) => navigate(`/staff/activities/sessions/${session.id}`)}
-              columns={[
+            <div>
+              {/* Bulk actions toolbar */}
+              <div className="p-4 border-b border-border/50">
+                <BulkSessionActions
+                  selectedIds={selectedSessionIds}
+                  totalCount={sessions.length}
+                  onSelectAll={selectAllSessions}
+                  onClearSelection={clearSelection}
+                  onSuccess={() => {
+                    fetchSessions();
+                    clearSelection();
+                  }}
+                />
+              </div>
+              <DataTable
+                data={sessions}
+                onRowClick={(session) => navigate(`/staff/activities/sessions/${session.id}`)}
+                columns={[
+                  {
+                    header: '',
+                    accessor: (session) => (
+                      <Checkbox
+                        checked={selectedSessionIds.includes(session.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={() => toggleSessionSelection(session.id)}
+                      />
+                    ),
+                  },
                 {
                   header: 'Date',
                   accessor: (session) => (
@@ -382,6 +470,7 @@ function ActivitySessionsPageContent() {
                 },
               ]}
             />
+            </div>
           ) : (
             <div className="p-4 space-y-6">
               {Object.entries(sessionsByDate).map(([date, dateSessions]) => (
