@@ -2,8 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
+import { queryClient } from "@/lib/query-client-config";
+import { ConnectionBanner } from "@/components/ui/connection-banner";
+import { ConnectionErrorBoundary } from "@/components/ui/connection-error-boundary";
 
 // Helper component for legacy redirects with dynamic params
 function LegacyRedirect({ to }: { to: string }) {
@@ -93,18 +96,18 @@ import LoyaltyTiersPage from "./pages/loyalty/LoyaltyTiersPage";
 import LoyaltyMemberDetailPage from "./pages/loyalty/LoyaltyMemberDetailPage";
 import GuestLoyaltyPage from "./pages/guest/GuestLoyaltyPage";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <ThemeProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <ResortProvider>
-            <GuestAuthProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+  <ConnectionErrorBoundary>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <AuthProvider>
+            <ResortProvider>
+              <GuestAuthProvider>
+                <ConnectionBanner />
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
               <Routes>
                 {/* Public landing page */}
                 <Route path="/" element={<LandingPage />} />
@@ -222,13 +225,14 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </GuestAuthProvider>
-        </ResortProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-  </ThemeProvider>
+              </BrowserRouter>
+            </GuestAuthProvider>
+          </ResortProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+    </ThemeProvider>
+  </ConnectionErrorBoundary>
 );
 
 export default App;
