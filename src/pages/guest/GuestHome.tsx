@@ -34,12 +34,20 @@ import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestOnboardingTour, useGuestOnboarding } from '@/components/guest/GuestOnboardingTour';
 import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions';
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
+import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isPrearrival } = useIsPrearrivalGuest();
+
+  // Show pre-arrival home if guest hasn't checked in yet
+  if (isPrearrival) {
+    return <GuestPrearrivalHome />;
+  }
 
   interface BookingItem {
     booking_id: string;
