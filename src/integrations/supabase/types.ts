@@ -1234,6 +1234,149 @@ export type Database = {
           },
         ]
       }
+      prearrival_profiles: {
+        Row: {
+          allergies: string | null
+          arrival_date: string | null
+          arrival_flight_number: string | null
+          arrival_time: string | null
+          created_at: string
+          custom_answers_json: Json | null
+          dietary_preferences: Json | null
+          guest_id: string
+          id: string
+          last_updated_at: string
+          prearrival_status: Database["public"]["Enums"]["prearrival_status"]
+          resort_id: string
+          room_preferences: Json | null
+          special_occasions: Json | null
+          special_requests: string | null
+          staff_notes: string | null
+          staff_processed: boolean
+          transfer_preference: string | null
+          water_comfort_level: string | null
+        }
+        Insert: {
+          allergies?: string | null
+          arrival_date?: string | null
+          arrival_flight_number?: string | null
+          arrival_time?: string | null
+          created_at?: string
+          custom_answers_json?: Json | null
+          dietary_preferences?: Json | null
+          guest_id: string
+          id?: string
+          last_updated_at?: string
+          prearrival_status?: Database["public"]["Enums"]["prearrival_status"]
+          resort_id: string
+          room_preferences?: Json | null
+          special_occasions?: Json | null
+          special_requests?: string | null
+          staff_notes?: string | null
+          staff_processed?: boolean
+          transfer_preference?: string | null
+          water_comfort_level?: string | null
+        }
+        Update: {
+          allergies?: string | null
+          arrival_date?: string | null
+          arrival_flight_number?: string | null
+          arrival_time?: string | null
+          created_at?: string
+          custom_answers_json?: Json | null
+          dietary_preferences?: Json | null
+          guest_id?: string
+          id?: string
+          last_updated_at?: string
+          prearrival_status?: Database["public"]["Enums"]["prearrival_status"]
+          resort_id?: string
+          room_preferences?: Json | null
+          special_occasions?: Json | null
+          special_requests?: string | null
+          staff_notes?: string | null
+          staff_processed?: boolean
+          transfer_preference?: string | null
+          water_comfort_level?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prearrival_profiles_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: true
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prearrival_profiles_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prearrival_settings: {
+        Row: {
+          allow_activity_bookings: boolean
+          allow_dining_bookings: boolean
+          allow_spa_bookings: boolean
+          created_at: string
+          custom_questions_json: Json | null
+          id: string
+          internal_guidance_notes: string | null
+          is_enabled: boolean
+          open_days_before_checkin: number
+          resort_id: string
+          show_arrival_details: boolean
+          show_preferences: boolean
+          show_special_occasions: boolean
+          updated_at: string
+          welcome_message: string | null
+        }
+        Insert: {
+          allow_activity_bookings?: boolean
+          allow_dining_bookings?: boolean
+          allow_spa_bookings?: boolean
+          created_at?: string
+          custom_questions_json?: Json | null
+          id?: string
+          internal_guidance_notes?: string | null
+          is_enabled?: boolean
+          open_days_before_checkin?: number
+          resort_id: string
+          show_arrival_details?: boolean
+          show_preferences?: boolean
+          show_special_occasions?: boolean
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Update: {
+          allow_activity_bookings?: boolean
+          allow_dining_bookings?: boolean
+          allow_spa_bookings?: boolean
+          created_at?: string
+          custom_questions_json?: Json | null
+          id?: string
+          internal_guidance_notes?: string | null
+          is_enabled?: boolean
+          open_days_before_checkin?: number
+          resort_id?: string
+          show_arrival_details?: boolean
+          show_preferences?: boolean
+          show_special_occasions?: boolean
+          updated_at?: string
+          welcome_message?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prearrival_settings_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prearrival_tokens: {
         Row: {
           created_at: string
@@ -2130,6 +2273,10 @@ export type Database = {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: string
       }
+      get_or_create_prearrival_profile: {
+        Args: { p_guest_id: string }
+        Returns: string
+      }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -2205,6 +2352,7 @@ export type Database = {
       }
       guest_get_loyalty_info: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_notifications: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_prearrival_data: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
       guest_get_unread_notification_count: {
         Args: { p_guest_id: string }
@@ -2266,6 +2414,23 @@ export type Database = {
           p_rating_room?: number
           p_rating_service?: number
           p_would_recommend: string
+        }
+        Returns: Json
+      }
+      guest_update_prearrival_profile: {
+        Args: {
+          p_allergies?: string
+          p_arrival_date?: string
+          p_arrival_flight_number?: string
+          p_arrival_time?: string
+          p_custom_answers_json?: Json
+          p_dietary_preferences?: Json
+          p_guest_id: string
+          p_room_preferences?: Json
+          p_special_occasions?: Json
+          p_special_requests?: string
+          p_transfer_preference?: string
+          p_water_comfort_level?: string
         }
         Returns: Json
       }
@@ -2356,6 +2521,7 @@ export type Database = {
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
+      prearrival_status: "not_started" | "partial" | "completed"
       recommendation_response: "YES" | "NO" | "MAYBE"
       recurrence_frequency: "DAILY" | "WEEKLY"
       resort_role:
@@ -2547,6 +2713,7 @@ export const Constants = {
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
+      prearrival_status: ["not_started", "partial", "completed"],
       recommendation_response: ["YES", "NO", "MAYBE"],
       recurrence_frequency: ["DAILY", "WEEKLY"],
       resort_role: [
