@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -7,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "
 import { queryClient } from "@/lib/query-client-config";
 import { ConnectionBanner } from "@/components/ui/connection-banner";
 import { ConnectionErrorBoundary } from "@/components/ui/connection-error-boundary";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 // Helper component for legacy redirects with dynamic params
 function LegacyRedirect({ to }: { to: string }) {
@@ -22,79 +24,95 @@ function LegacyRedirect({ to }: { to: string }) {
   
   return <Navigate to={targetPath + location.search} replace />;
 }
+
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ResortProvider } from "@/contexts/ResortContext";
 import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GuestLayout } from "@/components/guest/GuestLayout";
+
+// Critical pages loaded eagerly (landing, auth, layouts)
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import GuestsPage from "./pages/guests/GuestsPage";
-import GuestDetailPage from "./pages/guests/GuestDetailPage";
-import ActivitiesPage from "./pages/activities/ActivitiesPage";
-import ActivitySessionsPage from "./pages/activities/ActivitySessionsPage";
-import CreateSessionWizard from "./pages/activities/CreateSessionWizard";
-import ActivitySessionDetailPage from "./pages/activities/ActivitySessionDetailPage";
-import ActivityCheatsheetPage from "./pages/activities/ActivityCheatsheetPage";
-import RestaurantsPage from "./pages/restaurants/RestaurantsPage";
-import RestaurantSlotsPage from "./pages/restaurants/RestaurantSlotsPage";
-import RestaurantSlotDetailPage from "./pages/restaurants/RestaurantSlotDetailPage";
-import CreateRestaurantSlotWizard from './pages/restaurants/CreateRestaurantSlotWizard';
-import ResortsPage from "./pages/settings/ResortsPage";
-import ResourcesPage from "./pages/settings/ResourcesPage";
-import SettingsPage from "./pages/settings/SettingsPage";
-import UserManagementPage from "./pages/settings/UserManagementPage";
-import ResortStaffPage from "./pages/settings/ResortStaffPage";
-import BookingHealthPage from "./pages/settings/BookingHealthPage";
-import PermissionsDebugPage from "./pages/settings/PermissionsDebugPage";
-import GuestImportPage from "./pages/settings/GuestImportPage";
-import Reports from "./pages/Reports";
-import ActivitiesReport from "./pages/reports/ActivitiesReport";
-import RestaurantsReport from "./pages/reports/RestaurantsReport";
-import CancellationsReport from "./pages/reports/CancellationsReport";
-import GuestsReport from "./pages/reports/GuestsReport";
-import GuestBehaviourReport from "./pages/reports/GuestBehaviourReport";
-import MarketReport from "./pages/reports/MarketReport";
-import StayFeedbackReport from "./pages/reports/StayFeedbackReport";
-import SalesPerformanceReport from "./pages/reports/SalesPerformanceReport";
-import GuestRequestsPage from "./pages/staff/GuestRequestsPage";
-import TodaysOpportunitiesPage from "./pages/staff/TodaysOpportunitiesPage";
-import StaffInviteAcceptPage from "./pages/staff/StaffInviteAcceptPage";
-import StaffDirectoryPage from "./pages/staff/StaffDirectoryPage";
-import ResortOnboardingPage from "./pages/onboarding/ResortOnboardingPage";
-import GuestLogin from "./pages/guest/GuestLogin";
-import GuestFindResort from "./pages/guest/GuestFindResort";
-import ResortGuestLogin from "./pages/guest/ResortGuestLogin";
-import ResortPublicLinksPage from "./pages/settings/ResortPublicLinksPage";
-import ResortBrandingPage from "./pages/settings/ResortBrandingPage";
-import ResortPricingPage from "./pages/settings/ResortPricingPage";
-import SubscriptionTiersPage from "./pages/settings/SubscriptionTiersPage";
-import ResortDirectoryPage from "./pages/settings/ResortDirectoryPage";
-import GuestHome from "./pages/guest/GuestHome";
-import GuestMyBookings from "./pages/guest/GuestMyBookings";
-import GuestActivitiesBrowser from "./pages/guest/GuestActivitiesBrowser";
-import GuestActivityCataloguePage from "./pages/guest/GuestActivityCataloguePage";
-import GuestActivitySessionsPage from "./pages/guest/GuestActivitySessionsPage";
-import GuestActivityBookingPage from "./pages/guest/GuestActivityBookingPage";
-import GuestRestaurantBrowser from "./pages/guest/GuestRestaurantBrowser";
-import GuestRestaurantBookingPage from "./pages/guest/GuestRestaurantBookingPage";
-import GuestStayFeedback from "./pages/guest/GuestStayFeedback";
-import GuestActivityExplorer from "./pages/guest/GuestActivityExplorer";
-import GuestActivityDetailPage from "./pages/guest/GuestActivityDetailPage";
-import GuestProfilePage from "./pages/guest/GuestProfilePage";
-import NotificationsPage from "./pages/notifications/NotificationsPage";
-import GuestNotificationsPage from "./pages/guest/GuestNotificationsPage";
-import PreArrivalPage from "./pages/guest/PreArrivalPage";
 import NotFound from "./pages/NotFound";
-import ResortMarketingPage from "./pages/resorts/ResortMarketingPage";
-import PricingPage from "./pages/PricingPage";
-import AboutPage from "./pages/AboutPage";
-import LoyaltyOverviewPage from "./pages/loyalty/LoyaltyOverviewPage";
-import LoyaltyProgramSettingsPage from "./pages/loyalty/LoyaltyProgramSettingsPage";
-import LoyaltyTiersPage from "./pages/loyalty/LoyaltyTiersPage";
-import LoyaltyMemberDetailPage from "./pages/loyalty/LoyaltyMemberDetailPage";
-import GuestLoyaltyPage from "./pages/guest/GuestLoyaltyPage";
+
+// Lazy loaded pages - Staff
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const GuestsPage = lazy(() => import("./pages/guests/GuestsPage"));
+const GuestDetailPage = lazy(() => import("./pages/guests/GuestDetailPage"));
+const ActivitiesPage = lazy(() => import("./pages/activities/ActivitiesPage"));
+const ActivitySessionsPage = lazy(() => import("./pages/activities/ActivitySessionsPage"));
+const CreateSessionWizard = lazy(() => import("./pages/activities/CreateSessionWizard"));
+const ActivitySessionDetailPage = lazy(() => import("./pages/activities/ActivitySessionDetailPage"));
+const ActivityCheatsheetPage = lazy(() => import("./pages/activities/ActivityCheatsheetPage"));
+const RestaurantsPage = lazy(() => import("./pages/restaurants/RestaurantsPage"));
+const RestaurantSlotsPage = lazy(() => import("./pages/restaurants/RestaurantSlotsPage"));
+const RestaurantSlotDetailPage = lazy(() => import("./pages/restaurants/RestaurantSlotDetailPage"));
+const CreateRestaurantSlotWizard = lazy(() => import('./pages/restaurants/CreateRestaurantSlotWizard'));
+const ResortsPage = lazy(() => import("./pages/settings/ResortsPage"));
+const ResourcesPage = lazy(() => import("./pages/settings/ResourcesPage"));
+const SettingsPage = lazy(() => import("./pages/settings/SettingsPage"));
+const UserManagementPage = lazy(() => import("./pages/settings/UserManagementPage"));
+const ResortStaffPage = lazy(() => import("./pages/settings/ResortStaffPage"));
+const BookingHealthPage = lazy(() => import("./pages/settings/BookingHealthPage"));
+const PermissionsDebugPage = lazy(() => import("./pages/settings/PermissionsDebugPage"));
+const GuestImportPage = lazy(() => import("./pages/settings/GuestImportPage"));
+const Reports = lazy(() => import("./pages/Reports"));
+const ActivitiesReport = lazy(() => import("./pages/reports/ActivitiesReport"));
+const RestaurantsReport = lazy(() => import("./pages/reports/RestaurantsReport"));
+const CancellationsReport = lazy(() => import("./pages/reports/CancellationsReport"));
+const GuestsReport = lazy(() => import("./pages/reports/GuestsReport"));
+const GuestBehaviourReport = lazy(() => import("./pages/reports/GuestBehaviourReport"));
+const MarketReport = lazy(() => import("./pages/reports/MarketReport"));
+const StayFeedbackReport = lazy(() => import("./pages/reports/StayFeedbackReport"));
+const SalesPerformanceReport = lazy(() => import("./pages/reports/SalesPerformanceReport"));
+const GuestRequestsPage = lazy(() => import("./pages/staff/GuestRequestsPage"));
+const TodaysOpportunitiesPage = lazy(() => import("./pages/staff/TodaysOpportunitiesPage"));
+const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAcceptPage"));
+const StaffDirectoryPage = lazy(() => import("./pages/staff/StaffDirectoryPage"));
+const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
+const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
+const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
+const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
+const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
+const ResortDirectoryPage = lazy(() => import("./pages/settings/ResortDirectoryPage"));
+const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
+const LoyaltyOverviewPage = lazy(() => import("./pages/loyalty/LoyaltyOverviewPage"));
+const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyProgramSettingsPage"));
+const LoyaltyTiersPage = lazy(() => import("./pages/loyalty/LoyaltyTiersPage"));
+const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMemberDetailPage"));
+
+// Lazy loaded pages - Guest
+const GuestLogin = lazy(() => import("./pages/guest/GuestLogin"));
+const GuestFindResort = lazy(() => import("./pages/guest/GuestFindResort"));
+const ResortGuestLogin = lazy(() => import("./pages/guest/ResortGuestLogin"));
+const GuestHome = lazy(() => import("./pages/guest/GuestHome"));
+const GuestMyBookings = lazy(() => import("./pages/guest/GuestMyBookings"));
+const GuestActivitiesBrowser = lazy(() => import("./pages/guest/GuestActivitiesBrowser"));
+const GuestActivityCataloguePage = lazy(() => import("./pages/guest/GuestActivityCataloguePage"));
+const GuestActivitySessionsPage = lazy(() => import("./pages/guest/GuestActivitySessionsPage"));
+const GuestActivityBookingPage = lazy(() => import("./pages/guest/GuestActivityBookingPage"));
+const GuestRestaurantBrowser = lazy(() => import("./pages/guest/GuestRestaurantBrowser"));
+const GuestRestaurantBookingPage = lazy(() => import("./pages/guest/GuestRestaurantBookingPage"));
+const GuestStayFeedback = lazy(() => import("./pages/guest/GuestStayFeedback"));
+const GuestActivityExplorer = lazy(() => import("./pages/guest/GuestActivityExplorer"));
+const GuestActivityDetailPage = lazy(() => import("./pages/guest/GuestActivityDetailPage"));
+const GuestProfilePage = lazy(() => import("./pages/guest/GuestProfilePage"));
+const GuestNotificationsPage = lazy(() => import("./pages/guest/GuestNotificationsPage"));
+const PreArrivalPage = lazy(() => import("./pages/guest/PreArrivalPage"));
+const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
+
+// Lazy loaded pages - Public
+const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <LoadingSpinner size="lg" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -110,6 +128,7 @@ const App = () => (
                     <Toaster />
                     <Sonner />
                     <BrowserRouter>
+                      <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public landing page */}
                 <Route path="/" element={<LandingPage />} />
@@ -227,6 +246,7 @@ const App = () => (
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+                      </Suspense>
               </BrowserRouter>
                   </GuestAuthProvider>
                 </ResortProvider>
