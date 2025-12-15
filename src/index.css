@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+/* Fonts loaded in index.html with non-blocking strategy */
 
 @tailwind base;
 @tailwind components;
