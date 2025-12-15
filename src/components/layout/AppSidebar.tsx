@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronDown, LogOut, User, Palette, TrendingUp, Crown, Phone, Lock } from 'lucide-react';
+import { ChevronDown, LogOut, User, Palette, TrendingUp, Crown, Phone, Lock, Plane } from 'lucide-react';
 import {
   IconDashboard,
   IconGuests,
@@ -65,6 +65,7 @@ type NavItem = {
 const mainNavItems: NavItem[] = [
   { title: 'Dashboard', url: '/staff/dashboard', icon: IconDashboard, resortRoles: null },
   { title: "Today's Opportunities", url: '/staff/today', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities' },
+  { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'] },
   { title: 'Team Directory', url: '/staff/team', icon: IconGuests, resortRoles: null },
   { title: 'Guests', url: '/staff/guests', icon: IconGuests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
   { title: 'Guest Requests', url: '/staff/guest-requests', icon: IconGuestRequests, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests' },
