@@ -530,6 +530,33 @@ export type Database = {
           },
         ]
       }
+      admin_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata_json: Json | null
+          resort_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+        }
+        Relationships: []
+      }
       booking_audit_logs: {
         Row: {
           action: string
@@ -2461,6 +2488,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_admin_action: {
+        Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
+        Returns: string
+      }
       staff_lookup_by_identifier: {
         Args: { p_identifier: string }
         Returns: {
