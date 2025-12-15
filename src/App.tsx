@@ -68,6 +68,7 @@ const StayFeedbackReport = lazy(() => import("./pages/reports/StayFeedbackReport
 const SalesPerformanceReport = lazy(() => import("./pages/reports/SalesPerformanceReport"));
 const GuestRequestsPage = lazy(() => import("./pages/staff/GuestRequestsPage"));
 const TodaysOpportunitiesPage = lazy(() => import("./pages/staff/TodaysOpportunitiesPage"));
+const PrearrivalDashboardPage = lazy(() => import("./pages/staff/PrearrivalDashboardPage"));
 const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAcceptPage"));
 const StaffDirectoryPage = lazy(() => import("./pages/staff/StaffDirectoryPage"));
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
@@ -76,6 +77,7 @@ const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPag
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
 const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
 const ResortDirectoryPage = lazy(() => import("./pages/settings/ResortDirectoryPage"));
+const PrearrivalSettingsPage = lazy(() => import("./pages/settings/PrearrivalSettingsPage"));
 const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
 const LoyaltyOverviewPage = lazy(() => import("./pages/loyalty/LoyaltyOverviewPage"));
 const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyProgramSettingsPage"));
@@ -165,6 +167,7 @@ const App = () => (
                   <Route path="reports/stay-feedback" element={<StayFeedbackReport />} />
                   <Route path="guest-requests" element={<GuestRequestsPage />} />
                   <Route path="today" element={<TodaysOpportunitiesPage />} />
+                  <Route path="prearrival" element={<PrearrivalDashboardPage />} />
                   <Route path="team" element={<StaffDirectoryPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="settings/users" element={<UserManagementPage />} />
@@ -179,6 +182,7 @@ const App = () => (
                   <Route path="settings/pricing" element={<ResortPricingPage />} />
                   <Route path="settings/subscriptions" element={<SubscriptionTiersPage />} />
                   <Route path="settings/directory" element={<ResortDirectoryPage />} />
+                  <Route path="settings/prearrival" element={<PrearrivalSettingsPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
                   <Route path="loyalty" element={<LoyaltyOverviewPage />} />
