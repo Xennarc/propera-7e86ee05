@@ -189,7 +189,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
       <SidebarContent className="px-3 py-5 scrollbar-thin">
         {/* Super Admin Section */}
-        {superAdmin && (
+        {isSuperAdmin() && (
           <SidebarGroup className="mb-4">
             <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
               Super Admin
