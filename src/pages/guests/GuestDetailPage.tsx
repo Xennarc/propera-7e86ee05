@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
 import { Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,7 @@ import { GuestPinManager } from '@/components/guest/GuestPinManager';
 import { ErrorState } from '@/components/ui/error-state';
 import { TierGate } from '@/components/tier/TierGate';
 import { useTierAccess } from '@/hooks/useTierAccess';
+import { usePermissions, hasWriteAccess } from '@/hooks/usePermissions';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -55,7 +57,9 @@ export default function GuestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasAnyRole } = useAuth();
+  const { isSuperAdmin, hasResortRole } = useAuth();
+  const { currentResort } = useResort();
+  const { canAccessGuests, isSuperAdmin: isSuperAdminPermission, currentResortRole } = usePermissions();
 
   const [guest, setGuest] = useState<Guest | null>(null);
   const [activityBookings, setActivityBookings] = useState<ActivityBookingWithSession[]>([]);
@@ -69,8 +73,11 @@ export default function GuestDetailPage() {
   const [feedback, setFeedback] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE']);
-  const canEditLoyalty = hasAnyRole(['ADMIN', 'MANAGER']);
+  // Allow RESORT_ADMIN, MANAGER, FRONT_OFFICE, RESERVATIONS to edit guests and manage PINs
+  const canEdit = hasWriteAccess(canAccessGuests);
+  // Allow RESORT_ADMIN, MANAGER to edit loyalty
+  const canEditLoyalty = isSuperAdminPermission || 
+    (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'MANAGER']));
 
   const fetchGuest = async () => {
     if (!id) {
