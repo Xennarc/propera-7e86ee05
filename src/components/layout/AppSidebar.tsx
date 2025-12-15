@@ -188,6 +188,35 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="px-3 py-5 scrollbar-thin">
+        {/* Super Admin Section */}
+        {superAdmin && (
+          <SidebarGroup className="mb-4">
+            <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
+              Super Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="space-y-1">
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to="/superadmin" 
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
+                        "hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      )}
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+                      onClick={onNavigate}
+                    >
+                      <Crown className="h-5 w-5" />
+                      <span>Platform Overview</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/40 text-[10px] font-bold uppercase tracking-widest px-3 mb-2">
             Main

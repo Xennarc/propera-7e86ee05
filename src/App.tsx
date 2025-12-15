@@ -78,6 +78,12 @@ const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"
 const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
 const ResortDirectoryPage = lazy(() => import("./pages/settings/ResortDirectoryPage"));
 const PrearrivalSettingsPage = lazy(() => import("./pages/settings/PrearrivalSettingsPage"));
+
+// Super Admin pages
+const SuperAdminDashboard = lazy(() => import("./pages/superadmin/SuperAdminDashboard"));
+const ResortDetailPage = lazy(() => import("./pages/superadmin/ResortDetailPage"));
+const GlobalStaffPage = lazy(() => import("./pages/superadmin/GlobalStaffPage"));
+const AuditLogsPage = lazy(() => import("./pages/superadmin/AuditLogsPage"));
 const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
 const LoyaltyOverviewPage = lazy(() => import("./pages/loyalty/LoyaltyOverviewPage"));
 const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyProgramSettingsPage"));
@@ -139,6 +145,14 @@ const App = () => (
                 
                 {/* Public resort marketing pages */}
                 <Route path="/resorts/:code" element={<ResortMarketingPage />} />
+                
+                {/* Super Admin routes */}
+                <Route path="/superadmin" element={<AppLayout />}>
+                  <Route index element={<SuperAdminDashboard />} />
+                  <Route path="resorts/:resortId" element={<ResortDetailPage />} />
+                  <Route path="staff" element={<GlobalStaffPage />} />
+                  <Route path="audit" element={<AuditLogsPage />} />
+                </Route>
                 
                 {/* Staff routes */}
                 <Route path="/staff/auth" element={<Auth />} />
