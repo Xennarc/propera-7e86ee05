@@ -815,6 +815,55 @@
       0 4px 6px -1px rgb(0 0 0 / 0.05),
       0 10px 20px -5px rgb(0 0 0 / 0.08);
   }
+  
+  /* === Mobile Performance Optimizations === */
+  
+  /* GPU-accelerated scrolling containers */
+  .gpu-scroll {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  /* Content containment for better paint performance */
+  .contain-layout {
+    contain: layout;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
+  .contain-strict {
+    contain: strict;
+  }
+  
+  /* Optimized touch scrolling */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  
+  /* Will-change hints for animated elements */
+  .will-animate {
+    will-change: transform, opacity;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    .will-animate,
+    .animate-pulse,
+    .animate-spin {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+  
+  /* Passive touch events hint */
+  .touch-passive {
+    touch-action: manipulation;
+  }
 }
 
 /* Keyframes */
