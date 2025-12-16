@@ -63,7 +63,7 @@ export function GlobalResortsSection() {
           delay: index * 0.1
         }} className={`relative rounded-2xl overflow-hidden group cursor-pointer ${index === 0 ? 'col-span-2 row-span-2 md:col-span-2 md:row-span-2' : ''}`}>
               <div className={`${index === 0 ? 'h-64 md:h-full' : 'h-32 md:h-40'}`}>
-                <img src={resort.image} alt={resort.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                <img src={resort.image} alt={resort.label} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3">
                   <span className="inline-block bg-white/90 backdrop-blur-sm text-xs md:text-sm font-medium px-3 py-1.5 rounded-full text-teal-400">
