@@ -47,7 +47,7 @@ export function FinalCTASection() {
               <div className="flex flex-col gap-3">
                 <StackLayer 
                   icon={<BarChart3 className="h-5 w-5" />}
-                  label="Super Admin & Analytics"
+                  label="Admin & Analytics"
                   description="Portfolio insights"
                   variant="top"
                 />
