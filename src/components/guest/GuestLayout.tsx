@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import {
   IconStay,
   IconActivities,
@@ -30,6 +30,41 @@ const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loy
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
+
+// Memoized nav item for better mobile performance
+const NavItem = memo(({ item, isActive, label }: { 
+  item: { icon: React.ComponentType<{ className?: string }>; href: string; activeColor: string; activeBg: string }; 
+  isActive: boolean; 
+  label: string;
+}) => {
+  const Icon = item.icon;
+  return (
+    <Link
+      to={item.href}
+      className={cn(
+        "guest-nav-item relative min-w-[60px] tap-target touch-passive",
+        isActive 
+          ? `${item.activeColor} ${item.activeBg}` 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      )}
+    >
+      {isActive && (
+        <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-current" />
+      )}
+      <Icon className={cn(
+        "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
+        isActive && "scale-110"
+      )} />
+      <span className={cn(
+        "text-[10px] sm:text-[11px] font-semibold transition-all",
+        isActive && "font-bold"
+      )}>
+        {label}
+      </span>
+    </Link>
+  );
+});
+NavItem.displayName = 'NavItem';
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
@@ -131,6 +166,8 @@ export function GuestLayout() {
               <img 
                 src={branding.login_logo_url} 
                 alt={branding.name || guest?.resortName || 'Resort'} 
+                loading="eager"
+                decoding="async"
                 className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
               />
             ) : (
@@ -163,49 +200,29 @@ export function GuestLayout() {
         </div>
       </header>
 
-      {/* Main content with optimized padding */}
+      {/* Main content with optimized padding and GPU acceleration */}
       <main 
         ref={mainRef} 
-        className="flex-1 overflow-auto pb-24 sm:pb-28 scroll-smooth-touch"
+        className="flex-1 overflow-auto pb-24 sm:pb-28 scroll-smooth-touch gpu-scroll touch-scroll"
       >
-        <div className="p-4 max-w-lg mx-auto animate-fade-in">
+        <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile-optimized Bottom Navigation with active indicator */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card/98 backdrop-blur-xl border-t border-border/30 shadow-guest-elevated safe-area-inset-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card/98 backdrop-blur-xl border-t border-border/30 shadow-guest-elevated safe-area-inset-bottom contain-layout">
         <div className="flex h-16 sm:h-20 items-center justify-around px-2 max-w-lg mx-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/guest' && location.pathname.startsWith(item.href));
-            const Icon = item.icon;
             return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={cn(
-                  "guest-nav-item relative min-w-[60px] tap-target",
-                  isActive 
-                    ? `${item.activeColor} ${item.activeBg}` 
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-              >
-                {/* Active indicator dot */}
-                {isActive && (
-                  <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-current" />
-                )}
-                <Icon className={cn(
-                  "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
-                  isActive && "scale-110"
-                )} />
-                <span className={cn(
-                  "text-[10px] sm:text-[11px] font-semibold transition-all",
-                  isActive && "font-bold"
-                )}>
-                  {t(item.labelKey)}
-                </span>
-              </Link>
+              <NavItem 
+                key={item.href} 
+                item={item} 
+                isActive={isActive} 
+                label={t(item.labelKey)} 
+              />
             );
           })}
         </div>
