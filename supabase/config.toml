@@ -1,5 +1,8 @@
 project_id = "dstxrbmetabgbijjeoyf"
 
+[functions.sitemap]
+verify_jwt = false
+
 [functions.find-guest-resort]
 verify_jwt = false
 

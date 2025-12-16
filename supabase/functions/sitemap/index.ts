@@ -10,6 +10,8 @@ const BASE_URL = 'https://propera.cc'
 // Static public pages to include in sitemap
 const STATIC_PAGES = [
   { path: '/', changefreq: 'weekly', priority: '1.0' },
+  { path: '/about', changefreq: 'monthly', priority: '0.8' },
+  { path: '/pricing', changefreq: 'monthly', priority: '0.8' },
   { path: '/guest/login', changefreq: 'monthly', priority: '0.7' },
   { path: '/guest/find', changefreq: 'monthly', priority: '0.6' },
 ]
