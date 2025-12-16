@@ -703,20 +703,6 @@
   .safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
-
-  /* Staff mobile utilities */
-  .staff-mobile-card {
-    @apply p-4 bg-card rounded-xl border border-border/50 shadow-soft;
-  }
-
-  .staff-mobile-stat {
-    @apply flex items-center justify-between p-3 bg-muted/30 rounded-lg;
-  }
-
-  .staff-mobile-action {
-    @apply flex items-center gap-3 p-4 bg-card rounded-xl border border-border/50 
-           active:bg-muted/50 transition-colors tap-target;
-  }
 }
 
 /* === Guest Portal Specific Styles === */

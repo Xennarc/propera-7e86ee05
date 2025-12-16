@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { StaffMobileNav } from './StaffMobileNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -169,7 +168,7 @@ export function AppLayout() {
           
           {/* Main Content */}
           <main className="flex-1 overflow-auto">
-            <div className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 max-w-[1600px] mx-auto">
+            <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
               <ErrorBoundary 
                 fallback={<RouteErrorFallback />}
                 onReset={() => window.location.reload()}
@@ -179,9 +178,6 @@ export function AppLayout() {
             </div>
           </main>
         </div>
-        
-        {/* Mobile Bottom Navigation */}
-        <StaffMobileNav onMoreClick={() => setMobileMenuOpen(true)} />
       </div>
     </SidebarProvider>
   );
