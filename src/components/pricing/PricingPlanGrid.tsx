@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Sparkles, Crown, Building2 } from 'lucide-react';
+import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Building2, Sparkles, Users, Calendar, Bell } from 'lucide-react';
+import { useState } from 'react';
 
 interface Plan {
   id: string;
@@ -18,83 +19,180 @@ interface PricingPlanGridProps {
   plans: Plan[];
 }
 
-const PLAN_VISUALS: Record<string, { icon: any; gradient: string; borderColor: string; visual: React.ReactNode }> = {
-  essential: {
-    icon: Smartphone,
-    gradient: 'from-muted/50 to-muted/20',
-    borderColor: 'border-border hover:border-primary/30',
-    visual: (
-      <div className="h-28 rounded-lg bg-gradient-to-br from-muted/30 to-muted/10 border border-border/50 p-3 mb-4">
-        <div className="flex gap-2 mb-2">
-          <div className="h-6 w-6 rounded bg-muted/50" />
-          <div className="flex-1 h-6 rounded bg-muted/50" />
+// Animated UI snippets for each plan
+function EssentialVisual() {
+  return (
+    <div className="h-32 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border border-border/50 p-3 mb-4 overflow-hidden relative">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-5 w-5 rounded bg-muted/60 flex items-center justify-center">
+          <Calendar className="h-3 w-3 text-muted-foreground" />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="h-4 rounded bg-muted/30" />
-          <div className="h-4 rounded bg-muted/30" />
-          <div className="h-4 rounded bg-muted/30" />
-          <div className="h-4 rounded bg-muted/30" />
+        <div className="h-3 w-20 rounded bg-muted/50" />
+        <div className="ml-auto h-3 w-12 rounded bg-muted/40" />
+      </div>
+      {/* Content grid */}
+      <div className="grid grid-cols-2 gap-2">
+        <motion.div 
+          className="h-8 rounded-lg bg-muted/30 border border-border/30 flex items-center px-2 gap-1.5"
+          initial={{ opacity: 0.5 }}
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <div className="h-4 w-4 rounded-full bg-primary/20" />
+          <div className="h-2 w-10 rounded bg-muted/50" />
+        </motion.div>
+        <div className="h-8 rounded-lg bg-muted/30 border border-border/30 flex items-center px-2 gap-1.5">
+          <div className="h-4 w-4 rounded bg-muted/40" />
+          <div className="h-2 w-8 rounded bg-muted/50" />
+        </div>
+        <div className="h-8 rounded-lg bg-muted/30 border border-border/30" />
+        <div className="h-8 rounded-lg bg-muted/30 border border-border/30" />
+      </div>
+      {/* Subtle glow */}
+      <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-primary/5 rounded-full blur-xl" />
+    </div>
+  );
+}
+
+function ProfessionalVisual() {
+  return (
+    <div className="h-32 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 p-3 mb-4 overflow-hidden relative">
+      {/* Header with tabs */}
+      <div className="flex items-center gap-1 mb-3">
+        <div className="h-5 px-2 rounded-md bg-primary/20 flex items-center">
+          <span className="text-[8px] font-medium text-primary">Today</span>
+        </div>
+        <div className="h-5 px-2 rounded-md bg-primary/10">
+          <span className="text-[8px] text-primary/60">Week</span>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <motion.div 
+            className="h-2 w-2 rounded-full bg-emerald-500"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <span className="text-[8px] text-emerald-500">Live</span>
         </div>
       </div>
-    ),
-  },
-  professional: {
-    icon: Monitor,
-    gradient: 'from-primary/10 to-primary/5',
-    borderColor: 'border-primary/50 hover:border-primary',
-    visual: (
-      <div className="h-28 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 p-3 mb-4">
-        <div className="flex gap-2 mb-2">
-          <div className="h-6 w-14 rounded bg-primary/20" />
-          <div className="flex-1 h-6 rounded bg-primary/10" />
+      {/* Dashboard metrics */}
+      <div className="flex gap-2 mb-2">
+        <div className="flex-1 p-2 rounded-lg bg-primary/10 border border-primary/15">
+          <div className="text-[10px] text-primary/70">Sessions</div>
+          <motion.div 
+            className="text-sm font-bold text-primary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            12
+          </motion.div>
         </div>
-        <div className="flex gap-2 items-end">
-          <div className="flex-1 space-y-1">
-            <div className="h-3 rounded bg-primary/15" />
-            <div className="h-3 w-4/5 rounded bg-primary/15" />
-          </div>
-          <div className="flex items-end gap-0.5">
-            <div className="w-3 h-6 rounded-t bg-primary/30" />
-            <div className="w-3 h-8 rounded-t bg-primary/40" />
-            <div className="w-3 h-10 rounded-t bg-primary/50" />
-          </div>
+        <div className="flex-1 p-2 rounded-lg bg-primary/10 border border-primary/15">
+          <div className="text-[10px] text-primary/70">Covers</div>
+          <motion.div 
+            className="text-sm font-bold text-primary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+          >
+            48
+          </motion.div>
         </div>
-      </div>
-    ),
-  },
-  elite: {
-    icon: BarChart3,
-    gradient: 'from-violet-500/10 to-violet-500/5',
-    borderColor: 'border-violet-500/30 hover:border-violet-500',
-    visual: (
-      <div className="h-28 rounded-lg bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 p-3 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-5 w-5 rounded-full bg-violet-500/30 flex items-center justify-center">
-            <Crown className="h-3 w-3 text-violet-500" />
-          </div>
-          <div className="h-4 flex-1 rounded bg-violet-500/20" />
-        </div>
-        <div className="flex items-end justify-between">
-          <div className="flex items-end gap-0.5 h-12">
-            <div className="w-4 h-4 rounded-sm bg-violet-500/30" />
-            <div className="w-4 h-7 rounded-sm bg-violet-500/40" />
-            <div className="w-4 h-5 rounded-sm bg-violet-500/35" />
-            <div className="w-4 h-9 rounded-sm bg-violet-500/50" />
-            <div className="w-4 h-12 rounded-sm bg-violet-500" />
-          </div>
-          <div className="text-[10px] text-violet-400 font-medium bg-violet-500/10 px-2 py-1 rounded">
-            AI Insights
-          </div>
+        <div className="flex-1 p-2 rounded-lg bg-primary/10 border border-primary/15">
+          <div className="text-[10px] text-primary/70">Pre-arrival</div>
+          <motion.div 
+            className="text-sm font-bold text-primary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            6
+          </motion.div>
         </div>
       </div>
-    ),
-  },
+      {/* Chart bars */}
+      <div className="flex items-end gap-0.5 h-6">
+        {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
+          <motion.div
+            key={i}
+            className="flex-1 rounded-t bg-primary/40"
+            initial={{ height: 0 }}
+            animate={{ height: `${h}%` }}
+            transition={{ delay: 0.2 + i * 0.05, duration: 0.4 }}
+          />
+        ))}
+      </div>
+      {/* Glow */}
+      <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-primary/10 rounded-full blur-xl" />
+    </div>
+  );
+}
+
+function EliteVisual() {
+  return (
+    <div className="h-32 rounded-xl bg-gradient-to-br from-violet-500/15 to-purple-500/5 border border-violet-500/20 p-3 mb-4 overflow-hidden relative">
+      {/* AI Header */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className="h-5 w-5 rounded-full bg-violet-500/20 flex items-center justify-center">
+          <Sparkles className="h-3 w-3 text-violet-400" />
+        </div>
+        <span className="text-[9px] font-medium text-violet-400">AI Revenue Coach</span>
+        <motion.div 
+          className="ml-auto px-1.5 py-0.5 rounded bg-violet-500/20"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <span className="text-[8px] text-violet-400">3 insights</span>
+        </motion.div>
+      </div>
+      {/* Insight card */}
+      <motion.div 
+        className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/15 mb-2"
+        initial={{ x: -10, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-start gap-2">
+          <div className="h-4 w-4 rounded bg-emerald-500/20 flex items-center justify-center mt-0.5">
+            <span className="text-[8px] text-emerald-400">↑</span>
+          </div>
+          <div className="flex-1">
+            <div className="text-[9px] text-violet-300">Pre-arrival bookings up 23%</div>
+            <div className="text-[8px] text-violet-400/70">from last week</div>
+          </div>
+        </div>
+      </motion.div>
+      {/* Loyalty badge */}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+          <Crown className="h-3 w-3 text-amber-400" />
+          <span className="text-[8px] text-amber-400 font-medium">Gold Tier</span>
+        </div>
+        <div className="text-[8px] text-violet-400/70">2,450 pts</div>
+      </div>
+      {/* Glow effects */}
+      <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-violet-500/10 rounded-full blur-xl" />
+      <div className="absolute -top-6 -left-6 w-16 h-16 bg-purple-500/10 rounded-full blur-xl" />
+    </div>
+  );
+}
+
+const PLAN_VISUALS: Record<string, { icon: any; visual: React.ReactNode }> = {
+  essential: { icon: Smartphone, visual: <EssentialVisual /> },
+  professional: { icon: Monitor, visual: <ProfessionalVisual /> },
+  elite: { icon: BarChart3, visual: <EliteVisual /> },
 };
 
 export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
+  const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+
   return (
-    <section className="py-20 md:py-28 bg-card relative">
-      <div className="container mx-auto px-4">
+    <section className="py-20 md:py-28 bg-card relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/3 via-transparent to-transparent" />
+      
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -113,41 +211,66 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
           {plans.map((plan, index) => {
             const visual = PLAN_VISUALS[plan.id];
             const Icon = visual?.icon || Building2;
+            const isExpanded = expandedPlan === plan.id;
             
             return (
               <motion.div
                 key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
+                className="group"
               >
-                <Card className={`h-full relative overflow-hidden transition-all duration-300 hover:shadow-xl ${visual?.borderColor || 'border-border'} ${plan.badgeVariant === 'popular' ? 'ring-2 ring-primary/20' : ''}`}>
+                <Card className={`h-full relative overflow-hidden transition-all duration-500 hover:shadow-2xl ${
+                  plan.id === 'elite' 
+                    ? 'border-violet-500/30 hover:border-violet-500/60 bg-gradient-to-b from-card to-violet-500/5' 
+                    : plan.id === 'professional'
+                    ? 'border-primary/30 hover:border-primary/60 ring-2 ring-primary/10'
+                    : 'border-border hover:border-primary/30'
+                }`}>
+                  {/* Badge */}
                   {plan.badgeVariant === 'popular' && (
-                    <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-xs font-semibold text-center py-1.5">
-                      Most popular
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-xs font-semibold text-center py-1.5">
+                      <span className="flex items-center justify-center gap-1.5">
+                        <Users className="h-3 w-3" />
+                        Most popular
+                      </span>
                     </div>
                   )}
                   {plan.badgeVariant === 'elite' && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-semibold text-center py-1.5">
-                      Data-driven excellence
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-semibold text-center py-1.5">
+                      <span className="flex items-center justify-center gap-1.5">
+                        <Sparkles className="h-3 w-3" />
+                        Data-driven excellence
+                      </span>
                     </div>
                   )}
                   
                   <CardContent className={`p-6 ${plan.badgeVariant !== 'default' ? 'pt-10' : ''}`}>
-                    {/* Plan visual */}
-                    {visual?.visual}
+                    {/* Animated visual */}
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      {visual?.visual}
+                    </motion.div>
                     
+                    {/* Plan header */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
-                        plan.id === 'elite' ? 'bg-violet-500/20' : 
-                        plan.id === 'professional' ? 'bg-primary/10' : 'bg-muted'
-                      }`}>
-                        <Icon className={`h-5 w-5 ${
+                      <motion.div 
+                        className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                          plan.id === 'elite' ? 'bg-violet-500/20 group-hover:bg-violet-500/30' : 
+                          plan.id === 'professional' ? 'bg-primary/10 group-hover:bg-primary/20' : 
+                          'bg-muted group-hover:bg-muted/80'
+                        }`}
+                        whileHover={{ rotate: 5 }}
+                      >
+                        <Icon className={`h-6 w-6 ${
                           plan.id === 'elite' ? 'text-violet-500' : 
                           plan.id === 'professional' ? 'text-primary' : 'text-muted-foreground'
                         }`} />
-                      </div>
+                      </motion.div>
                       <div>
                         <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                         <p className="text-2xl font-extrabold text-foreground">{plan.price}</p>
@@ -156,37 +279,72 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     
                     <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
                     
+                    {/* Features list */}
                     <ul className="space-y-2.5 mb-6">
-                      {plan.features.slice(0, 7).map((feature, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <Check className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-                            plan.id === 'elite' ? 'text-violet-500' : 
-                            plan.id === 'professional' ? 'text-primary' : 'text-muted-foreground'
-                          }`} />
+                      {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
+                        <motion.li 
+                          key={i} 
+                          className="flex items-start gap-2 text-sm"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            plan.id === 'elite' ? 'bg-violet-500/10' : 
+                            plan.id === 'professional' ? 'bg-primary/10' : 'bg-muted'
+                          }`}>
+                            <Check className={`h-3 w-3 ${
+                              plan.id === 'elite' ? 'text-violet-500' : 
+                              plan.id === 'professional' ? 'text-primary' : 'text-muted-foreground'
+                            }`} />
+                          </div>
                           <span className="text-foreground">{feature}</span>
-                        </li>
+                        </motion.li>
                       ))}
                     </ul>
                     
+                    {/* Expand/collapse */}
+                    {plan.features.length > 5 && (
+                      <button
+                        onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
+                        className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 transition-colors"
+                      >
+                        {isExpanded ? 'Show less' : `+${plan.features.length - 5} more features`}
+                        <motion.span
+                          animate={{ rotate: isExpanded ? 180 : 0 }}
+                          className="inline-block"
+                        >
+                          ↓
+                        </motion.span>
+                      </button>
+                    )}
+                    
+                    {/* CTA Button */}
                     <Button 
                       asChild 
-                      className={`w-full rounded-full font-semibold ${
+                      className={`w-full rounded-full font-semibold h-12 text-base transition-all duration-300 ${
                         plan.id === 'elite' 
-                          ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white' 
+                          ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40' 
                           : plan.id === 'professional'
-                          ? ''
+                          ? 'shadow-lg shadow-primary/20 hover:shadow-primary/40'
                           : 'bg-muted text-foreground hover:bg-muted/80'
                       }`}
                       variant={plan.id === 'professional' ? 'default' : plan.id === 'elite' ? 'default' : 'secondary'}
                     >
                       <a href={`mailto:hello@propera.cc?subject=${plan.name} Plan Inquiry`}>
                         Talk to us
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </a>
                     </Button>
                     
                     <p className="text-xs text-muted-foreground text-center mt-4">{plan.whoItsFor}</p>
                   </CardContent>
+                  
+                  {/* Hover glow effect */}
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
+                    plan.id === 'elite' ? 'bg-gradient-to-t from-violet-500/5 to-transparent' :
+                    plan.id === 'professional' ? 'bg-gradient-to-t from-primary/5 to-transparent' : ''
+                  }`} />
                 </Card>
               </motion.div>
             );

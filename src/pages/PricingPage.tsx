@@ -10,6 +10,7 @@ import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingValueSection } from '@/components/pricing/PricingValueSection';
 import { PricingComparisonTable } from '@/components/pricing/PricingComparisonTable';
 import { PricingScenarioGuide } from '@/components/pricing/PricingScenarioGuide';
+import { PricingEliteSpotlight } from '@/components/pricing/PricingEliteSpotlight';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
 
@@ -190,6 +191,7 @@ export default function PricingPage() {
         <PricingValueSection />
         <PricingComparisonTable features={COMPARISON_FEATURES} />
         <PricingScenarioGuide />
+        <PricingEliteSpotlight />
         <PricingFAQSection faqs={FAQS} />
         <PricingCTASection />
       </main>

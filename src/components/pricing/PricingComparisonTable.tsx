@@ -1,5 +1,12 @@
 import { motion } from 'framer-motion';
-import { Check, Minus, Star, Sparkles } from 'lucide-react';
+import { Check, Minus, Star, Sparkles, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface ComparisonFeature {
   name: string;
@@ -15,6 +22,7 @@ interface PricingComparisonTableProps {
 const FEATURE_GROUPS = [
   {
     title: 'Guest Experience',
+    icon: '👤',
     features: [
       'Guest web portal',
       'Activity & restaurant bookings',
@@ -29,6 +37,7 @@ const FEATURE_GROUPS = [
   },
   {
     title: 'Staff Operations',
+    icon: '⚙️',
     features: [
       'Guest records & PIN management',
       'CSV guest import',
@@ -43,6 +52,7 @@ const FEATURE_GROUPS = [
   },
   {
     title: 'Analytics & Insights',
+    icon: '📊',
     features: [
       'Basic reports',
       'Operational reports (activities, restaurants)',
@@ -58,6 +68,7 @@ const FEATURE_GROUPS = [
   },
   {
     title: 'Loyalty & Advanced',
+    icon: '👑',
     features: [
       'Loyalty program',
       'Loyalty tiers & rewards',
@@ -81,28 +92,87 @@ function FeatureIcon({ value, tier }: { value: boolean | string; tier: string })
   }
   
   if (!value) {
-    return <Minus className="h-4 w-4 text-muted-foreground/40" />;
+    return <Minus className="h-4 w-4 text-muted-foreground/30" />;
   }
   
   if (tier === 'elite') {
     return (
-      <div className="h-6 w-6 rounded-full bg-violet-500/10 flex items-center justify-center">
+      <motion.div 
+        className="h-6 w-6 rounded-full bg-violet-500/10 flex items-center justify-center"
+        whileHover={{ scale: 1.1 }}
+      >
         <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-      </div>
+      </motion.div>
     );
   }
   
   if (tier === 'professional') {
     return (
-      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+      <motion.div 
+        className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center"
+        whileHover={{ scale: 1.1 }}
+      >
         <Star className="h-3.5 w-3.5 text-primary" />
-      </div>
+      </motion.div>
     );
   }
   
   return (
-    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+    <motion.div 
+      className="h-6 w-6 rounded-full bg-muted flex items-center justify-center"
+      whileHover={{ scale: 1.1 }}
+    >
       <Check className="h-3.5 w-3.5 text-muted-foreground" />
+    </motion.div>
+  );
+}
+
+// Mobile accordion view
+function MobileComparisonView({ features, getFeatureValue }: { 
+  features: ComparisonFeature[]; 
+  getFeatureValue: (name: string, tier: 'essential' | 'professional' | 'elite') => boolean | string;
+}) {
+  return (
+    <div className="md:hidden">
+      <Accordion type="multiple" className="space-y-3">
+        {FEATURE_GROUPS.map((group, groupIndex) => (
+          <AccordionItem 
+            key={groupIndex} 
+            value={`group-${groupIndex}`}
+            className="bg-card rounded-xl border border-border/50 overflow-hidden"
+          >
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <span className="flex items-center gap-2 font-semibold text-foreground">
+                <span>{group.icon}</span>
+                {group.title}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3">
+                {group.features.map((featureName, featureIndex) => (
+                  <div key={featureIndex} className="border-b border-border/30 pb-3 last:border-0 last:pb-0">
+                    <div className="text-sm font-medium text-foreground mb-2">{featureName}</div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">Essential</span>
+                        <FeatureIcon value={getFeatureValue(featureName, 'essential')} tier="essential" />
+                      </div>
+                      <div className="flex flex-col items-center gap-1 bg-primary/5 rounded-lg py-1">
+                        <span className="text-[10px] text-primary">Pro</span>
+                        <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
+                      </div>
+                      <div className="flex flex-col items-center gap-1 bg-violet-500/5 rounded-lg py-1">
+                        <span className="text-[10px] text-violet-500">Elite</span>
+                        <FeatureIcon value={getFeatureValue(featureName, 'elite')} tier="elite" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 }
@@ -114,8 +184,11 @@ export function PricingComparisonTable({ features }: PricingComparisonTableProps
   };
 
   return (
-    <section className="py-20 md:py-28 bg-card relative">
-      <div className="container mx-auto px-4">
+    <section className="py-20 md:py-28 bg-card relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-primary/3 via-transparent to-transparent" />
+      
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -130,65 +203,83 @@ export function PricingComparisonTable({ features }: PricingComparisonTableProps
           </p>
         </motion.div>
 
+        {/* Mobile view */}
+        <MobileComparisonView features={features} getFeatureValue={getFeatureValue} />
+
+        {/* Desktop table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="max-w-5xl mx-auto overflow-x-auto"
+          className="hidden md:block max-w-5xl mx-auto"
         >
-          <table className="w-full border-collapse">
-            {/* Header */}
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-4 px-4 font-medium text-muted-foreground w-1/2">Feature</th>
-                <th className="text-center py-4 px-4 w-1/6">
-                  <div className="font-semibold text-foreground">Essential</div>
-                </th>
-                <th className="text-center py-4 px-4 w-1/6 bg-primary/5">
-                  <div className="font-semibold text-primary">Professional</div>
-                  <div className="text-xs text-primary/70 font-normal">Most popular</div>
-                </th>
-                <th className="text-center py-4 px-4 w-1/6 bg-violet-500/5">
-                  <div className="font-semibold text-violet-500">Elite</div>
-                </th>
-              </tr>
-            </thead>
-            
-            <tbody>
-              {FEATURE_GROUPS.map((group, groupIndex) => (
-                <>
-                  {/* Group header */}
-                  <tr key={`group-${groupIndex}`} className="bg-muted/30">
-                    <td colSpan={4} className="py-3 px-4 font-semibold text-foreground text-sm">
-                      {group.title}
-                    </td>
-                  </tr>
-                  
-                  {/* Features */}
-                  {group.features.map((featureName, featureIndex) => (
-                    <tr key={`${groupIndex}-${featureIndex}`} className="border-b border-border/50 hover:bg-muted/10 transition-colors">
-                      <td className="py-3 px-4 text-sm text-foreground">{featureName}</td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex justify-center">
-                          <FeatureIcon value={getFeatureValue(featureName, 'essential')} tier="essential" />
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center bg-primary/5">
-                        <div className="flex justify-center">
-                          <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-center bg-violet-500/5">
-                        <div className="flex justify-center">
-                          <FeatureIcon value={getFeatureValue(featureName, 'elite')} tier="elite" />
+          <div className="bg-background/50 backdrop-blur-sm rounded-2xl border border-border/50 overflow-hidden">
+            <table className="w-full border-collapse">
+              {/* Header */}
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-5 px-6 font-medium text-muted-foreground w-1/2">Feature</th>
+                  <th className="text-center py-5 px-4 w-1/6">
+                    <div className="font-semibold text-foreground">Essential</div>
+                    <div className="text-xs text-muted-foreground font-normal mt-0.5">Get started</div>
+                  </th>
+                  <th className="text-center py-5 px-4 w-1/6 bg-primary/5 rounded-t-xl">
+                    <div className="font-semibold text-primary">Professional</div>
+                    <div className="text-xs text-primary/70 font-normal mt-0.5">Most popular</div>
+                  </th>
+                  <th className="text-center py-5 px-4 w-1/6 bg-violet-500/5 rounded-t-xl">
+                    <div className="font-semibold text-violet-500">Elite</div>
+                    <div className="text-xs text-violet-400 font-normal mt-0.5">Data-driven</div>
+                  </th>
+                </tr>
+              </thead>
+              
+              <tbody>
+                {FEATURE_GROUPS.map((group, groupIndex) => (
+                  <>
+                    {/* Group header */}
+                    <tr key={`group-${groupIndex}`}>
+                      <td colSpan={4} className="py-4 px-6">
+                        <div className="flex items-center gap-2 font-semibold text-foreground text-sm bg-muted/30 rounded-lg px-3 py-2 -mx-1">
+                          <span>{group.icon}</span>
+                          {group.title}
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </>
-              ))}
-            </tbody>
-          </table>
+                    
+                    {/* Features */}
+                    {group.features.map((featureName, featureIndex) => (
+                      <motion.tr 
+                        key={`${groupIndex}-${featureIndex}`} 
+                        className="border-b border-border/30 hover:bg-muted/5 transition-colors"
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: featureIndex * 0.02 }}
+                      >
+                        <td className="py-3 px-6 text-sm text-foreground">{featureName}</td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex justify-center">
+                            <FeatureIcon value={getFeatureValue(featureName, 'essential')} tier="essential" />
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center bg-primary/5">
+                          <div className="flex justify-center">
+                            <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center bg-violet-500/5">
+                          <div className="flex justify-center">
+                            <FeatureIcon value={getFeatureValue(featureName, 'elite')} tier="elite" />
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       </div>
     </section>
