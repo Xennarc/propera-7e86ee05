@@ -1,32 +1,48 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion, useInView } from 'framer-motion';
+import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Smartphone, Monitor, BarChart3, Mail } from 'lucide-react';
+import { ArrowRight, MessageCircle, Smartphone, Monitor, BarChart3, Layers } from 'lucide-react';
 
 export function PricingCTASection() {
+  const reducedMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
+
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] pointer-events-none" />
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-5xl mx-auto">
+    <section ref={sectionRef} className="py-24 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-teal-400/10" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="container relative mx-auto px-4">
+        <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
           {/* Left - Stack Diagram */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={reducedMotion ? {} : { opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="order-2 lg:order-1"
           >
-            <div className="space-y-4 max-w-sm mx-auto lg:mx-0">
-              {/* Guest App Layer */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 }}
-                className="relative"
-              >
-                <div className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20 p-4">
+            <div className="relative max-w-sm mx-auto lg:mx-0">
+              {/* Vertical glow connector */}
+              <div className="absolute left-1/2 top-0 bottom-0 w-1 -translate-x-1/2 -z-10">
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/50 via-primary/50 to-violet-500/50 rounded-full" />
+                {!reducedMotion && (
+                  <motion.div
+                    animate={{ opacity: [0.3, 0.7, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-gradient-to-b from-emerald-500 via-primary to-violet-500 rounded-full blur-md"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <motion.div
+                  initial={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ delay: 0.2 }}
+                  className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20 p-4"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                       <Smartphone className="h-5 w-5 text-emerald-500" />
@@ -36,19 +52,14 @@ export function PricingCTASection() {
                       <p className="text-xs text-muted-foreground">Pre-arrival • Bookings • Loyalty</p>
                     </div>
                   </div>
-                </div>
-                <div className="absolute left-1/2 -bottom-4 w-0.5 h-4 bg-border" />
-              </motion.div>
+                </motion.div>
 
-              {/* Staff Console Layer */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.3 }}
-                className="relative"
-              >
-                <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20 p-4">
+                <motion.div
+                  initial={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ delay: 0.3 }}
+                  className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20 p-4"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-primary/20 flex items-center justify-center">
                       <Monitor className="h-5 w-5 text-primary" />
@@ -58,18 +69,14 @@ export function PricingCTASection() {
                       <p className="text-xs text-muted-foreground">Operations • Activities • Dining</p>
                     </div>
                   </div>
-                </div>
-                <div className="absolute left-1/2 -bottom-4 w-0.5 h-4 bg-border" />
-              </motion.div>
+                </motion.div>
 
-              {/* Analytics Layer */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.4 }}
-              >
-                <div className="bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/20 p-4">
+                <motion.div
+                  initial={reducedMotion ? {} : { opacity: 0, y: -10 }}
+                  animate={isInView ? { opacity: 1, y: 0 } : {}}
+                  transition={{ delay: 0.4 }}
+                  className="bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/20 p-4"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
                       <BarChart3 className="h-5 w-5 text-violet-500" />
@@ -79,29 +86,19 @@ export function PricingCTASection() {
                       <p className="text-xs text-muted-foreground">AI insights • Revenue • Loyalty</p>
                     </div>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </div>
 
-              {/* Propera wrapper */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.6 }}
-                className="text-center pt-4"
-              >
-                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="h-px w-8 bg-border" />
-                  All powered by Propera
-                  <span className="h-px w-8 bg-border" />
-                </div>
-              </motion.div>
+              <p className="text-center text-sm text-muted-foreground mt-6 flex items-center justify-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                All powered by Propera
+              </p>
             </div>
           </motion.div>
 
           {/* Right - CTA */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={reducedMotion ? {} : { opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="order-1 lg:order-2 text-center lg:text-left"
@@ -114,7 +111,7 @@ export function PricingCTASection() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4">
-              <Button asChild size="lg" className="rounded-full font-semibold shadow-lg">
+              <Button asChild size="lg" className="rounded-full font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all">
                 <a href="mailto:hello@propera.cc?subject=Demo Request">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -122,11 +119,14 @@ export function PricingCTASection() {
               </Button>
               <Button asChild variant="outline" size="lg" className="rounded-full font-semibold">
                 <a href="mailto:hello@propera.cc?subject=Sales Inquiry">
-                  <Mail className="mr-2 h-4 w-4" />
+                  <MessageCircle className="mr-2 h-4 w-4" />
                   Contact sales
                 </a>
               </Button>
             </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              We'll recommend the best plan based on your resort type and portfolio size.
+            </p>
           </motion.div>
         </div>
       </div>

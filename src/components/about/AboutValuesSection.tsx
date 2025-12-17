@@ -1,122 +1,270 @@
-import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Smartphone, LayoutGrid, Globe, BarChart3 } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const VALUES = [
+const STORYBOARD_PANELS = [
   {
-    icon: Smartphone,
-    title: 'Software should disappear into the stay',
-    description: 'Guests see their resort, not our tech. Propera works behind the scenes so every interaction feels native to the property.',
-    visual: (
-      <div className="relative h-24 mt-4 rounded-lg overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
-        <div className="absolute inset-2 bg-card rounded-md border border-border/50 p-2">
-          <div className="h-8 w-full rounded bg-primary/10 mb-1" />
-          <div className="flex gap-1">
-            <div className="h-4 w-4 rounded bg-primary/20" />
-            <div className="h-4 flex-1 rounded bg-muted/50" />
+    belief: 'One source of truth for the whole resort',
+    beforeLabel: 'Before',
+    afterLabel: 'With Propera',
+    beforeVisual: (
+      <div className="space-y-2">
+        <div className="flex gap-2 opacity-60">
+          <div className="h-8 w-16 bg-muted/50 rounded blur-[1px] border border-border/30" />
+          <div className="h-8 w-12 bg-muted/50 rounded blur-[1px] border border-border/30" />
+        </div>
+        <div className="flex gap-2 opacity-50">
+          <div className="h-6 w-20 bg-muted/40 rounded blur-[1px]" />
+          <div className="h-6 w-8 bg-amber-500/20 rounded blur-[1px]" />
+        </div>
+        <div className="h-4 w-24 bg-muted/30 rounded blur-[1px]" />
+      </div>
+    ),
+    afterVisual: (
+      <div className="bg-card/80 rounded-xl border border-primary/20 p-3 shadow-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] text-primary font-medium">Live Dashboard</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-primary/10 rounded p-1.5 text-center">
+            <p className="text-sm font-bold text-foreground">24</p>
+            <p className="text-[8px] text-muted-foreground">Sessions</p>
+          </div>
+          <div className="bg-primary/10 rounded p-1.5 text-center">
+            <p className="text-sm font-bold text-foreground">186</p>
+            <p className="text-[8px] text-muted-foreground">Covers</p>
+          </div>
+          <div className="bg-primary/10 rounded p-1.5 text-center">
+            <p className="text-sm font-bold text-foreground">12</p>
+            <p className="text-[8px] text-muted-foreground">Arrivals</p>
           </div>
         </div>
       </div>
     ),
   },
   {
-    icon: LayoutGrid,
-    title: 'Every department should see the same reality',
-    description: 'Activities, dining, spa, front desk—all operating from one shared source of truth. No more silos, no more surprises.',
-    visual: (
-      <div className="relative h-24 mt-4 rounded-lg overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
-        <div className="absolute inset-2 flex gap-1">
-          <div className="flex-1 bg-card rounded border border-border/50 p-1">
-            <div className="h-3 w-full rounded bg-emerald-500/30 mb-1" />
-            <div className="h-2 w-3/4 rounded bg-muted/50" />
+    belief: 'Guests should self-serve with confidence',
+    beforeLabel: 'Before',
+    afterLabel: 'With Propera',
+    beforeVisual: (
+      <div className="space-y-2 opacity-60">
+        <div className="h-10 w-full bg-muted/40 rounded flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">📞 Call reception</span>
+        </div>
+        <div className="flex gap-1">
+          <div className="h-6 flex-1 bg-muted/30 rounded" />
+          <div className="h-6 flex-1 bg-muted/30 rounded" />
+        </div>
+      </div>
+    ),
+    afterVisual: (
+      <div className="bg-card/80 rounded-xl border border-teal-400/20 p-3 shadow-lg">
+        <div className="space-y-2">
+          <div className="bg-teal-400/10 rounded-lg p-2">
+            <p className="text-[10px] text-teal-600 dark:text-teal-400">Sunset Cruise</p>
+            <p className="text-xs font-semibold text-foreground">Booked ✓</p>
           </div>
-          <div className="flex-1 bg-card rounded border border-border/50 p-1">
-            <div className="h-3 w-full rounded bg-blue-500/30 mb-1" />
-            <div className="h-2 w-3/4 rounded bg-muted/50" />
-          </div>
-          <div className="flex-1 bg-card rounded border border-border/50 p-1">
-            <div className="h-3 w-full rounded bg-amber-500/30 mb-1" />
-            <div className="h-2 w-3/4 rounded bg-muted/50" />
+          <div className="bg-emerald-500/10 rounded-lg p-2 flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <span className="text-emerald-500 text-xs">✓</span>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Added to itinerary</p>
+            </div>
           </div>
         </div>
       </div>
     ),
   },
   {
-    icon: Globe,
-    title: 'Global portfolio, local personality',
-    description: 'Standardize operations across properties while preserving each resort\'s unique identity and guest experience.',
-    visual: (
-      <div className="relative h-24 mt-4 rounded-lg overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
-        <div className="absolute inset-2 flex items-center justify-center gap-2">
-          <div className="h-12 w-12 rounded-full bg-card border border-border/50 flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full bg-primary/20" />
+    belief: 'Global portfolio, local personality',
+    beforeLabel: 'Before',
+    afterLabel: 'With Propera',
+    beforeVisual: (
+      <div className="space-y-2 opacity-60">
+        <div className="flex gap-1">
+          <div className="h-12 w-12 bg-muted/40 rounded" />
+          <div className="h-12 w-12 bg-muted/40 rounded" />
+          <div className="h-12 w-12 bg-muted/40 rounded" />
+        </div>
+        <p className="text-[9px] text-muted-foreground">3 different systems</p>
+      </div>
+    ),
+    afterVisual: (
+      <div className="bg-card/80 rounded-xl border border-violet-500/20 p-3 shadow-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-6 w-6 rounded bg-violet-500/20" />
+          <span className="text-xs font-semibold text-foreground">Portfolio View</span>
+        </div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-foreground">Island Resort</span>
+            <span className="text-muted-foreground ml-auto">94%</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <div className="h-8 w-16 bg-card rounded border border-border/50" />
-            <div className="h-8 w-16 bg-card rounded border border-border/50" />
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-foreground">Mountain Lodge</span>
+            <span className="text-muted-foreground ml-auto">87%</span>
           </div>
         </div>
       </div>
     ),
   },
   {
-    icon: BarChart3,
-    title: 'Data is for decisions, not dashboards',
-    description: 'We surface insights that help you act—not just reports to admire. Every metric ties back to better guest outcomes.',
-    visual: (
-      <div className="relative h-24 mt-4 rounded-lg overflow-hidden bg-gradient-to-br from-primary/5 to-primary/10">
-        <div className="absolute inset-2 bg-card rounded border border-border/50 p-2 flex items-end gap-1">
-          <div className="flex-1 h-8 rounded-t bg-primary/30" />
-          <div className="flex-1 h-12 rounded-t bg-primary/40" />
-          <div className="flex-1 h-10 rounded-t bg-primary/30" />
-          <div className="flex-1 h-14 rounded-t bg-primary/50" />
-          <div className="flex-1 h-16 rounded-t bg-primary" />
+    belief: 'Make data actionable',
+    beforeLabel: 'Before',
+    afterLabel: 'With Propera',
+    beforeVisual: (
+      <div className="space-y-2 opacity-60">
+        <div className="h-16 w-full bg-muted/40 rounded flex items-center justify-center">
+          <span className="text-[10px] text-muted-foreground">📊 Static report</span>
         </div>
+      </div>
+    ),
+    afterVisual: (
+      <div className="bg-card/80 rounded-xl border border-amber-500/20 p-3 shadow-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">AI Insight</span>
+          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+        </div>
+        <p className="text-[10px] text-foreground leading-relaxed">
+          "Sunset tours have 40% more bookings on Wednesdays. Consider adding a second session."
+        </p>
       </div>
     ),
   },
 ];
 
 export function AboutValuesSection() {
+  const reducedMotion = useReducedMotion();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 400;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
   return (
-    <section className="py-20 md:py-28 bg-card relative">
-      <div className="container mx-auto px-4">
+    <section className="py-20 md:py-28 bg-card relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-background/50 to-transparent pointer-events-none" />
+      
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            What we believe about modern resort operations
+            What we believe — and how it shows up in the product
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            The principles that shape every feature we build and every decision we make.
+            Every feature starts with a conviction about how resorts should operate.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {VALUES.map((value, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
+        {/* Horizontal Storyboard */}
+        <div className="relative">
+          {/* Scroll buttons */}
+          <div className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20">
+            <Button
+              variant="outline"
+              size="icon"
+              className={`rounded-full shadow-lg ${!canScrollLeft ? 'opacity-30 cursor-not-allowed' : ''}`}
+              onClick={() => scroll('left')}
+              disabled={!canScrollLeft}
             >
-              <Card className="h-full bg-background border-border/50 hover:border-primary/30 transition-all duration-300 group">
-                <CardContent className="p-6">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-                    <value.icon className="h-6 w-6 text-primary group-hover:text-primary-foreground transition-colors" />
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20">
+            <Button
+              variant="outline"
+              size="icon"
+              className={`rounded-full shadow-lg ${!canScrollRight ? 'opacity-30 cursor-not-allowed' : ''}`}
+              onClick={() => scroll('right')}
+              disabled={!canScrollRight}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div 
+            ref={scrollRef}
+            onScroll={checkScroll}
+            className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {STORYBOARD_PANELS.map((panel, index) => (
+              <motion.div
+                key={index}
+                initial={reducedMotion ? {} : { opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="flex-shrink-0 w-[340px] md:w-[400px] snap-center"
+              >
+                <div className="bg-background rounded-2xl border border-border/50 overflow-hidden h-full">
+                  {/* Belief header */}
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 px-6 py-4 border-b border-border/50">
+                    <p className="text-sm font-semibold text-foreground">"{panel.belief}"</p>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">{value.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{value.description}</p>
-                  {value.visual}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  
+                  {/* Before / After comparison */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Before */}
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide">{panel.beforeLabel}</p>
+                        <div className="min-h-[100px] flex items-center">
+                          {panel.beforeVisual}
+                        </div>
+                      </div>
+                      
+                      {/* Arrow connector */}
+                      <div className="relative">
+                        <div className="absolute left-0 top-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-muted/50 to-primary/50" />
+                        <div className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                          <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center">
+                            <span className="text-primary text-xs">→</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-primary mb-3 uppercase tracking-wide">{panel.afterLabel}</p>
+                        <div className="min-h-[100px] flex items-center">
+                          {panel.afterVisual}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Progress dots for mobile */}
+          <div className="flex justify-center gap-2 mt-4 md:hidden">
+            {STORYBOARD_PANELS.map((_, index) => (
+              <div key={index} className="w-2 h-2 rounded-full bg-primary/30" />
+            ))}
+          </div>
         </div>
       </div>
     </section>
