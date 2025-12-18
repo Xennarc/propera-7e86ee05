@@ -557,6 +557,78 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_attendees: {
+        Row: {
+          activity_booking_id: string | null
+          attendee_type: Database["public"]["Enums"]["travel_party_member_type"]
+          created_at: string
+          display_name: string
+          guest_id: string | null
+          id: string
+          member_id: string | null
+          resort_id: string
+          restaurant_reservation_id: string | null
+        }
+        Insert: {
+          activity_booking_id?: string | null
+          attendee_type?: Database["public"]["Enums"]["travel_party_member_type"]
+          created_at?: string
+          display_name: string
+          guest_id?: string | null
+          id?: string
+          member_id?: string | null
+          resort_id: string
+          restaurant_reservation_id?: string | null
+        }
+        Update: {
+          activity_booking_id?: string | null
+          attendee_type?: Database["public"]["Enums"]["travel_party_member_type"]
+          created_at?: string
+          display_name?: string
+          guest_id?: string | null
+          id?: string
+          member_id?: string | null
+          resort_id?: string
+          restaurant_reservation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_attendees_activity_booking_id_fkey"
+            columns: ["activity_booking_id"]
+            isOneToOne: false
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_attendees_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_attendees_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "travel_party_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_attendees_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_attendees_restaurant_reservation_id_fkey"
+            columns: ["restaurant_reservation_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_audit_logs: {
         Row: {
           action: string
@@ -2254,6 +2326,170 @@ export type Database = {
           },
         ]
       }
+      travel_parties: {
+        Row: {
+          created_at: string
+          id: string
+          lead_guest_id: string
+          name: string | null
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_guest_id: string
+          name?: string | null
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_guest_id?: string
+          name?: string | null
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_parties_lead_guest_id_fkey"
+            columns: ["lead_guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_parties_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      travel_party_members: {
+        Row: {
+          birth_year: number | null
+          created_at: string
+          display_name: string
+          guest_id: string | null
+          id: string
+          is_lead: boolean
+          member_type: Database["public"]["Enums"]["travel_party_member_type"]
+          relationship_label: string | null
+          resort_id: string
+          room_number: string | null
+          travel_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          birth_year?: number | null
+          created_at?: string
+          display_name: string
+          guest_id?: string | null
+          id?: string
+          is_lead?: boolean
+          member_type?: Database["public"]["Enums"]["travel_party_member_type"]
+          relationship_label?: string | null
+          resort_id: string
+          room_number?: string | null
+          travel_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          birth_year?: number | null
+          created_at?: string
+          display_name?: string
+          guest_id?: string | null
+          id?: string
+          is_lead?: boolean
+          member_type?: Database["public"]["Enums"]["travel_party_member_type"]
+          relationship_label?: string | null
+          resort_id?: string
+          room_number?: string | null
+          travel_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_party_members_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_party_members_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_party_members_travel_party_id_fkey"
+            columns: ["travel_party_id"]
+            isOneToOne: false
+            referencedRelation: "travel_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      travel_party_room_links: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          link_status: Database["public"]["Enums"]["travel_party_link_status"]
+          resort_id: string
+          room_number: string
+          travel_party_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          link_status?: Database["public"]["Enums"]["travel_party_link_status"]
+          resort_id: string
+          room_number: string
+          travel_party_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          link_status?: Database["public"]["Enums"]["travel_party_link_status"]
+          resort_id?: string
+          room_number?: string
+          travel_party_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "travel_party_room_links_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_party_room_links_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "travel_party_room_links_travel_party_id_fkey"
+            columns: ["travel_party_id"]
+            isOneToOne: false
+            referencedRelation: "travel_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2373,6 +2609,13 @@ export type Database = {
       }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
+      get_booking_attendees: {
+        Args: {
+          p_activity_booking_id?: string
+          p_restaurant_reservation_id?: string
+        }
+        Returns: Json
+      }
       get_or_create_loyalty_member: {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: string
@@ -2397,6 +2640,16 @@ export type Database = {
           status: string
         }[]
       }
+      guest_add_party_member: {
+        Args: {
+          p_birth_year?: number
+          p_display_name: string
+          p_guest_id: string
+          p_member_type: Database["public"]["Enums"]["travel_party_member_type"]
+          p_relationship_label?: string
+        }
+        Returns: Json
+      }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
@@ -2412,6 +2665,14 @@ export type Database = {
           p_notes?: string
           p_num_adults: number
           p_num_children: number
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      guest_create_activity_booking_with_attendees: {
+        Args: {
+          p_guest_id: string
+          p_member_ids: string[]
           p_session_id: string
         }
         Returns: Json
@@ -2458,11 +2719,24 @@ export type Database = {
       }
       guest_get_loyalty_info: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_notifications: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_or_create_travel_party: {
+        Args: { p_guest_id: string }
+        Returns: Json
+      }
       guest_get_prearrival_data: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
       guest_get_unread_notification_count: {
         Args: { p_guest_id: string }
         Returns: number
+      }
+      guest_link_room_to_party: {
+        Args: {
+          p_last_name: string
+          p_lead_guest_id: string
+          p_pin: string
+          p_room_number: string
+        }
+        Returns: Json
       }
       guest_mark_all_notifications_read: {
         Args: { p_guest_id: string }
@@ -2508,6 +2782,10 @@ export type Database = {
               room_number: string
             }[]
           }
+      guest_remove_party_member: {
+        Args: { p_lead_guest_id: string; p_member_id: string }
+        Returns: Json
+      }
       guest_submit_stay_feedback: {
         Args: {
           p_guest_id: string
@@ -2657,6 +2935,8 @@ export type Database = {
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
       subscription_tier: "ESSENTIAL" | "PROFESSIONAL" | "ELITE"
+      travel_party_link_status: "pending" | "linked"
+      travel_party_member_type: "adult" | "child"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2852,6 +3132,8 @@ export const Constants = {
       session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
       slot_status: ["OPEN", "CLOSED", "FULL"],
       subscription_tier: ["ESSENTIAL", "PROFESSIONAL", "ELITE"],
+      travel_party_link_status: ["pending", "linked"],
+      travel_party_member_type: ["adult", "child"],
     },
   },
 } as const

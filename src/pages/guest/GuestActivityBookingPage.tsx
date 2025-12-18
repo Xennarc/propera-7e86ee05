@@ -21,7 +21,8 @@ import { cn } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { CategoryIcon } from '@/components/ui/category-badge';
 import { NumberStepper } from '@/components/ui/number-stepper';
-
+import { AttendeeSelector } from '@/components/guest/AttendeeSelector';
+import { useTravelParty } from '@/hooks/useTravelParty';
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
   const lowerError = error.toLowerCase();
@@ -44,6 +45,7 @@ export default function GuestActivityBookingPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [numAdults, setNumAdults] = useState(1);
   const [numChildren, setNumChildren] = useState(0);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [bookingResult, setBookingResult] = useState<{
     success: boolean;
@@ -131,6 +133,16 @@ export default function GuestActivityBookingPage() {
 
   const pricingCharges = parsePricingCharges(resortPricing?.pricing_charges);
 
+  // Travel party for attendee selection
+  const { travelParty } = useTravelParty();
+  const hasPartyMembers = (travelParty?.members?.length || 0) > 1;
+
+  // Handle attendee selection changes
+  const handleAttendeeSelectionChange = (memberIds: string[], pax: { adults: number; children: number }) => {
+    setSelectedMemberIds(memberIds);
+    setNumAdults(pax.adults);
+    setNumChildren(pax.children);
+  };
   // Find the initially selected session and get activity_id
   const initialSession = allSessions?.find((s: any) => s.id === sessionId);
   const activityId = initialSession?.activity_id;
@@ -560,24 +572,34 @@ export default function GuestActivityBookingPage() {
             </Alert>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <NumberStepper
-              label="Adults"
-              value={numAdults}
-              onChange={(value) => setNumAdults(Math.min(value, effectiveMaxPax - numChildren))}
-              min={1}
-              max={effectiveMaxPax - numChildren}
-              disabled={hasRoomBooking}
+          {/* Attendee Selector (shows if travel party has members) */}
+          {hasPartyMembers ? (
+            <AttendeeSelector
+              guestId={guest.guestId}
+              roomNumber={guest.roomNumber}
+              maxAttendees={effectiveMaxPax}
+              onSelectionChange={handleAttendeeSelectionChange}
             />
-            <NumberStepper
-              label="Children"
-              value={numChildren}
-              onChange={(value) => setNumChildren(Math.min(value, effectiveMaxPax - numAdults))}
-              min={0}
-              max={effectiveMaxPax - numAdults}
-              disabled={hasRoomBooking}
-            />
-          </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <NumberStepper
+                label="Adults"
+                value={numAdults}
+                onChange={(value) => setNumAdults(Math.min(value, effectiveMaxPax - numChildren))}
+                min={1}
+                max={effectiveMaxPax - numChildren}
+                disabled={hasRoomBooking}
+              />
+              <NumberStepper
+                label="Children"
+                value={numChildren}
+                onChange={(value) => setNumChildren(Math.min(value, effectiveMaxPax - numAdults))}
+                min={0}
+                max={effectiveMaxPax - numAdults}
+                disabled={hasRoomBooking}
+              />
+            </div>
+          )}
 
           {/* Pricing Summary */}
           {session.price_per_person > 0 && (() => {

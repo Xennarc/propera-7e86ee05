@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { BookingAuditTrail } from '@/components/bookings/BookingAuditTrail';
+import { BookingAttendeesDisplay } from '@/components/bookings/BookingAttendeesDisplay';
 import { SessionWaitlist } from '@/components/activities/SessionWaitlist';
 import { ActivitySessionDialog } from './ActivitySessionDialog';
 import { ActivityBookingDialog } from './ActivityBookingDialog';
@@ -349,8 +350,7 @@ export default function ActivitySessionDetailPage() {
                       <TableRow>
                         <TableHead>Guest</TableHead>
                         <TableHead>Room</TableHead>
-                        <TableHead>Adults</TableHead>
-                        <TableHead>Children</TableHead>
+                        <TableHead>Attendees</TableHead>
                         <TableHead>Total</TableHead>
                         <TableHead>Source</TableHead>
                         <TableHead>Booked By</TableHead>
@@ -370,8 +370,13 @@ export default function ActivitySessionDetailPage() {
                             </button>
                           </TableCell>
                           <TableCell className="font-mono">{booking.room_number}</TableCell>
-                          <TableCell>{booking.num_adults}</TableCell>
-                          <TableCell>{booking.num_children}</TableCell>
+                          <TableCell>
+                            <BookingAttendeesDisplay
+                              activityBookingId={booking.id}
+                              fallbackAdults={booking.num_adults}
+                              fallbackChildren={booking.num_children}
+                            />
+                          </TableCell>
                           <TableCell>${booking.total_amount}</TableCell>
                           <TableCell className="text-xs">{booking.source.replace('STAFF_', '')}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
