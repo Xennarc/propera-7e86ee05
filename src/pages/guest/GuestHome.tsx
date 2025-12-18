@@ -34,6 +34,7 @@ import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestOnboardingTour, useGuestOnboarding } from '@/components/guest/GuestOnboardingTour';
 import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions';
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
+import { TravelPartyCard } from '@/components/guest/TravelPartyCard';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 
@@ -288,6 +289,9 @@ export default function GuestHome() {
 
       {/* Quick Actions Grid */}
       <GuestQuickActions />
+
+      {/* Travel Party Card */}
+      <TravelPartyCard />
 
       {/* Smart Suggestions - contextual nudges */}
       {!showNudge && (
