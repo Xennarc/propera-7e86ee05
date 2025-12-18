@@ -72,15 +72,16 @@ export default function ResortGuestLogin() {
 
     const fetchResort = async (retryCount = 0) => {
       try {
-        // Use secure RPC function instead of direct table access
-        // This prevents exposing sensitive business data
-        const { data, error } = await supabase.rpc('get_resort_public_info', { p_resort_code: code });
+        // Query resort directly - RLS policy restricts to active resorts only
+        const { data, error } = await supabase
+          .from('resorts')
+          .select('id, name, code, status')
+          .ilike('code', code)
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching resort:', error);
-          // Retry on network errors
           if (retryCount < 2) {
-            console.log(`Retrying resort fetch (attempt ${retryCount + 2})...`);
             setTimeout(() => fetchResort(retryCount + 1), 500);
             return;
           }
@@ -93,15 +94,12 @@ export default function ResortGuestLogin() {
           setNotFound(true);
           setLoadingResort(false);
         } else {
-          // Cast the RPC response to the expected type
-          const resortData = data as unknown as { id: string; name: string; code: string; status: string };
           const info: ResortBasicInfo = {
-            id: resortData.id,
-            name: resortData.name,
-            code: resortData.code,
-            status: resortData.status as ResortStatus,
+            id: data.id,
+            name: data.name,
+            code: data.code,
+            status: data.status as ResortStatus,
           };
-          // Check if resort is active
           if (info.status === 'INACTIVE') {
             setResortInactive(true);
           }
@@ -110,9 +108,7 @@ export default function ResortGuestLogin() {
         }
       } catch (err) {
         console.error('Error fetching resort:', err);
-        // Retry on network errors
         if (retryCount < 2) {
-          console.log(`Retrying resort fetch (attempt ${retryCount + 2})...`);
           setTimeout(() => fetchResort(retryCount + 1), 500);
           return;
         }

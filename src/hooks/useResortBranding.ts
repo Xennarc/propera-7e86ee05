@@ -47,22 +47,25 @@ async function fetchResortBranding(resortIdOrCode: string): Promise<ResortBrandi
   // Determine if it's a UUID or a code
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resortIdOrCode);
   
-  // Use secure RPC functions instead of direct table access
-  // This prevents exposing sensitive business data
+  // Query resort directly - RLS policy restricts to active resorts only
+  const query = supabase
+    .from('resorts')
+    .select('id, name, code, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark');
+  
   if (isUuid) {
-    const { data, error } = await supabase.rpc('get_resort_by_id', { p_resort_id: resortIdOrCode });
+    const { data, error } = await query.eq('id', resortIdOrCode).maybeSingle();
     if (error) {
       console.error('Error fetching resort branding by ID:', error);
       return null;
     }
-    return data as unknown as ResortBranding | null;
+    return data as ResortBranding | null;
   } else {
-    const { data, error } = await supabase.rpc('get_resort_public_info', { p_resort_code: resortIdOrCode });
+    const { data, error } = await query.ilike('code', resortIdOrCode).maybeSingle();
     if (error) {
       console.error('Error fetching resort branding by code:', error);
       return null;
     }
-    return data as unknown as ResortBranding | null;
+    return data as ResortBranding | null;
   }
 }
 
