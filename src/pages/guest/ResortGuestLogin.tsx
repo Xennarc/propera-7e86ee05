@@ -72,12 +72,9 @@ export default function ResortGuestLogin() {
 
     const fetchResort = async (retryCount = 0) => {
       try {
-        // Use ilike for case-insensitive matching - only fetch basic info
-        const { data, error } = await supabase
-          .from('resorts')
-          .select('id, name, code, status')
-          .ilike('code', code)
-          .maybeSingle();
+        // Use secure RPC function instead of direct table access
+        // This prevents exposing sensitive business data
+        const { data, error } = await supabase.rpc('get_resort_public_info', { p_resort_code: code });
 
         if (error) {
           console.error('Error fetching resort:', error);
@@ -96,11 +93,13 @@ export default function ResortGuestLogin() {
           setNotFound(true);
           setLoadingResort(false);
         } else {
+          // Cast the RPC response to the expected type
+          const resortData = data as unknown as { id: string; name: string; code: string; status: string };
           const info: ResortBasicInfo = {
-            id: data.id,
-            name: data.name,
-            code: data.code,
-            status: data.status as ResortStatus,
+            id: resortData.id,
+            name: resortData.name,
+            code: resortData.code,
+            status: resortData.status as ResortStatus,
           };
           // Check if resort is active
           if (info.status === 'INACTIVE') {
