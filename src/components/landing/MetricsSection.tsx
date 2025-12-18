@@ -1,6 +1,7 @@
 import { motion, useInView } from 'framer-motion';
 import { TrendingUp, TrendingDown, Globe, Users } from 'lucide-react';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, memo } from 'react';
+import { useAnimationPreference } from '@/hooks/useReducedMotion';
 
 const metrics = [
   {
@@ -8,7 +9,7 @@ const metrics = [
     suffix: '%',
     label: 'fewer calls to front desk',
     description: 'Guests self-serve through the app',
-    trend: 'down',
+    trend: 'down' as const,
     chart: [60, 50, 45, 38, 35, 30],
   },
   {
@@ -16,7 +17,7 @@ const metrics = [
     suffix: '%',
     label: 'more pre-booked activities',
     description: 'Pre-arrival engagement drives revenue',
-    trend: 'up',
+    trend: 'up' as const,
     chart: [40, 48, 55, 62, 70, 80],
   },
   {
@@ -35,14 +36,108 @@ const metrics = [
   },
 ];
 
-export function MetricsSection() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
-  const [reducedMotion, setReducedMotion] = useState(false);
+type Metric = typeof metrics[0];
+
+// Memoized metric card for performance
+const MetricCard = memo(function MetricCard({ 
+  metric, 
+  index, 
+  isInView,
+  shouldAnimate 
+}: { 
+  metric: Metric; 
+  index: number; 
+  isInView: boolean;
+  shouldAnimate: boolean;
+}) {
+  const [displayValue, setDisplayValue] = useState(shouldAnimate ? 0 : metric.value);
+  const hasAnimated = useRef(false);
   
   useEffect(() => {
-    setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  }, []);
+    if (!isInView || !shouldAnimate || hasAnimated.current) {
+      if (isInView) setDisplayValue(metric.value);
+      return;
+    }
+    
+    hasAnimated.current = true;
+    const duration = 1200;
+    const startTime = performance.now();
+    let rafId: number;
+    
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(eased * metric.value));
+      if (progress < 1) rafId = requestAnimationFrame(tick);
+    };
+    
+    const timeout = setTimeout(() => {
+      rafId = requestAnimationFrame(tick);
+    }, 200 + index * 100);
+    
+    return () => {
+      clearTimeout(timeout);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [isInView, metric.value, index, shouldAnimate]);
+  
+  // Calculate chart progress based on animation state
+  const chartProgress = hasAnimated.current || !shouldAnimate ? 1 : 0;
+  
+  return (
+    <motion.div
+      initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.08 }}
+      className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] will-change-transform"
+    >
+      <div className="mb-4">
+        <span className="text-4xl md:text-5xl font-bold text-white">
+          {displayValue}{metric.suffix}
+        </span>
+      </div>
+      <p className="text-white font-medium mb-1">{metric.label}</p>
+      <p className="text-sm text-white/50 mb-4">{metric.description}</p>
+
+      {/* Chart - CSS-only animation */}
+      {metric.chart ? (
+        <div className="h-12 flex items-end gap-1">
+          {metric.chart.map((val, i) => (
+            <div
+              key={i}
+              className={`flex-1 rounded-t transition-all duration-700 ${
+                metric.trend === 'up' ? 'bg-success' : 'bg-primary'
+              }`}
+              style={{ 
+                height: isInView ? `${val}%` : '0%',
+                opacity: 0.3 + (i * 0.14),
+                transitionDelay: `${i * 80}ms`
+              }}
+            />
+          ))}
+        </div>
+      ) : metric.icon ? (
+        <div className="h-12 flex items-center">
+          <metric.icon className="h-8 w-8 text-primary" />
+        </div>
+      ) : null}
+
+      {metric.trend && (
+        <div className={`flex items-center gap-1 mt-2 text-sm ${metric.trend === 'up' ? 'text-success' : 'text-primary'}`}>
+          {metric.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+          <span>vs. before Propera</span>
+        </div>
+      )}
+    </motion.div>
+  );
+});
+
+export function MetricsSection() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
+  const { shouldAnimate } = useAnimationPreference();
 
   return (
     <section ref={sectionRef} className="py-24 relative overflow-hidden">
@@ -53,7 +148,7 @@ export function MetricsSection() {
       
       <div className="container relative mx-auto px-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="text-center mb-16"
@@ -73,106 +168,22 @@ export function MetricsSection() {
               metric={metric} 
               index={index} 
               isInView={isInView}
-              reducedMotion={reducedMotion}
+              shouldAnimate={shouldAnimate}
             />
           ))}
         </div>
         
         {/* Caption */}
         <motion.p
-          initial={{ opacity: 0 }}
+          initial={shouldAnimate ? { opacity: 0 } : { opacity: 1 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.4 }}
           className="text-center text-white/40 text-sm mt-12"
         >
           Sample data from multi-resort portfolios
         </motion.p>
       </div>
     </section>
-  );
-}
-
-function MetricCard({ 
-  metric, 
-  index, 
-  isInView,
-  reducedMotion 
-}: { 
-  metric: typeof metrics[0]; 
-  index: number; 
-  isInView: boolean;
-  reducedMotion: boolean;
-}) {
-  const [displayValue, setDisplayValue] = useState(reducedMotion ? metric.value : 0);
-  const [chartProgress, setChartProgress] = useState(reducedMotion ? 1 : 0);
-  
-  useEffect(() => {
-    if (!isInView || reducedMotion) return;
-    
-    // Animate number
-    const duration = 1500;
-    const startTime = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplayValue(Math.round(eased * metric.value));
-      setChartProgress(eased);
-      if (progress < 1) requestAnimationFrame(tick);
-    };
-    const timeout = setTimeout(tick, 300 + index * 150);
-    return () => clearTimeout(timeout);
-  }, [isInView, metric.value, index, reducedMotion]);
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ y: -4, backgroundColor: 'rgba(255,255,255,0.1)' }}
-      className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 transition-all duration-300"
-    >
-      <div className="mb-4">
-        <span className="text-4xl md:text-5xl font-bold text-white">
-          {displayValue}{metric.suffix}
-        </span>
-      </div>
-      <p className="text-white font-medium mb-1">{metric.label}</p>
-      <p className="text-sm text-white/50 mb-4">{metric.description}</p>
-
-      {/* Chart or Icon */}
-      {metric.chart ? (
-        <div className="h-12 flex items-end gap-1">
-          {metric.chart.map((val, i) => {
-            const height = val * chartProgress;
-            return (
-              <motion.div
-                key={i}
-                className={`flex-1 rounded-t transition-all ${
-                  metric.trend === 'up' ? 'bg-success' : 'bg-primary'
-                }`}
-                style={{ 
-                  height: `${height}%`, 
-                  opacity: 0.3 + (i * 0.14) 
-                }}
-              />
-            );
-          })}
-        </div>
-      ) : metric.icon ? (
-        <div className="h-12 flex items-center">
-          <metric.icon className="h-8 w-8 text-primary" />
-        </div>
-      ) : null}
-
-      {metric.trend && (
-        <div className={`flex items-center gap-1 mt-2 text-sm ${metric.trend === 'up' ? 'text-success' : 'text-primary'}`}>
-          {metric.trend === 'up' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-          <span>vs. before Propera</span>
-        </div>
-      )}
-    </motion.div>
   );
 }
