@@ -1267,12 +1267,20 @@ export type Database = {
           arrival_date: string | null
           arrival_flight_number: string | null
           arrival_time: string | null
+          baggage_count: number | null
+          checkin_completed_at: string | null
           created_at: string
           custom_answers_json: Json | null
           dietary_preferences: Json | null
+          esignature_date: string | null
+          esignature_name: string | null
           guest_id: string
+          guest_names: Json | null
           id: string
           last_updated_at: string
+          passport_details: Json | null
+          pickup_notes: string | null
+          policy_acknowledged_at: string | null
           prearrival_status: Database["public"]["Enums"]["prearrival_status"]
           resort_id: string
           room_preferences: Json | null
@@ -1280,6 +1288,8 @@ export type Database = {
           special_requests: string | null
           staff_notes: string | null
           staff_processed: boolean
+          stay_confirmation_notes: string | null
+          stay_confirmed: boolean | null
           transfer_preference: string | null
           water_comfort_level: string | null
         }
@@ -1288,12 +1298,20 @@ export type Database = {
           arrival_date?: string | null
           arrival_flight_number?: string | null
           arrival_time?: string | null
+          baggage_count?: number | null
+          checkin_completed_at?: string | null
           created_at?: string
           custom_answers_json?: Json | null
           dietary_preferences?: Json | null
+          esignature_date?: string | null
+          esignature_name?: string | null
           guest_id: string
+          guest_names?: Json | null
           id?: string
           last_updated_at?: string
+          passport_details?: Json | null
+          pickup_notes?: string | null
+          policy_acknowledged_at?: string | null
           prearrival_status?: Database["public"]["Enums"]["prearrival_status"]
           resort_id: string
           room_preferences?: Json | null
@@ -1301,6 +1319,8 @@ export type Database = {
           special_requests?: string | null
           staff_notes?: string | null
           staff_processed?: boolean
+          stay_confirmation_notes?: string | null
+          stay_confirmed?: boolean | null
           transfer_preference?: string | null
           water_comfort_level?: string | null
         }
@@ -1309,12 +1329,20 @@ export type Database = {
           arrival_date?: string | null
           arrival_flight_number?: string | null
           arrival_time?: string | null
+          baggage_count?: number | null
+          checkin_completed_at?: string | null
           created_at?: string
           custom_answers_json?: Json | null
           dietary_preferences?: Json | null
+          esignature_date?: string | null
+          esignature_name?: string | null
           guest_id?: string
+          guest_names?: Json | null
           id?: string
           last_updated_at?: string
+          passport_details?: Json | null
+          pickup_notes?: string | null
+          policy_acknowledged_at?: string | null
           prearrival_status?: Database["public"]["Enums"]["prearrival_status"]
           resort_id?: string
           room_preferences?: Json | null
@@ -1322,6 +1350,8 @@ export type Database = {
           special_requests?: string | null
           staff_notes?: string | null
           staff_processed?: boolean
+          stay_confirmation_notes?: string | null
+          stay_confirmed?: boolean | null
           transfer_preference?: string | null
           water_comfort_level?: string | null
         }
@@ -1349,15 +1379,22 @@ export type Database = {
           allow_spa_bookings: boolean
           created_at: string
           custom_questions_json: Json | null
+          esignature_instruction: string | null
           id: string
           internal_guidance_notes: string | null
           is_enabled: boolean
           open_days_before_checkin: number
+          policy_text: string | null
+          require_esignature: boolean | null
+          require_policy_acknowledgement: boolean | null
           resort_id: string
           show_arrival_details: boolean
           show_preferences: boolean
           show_special_occasions: boolean
           updated_at: string
+          verification_mode:
+            | Database["public"]["Enums"]["prearrival_verification_mode"]
+            | null
           welcome_message: string | null
         }
         Insert: {
@@ -1366,15 +1403,22 @@ export type Database = {
           allow_spa_bookings?: boolean
           created_at?: string
           custom_questions_json?: Json | null
+          esignature_instruction?: string | null
           id?: string
           internal_guidance_notes?: string | null
           is_enabled?: boolean
           open_days_before_checkin?: number
+          policy_text?: string | null
+          require_esignature?: boolean | null
+          require_policy_acknowledgement?: boolean | null
           resort_id: string
           show_arrival_details?: boolean
           show_preferences?: boolean
           show_special_occasions?: boolean
           updated_at?: string
+          verification_mode?:
+            | Database["public"]["Enums"]["prearrival_verification_mode"]
+            | null
           welcome_message?: string | null
         }
         Update: {
@@ -1383,15 +1427,22 @@ export type Database = {
           allow_spa_bookings?: boolean
           created_at?: string
           custom_questions_json?: Json | null
+          esignature_instruction?: string | null
           id?: string
           internal_guidance_notes?: string | null
           is_enabled?: boolean
           open_days_before_checkin?: number
+          policy_text?: string | null
+          require_esignature?: boolean | null
+          require_policy_acknowledgement?: boolean | null
           resort_id?: string
           show_arrival_details?: boolean
           show_preferences?: boolean
           show_special_occasions?: boolean
           updated_at?: string
+          verification_mode?:
+            | Database["public"]["Enums"]["prearrival_verification_mode"]
+            | null
           welcome_message?: string | null
         }
         Relationships: [
@@ -1406,31 +1457,49 @@ export type Database = {
       }
       prearrival_tokens: {
         Row: {
+          completed_at: string | null
           created_at: string
           expires_at: string
           guest_id: string
           id: string
+          last_opened_at: string | null
           resort_id: string
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["prearrival_link_status"] | null
           token: string
+          token_hint: string | null
           updated_at: string
+          verification_completed_at: string | null
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
           expires_at: string
           guest_id: string
           id?: string
+          last_opened_at?: string | null
           resort_id: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["prearrival_link_status"] | null
           token: string
+          token_hint?: string | null
           updated_at?: string
+          verification_completed_at?: string | null
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
           expires_at?: string
           guest_id?: string
           id?: string
+          last_opened_at?: string | null
           resort_id?: string
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["prearrival_link_status"] | null
           token?: string
+          token_hint?: string | null
           updated_at?: string
+          verification_completed_at?: string | null
         }
         Relationships: [
           {
@@ -2249,6 +2318,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      complete_prearrival_checkin: {
+        Args: {
+          p_esignature_name?: string
+          p_policy_acknowledged?: boolean
+          p_token: string
+        }
+        Returns: Json
+      }
       create_guest_notification: {
         Args: {
           p_guest_id: string
@@ -2494,6 +2571,11 @@ export type Database = {
         Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
         Returns: string
       }
+      regenerate_prearrival_link: {
+        Args: { p_guest_id: string }
+        Returns: Json
+      }
+      revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
       staff_lookup_by_identifier: {
         Args: { p_identifier: string }
         Returns: {
@@ -2505,6 +2587,10 @@ export type Database = {
       }
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
+        Returns: Json
+      }
+      validate_prearrival_link: {
+        Args: { p_last_name?: string; p_token: string }
         Returns: Json
       }
     }
@@ -2554,7 +2640,9 @@ export type Database = {
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
+      prearrival_link_status: "active" | "expired" | "revoked" | "completed"
       prearrival_status: "not_started" | "partial" | "completed"
+      prearrival_verification_mode: "none" | "light" | "otp"
       recommendation_response: "YES" | "NO" | "MAYBE"
       recurrence_frequency: "DAILY" | "WEEKLY"
       resort_role:
@@ -2746,7 +2834,9 @@ export const Constants = {
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
+      prearrival_link_status: ["active", "expired", "revoked", "completed"],
       prearrival_status: ["not_started", "partial", "completed"],
+      prearrival_verification_mode: ["none", "light", "otp"],
       recommendation_response: ["YES", "NO", "MAYBE"],
       recurrence_frequency: ["DAILY", "WEEKLY"],
       resort_role: [

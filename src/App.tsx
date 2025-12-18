@@ -108,6 +108,8 @@ const GuestActivityDetailPage = lazy(() => import("./pages/guest/GuestActivityDe
 const GuestProfilePage = lazy(() => import("./pages/guest/GuestProfilePage"));
 const GuestNotificationsPage = lazy(() => import("./pages/guest/GuestNotificationsPage"));
 const PreArrivalPage = lazy(() => import("./pages/guest/PreArrivalPage"));
+const PrearrivalLandingPage = lazy(() => import("./pages/prearrival/PrearrivalLandingPage"));
+const PrearrivalCheckinWizard = lazy(() => import("./pages/prearrival/PrearrivalCheckinWizard"));
 const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 
 // Lazy loaded pages - Public
@@ -241,8 +243,10 @@ const App = () => (
                   <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />
                 </Route>
                 
-                {/* Pre-arrival route (token-based, no auth required) */}
-                <Route path="/prearrival/:token" element={<PreArrivalPage />} />
+                {/* Pre-arrival routes (token-based, no auth required) */}
+                <Route path="/prearrival/:token" element={<PrearrivalLandingPage />} />
+                <Route path="/prearrival/:token/checkin" element={<PrearrivalCheckinWizard />} />
+                <Route path="/prearrival/:token/experiences" element={<PreArrivalPage />} />
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
