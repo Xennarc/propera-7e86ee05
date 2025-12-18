@@ -75,9 +75,9 @@ const ResortCard = memo(function ResortCard({
   const [showOverlay, setShowOverlay] = useState(false);
   
   const gridClasses: Record<string, string> = {
-    large: 'col-span-2 row-span-2',
-    medium: 'col-span-1 row-span-2 md:col-span-1 md:row-span-2',
-    small: 'col-span-1 row-span-1',
+    large: 'col-span-2 row-span-2 min-h-[280px] md:min-h-[320px]',
+    medium: 'col-span-1 row-span-2 min-h-[280px] md:min-h-[320px]',
+    small: 'col-span-1 row-span-1 min-h-[140px] md:min-h-[160px]',
   };
   
   return (
@@ -89,10 +89,6 @@ const ResortCard = memo(function ResortCard({
       className={`relative rounded-2xl overflow-hidden group cursor-pointer ${gridClasses[resort.size]}`}
       onMouseEnter={() => setShowOverlay(true)}
       onMouseLeave={() => setShowOverlay(false)}
-      style={{ 
-        // Reserve aspect ratio space to prevent CLS
-        aspectRatio: resort.size === 'large' ? '4/3' : resort.size === 'medium' ? '3/4' : '1/1'
-      }}
     >
       {/* Placeholder background */}
       <div className="absolute inset-0 bg-muted" />
@@ -205,8 +201,8 @@ export function GlobalResortsSection() {
           </p>
         </motion.div>
 
-        {/* Masonry-style Collage - CSS Grid with reserved heights */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-16 auto-rows-[120px] md:auto-rows-[160px]">
+        {/* Masonry-style Collage - CSS Grid with proper row sizing */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-16" style={{ gridAutoRows: 'minmax(140px, auto)' }}>
           {resortTypes.map((resort, index) => (
             <ResortCard 
               key={resort.label} 
