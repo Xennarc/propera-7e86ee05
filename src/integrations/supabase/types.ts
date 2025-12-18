@@ -2304,6 +2304,8 @@ export type Database = {
         Args: { p_guest_id: string }
         Returns: string
       }
+      get_resort_by_id: { Args: { p_resort_id: string }; Returns: Json }
+      get_resort_public_info: { Args: { p_resort_code: string }; Returns: Json }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {

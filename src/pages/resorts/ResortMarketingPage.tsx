@@ -28,15 +28,35 @@ export default function ResortMarketingPage() {
     queryFn: async () => {
       if (!code) throw new Error('Resort code required');
       
-      const { data, error } = await supabase
-        .from('resorts')
-        .select('*')
-        .ilike('code', code)
-        .eq('status', 'ACTIVE')
-        .maybeSingle();
+      // Use secure RPC function to prevent exposing sensitive business data
+      const { data, error } = await supabase.rpc('get_resort_public_info', { p_resort_code: code });
 
       if (error) throw error;
-      return data;
+      
+      // Cast the RPC response and filter for active resorts
+      const resortData = data as unknown as { 
+        id: string; 
+        name: string; 
+        code: string; 
+        status: string;
+        timezone: string;
+        login_logo_url: string | null;
+        login_hero_image_url: string | null;
+        login_primary_color: string | null;
+        login_accent_color: string | null;
+        guest_login_title: string | null;
+        guest_login_subtitle: string | null;
+        guest_login_instructions: string | null;
+        brand_theme: string | null;
+        brand_wordmark: string | null;
+      } | null;
+      
+      // Only return if resort is active
+      if (!resortData || resortData.status !== 'ACTIVE') {
+        return null;
+      }
+      
+      return resortData;
     },
     enabled: !!code,
   });
