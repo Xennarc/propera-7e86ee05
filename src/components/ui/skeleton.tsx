@@ -1,6 +1,13 @@
 import { cn } from "@/lib/utils";
 
-function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Fixed width to prevent layout shift */
+  width?: string | number;
+  /** Fixed height to prevent layout shift */
+  height?: string | number;
+}
+
+function Skeleton({ className, width, height, style, ...props }: SkeletonProps) {
   return (
     <div
       className={cn(
@@ -10,6 +17,13 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
         "after:bg-gradient-to-r after:from-transparent after:via-muted/40 after:to-transparent",
         className
       )}
+      style={{
+        width: typeof width === 'number' ? `${width}px` : width,
+        height: typeof height === 'number' ? `${height}px` : height,
+        // Use min-height to reserve space
+        minHeight: height ? (typeof height === 'number' ? `${height}px` : height) : undefined,
+        ...style,
+      }}
       {...props}
     />
   );

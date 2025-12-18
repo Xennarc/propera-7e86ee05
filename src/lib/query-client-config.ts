@@ -54,6 +54,18 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
   return failureCount < 1;
 }
 
+// Cache TTL constants
+export const CACHE_TIMES = {
+  // Reference data (activities, restaurants, resources) - rarely changes
+  REFERENCE_DATA: 5 * 60 * 1000, // 5 minutes
+  // Lists (sessions, slots, bookings) - changes more frequently
+  LIST_DATA: 30 * 1000, // 30 seconds
+  // User/guest data - needs to be fresh
+  USER_DATA: 15 * 1000, // 15 seconds
+  // Branding/config - rarely changes
+  CONFIG_DATA: 10 * 60 * 1000, // 10 minutes
+} as const;
+
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -62,8 +74,8 @@ export function createQueryClient(): QueryClient {
         retry: (failureCount, error) => shouldRetry(failureCount, error),
         retryDelay: (attemptIndex) => calculateBackoff(attemptIndex),
         
-        // Stale time - data is fresh for 30 seconds
-        staleTime: 30 * 1000,
+        // Default stale time - can be overridden per query
+        staleTime: CACHE_TIMES.LIST_DATA,
         
         // Cache time - keep unused data for 5 minutes
         gcTime: 5 * 60 * 1000,
@@ -79,6 +91,9 @@ export function createQueryClient(): QueryClient {
         
         // Network mode - allow offline access to cached data
         networkMode: 'offlineFirst',
+        
+        // Structural sharing for performance
+        structuralSharing: true,
       },
       mutations: {
         // Retry mutations for connection errors
@@ -96,3 +111,27 @@ export function createQueryClient(): QueryClient {
 }
 
 export const queryClient = createQueryClient();
+
+/**
+ * Clear all cached data for a specific resort (use when switching resorts)
+ */
+export function clearResortCache(resortId: string) {
+  queryClient.removeQueries({
+    predicate: (query) => {
+      const key = query.queryKey;
+      return Array.isArray(key) && key.includes(resortId);
+    },
+  });
+}
+
+/**
+ * Invalidate all resort-scoped queries
+ */
+export function invalidateResortQueries(resortId: string) {
+  queryClient.invalidateQueries({
+    predicate: (query) => {
+      const key = query.queryKey;
+      return Array.isArray(key) && key.includes(resortId);
+    },
+  });
+}
