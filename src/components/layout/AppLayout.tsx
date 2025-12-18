@@ -4,6 +4,7 @@ import { AppSidebar } from './AppSidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ShieldX, Menu } from 'lucide-react';
@@ -23,6 +24,9 @@ export function AppLayout() {
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
+  
+  // Prefetch common resort data for faster navigation
+  usePrefetchResortData();
 
   // Show loading while auth is initializing
   if (loading) {

@@ -1,13 +1,22 @@
+import { memo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
+// Fixed heights for consistent layout
+const HEIGHTS = {
+  statCard: 100,
+  tableRow: 52,
+  listItem: 52,
+  requestCard: 120,
+} as const;
+
 // Stat card skeleton with shimmer effect
-export function StatCardSkeleton({ className }: { className?: string }) {
+export const StatCardSkeleton = memo(function StatCardSkeleton({ className }: { className?: string }) {
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
+    <Card className={cn('overflow-hidden', className)} style={{ height: HEIGHTS.statCard }}>
+      <CardContent className="p-6 h-full">
+        <div className="flex items-center justify-between h-full">
           <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-16" />
@@ -17,7 +26,7 @@ export function StatCardSkeleton({ className }: { className?: string }) {
       </CardContent>
     </Card>
   );
-}
+});
 
 // Multiple stat cards skeleton
 export function StatCardGridSkeleton({ count = 5 }: { count?: number }) {
