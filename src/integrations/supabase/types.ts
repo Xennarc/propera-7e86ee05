@@ -2709,6 +2709,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_username_available: {
+        Args: { p_resort_id: string; p_username: string }
+        Returns: Json
+      }
       complete_prearrival_checkin: {
         Args: {
           p_esignature_name?: string
