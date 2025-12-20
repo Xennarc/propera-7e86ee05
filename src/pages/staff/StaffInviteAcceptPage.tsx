@@ -126,6 +126,12 @@ export default function StaffInviteAcceptPage() {
         invite_message: invData.invite_message,
       };
 
+      if (inv.status === 'ACCEPTED') {
+        setError('ALREADY_ACCEPTED');
+        setLoading(false);
+        return;
+      }
+      
       if (inv.status !== 'PENDING') {
         setError('This invitation has already been used or cancelled.');
         setLoading(false);
@@ -187,10 +193,14 @@ export default function StaffInviteAcceptPage() {
         throw new Error(response.error || 'Failed to create account');
       }
 
-      // Mark invitation as accepted
+      // Mark invitation as accepted with timestamp
       await supabase
         .from('staff_invitations')
-        .update({ status: 'ACCEPTED' })
+        .update({ 
+          status: 'ACCEPTED',
+          accepted_at: new Date().toISOString(),
+          accepted_by_user_id: response.user_id
+        })
         .eq('token', token);
 
       // Sign in the new user
@@ -269,6 +279,28 @@ export default function StaffInviteAcceptPage() {
   }
 
   if (error) {
+    // Special handling for already-accepted invites
+    if (error === 'ALREADY_ACCEPTED') {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
+          <div className="max-w-md w-full space-y-6 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
+              <CheckCircle className="h-10 w-10 text-success" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-foreground">Invitation Already Accepted</h2>
+              <p className="text-muted-foreground">
+                This invitation has already been accepted and your account is active. You can sign in with your credentials.
+              </p>
+            </div>
+            <Button onClick={() => navigate('/auth')} size="lg" className="mt-6">
+              Go to Sign In
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
         <div className="max-w-md w-full space-y-6 text-center">
