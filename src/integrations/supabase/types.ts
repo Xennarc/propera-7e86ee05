@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_audit_log: {
+        Row: {
+          action_key: string
+          actor_user_id: string
+          created_at: string
+          details_json: Json | null
+          id: string
+          resort_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_key: string
+          actor_user_id: string
+          created_at?: string
+          details_json?: Json | null
+          id?: string
+          resort_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_key?: string
+          actor_user_id?: string
+          created_at?: string
+          details_json?: Json | null
+          id?: string
+          resort_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_audit_log_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activities: {
         Row: {
           age_min: number | null
@@ -1402,6 +1440,36 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_dangerous: boolean
+          key: string
+          label: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dangerous?: boolean
+          key: string
+          label: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dangerous?: boolean
+          key?: string
+          label?: string
+        }
+        Relationships: []
+      }
       prearrival_profiles: {
         Row: {
           allergies: string | null
@@ -2312,6 +2380,80 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_key: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_key: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_key?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system_role: boolean
+          name: string
+          resort_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean
+          name: string
+          resort_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_role?: boolean
+          name?: string
+          resort_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roles_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_audit_logs: {
         Row: {
           action: string
@@ -2660,6 +2802,90 @@ export type Database = {
           },
         ]
       }
+      user_permission_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effect: Database["public"]["Enums"]["permission_effect"]
+          id: string
+          permission_key: string
+          resort_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effect: Database["public"]["Enums"]["permission_effect"]
+          id?: string
+          permission_key: string
+          resort_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effect?: Database["public"]["Enums"]["permission_effect"]
+          id?: string
+          permission_key?: string
+          resort_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permission_overrides_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "user_permission_overrides_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_resort_roles: {
+        Row: {
+          created_at: string
+          id: string
+          resort_id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resort_id: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resort_id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_resort_roles_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_resort_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2701,6 +2927,10 @@ export type Database = {
       }
       admin_reset_staff_password: {
         Args: { p_new_password: string; p_user_id: string }
+        Returns: Json
+      }
+      assign_user_role: {
+        Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
       }
       award_loyalty_points: {
@@ -2829,6 +3059,13 @@ export type Database = {
           resort_role: string
           status: string
           username: string
+        }[]
+      }
+      get_user_effective_permissions: {
+        Args: { p_resort_id: string; p_user_id: string }
+        Returns: {
+          permission_key: string
+          source: string
         }[]
       }
       guest_add_party_member: {
@@ -3036,6 +3273,15 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_access_change: {
+        Args: {
+          p_action_key: string
+          p_details?: Json
+          p_resort_id: string
+          p_target_user_id?: string
+        }
+        Returns: string
+      }
       log_admin_action: {
         Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
         Returns: string
@@ -3053,7 +3299,28 @@ export type Database = {
         Args: { p_guest_id: string }
         Returns: Json
       }
+      remove_permission_override: {
+        Args: {
+          p_permission_key: string
+          p_resort_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      remove_user_role: {
+        Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
+        Returns: Json
+      }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
+      set_permission_override: {
+        Args: {
+          p_effect: Database["public"]["Enums"]["permission_effect"]
+          p_permission_key: string
+          p_resort_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       staff_lookup_by_identifier: {
         Args: { p_identifier: string }
         Returns: {
@@ -3066,6 +3333,14 @@ export type Database = {
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
         Returns: Json
+      }
+      user_has_permission: {
+        Args: {
+          p_permission_key: string
+          p_resort_id: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
       validate_prearrival_link: {
         Args: { p_last_name?: string; p_token: string }
@@ -3118,6 +3393,7 @@ export type Database = {
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
+      permission_effect: "grant" | "revoke"
       prearrival_link_status: "active" | "expired" | "revoked" | "completed"
       prearrival_status: "not_started" | "partial" | "completed"
       prearrival_verification_mode: "none" | "light" | "otp"
@@ -3314,6 +3590,7 @@ export const Constants = {
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
+      permission_effect: ["grant", "revoke"],
       prearrival_link_status: ["active", "expired", "revoked", "completed"],
       prearrival_status: ["not_started", "partial", "completed"],
       prearrival_verification_mode: ["none", "light", "otp"],
