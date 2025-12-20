@@ -49,13 +49,18 @@ export interface StaffInvitation {
   id: string;
   email: string;
   name: string | null;
+  username: string | null;
   resort_id: string;
   resort_role: ResortRole;
   department: string | null;
   invited_by_user_id: string | null;
+  invited_by_name: string | null;
+  invite_message: string | null;
   token: string;
   status: InvitationStatus;
   expires_at: string;
+  accepted_at: string | null;
+  accepted_by_user_id: string | null;
   created_at: string;
   updated_at: string;
   // Joined fields
