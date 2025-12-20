@@ -117,7 +117,7 @@ export function PremiumDataTable<T extends { id: string }>({
         mobileCardView && "hidden md:block"
       )}>
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-20 bg-card">
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b border-border/50">
               {columns.map((col, idx) => (
                 <TableHead
@@ -134,7 +134,7 @@ export function PremiumDataTable<T extends { id: string }>({
               ))}
               {hasActions && (
                 <TableHead className={cn(
-                  'text-right w-[70px]',
+                  'text-right w-[70px] sticky right-0 bg-muted/40',
                   compact ? 'h-10 px-3' : 'h-12 px-4'
                 )}>
                   <span className="sr-only">Actions</span>
@@ -192,7 +192,7 @@ export function PremiumDataTable<T extends { id: string }>({
                     </TableCell>
                   ))}
                   {hasActions && (
-                    <TableCell className={cn('text-right', compact ? 'py-2 px-3' : 'py-3 px-4')}>
+                    <TableCell className={cn('text-right sticky right-0 bg-card', compact ? 'py-2 px-3' : 'py-3 px-4')}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button 
