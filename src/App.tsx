@@ -29,6 +29,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ResortProvider } from "@/contexts/ResortContext";
 import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { StaffShell } from "@/components/staff/StaffShell";
 import { GuestLayout } from "@/components/guest/GuestLayout";
 
 // Critical pages loaded eagerly (landing, auth, layouts)
@@ -171,7 +172,7 @@ const App = () => (
                 
                 {/* Staff routes */}
                 <Route path="/staff/auth" element={<Auth />} />
-                <Route path="/staff" element={<AppLayout />}>
+                <Route path="/staff" element={<StaffShell />}>
                   <Route index element={<Navigate to="/staff/dashboard" replace />} />
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="guests" element={<GuestsPage />} />
