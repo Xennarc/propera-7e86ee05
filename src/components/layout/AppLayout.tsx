@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { StaffBreadcrumbs } from './StaffBreadcrumbs';
+import { MobileBottomNav } from './MobileBottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { Navigate, Outlet } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ShieldX, Menu } from 'lucide-react';
+import { ShieldX, Menu, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -18,6 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { RouteErrorFallback } from '@/components/ui/route-error-fallback';
+import { Badge } from '@/components/ui/badge';
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -102,16 +105,16 @@ export function AppLayout() {
         
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top App Bar */}
-          <header className="sticky top-0 z-10 h-16 lg:h-18 border-b border-border/50 bg-card/80 backdrop-blur-xl shadow-soft">
+          <header className="sticky top-0 z-10 h-14 lg:h-16 border-b border-border/50 bg-card/90 backdrop-blur-xl shadow-soft">
             <div className="flex h-full items-center justify-between px-4 lg:px-6 gap-4">
-              <div className="flex items-center gap-3 lg:gap-4">
+              <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1">
                 {/* Mobile Menu */}
                 <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="lg:hidden -ml-1 text-muted-foreground hover:text-foreground"
+                      className="lg:hidden -ml-1 text-muted-foreground hover:text-foreground shrink-0"
                     >
                       <Menu className="h-5 w-5" />
                     </Button>
@@ -122,46 +125,40 @@ export function AppLayout() {
                 </Sheet>
                 
                 {/* Desktop Sidebar Trigger */}
-                <SidebarTrigger className="hidden lg:flex -ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl" />
+                <SidebarTrigger className="hidden lg:flex -ml-2 text-muted-foreground hover:text-foreground transition-colors rounded-xl shrink-0" />
                 
-                {/* Mobile: Compact header */}
-                <div className="flex items-center gap-3 lg:hidden">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 shadow-sm">
-                    <ProperaMark size={20} />
+                {/* Mobile: Resort name */}
+                <div className="flex items-center gap-2 lg:hidden min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shadow-sm shrink-0">
+                    <ProperaMark size={16} />
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-bold text-foreground truncate max-w-[140px]">
-                      {currentResort?.name || 'Select Resort'}
-                    </h2>
-                  </div>
+                  <span className="text-sm font-bold text-foreground truncate">
+                    {currentResort?.name || 'Select Resort'}
+                  </span>
                 </div>
                 
-                {/* Desktop: Full header */}
-                <div className="hidden lg:block">
-                  <h2 className="text-base font-bold text-foreground">
-                    {currentResort?.name || 'Select Resort'}
-                  </h2>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
-                    <IconCalendar className="h-3 w-3" />
-                    {format(new Date(), 'EEEE, MMMM d, yyyy')}
-                  </p>
+                {/* Desktop: Breadcrumbs */}
+                <div className="hidden lg:flex items-center gap-4 min-w-0 flex-1">
+                  <div className="h-6 w-px bg-border/50" />
+                  <StaffBreadcrumbs className="text-muted-foreground" />
                 </div>
               </div>
               
-              <div className="flex items-center gap-2 lg:gap-3">
+              {/* Right side actions */}
+              <div className="flex items-center gap-2 lg:gap-3 shrink-0">
                 <ThemeToggle className="text-muted-foreground hover:text-foreground" />
                 <NotificationBell />
                 
-                {/* User info */}
-                <div className="hidden md:flex items-center gap-3 pl-3 lg:pl-4 border-l border-border">
-                  <div className="flex h-9 w-9 lg:h-10 lg:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
+                {/* User info - Desktop */}
+                <div className="hidden md:flex items-center gap-3 pl-3 border-l border-border/50">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary text-sm font-bold shadow-sm">
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </div>
                   <div className="text-right hidden lg:block">
-                    <p className="text-sm font-semibold text-foreground">
+                    <p className="text-sm font-semibold text-foreground leading-tight">
                       {profile?.full_name || 'Staff User'}
                     </p>
-                    <p className="text-xs text-muted-foreground font-medium">
+                    <p className="text-xs text-muted-foreground">
                       {profile?.department || user?.email}
                     </p>
                   </div>
@@ -171,7 +168,7 @@ export function AppLayout() {
           </header>
           
           {/* Main Content */}
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto pb-20 lg:pb-0">
             <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
               <ErrorBoundary 
                 fallback={<RouteErrorFallback />}
@@ -181,6 +178,9 @@ export function AppLayout() {
               </ErrorBoundary>
             </div>
           </main>
+          
+          {/* Mobile Bottom Navigation */}
+          <MobileBottomNav />
         </div>
       </div>
     </SidebarProvider>
