@@ -17,6 +17,7 @@ interface StaffInviteRequest {
   role: string;
   inviteLink: string;
   expiresIn: string;
+  invitationId?: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -25,6 +26,7 @@ const ROLE_LABELS: Record<string, string> = {
   FRONT_OFFICE: 'Front Office',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  RESERVATIONS: 'Reservations',
 };
 
 serve(async (req) => {
@@ -49,9 +51,13 @@ serve(async (req) => {
     // Create Supabase client with the user's token
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } }
     });
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the authenticated user
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
@@ -63,7 +69,7 @@ serve(async (req) => {
       );
     }
 
-    const { email, name, resortName, resortId, role, inviteLink, expiresIn }: StaffInviteRequest = await req.json();
+    const { email, name, resortName, resortId, role, inviteLink, expiresIn, invitationId }: StaffInviteRequest = await req.json();
 
     // Validate required fields
     if (!resortId) {
@@ -74,7 +80,6 @@ serve(async (req) => {
     }
 
     // Check authorization: user must be SUPER_ADMIN or RESORT_ADMIN for the specified resort
-    // First check if user is SUPER_ADMIN
     const { data: profile } = await supabase
       .from('profiles')
       .select('global_role')
@@ -107,7 +112,7 @@ serve(async (req) => {
     const greeting = name ? `Hi ${name},` : 'Hi,';
 
     const emailResponse = await resend.emails.send({
-      from: "Propera <onboarding@resend.dev>",
+      from: "Propera <reservations@propera.cc>",
       to: [email],
       subject: `You're invited to join ${resortName} on Propera`,
       html: `
@@ -162,6 +167,22 @@ serve(async (req) => {
     });
 
     console.log("Email sent successfully:", emailResponse);
+
+    // Log the action for audit
+    await supabaseAdmin
+      .from('staff_audit_logs')
+      .insert({
+        actor_id: user.id,
+        action: 'invite_email_sent',
+        resort_id: resortId,
+        target_user_id: null,
+        metadata_json: {
+          email,
+          name,
+          role,
+          invitation_id: invitationId || null
+        }
+      });
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,

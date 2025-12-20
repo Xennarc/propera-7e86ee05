@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { ResortRole } from '@/types/database';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,8 +19,6 @@ import {
 import { toast } from 'sonner';
 import { Copy, Check, Mail, UserPlus } from 'lucide-react';
 import { z } from 'zod';
-
-const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB'];
 
 const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
@@ -46,6 +45,7 @@ interface StaffInviteDialogProps {
 export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInviteDialogProps) {
   const { user } = useAuth();
   const { currentResort } = useResort();
+  const { getAvailableRoles, canInviteStaff } = useStaffPermissions();
   const [saving, setSaving] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -56,6 +56,9 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
     resort_role: '' as ResortRole | '',
     department: '',
   });
+
+  // Get available roles for the current user (exclude SUPER_ADMIN for invite flow)
+  const availableRoles = getAvailableRoles(false) as ResortRole[];
 
   const generateToken = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -68,6 +71,12 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
 
   const handleSubmit = async () => {
     if (!currentResort || !user) return;
+
+    // Check if user can invite with selected role
+    if (formData.resort_role && !canInviteStaff(currentResort.id, formData.resort_role)) {
+      toast.error('You do not have permission to assign this role');
+      return;
+    }
 
     setErrors({});
     const result = inviteSchema.safeParse(formData);
@@ -88,7 +97,7 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
 
-      const { error } = await supabase
+      const { data: invitation, error } = await supabase
         .from('staff_invitations')
         .insert({
           email: formData.email.trim().toLowerCase(),
@@ -100,12 +109,26 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
           token,
           status: 'PENDING',
           expires_at: expiresAt.toISOString(),
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
 
       const link = `${window.location.origin}/staff/invite/${token}`;
       setInviteLink(link);
+
+      // Log the invite creation
+      await supabase.rpc('log_staff_action', {
+        p_action: 'invite_created',
+        p_resort_id: currentResort.id,
+        p_target_user_id: null,
+        p_metadata: {
+          email: formData.email.trim().toLowerCase(),
+          role: formData.resort_role,
+          invitation_id: invitation?.id
+        }
+      });
 
       // Send invitation email
       try {
@@ -118,6 +141,7 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
             role: formData.resort_role,
             inviteLink: link,
             expiresIn: '7 days',
+            invitationId: invitation?.id,
           },
         });
 
@@ -205,7 +229,7 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {ALL_RESORT_ROLES.map((role) => (
+                    {availableRoles.map((role) => (
                       <SelectItem key={role} value={role}>
                         {ROLE_LABELS[role]}
                       </SelectItem>
