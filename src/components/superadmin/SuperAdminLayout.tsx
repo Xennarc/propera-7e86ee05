@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { cn } from '@/lib/utils';
@@ -7,7 +7,6 @@ import { NavLink } from '@/components/NavLink';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -44,10 +43,10 @@ import {
   ExternalLink,
   Settings,
   Bell,
-  X,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessDenied } from '@/components/ui/access-denied';
+import { CommandBar } from '@/components/superadmin/CommandBar';
 
 type NavItem = {
   title: string;
