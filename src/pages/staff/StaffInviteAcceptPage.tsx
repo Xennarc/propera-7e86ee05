@@ -8,25 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { toast } from 'sonner';
-import { Building2, UserPlus, CheckCircle, XCircle, LogOut, Waves, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Building2, UserPlus, CheckCircle, XCircle, LogOut, Waves, Eye, EyeOff, Loader2, AtSign, Shield, MessageSquare, Calendar } from 'lucide-react';
 import { z } from 'zod';
 
 interface Invitation {
   id: string;
   email: string;
   name: string | null;
+  username: string | null;
   resort_id: string;
   resort_role: ResortRole;
   department: string | null;
   status: string;
   expires_at: string;
-  resort: {
-    id: string;
-    name: string;
-    code: string;
-  };
+  resort_name: string;
+  invited_by_name: string | null;
+  invite_message: string | null;
 }
 
 const ROLE_LABELS: Record<ResortRole, string> = {
@@ -38,17 +38,27 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   FNB: 'F&B',
 };
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, 'Please enter your name'),
-  username: z.string()
-    .min(3, 'Usernames must be at least 3 characters long')
-    .regex(/^[a-zA-Z0-9_.]+$/, 'Usernames can only contain letters, numbers, and dots or underscores'),
-  password: z.string().min(8, 'Your password is too short. Please choose a stronger one'),
+const passwordSchema = z.object({
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match. Please check and try again",
+  message: "Passwords don't match",
   path: ['confirmPassword'],
 });
+
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  let score = 0;
+  if (password.length >= 8) score += 25;
+  if (password.length >= 12) score += 15;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 20;
+  if (/\d/.test(password)) score += 20;
+  if (/[^a-zA-Z0-9]/.test(password)) score += 20;
+
+  if (score < 40) return { score, label: 'Weak', color: 'bg-destructive' };
+  if (score < 70) return { score, label: 'Fair', color: 'bg-warning' };
+  if (score < 90) return { score, label: 'Good', color: 'bg-success/70' };
+  return { score, label: 'Strong', color: 'bg-success' };
+}
 
 export default function StaffInviteAcceptPage() {
   const { token } = useParams<{ token: string }>();
@@ -63,11 +73,11 @@ export default function StaffInviteAcceptPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: '',
-    username: '',
     password: '',
     confirmPassword: '',
   });
+
+  const passwordStrength = getPasswordStrength(formData.password);
 
   useEffect(() => {
     fetchInvitation();
@@ -87,7 +97,7 @@ export default function StaffInviteAcceptPage() {
 
       if (fetchError) {
         console.error('Error fetching invitation:', fetchError);
-        setError('Invitation not found. Please contact your resort admin for a new link.');
+        setError('This invitation link is no longer valid');
         setLoading(false);
         return;
       }
@@ -96,26 +106,24 @@ export default function StaffInviteAcceptPage() {
       const invData = Array.isArray(data) ? data[0] : data;
       
       if (!invData) {
-        setError('Invitation not found. Please contact your resort admin for a new link.');
+        setError('This invitation link is no longer valid');
         setLoading(false);
         return;
       }
 
-      // Transform RPC result to match expected Invitation interface
       const inv: Invitation = {
         id: invData.id,
         email: invData.email,
         name: invData.name,
+        username: invData.username,
         resort_id: invData.resort_id,
         resort_role: invData.resort_role as ResortRole,
         department: invData.department,
         status: invData.status,
         expires_at: invData.expires_at,
-        resort: {
-          id: invData.resort_id,
-          name: invData.resort_name,
-          code: '', // Not needed for display
-        },
+        resort_name: invData.resort_name,
+        invited_by_name: invData.invited_by_name,
+        invite_message: invData.invite_message,
       };
 
       if (inv.status !== 'PENDING') {
@@ -125,15 +133,12 @@ export default function StaffInviteAcceptPage() {
       }
 
       if (new Date(inv.expires_at) < new Date()) {
-        setError('This invitation has expired. Please contact your resort admin for a new link.');
+        setError('This invitation has expired.');
         setLoading(false);
         return;
       }
 
       setInvitation(inv);
-      if (inv.name) {
-        setFormData(prev => ({ ...prev, fullName: inv.name || '' }));
-      }
     } catch (err) {
       console.error('Error fetching invitation:', err);
       setError('Failed to load invitation');
@@ -142,11 +147,11 @@ export default function StaffInviteAcceptPage() {
     }
   };
 
-  const handleSignUpAndAccept = async () => {
+  const handleSetPasswordAndAccept = async () => {
     if (!invitation) return;
 
     setErrors({});
-    const result = signupSchema.safeParse(formData);
+    const result = passwordSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.errors.forEach(err => {
@@ -160,11 +165,11 @@ export default function StaffInviteAcceptPage() {
 
     setAccepting(true);
     try {
-      // Use the create_staff_account RPC to create user with username
+      // Use the create_staff_account RPC to create user with assigned username
       const { data, error } = await supabase.rpc('create_staff_account', {
-        p_username: formData.username.trim(),
+        p_username: invitation.username || invitation.email.split('@')[0],
         p_password: formData.password,
-        p_full_name: formData.fullName.trim() || null,
+        p_full_name: invitation.name || null,
         p_email: invitation.email,
         p_resort_id: invitation.resort_id,
         p_resort_role: invitation.resort_role,
@@ -176,7 +181,7 @@ export default function StaffInviteAcceptPage() {
       const response = data as { success: boolean; error?: string; user_id?: string; email?: string };
       if (!response.success) {
         if (response.error?.includes('already taken')) {
-          toast.error('This username is already taken. Please choose another.');
+          toast.error('That username is no longer available. Please contact your administrator.');
           return;
         }
         throw new Error(response.error || 'Failed to create account');
@@ -196,7 +201,7 @@ export default function StaffInviteAcceptPage() {
         });
       }
 
-      toast.success('Account created successfully! Welcome to the team.');
+      toast.success('Welcome to the team! Your account is ready.');
       navigate('/staff');
     } catch (err) {
       console.error('Error accepting invitation:', err);
@@ -230,7 +235,7 @@ export default function StaffInviteAcceptPage() {
         return;
       }
 
-      // Accept invitation using secure function (handles membership + status update)
+      // Accept invitation using secure function
       const { data: acceptResult, error: acceptError } = await supabase
         .rpc('accept_staff_invitation', {
           p_token: token,
@@ -245,7 +250,7 @@ export default function StaffInviteAcceptPage() {
       }
 
       await refetchUserData();
-      toast.success('Invitation accepted! Welcome to the team.');
+      toast.success('Welcome to the team!');
       navigate('/staff');
     } catch (err) {
       console.error('Error accepting invitation:', err);
@@ -265,19 +270,19 @@ export default function StaffInviteAcceptPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
         <div className="max-w-md w-full space-y-6 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-            <XCircle className="h-8 w-8 text-destructive" />
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
+            <XCircle className="h-10 w-10 text-destructive" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">This invitation has expired</h2>
+            <h2 className="text-2xl font-bold text-foreground">This invitation link is no longer valid</h2>
             <p className="text-muted-foreground">
-              This invite link is no longer valid. Please contact your resort admin to request a new invitation.
+              The link may have expired, been revoked, or already used. Please contact your resort administrator to request a new invitation.
             </p>
           </div>
-          <Button onClick={() => navigate('/auth')} className="mt-6">
-            Back to login
+          <Button onClick={() => navigate('/auth')} size="lg" className="mt-6">
+            Go to Sign In
           </Button>
         </div>
       </div>
@@ -290,173 +295,186 @@ export default function StaffInviteAcceptPage() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Brand Panel - Left side on desktop, top on mobile */}
-      <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
-        <div className="max-w-md mx-auto w-full space-y-6">
+      {/* Brand Panel */}
+      <div className="relative lg:w-2/5 bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-8 lg:p-12 flex flex-col justify-center overflow-hidden">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/3" />
+        
+        <div className="relative max-w-md mx-auto w-full space-y-8">
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <Waves className="h-6 w-6" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 shadow-xl">
+              <Waves className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Propera</h1>
-              <p className="text-sm text-muted-foreground">Staff Console</p>
+              <h1 className="text-2xl font-bold text-white">Propera</h1>
+              <p className="text-sm text-white/70">Staff Console</p>
             </div>
           </div>
           
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+          {/* Welcome message */}
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 text-sm font-medium">
               <UserPlus className="h-4 w-4" />
-              You're joining
+              You've been invited
             </div>
-            <h2 className="text-2xl font-semibold text-foreground">
-              {invitation.resort.name}
+            <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight">
+              Welcome to<br/>{invitation.resort_name}
             </h2>
-            <p className="text-muted-foreground leading-relaxed">
-              You've been invited to join {invitation.resort.name} on Propera. 
-              This account lets you manage guests, activities and reservations.
-            </p>
+            {invitation.invited_by_name && (
+              <p className="text-white/80 text-lg">
+                <span className="font-medium">{invitation.invited_by_name}</span> invited you to join the team
+              </p>
+            )}
           </div>
 
-          {/* Resort context */}
-          <div className="rounded-lg border border-border bg-card/50 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-sm">Your role</span>
+          {/* Details card */}
+          <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span className="text-white/70 text-sm">Your role</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge className="bg-white/20 text-white border-0 hover:bg-white/30">
+                    {ROLE_LABELS[invitation.resort_role]}
+                  </Badge>
+                  {invitation.department && (
+                    <span className="text-sm text-white/60">• {invitation.department}</span>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-sm">
-                {ROLE_LABELS[invitation.resort_role]}
-              </Badge>
-              {invitation.department && (
-                <span className="text-sm text-muted-foreground">• {invitation.department}</span>
-              )}
-            </div>
+            
+            {invitation.username && (
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                  <AtSign className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <span className="text-white/70 text-sm">Your username</span>
+                  <p className="font-mono text-white font-medium">@{invitation.username}</p>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Personal note */}
+          {invitation.invite_message && (
+            <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-5">
+              <div className="flex items-start gap-3">
+                <MessageSquare className="h-5 w-5 text-white/70 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-white/70 text-sm mb-1">Message from {invitation.invited_by_name}</p>
+                  <p className="text-white italic">"{invitation.invite_message}"</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Background decoration */}
-        <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
       </div>
 
-      {/* Form Panel - Right side on desktop */}
-      <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-background">
-        <div className="w-full max-w-md space-y-6 animate-fade-in">
-          <Card className="shadow-lg border-border/50">
-            <CardHeader className="space-y-2 text-center lg:text-left">
-              <CardTitle className="text-2xl">Create your staff account</CardTitle>
+      {/* Form Panel */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-background">
+        <div className="w-full max-w-md space-y-6">
+          <Card className="shadow-xl border-border/50">
+            <CardHeader className="space-y-2 text-center pb-2">
+              <CardTitle className="text-2xl">Set your password</CardTitle>
               <CardDescription>
-                Set up your credentials to access the staff console
+                Choose a secure password to complete your account setup
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-4">
               {user ? (
                 // User is logged in
                 <div className="space-y-4">
                   {emailMatch ? (
                     <>
-                      <div className="flex items-start gap-3 p-4 bg-success/10 border border-success/20 rounded-lg">
+                      <div className="flex items-start gap-3 p-4 bg-success/10 border border-success/20 rounded-xl">
                         <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Signed in as {user.email}</p>
                           <p className="text-xs text-muted-foreground">
-                            This matches the invitation email. Click below to complete setup.
+                            Click below to join {invitation.resort_name}
                           </p>
                         </div>
                       </div>
                       <Button 
-                        className="w-full h-11" 
+                        className="w-full h-12" 
+                        size="lg"
                         onClick={handleAcceptAsCurrentUser}
                         disabled={accepting}
                       >
                         {accepting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Accepting...
+                            Joining...
                           </>
                         ) : (
-                          'Accept Invitation & Continue'
+                          'Accept & Join Team'
                         )}
                       </Button>
                     </>
                   ) : (
                     <>
-                      <div className="flex items-start gap-3 p-4 bg-warning/10 border border-warning/20 rounded-lg">
+                      <div className="flex items-start gap-3 p-4 bg-warning/10 border border-warning/20 rounded-xl">
                         <XCircle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
                         <div className="space-y-1">
                           <p className="text-sm font-medium">Email Mismatch</p>
                           <p className="text-xs text-muted-foreground">
-                            You're signed in as {user.email}, but this invitation is for {invitation.email}. 
-                            Please sign out to create a new account.
+                            You're signed in as {user.email}, but this invitation is for {invitation.email}.
                           </p>
                         </div>
                       </div>
                       <Button 
                         variant="outline" 
-                        className="w-full h-11"
+                        className="w-full h-12"
+                        size="lg"
                         onClick={signOut}
                       >
                         <LogOut className="h-4 w-4 mr-2" />
-                        Sign Out & Create New Account
+                        Sign Out
                       </Button>
                     </>
                   )}
                 </div>
               ) : (
-                // User is not logged in - show signup form
+                // User is not logged in - show password setup form
                 <div className="space-y-5">
+                  {/* Email display */}
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={invitation.email}
-                      disabled
-                      className="bg-muted h-11"
-                    />
-                    <p className="text-xs text-muted-foreground">Your invitation email (cannot be changed)</p>
+                    <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                    <div className="flex items-center h-11 px-3 rounded-lg bg-muted border border-border">
+                      <span className="text-sm text-foreground">{invitation.email}</span>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName" className="text-sm font-medium">Full name</Label>
-                    <Input
-                      id="fullName"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                      placeholder="e.g. Ali Ahmed"
-                      className="h-11"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      This name will be shown to your colleagues in reports and assignments
-                    </p>
-                    {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
-                  </div>
+                  {/* Username display */}
+                  {invitation.username && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                      <div className="flex items-center h-11 px-3 rounded-lg bg-muted border border-border">
+                        <AtSign className="h-4 w-4 text-muted-foreground mr-1" />
+                        <span className="text-sm font-mono text-foreground">{invitation.username}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">This username was assigned by your administrator</p>
+                    </div>
+                  )}
 
+                  {/* Password field */}
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-                    <Input
-                      id="username"
-                      value={formData.username}
-                      onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                      placeholder="e.g. ali.frontoffice"
-                      className="h-11"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      You'll use this to log in. It must be unique and contain no spaces
-                    </p>
-                    {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <Label htmlFor="password" className="text-sm font-medium">Create Password</Label>
                     <div className="relative">
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                        placeholder="••••••••"
-                        className="h-11 pr-10"
+                        placeholder="Choose a secure password"
+                        className="h-12 pr-10"
                       />
                       <button
                         type="button"
@@ -467,22 +485,42 @@ export default function StaffInviteAcceptPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
+                    
+                    {/* Password strength */}
+                    {formData.password && (
+                      <div className="space-y-1.5">
+                        <Progress value={passwordStrength.score} className="h-1.5" />
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs font-medium ${
+                            passwordStrength.score < 40 ? 'text-destructive' :
+                            passwordStrength.score < 70 ? 'text-warning' : 'text-success'
+                          }`}>
+                            {passwordStrength.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formData.password.length} characters
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <p className="text-xs text-muted-foreground">
-                      At least 8 characters. Use something you don't use anywhere else
+                      Use at least 8 characters with a mix of letters, numbers, and symbols
                     </p>
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
 
+                  {/* Confirm password */}
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm password</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
                     <div className="relative">
                       <Input
                         id="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
                         value={formData.confirmPassword}
                         onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        placeholder="••••••••"
-                        className="h-11 pr-10"
+                        placeholder="Type your password again"
+                        className="h-12 pr-10"
                       />
                       <button
                         type="button"
@@ -493,28 +531,33 @@ export default function StaffInviteAcceptPage() {
                         {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Type the same password again to confirm
-                    </p>
+                    {formData.confirmPassword && formData.password === formData.confirmPassword && (
+                      <div className="flex items-center gap-1.5 text-success text-xs">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Passwords match
+                      </div>
+                    )}
                     {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
                   </div>
 
+                  {/* Submit button */}
                   <Button 
-                    className="w-full h-11 font-medium" 
-                    onClick={handleSignUpAndAccept}
-                    disabled={accepting}
+                    className="w-full h-12 font-medium text-base" 
+                    size="lg"
+                    onClick={handleSetPasswordAndAccept}
+                    disabled={accepting || !formData.password || !formData.confirmPassword}
                   >
                     {accepting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating your account…
+                        Creating your account...
                       </>
                     ) : (
-                      'Create account'
+                      'Set Password & Activate Account'
                     )}
                   </Button>
 
-                  <p className="text-xs text-center text-muted-foreground">
+                  <p className="text-xs text-center text-muted-foreground pt-2">
                     Already have an account?{' '}
                     <button
                       type="button"
@@ -524,29 +567,22 @@ export default function StaffInviteAcceptPage() {
                       Sign in
                     </button>
                   </p>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-border" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Already have an account?
-                      </span>
-                    </div>
-                  </div>
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-11"
-                    onClick={() => navigate('/auth')}
-                  >
-                    Sign in instead
-                  </Button>
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Expiry notice */}
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Calendar className="h-4 w-4" />
+            <span>
+              This invitation expires on {new Date(invitation.expires_at).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </span>
+          </div>
         </div>
       </div>
     </div>
