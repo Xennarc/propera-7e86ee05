@@ -95,7 +95,7 @@ export function StaffShell() {
       
       <div className="flex min-h-screen w-full bg-background">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/50">
+        <aside className="hidden lg:flex lg:w-56 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30">
           <StaffSidebar />
         </aside>
 
@@ -107,7 +107,7 @@ export function StaffShell() {
         </Sheet>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:pl-64">
+        <div className="flex-1 flex flex-col lg:pl-56">
           <StaffTopbar
             onMenuClick={() => setMobileMenuOpen(true)}
             onCommandBarOpen={() => setCommandBarOpen(true)}
