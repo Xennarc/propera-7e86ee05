@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getPrearrivalUrl } from '@/lib/url-utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -82,7 +83,7 @@ export function PrearrivalLinkManager({
     onSuccess: (data) => {
       if (data?.success) {
         queryClient.invalidateQueries({ queryKey: ['prearrival-link', guestId] });
-        const link = `${window.location.origin}/prearrival/${data.token}`;
+        const link = getPrearrivalUrl(data.token);
         setCurrentLink(link);
         toast({
           title: 'Link generated',
@@ -117,7 +118,7 @@ export function PrearrivalLinkManager({
     onSuccess: (data) => {
       if (data?.success) {
         queryClient.invalidateQueries({ queryKey: ['prearrival-link', guestId] });
-        const link = `${window.location.origin}/prearrival/${data.token}`;
+        const link = getPrearrivalUrl(data.token);
         setCurrentLink(link);
         toast({
           title: 'Link regenerated',
@@ -153,7 +154,7 @@ export function PrearrivalLinkManager({
   });
 
   const copyLink = async () => {
-    const link = existingLink ? `${window.location.origin}/prearrival/${existingLink.token}` : currentLink;
+    const link = existingLink ? getPrearrivalUrl(existingLink.token) : currentLink;
     if (!link) return;
     
     await navigator.clipboard.writeText(link);
@@ -163,7 +164,7 @@ export function PrearrivalLinkManager({
   };
 
   const openShareDialog = () => {
-    const link = existingLink ? `${window.location.origin}/prearrival/${existingLink.token}` : currentLink;
+    const link = existingLink ? getPrearrivalUrl(existingLink.token) : currentLink;
     if (link) {
       setCurrentLink(link);
       setShareDialogOpen(true);
@@ -181,7 +182,7 @@ export function PrearrivalLinkManager({
       return;
     }
 
-    const link = existingLink ? `${window.location.origin}/prearrival/${existingLink.token}` : currentLink;
+    const link = existingLink ? getPrearrivalUrl(existingLink.token) : currentLink;
     if (!link) return;
 
     setIsSendingEmail(true);
@@ -256,7 +257,7 @@ export function PrearrivalLinkManager({
   }
 
   // Existing link - show status and actions
-  const fullLink = `${window.location.origin}/prearrival/${existingLink.token}`;
+  const fullLink = getPrearrivalUrl(existingLink.token);
 
   return (
     <>

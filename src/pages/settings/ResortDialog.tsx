@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Resort, ResortStatus } from '@/types/database';
+import { getGuestPortalUrl } from '@/lib/url-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -175,7 +176,7 @@ export function ResortDialog({ open, onOpenChange, resort, onSuccess }: ResortDi
     }
   };
 
-  const guestLoginUrl = formData.code ? `${window.location.origin}/resort/${formData.code}/guest/login` : '';
+  const guestLoginUrl = formData.code ? getGuestPortalUrl(formData.code) : '';
   const qrCodeRef = useRef<SVGSVGElement>(null);
 
   const copyToClipboard = () => {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getStaffInviteUrl, getGuestPortalUrl } from '@/lib/url-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,12 +131,11 @@ export function DemoResortDialog({ open, onOpenChange, onSuccess }: DemoResortDi
 
       if (inviteError) throw inviteError;
 
-      const baseUrl = window.location.origin;
       setResult({
         resortName,
         resortCode,
-        staffInviteUrl: `${baseUrl}/staff/invite/${inviteToken}`,
-        guestPortalUrl: `${baseUrl}/resort/${resortCode}/guest/login`,
+        staffInviteUrl: getStaffInviteUrl(inviteToken),
+        guestPortalUrl: getGuestPortalUrl(resortCode),
       });
       setStep('success');
       onSuccess();
