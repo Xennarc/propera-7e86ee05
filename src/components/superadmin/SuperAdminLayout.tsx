@@ -43,7 +43,9 @@ import {
   ExternalLink,
   Settings,
   Bell,
+  X,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessDenied } from '@/components/ui/access-denied';
 import { CommandBar } from '@/components/superadmin/CommandBar';
@@ -147,8 +149,19 @@ export default function SuperAdminLayout() {
   const { resorts, currentResort, setCurrentResort } = useResort();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
+
+  // Keyboard shortcut for command bar
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandBarOpen(open => !open);
+      }
+    };
+    document.addEventListener('keydown', down);
+    return () => document.removeEventListener('keydown', down);
+  }, []);
 
   // Guard: Only super admins
   if (!isSuperAdmin()) {
@@ -192,43 +205,19 @@ export default function SuperAdminLayout() {
               </SheetContent>
             </Sheet>
 
-            {/* Global Search */}
+            {/* Global Search - Command Bar Trigger */}
             <div className="flex-1 max-w-xl">
-              {searchOpen ? (
-                <div className="relative flex items-center">
-                  <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search resorts, users, bookings..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-9 h-10"
-                    autoFocus
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 h-8 w-8"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      setSearchQuery('');
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-muted-foreground h-10 hidden sm:flex"
-                  onClick={() => setSearchOpen(true)}
-                >
-                  <Search className="mr-2 h-4 w-4" />
-                  Search platform...
-                  <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                    ⌘K
-                  </kbd>
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                className="w-full justify-start text-muted-foreground h-10 hidden sm:flex"
+                onClick={() => setCommandBarOpen(true)}
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Search platform...
+                <kbd className="pointer-events-none ml-auto hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                  ⌘K
+                </kbd>
+              </Button>
             </div>
 
             {/* Quick Resort Switch */}
@@ -304,6 +293,9 @@ export default function SuperAdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Command Bar */}
+      <CommandBar open={commandBarOpen} onOpenChange={setCommandBarOpen} />
     </div>
   );
 }

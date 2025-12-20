@@ -16,6 +16,8 @@ import { format, subDays, formatDistanceToNow } from 'date-fns';
 import { ActionQueue, ActionQueueItem } from '@/components/superadmin/ActionQueue';
 import { ResortDrawer } from '@/components/superadmin/ResortDrawer';
 import { RolloutsPanel } from '@/components/superadmin/RolloutsPanel';
+import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
+import { FounderControls } from '@/components/superadmin/FounderControls';
 import {
   Building2, Users, Calendar, Utensils, TrendingUp, AlertTriangle, AlertCircle,
   CheckCircle2, ArrowUpRight, ExternalLink, Plane, Activity, Bell, Clock,
@@ -185,12 +187,17 @@ export default function CommandCenter() {
 
       {/* Mode Content */}
       {mode === 'pulse' && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2"><ActionQueue items={actionItems || []} loading={loadingActions} /></div>
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4" />Activity Feed</CardTitle></CardHeader>
-            <CardContent><div className="flex flex-col items-center justify-center py-8"><Clock className="h-10 w-10 text-muted-foreground/30 mb-2" /><p className="text-sm text-muted-foreground">Recent activity will appear here</p></div></CardContent>
-          </Card>
+        <div className="grid gap-6 lg:grid-cols-4">
+          <div className="lg:col-span-3 space-y-6">
+            <ActionQueue items={actionItems || []} loading={loadingActions} />
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4" />Activity Feed</CardTitle></CardHeader>
+              <CardContent><div className="flex flex-col items-center justify-center py-8"><Clock className="h-10 w-10 text-muted-foreground/30 mb-2" /><p className="text-sm text-muted-foreground">Recent activity will appear here</p></div></CardContent>
+            </Card>
+          </div>
+          <div className="lg:col-span-1">
+            <FounderControls />
+          </div>
         </div>
       )}
 
@@ -209,10 +216,7 @@ export default function CommandCenter() {
       )}
 
       {mode === 'investigate' && (
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" />Error Explorer</CardTitle><CardDescription>Analyze errors and find root causes</CardDescription></CardHeader>
-          <CardContent><div className="flex flex-col items-center justify-center py-12"><Search className="h-12 w-12 text-muted-foreground/30 mb-3" /><p className="font-medium">No errors detected</p><p className="text-sm text-muted-foreground">Error tracking data will appear here</p><Button variant="outline" className="mt-4" onClick={() => navigate('/superadmin/health')}>View Health Dashboard</Button></div></CardContent>
-        </Card>
+        <ErrorExplorer />
       )}
 
       {/* Resort Grid */}
