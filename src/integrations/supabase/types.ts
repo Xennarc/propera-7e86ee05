@@ -1527,6 +1527,54 @@ export type Database = {
           },
         ]
       }
+      prearrival_staff_reviews: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          internal_notes: string | null
+          resort_id: string
+          reviewed_at: string
+          reviewed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          internal_notes?: string | null
+          resort_id: string
+          reviewed_at?: string
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          internal_notes?: string | null
+          resort_id?: string
+          reviewed_at?: string
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prearrival_staff_reviews_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: true
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prearrival_staff_reviews_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prearrival_tokens: {
         Row: {
           completed_at: string | null
