@@ -2,21 +2,27 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
-import { Copy, Check, MessageCircle, Mail, MessageSquare, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Copy, Check, MessageCircle, Mail, MessageSquare, ExternalLink, Send, Loader2 } from 'lucide-react';
 
 interface SharePrearrivalLinkDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   link: string;
   guest: {
+    id?: string;
     full_name: string;
     check_in_date: string;
+    email?: string | null;
   };
   resortName: string;
+  resortLogoUrl?: string | null;
+  resortPrimaryColor?: string | null;
 }
 
 export function SharePrearrivalLinkDialog({
@@ -25,10 +31,14 @@ export function SharePrearrivalLinkDialog({
   link,
   guest,
   resortName,
+  resortLogoUrl,
+  resortPrimaryColor,
 }: SharePrearrivalLinkDialogProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('whatsapp');
+  const [emailAddress, setEmailAddress] = useState(guest.email || '');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const firstName = guest.full_name.split(' ')[0];
   const checkInFormatted = format(parseISO(guest.check_in_date), 'MMMM d, yyyy');
@@ -82,6 +92,54 @@ The ${resortName} Team`,
   const openWhatsApp = () => {
     const encodedMessage = encodeURIComponent(templates.whatsapp);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
+  const sendEmail = async () => {
+    if (!emailAddress || !emailAddress.includes('@')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid email',
+        description: 'Please enter a valid email address.',
+      });
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-prearrival-link', {
+        body: {
+          guestId: guest.id,
+          guestName: guest.full_name,
+          guestEmail: emailAddress,
+          checkInDate: guest.check_in_date,
+          resortName,
+          prearrivalLink: link,
+          resortLogoUrl: resortLogoUrl || undefined,
+          resortPrimaryColor: resortPrimaryColor || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: 'Email sent!',
+          description: `Pre-arrival link sent to ${emailAddress}`,
+        });
+        onOpenChange(false);
+      } else {
+        throw new Error(data?.error || 'Failed to send email');
+      }
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to send email',
+        description: error.message || 'Please try again later.',
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   return (
@@ -179,25 +237,51 @@ The ${resortName} Team`,
               </Button>
             </TabsContent>
 
-            <TabsContent value="email" className="space-y-3 mt-4">
+            <TabsContent value="email" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="email-address">Recipient Email</Label>
+                <Input
+                  id="email-address"
+                  type="email"
+                  placeholder="guest@example.com"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                />
+              </div>
+              
               <Textarea
                 value={templates.email}
                 readOnly
                 rows={12}
                 className="font-mono text-sm resize-none"
               />
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => copyToClipboard(templates.email, 'email')}
-              >
-                {copied === 'email' ? (
-                  <Check className="h-4 w-4 mr-2 text-success" />
-                ) : (
-                  <Copy className="h-4 w-4 mr-2" />
-                )}
-                Copy Email
-              </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => copyToClipboard(templates.email, 'email')}
+                >
+                  {copied === 'email' ? (
+                    <Check className="h-4 w-4 mr-2 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-2" />
+                  )}
+                  Copy Email
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={sendEmail}
+                  disabled={isSendingEmail || !emailAddress}
+                >
+                  {isSendingEmail ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  {isSendingEmail ? 'Sending...' : 'Send Email'}
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
 

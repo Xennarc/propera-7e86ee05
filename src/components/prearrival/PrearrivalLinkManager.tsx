@@ -6,17 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
-import { Link as LinkIcon, Copy, RefreshCw, Ban, Share2, MoreHorizontal, Check, ExternalLink, Clock, Eye } from 'lucide-react';
+import { Link as LinkIcon, Copy, RefreshCw, Ban, Share2, MoreHorizontal, Check, ExternalLink, Eye, Mail, Loader2 } from 'lucide-react';
 import { SharePrearrivalLinkDialog } from './SharePrearrivalLinkDialog';
-import { cn } from '@/lib/utils';
 
 interface PrearrivalLinkManagerProps {
   guestId: string;
   guestName: string;
+  guestEmail?: string | null;
   checkInDate: string;
   checkOutDate: string;
   resortId: string;
   resortName: string;
+  resortLogoUrl?: string | null;
+  resortPrimaryColor?: string | null;
 }
 
 interface PrearrivalLink {
@@ -34,16 +36,20 @@ interface PrearrivalLink {
 export function PrearrivalLinkManager({
   guestId,
   guestName,
+  guestEmail,
   checkInDate,
   checkOutDate,
   resortId,
   resortName,
+  resortLogoUrl,
+  resortPrimaryColor,
 }: PrearrivalLinkManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [currentLink, setCurrentLink] = useState<string | null>(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Fetch existing link
   const { data: existingLink, isLoading } = useQuery({
@@ -164,6 +170,57 @@ export function PrearrivalLinkManager({
     }
   };
 
+  const sendEmailDirectly = async () => {
+    if (!guestEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'No email address',
+        description: 'This guest has no email address on file. Use the share dialog to enter one.',
+      });
+      openShareDialog();
+      return;
+    }
+
+    const link = existingLink ? `${window.location.origin}/prearrival/${existingLink.token}` : currentLink;
+    if (!link) return;
+
+    setIsSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-prearrival-link', {
+        body: {
+          guestId,
+          guestName,
+          guestEmail,
+          checkInDate,
+          resortName,
+          prearrivalLink: link,
+          resortLogoUrl: resortLogoUrl || undefined,
+          resortPrimaryColor: resortPrimaryColor || undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: 'Email sent!',
+          description: `Pre-arrival link sent to ${guestEmail}`,
+        });
+      } else {
+        throw new Error(data?.error || 'Failed to send email');
+      }
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to send email',
+        description: error.message || 'Please try again later.',
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const getStatusBadge = (link: PrearrivalLink) => {
     if (link.completed_at) {
       return <Badge className="bg-success/10 text-success border-success/20">Completed</Badge>;
@@ -237,6 +294,17 @@ export function PrearrivalLinkManager({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem 
+                onClick={sendEmailDirectly}
+                disabled={isSendingEmail}
+              >
+                {isSendingEmail ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4 mr-2" />
+                )}
+                {isSendingEmail ? 'Sending...' : 'Send via Email'}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => window.open(fullLink, '_blank')}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Open Link
@@ -266,8 +334,15 @@ export function PrearrivalLinkManager({
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
         link={currentLink || fullLink}
-        guest={{ full_name: guestName, check_in_date: checkInDate }}
+        guest={{ 
+          id: guestId,
+          full_name: guestName, 
+          check_in_date: checkInDate,
+          email: guestEmail,
+        }}
         resortName={resortName}
+        resortLogoUrl={resortLogoUrl}
+        resortPrimaryColor={resortPrimaryColor}
       />
     </>
   );

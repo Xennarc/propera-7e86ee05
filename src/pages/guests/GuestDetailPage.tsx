@@ -351,8 +351,11 @@ export default function GuestDetailPage() {
         <PrearrivalProfileCard
           guestId={guest.id}
           guestName={guest.full_name}
+          guestEmail={guest.email}
           resortId={guest.resort_id}
           resortName={currentResort?.name || 'Resort'}
+          resortLogoUrl={currentResort?.login_logo_url}
+          resortPrimaryColor={currentResort?.login_primary_color}
           checkInDate={guest.check_in_date}
           checkOutDate={guest.check_out_date}
           data={prearrivalData || { profile: null, settings: null, link: null, review: null, status: 'not_started', hasAnyData: false }}
