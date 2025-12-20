@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,33 +114,37 @@ export default function AccessManagementPage() {
     queryFn: async () => {
       if (!currentResort?.id) return [];
 
-      const { data, error } = await supabase
+      // First get memberships
+      const { data: memberships, error: membershipsError } = await supabase
         .from('resort_memberships')
-        .select(`
-          *,
-          profile:profiles(id, full_name, username, global_role)
-        `)
+        .select('*')
         .eq('resort_id', currentResort.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (membershipsError) throw membershipsError;
+      if (!memberships || memberships.length === 0) return [];
 
-      // Fetch emails for each user
-      const membersWithEmail = await Promise.all(
-        (data || []).map(async (member) => {
-          if (member.profile?.id) {
-            const { data: userData } = await supabase
-              .rpc('staff_lookup_by_identifier', { p_identifier: member.profile.username || '' });
-            return {
-              ...member,
-              email: userData?.[0]?.email || undefined
-            };
-          }
-          return member;
-        })
-      );
+      // Get unique user IDs
+      const userIds = [...new Set(memberships.map(m => m.user_id))];
 
-      return membersWithEmail as StaffMember[];
+      // Fetch profiles for these users
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username, global_role')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create profile lookup map
+      const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+      // Combine memberships with profiles
+      const membersWithProfiles = memberships.map(member => ({
+        ...member,
+        profile: profileMap.get(member.user_id) || null,
+      }));
+
+      return membersWithProfiles as StaffMember[];
     },
     enabled: !!currentResort?.id,
   });
@@ -260,36 +263,31 @@ export default function AccessManagementPage() {
 
   if (!currentResort) {
     return (
-      <AppLayout>
-        <EmptyState
-          icon={Shield}
-          title="No Resort Selected"
-          description="Please select a resort to manage access."
-        />
-      </AppLayout>
+      <EmptyState
+        icon={Shield}
+        title="No Resort Selected"
+        description="Please select a resort to manage access."
+      />
     );
   }
 
   if (!canManage && !hasPermission('access.users.view')) {
     return (
-      <AppLayout>
-        <EmptyState
-          icon={Shield}
-          title="Access Denied"
-          description="You don't have permission to view access management."
-        />
-      </AppLayout>
+      <EmptyState
+        icon={Shield}
+        title="Access Denied"
+        description="You don't have permission to view access management."
+      />
     );
   }
 
   return (
-    <AppLayout>
+    <>
       <div className="space-y-6">
         <PageHeader
           title="Access Management"
           description="Manage staff roles and permissions"
-        >
-          {canManage && (
+          action={canManage ? (
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setCreateAccountOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
@@ -300,8 +298,8 @@ export default function AccessManagementPage() {
                 Invite Staff
               </Button>
             </div>
-          )}
-        </PageHeader>
+          ) : undefined}
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -557,6 +555,6 @@ export default function AccessManagementPage() {
           />
         </>
       )}
-    </AppLayout>
+    </>
   );
 }
