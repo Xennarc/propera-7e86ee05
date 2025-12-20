@@ -2312,6 +2312,44 @@ export type Database = {
           },
         ]
       }
+      staff_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string | null
+          id: string
+          metadata_json: Json | null
+          resort_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string | null
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string | null
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_audit_logs_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_invitations: {
         Row: {
           created_at: string
@@ -2964,6 +3002,15 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_admin_action: {
         Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
+        Returns: string
+      }
+      log_staff_action: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_resort_id?: string
+          p_target_user_id?: string
+        }
         Returns: string
       }
       regenerate_prearrival_link: {

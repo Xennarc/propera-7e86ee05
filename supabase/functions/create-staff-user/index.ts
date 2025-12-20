@@ -59,7 +59,7 @@ serve(async (req) => {
     );
 
     // Parse request body
-    const { username, password, full_name, email, resort_id, resort_role, department } = await req.json();
+    const { username, password, full_name, email, resort_id, resort_role, department, set_super_admin } = await req.json();
 
     // Check if user is SUPER_ADMIN
     const { data: callerProfile, error: profileError } = await supabaseAdmin
@@ -77,6 +77,15 @@ serve(async (req) => {
     }
 
     const isSuperAdmin = callerProfile?.global_role === 'SUPER_ADMIN';
+
+    // CRITICAL: Only SUPER_ADMIN can create SUPER_ADMIN accounts
+    if (set_super_admin && !isSuperAdmin) {
+      console.error('Non-SUPER_ADMIN attempted to create SUPER_ADMIN account');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Only Super Admins can create Super Admin accounts' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
 
     // If not SUPER_ADMIN, check if they are RESORT_ADMIN for the target resort
     if (!isSuperAdmin) {
@@ -135,7 +144,7 @@ serve(async (req) => {
       );
     }
 
-    if (!resort_role) {
+    if (!set_super_admin && !resort_role) {
       return new Response(
         JSON.stringify({ success: false, error: 'Resort role is required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -197,13 +206,16 @@ serve(async (req) => {
       );
     }
 
-    // Update profile with username
+    // Determine global role
+    const newGlobalRole = set_super_admin ? 'SUPER_ADMIN' : 'STANDARD';
+
+    // Update profile with username and global role
     const { error: profileUpdateError } = await supabaseAdmin
       .from('profiles')
       .update({
         username: username.trim(),
         full_name: full_name || '',
-        global_role: 'STANDARD'
+        global_role: newGlobalRole
       })
       .eq('id', authData.user.id);
 
@@ -217,7 +229,7 @@ serve(async (req) => {
       );
     }
 
-    // Create resort membership if provided
+    // Create resort membership if provided (not for SUPER_ADMIN only accounts)
     let membershipId = null;
     if (resort_id && resort_role) {
       const { data: membership, error: membershipError } = await supabaseAdmin
@@ -244,6 +256,22 @@ serve(async (req) => {
       membershipId = membership?.id;
     }
 
+    // Log the action for audit
+    await supabaseAdmin
+      .from('staff_audit_logs')
+      .insert({
+        actor_id: user.id,
+        action: set_super_admin ? 'super_admin_account_created' : 'staff_account_created',
+        resort_id: resort_id || null,
+        target_user_id: authData.user.id,
+        metadata_json: {
+          username: username.trim(),
+          resort_role: resort_role || null,
+          global_role: newGlobalRole,
+          department: department || null
+        }
+      });
+
     console.log('Staff account created successfully:', authData.user.id);
 
     return new Response(
@@ -252,7 +280,8 @@ serve(async (req) => {
         user_id: authData.user.id,
         email: userEmail,
         username: username.trim(),
-        membership_id: membershipId
+        membership_id: membershipId,
+        global_role: newGlobalRole
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
