@@ -6,18 +6,21 @@ import { Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star, Mail, Send, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GuestDialog } from './GuestDialog';
+import { SendPrearrivalEmailDialog } from '@/components/guests/SendPrearrivalEmailDialog';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { SearchInput } from '@/components/ui/search-input';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingPage, PageLoadingSkeleton } from '@/components/ui/loading-spinner';
+import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,11 +31,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { isWithinInterval, isToday, startOfDay } from 'date-fns';
+import { isWithinInterval, isToday, startOfDay, addDays, isBefore, isAfter } from 'date-fns';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
+import { usePrearrivalStatuses, GuestPrearrivalStatus } from '@/hooks/usePrearrivalStatus';
+import { useQuery } from '@tanstack/react-query';
 
-type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures';
+type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending';
 
 function GuestsPageContent() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -42,10 +47,31 @@ function GuestsPageContent() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [deleteGuest, setDeleteGuest] = useState<Guest | null>(null);
+  const [selectedGuests, setSelectedGuests] = useState<Set<string>>(new Set());
+  const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
+  const [emailTargetGuests, setEmailTargetGuests] = useState<Guest[]>([]);
   
   const { currentResort } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Check if prearrival is enabled for this resort
+  const { data: prearrivalSettings } = useQuery({
+    queryKey: ['prearrival-settings', currentResort?.id],
+    queryFn: async () => {
+      if (!currentResort) return null;
+      const { data, error } = await supabase
+        .from('prearrival_settings')
+        .select('is_enabled')
+        .eq('resort_id', currentResort.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentResort,
+  });
+
+  const prearrivalEnabled = prearrivalSettings?.is_enabled ?? false;
 
   const fetchGuests = async () => {
     if (!currentResort) return;
@@ -67,7 +93,16 @@ function GuestsPageContent() {
 
   useEffect(() => {
     fetchGuests();
+    setSelectedGuests(new Set()); // Clear selection on resort change
   }, [currentResort]);
+
+  // Fetch prearrival statuses for all guests
+  const guestIds = useMemo(() => guests.map(g => g.id), [guests]);
+  const { data: prearrivalStatuses } = usePrearrivalStatuses({
+    guestIds,
+    resortId: currentResort?.id || '',
+    enabled: prearrivalEnabled && guestIds.length > 0,
+  });
 
   const handleDelete = async () => {
     if (!deleteGuest) return;
@@ -111,13 +146,33 @@ function GuestsPageContent() {
     return isToday(checkOut);
   };
 
+  const isFutureArrival = (guest: Guest) => {
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    if (!checkIn) return false;
+    return isAfter(checkIn, new Date());
+  };
+
+  const isArrivingInNext7Days = (guest: Guest) => {
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    if (!checkIn) return false;
+    const today = startOfDay(new Date());
+    const in7Days = addDays(today, 7);
+    return isAfter(checkIn, today) && isBefore(checkIn, in7Days);
+  };
+
   // Calculate stats
   const stats = useMemo(() => {
     const inHouse = guests.filter(isCurrentGuest).length;
     const arrivals = guests.filter(isArrivalToday).length;
     const departures = guests.filter(isDepartureToday).length;
-    return { inHouse, arrivals, departures };
-  }, [guests]);
+    const pendingPrearrival = prearrivalEnabled 
+      ? guests.filter(g => {
+          const status = prearrivalStatuses?.[g.id];
+          return isFutureArrival(g) && (!status?.prearrivalStatus || status.prearrivalStatus === 'not_started');
+        }).length
+      : 0;
+    return { inHouse, arrivals, departures, pendingPrearrival };
+  }, [guests, prearrivalStatuses, prearrivalEnabled]);
 
   // Filter guests
   const filteredGuests = useMemo(() => {
@@ -134,6 +189,12 @@ function GuestsPageContent() {
       case 'departures':
         result = result.filter(isDepartureToday);
         break;
+      case 'prearrival-pending':
+        result = result.filter(g => {
+          const status = prearrivalStatuses?.[g.id];
+          return isArrivingInNext7Days(g) && (!status?.prearrivalStatus || status.prearrivalStatus !== 'completed');
+        });
+        break;
     }
 
     // Apply search
@@ -147,7 +208,7 @@ function GuestsPageContent() {
     }
 
     return result;
-  }, [guests, filter, search]);
+  }, [guests, filter, search, prearrivalStatuses]);
 
   const getGuestStatus = (guest: Guest) => {
     if (isCurrentGuest(guest)) return { label: 'In-House', variant: 'confirmed' as const };
@@ -155,6 +216,84 @@ function GuestsPageContent() {
     const checkIn = safeParseDateISO(guest.check_in_date);
     if (checkIn && checkIn > today) return { label: 'Upcoming', variant: 'pending' as const };
     return { label: 'Checked Out', variant: 'secondary' as const };
+  };
+
+  const getPrearrivalBadge = (guestId: string) => {
+    const status = prearrivalStatuses?.[guestId];
+    if (!status) return null;
+
+    switch (status.prearrivalStatus) {
+      case 'completed':
+        return <Badge variant="success" className="text-xs">Completed</Badge>;
+      case 'partial':
+        return <Badge variant="warning" className="text-xs">In Progress</Badge>;
+      case 'not_started':
+      default:
+        return <Badge variant="outline" className="text-xs">Not Started</Badge>;
+    }
+  };
+
+  const getInviteBadge = (guestId: string) => {
+    const status = prearrivalStatuses?.[guestId];
+    if (!status || status.inviteStatus === 'not_sent') return null;
+
+    if (status.inviteStatus === 'sent') {
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="outline" className="text-xs text-success border-success/30">
+              <Mail className="h-3 w-3 mr-1" />
+              Sent
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            Sent {status.lastInviteSent ? safeFormatDate(status.lastInviteSent, 'MMM d, h:mm a') : ''}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    if (status.inviteStatus === 'failed') {
+      return <Badge variant="destructive" className="text-xs">Failed</Badge>;
+    }
+    return null;
+  };
+
+  // Selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedGuests(new Set(filteredGuests.map(g => g.id)));
+    } else {
+      setSelectedGuests(new Set());
+    }
+  };
+
+  const handleSelectGuest = (guestId: string, checked: boolean) => {
+    const newSet = new Set(selectedGuests);
+    if (checked) {
+      newSet.add(guestId);
+    } else {
+      newSet.delete(guestId);
+    }
+    setSelectedGuests(newSet);
+  };
+
+  const isAllSelected = filteredGuests.length > 0 && filteredGuests.every(g => selectedGuests.has(g.id));
+  const isSomeSelected = selectedGuests.size > 0;
+
+  // Email actions
+  const handleSendEmailSingle = (guest: Guest) => {
+    setEmailTargetGuests([guest]);
+    setSendEmailDialogOpen(true);
+  };
+
+  const handleSendEmailBulk = () => {
+    const selected = guests.filter(g => selectedGuests.has(g.id));
+    setEmailTargetGuests(selected);
+    setSendEmailDialogOpen(true);
+  };
+
+  const canSendPrearrival = (guest: Guest) => {
+    return prearrivalEnabled && isFutureArrival(guest);
   };
 
   if (!currentResort) {
@@ -219,7 +358,7 @@ function GuestsPageContent() {
             <FilterBar>
               <FilterBarGroup>
                 <Select value={filter} onValueChange={(v) => setFilter(v as GuestFilter)}>
-                  <SelectTrigger className="w-36 bg-background">
+                  <SelectTrigger className="w-44 bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -227,6 +366,14 @@ function GuestsPageContent() {
                     <SelectItem value="in-house">In-House</SelectItem>
                     <SelectItem value="arrivals">Arrivals Today</SelectItem>
                     <SelectItem value="departures">Departures Today</SelectItem>
+                    {prearrivalEnabled && (
+                      <SelectItem value="prearrival-pending">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3" />
+                          Arriving Soon (7d)
+                        </div>
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </FilterBarGroup>
@@ -236,6 +383,17 @@ function GuestsPageContent() {
                 placeholder="Search name, room, or booking ref..."
                 className="flex-1 max-w-sm"
               />
+              {/* Bulk actions */}
+              {isSomeSelected && prearrivalEnabled && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSendEmailBulk}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Pre-Arrival ({selectedGuests.size})
+                </Button>
+              )}
             </FilterBar>
           </div>
 
@@ -260,6 +418,20 @@ function GuestsPageContent() {
               data={filteredGuests}
               onRowClick={(guest) => navigate(`/guests/${guest.id}`)}
               columns={[
+                // Selection checkbox
+                ...(prearrivalEnabled ? [{
+                  header: '',
+                  accessor: (guest: Guest) => (
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedGuests.has(guest.id)}
+                        onCheckedChange={(checked) => handleSelectGuest(guest.id, !!checked)}
+                        aria-label={`Select ${guest.full_name}`}
+                      />
+                    </div>
+                  ),
+                  className: 'w-12',
+                }] : []),
                 {
                   header: 'Guest',
                   accessor: (guest) => (
@@ -304,16 +476,41 @@ function GuestsPageContent() {
                     return <Badge variant={status.variant}>{status.label}</Badge>;
                   },
                 },
-                {
-                  header: 'Channel',
-                  accessor: (guest) => guest.channel ? (
-                    <Badge variant="outline">{guest.channel}</Badge>
-                  ) : <span className="text-muted-foreground">-</span>,
-                },
+                // Pre-arrival columns (only if enabled)
+                ...(prearrivalEnabled ? [
+                  {
+                    header: 'Pre-Arrival',
+                    accessor: (guest: Guest) => {
+                      if (!isFutureArrival(guest)) return <span className="text-muted-foreground">-</span>;
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          {getPrearrivalBadge(guest.id)}
+                          {getInviteBadge(guest.id)}
+                        </div>
+                      );
+                    },
+                  },
+                ] : []),
                 {
                   header: '',
                   accessor: (guest) => (
                     <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      {/* Send Pre-Arrival button (only for future arrivals) */}
+                      {canSendPrearrival(guest) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleSendEmailSingle(guest)}
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Send pre-arrival email</TooltipContent>
+                        </Tooltip>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -340,7 +537,7 @@ function GuestsPageContent() {
                       </Button>
                     </div>
                   ),
-                  className: 'w-28',
+                  className: 'w-36',
                 },
               ]}
             />
@@ -372,6 +569,17 @@ function GuestsPageContent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Pre-Arrival Email Dialog */}
+      <SendPrearrivalEmailDialog
+        open={sendEmailDialogOpen}
+        onOpenChange={setSendEmailDialogOpen}
+        guests={emailTargetGuests}
+        onSuccess={() => {
+          setSelectedGuests(new Set());
+          fetchGuests();
+        }}
+      />
     </div>
   );
 }

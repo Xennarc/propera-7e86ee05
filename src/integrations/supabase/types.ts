@@ -665,6 +665,75 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_outbound_messages: {
+        Row: {
+          body_preview: string | null
+          channel: string
+          created_at: string
+          created_by_staff_id: string | null
+          error_message: string | null
+          guest_id: string
+          id: string
+          provider_message_id: string | null
+          resort_id: string
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_key: string
+          to_address: string
+          updated_at: string
+        }
+        Insert: {
+          body_preview?: string | null
+          channel?: string
+          created_at?: string
+          created_by_staff_id?: string | null
+          error_message?: string | null
+          guest_id: string
+          id?: string
+          provider_message_id?: string | null
+          resort_id: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_key: string
+          to_address: string
+          updated_at?: string
+        }
+        Update: {
+          body_preview?: string | null
+          channel?: string
+          created_at?: string
+          created_by_staff_id?: string | null
+          error_message?: string | null
+          guest_id?: string
+          id?: string
+          provider_message_id?: string | null
+          resort_id?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_key?: string
+          to_address?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_outbound_messages_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_outbound_messages_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_requests: {
         Row: {
           activity_booking_id: string | null
