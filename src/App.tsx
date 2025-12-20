@@ -81,10 +81,16 @@ const PrearrivalSettingsPage = lazy(() => import("./pages/settings/PrearrivalSet
 const AccessManagementPage = lazy(() => import("./pages/settings/AccessManagementPage"));
 
 // Super Admin pages
-const SuperAdminDashboard = lazy(() => import("./pages/superadmin/SuperAdminDashboard"));
+const SuperAdminLayout = lazy(() => import("./components/superadmin/SuperAdminLayout"));
+const CommandCenter = lazy(() => import("./pages/superadmin/CommandCenter"));
+const ResortsManagementPage = lazy(() => import("./pages/superadmin/ResortsManagementPage"));
 const ResortDetailPage = lazy(() => import("./pages/superadmin/ResortDetailPage"));
+const GlobalUsersPage = lazy(() => import("./pages/superadmin/GlobalUsersPage"));
 const GlobalStaffPage = lazy(() => import("./pages/superadmin/GlobalStaffPage"));
+const FeatureFlagsPage = lazy(() => import("./pages/superadmin/FeatureFlagsPage"));
+const HealthMonitoringPage = lazy(() => import("./pages/superadmin/HealthMonitoringPage"));
 const AuditLogsPage = lazy(() => import("./pages/superadmin/AuditLogsPage"));
+const SupportToolsPage = lazy(() => import("./pages/superadmin/SupportToolsPage"));
 const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
 const LoyaltyOverviewPage = lazy(() => import("./pages/loyalty/LoyaltyOverviewPage"));
 const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyProgramSettingsPage"));
@@ -151,11 +157,16 @@ const App = () => (
                 <Route path="/resorts/:code" element={<ResortMarketingPage />} />
                 
                 {/* Super Admin routes */}
-                <Route path="/superadmin" element={<AppLayout />}>
-                  <Route index element={<SuperAdminDashboard />} />
+                <Route path="/superadmin" element={<SuperAdminLayout />}>
+                  <Route index element={<CommandCenter />} />
+                  <Route path="resorts" element={<ResortsManagementPage />} />
                   <Route path="resorts/:resortId" element={<ResortDetailPage />} />
+                  <Route path="users" element={<GlobalUsersPage />} />
                   <Route path="staff" element={<GlobalStaffPage />} />
+                  <Route path="feature-flags" element={<FeatureFlagsPage />} />
+                  <Route path="health" element={<HealthMonitoringPage />} />
                   <Route path="audit" element={<AuditLogsPage />} />
+                  <Route path="support" element={<SupportToolsPage />} />
                 </Route>
                 
                 {/* Staff routes */}
