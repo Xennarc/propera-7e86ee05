@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Link as LinkIcon, Star, Crown, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Star, Crown, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { isBefore, startOfDay } from 'date-fns';
 import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
@@ -16,13 +16,15 @@ import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
-import { GeneratePreArrivalLinkDialog } from '@/components/guest/GeneratePreArrivalLinkDialog';
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 import { GuestPinManager } from '@/components/guest/GuestPinManager';
 import { ErrorState } from '@/components/ui/error-state';
 import { TierGate } from '@/components/tier/TierGate';
-import { useTierAccess } from '@/hooks/useTierAccess';
 import { usePermissions, hasWriteAccess } from '@/hooks/usePermissions';
+import { useStaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
+import { GuestAtAGlanceChips } from '@/components/prearrival/GuestAtAGlanceChips';
+import { OperationalFlags } from '@/components/prearrival/OperationalFlags';
+import { PrearrivalProfileCard } from '@/components/prearrival/PrearrivalProfileCard';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -53,6 +55,13 @@ interface ReservationWithSlot {
   };
 }
 
+// Helper to check if arrival is late (after 20:00)
+function isLateArrival(arrivalTime: string | null | undefined): boolean {
+  if (!arrivalTime) return false;
+  const hour = parseInt(arrivalTime.slice(0, 2), 10);
+  return hour >= 20;
+}
+
 export default function GuestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -68,10 +77,16 @@ export default function GuestDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activityBookingDialogOpen, setActivityBookingDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [preArrivalDialogOpen, setPreArrivalDialogOpen] = useState(false);
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch pre-arrival data
+  const { data: prearrivalData, isLoading: prearrivalLoading } = useStaffPrearrivalData({
+    guestId: id || '',
+    resortId: guest?.resort_id || currentResort?.id || '',
+    enabled: !!id && !!(guest?.resort_id || currentResort?.id),
+  });
 
   // Allow RESORT_ADMIN, MANAGER, FRONT_OFFICE, RESERVATIONS to edit guests and manage PINs
   const canEdit = hasWriteAccess(canAccessGuests);
@@ -232,16 +247,16 @@ export default function GuestDetailPage() {
           <p className="text-muted-foreground">
             Room {guest.room_number} • {safeFormatDate(guest.check_in_date, 'MMM d')} - {safeFormatDate(guest.check_out_date, 'MMM d, yyyy')}
           </p>
+          {/* At-a-glance chips */}
+          <div className="mt-2">
+            <GuestAtAGlanceChips
+              checkInDate={guest.check_in_date}
+              checkOutDate={guest.check_out_date}
+              prearrivalStatus={prearrivalData?.status || 'not_started'}
+            />
+          </div>
         </div>
         <div className="flex gap-2">
-          <TierGate feature="pre_arrival_links" fallback="hide">
-            {canEdit && (
-              <Button variant="outline" onClick={() => setPreArrivalDialogOpen(true)}>
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Pre-Arrival Link
-              </Button>
-            )}
-          </TierGate>
           {canEdit && (
             <Button variant="outline" onClick={() => setFeedbackDialogOpen(true)}>
               <MessageSquareHeart className="h-4 w-4 mr-2" />
@@ -256,6 +271,18 @@ export default function GuestDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Operational Flags */}
+      {prearrivalData && prearrivalData.hasAnyData && (
+        <OperationalFlags
+          hasDietaryRestrictions={!!(prearrivalData.profile?.dietary_preferences && prearrivalData.profile.dietary_preferences.length > 0)}
+          hasAllergies={!!prearrivalData.profile?.allergies}
+          isLateArrival={isLateArrival(prearrivalData.profile?.arrival_time)}
+          hasSpecialOccasion={!!(prearrivalData.profile?.special_occasions && prearrivalData.profile.special_occasions.length > 0)}
+          requiresTransfer={!!prearrivalData.profile?.transfer_preference && prearrivalData.profile.transfer_preference !== 'none'}
+          hasKidsInParty={false}
+        />
+      )}
 
       {/* Guest Info */}
       <Card>
@@ -318,6 +345,20 @@ export default function GuestDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Pre-Arrival Profile Card */}
+      <TierGate feature="pre_arrival_links" fallback="hide">
+        <PrearrivalProfileCard
+          guestId={guest.id}
+          guestName={guest.full_name}
+          resortId={guest.resort_id}
+          resortName={currentResort?.name || 'Resort'}
+          checkInDate={guest.check_in_date}
+          checkOutDate={guest.check_out_date}
+          data={prearrivalData || { profile: null, settings: null, link: null, review: null, status: 'not_started', hasAnyData: false }}
+          isLoading={prearrivalLoading}
+        />
+      </TierGate>
 
       {/* Loyalty & Internal Notes */}
       <TierGate feature="guest_management_loyalty" fallback="hide">
@@ -683,12 +724,6 @@ export default function GuestDetailPage() {
         onSuccess={fetchGuest}
       />
 
-      {/* Pre-Arrival Link Dialog */}
-      <GeneratePreArrivalLinkDialog
-        open={preArrivalDialogOpen}
-        onOpenChange={setPreArrivalDialogOpen}
-        guest={guest}
-      />
 
       {/* Loyalty Edit Dialog */}
       <LoyaltyEditDialog
