@@ -33,8 +33,11 @@ import { cn } from '@/lib/utils';
 interface PrearrivalProfileCardProps {
   guestId: string;
   guestName: string;
+  guestEmail?: string | null;
   resortId: string;
   resortName: string;
+  resortLogoUrl?: string | null;
+  resortPrimaryColor?: string | null;
   checkInDate: string;
   checkOutDate: string;
   data: StaffPrearrivalData;
@@ -44,8 +47,11 @@ interface PrearrivalProfileCardProps {
 export function PrearrivalProfileCard({
   guestId,
   guestName,
+  guestEmail,
   resortId,
   resortName,
+  resortLogoUrl,
+  resortPrimaryColor,
   checkInDate,
   checkOutDate,
   data,
@@ -161,10 +167,13 @@ export function PrearrivalProfileCard({
               <PrearrivalLinkManager
                 guestId={guestId}
                 guestName={guestName}
+                guestEmail={guestEmail}
                 checkInDate={checkInDate}
                 checkOutDate={checkOutDate}
                 resortId={resortId}
                 resortName={resortName}
+                resortLogoUrl={resortLogoUrl}
+                resortPrimaryColor={resortPrimaryColor}
               />
             </div>
           </div>
@@ -375,10 +384,13 @@ export function PrearrivalProfileCard({
             <PrearrivalLinkManager
               guestId={guestId}
               guestName={guestName}
+              guestEmail={guestEmail}
               checkInDate={checkInDate}
               checkOutDate={checkOutDate}
               resortId={resortId}
               resortName={resortName}
+              resortLogoUrl={resortLogoUrl}
+              resortPrimaryColor={resortPrimaryColor}
             />
           </div>
         </div>
