@@ -2747,18 +2747,32 @@ export type Database = {
         }
         Returns: string
       }
-      create_staff_account: {
-        Args: {
-          p_department?: string
-          p_email?: string
-          p_full_name: string
-          p_password: string
-          p_resort_id?: string
-          p_resort_role?: Database["public"]["Enums"]["resort_role"]
-          p_username: string
-        }
-        Returns: Json
-      }
+      create_staff_account:
+        | {
+            Args: {
+              p_department?: string
+              p_email?: string
+              p_full_name: string
+              p_password: string
+              p_resort_id?: string
+              p_resort_role?: Database["public"]["Enums"]["resort_role"]
+              p_username: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_department?: string
+              p_email: string
+              p_full_name: string
+              p_global_role?: Database["public"]["Enums"]["global_role"]
+              p_password: string
+              p_resort_id?: string
+              p_resort_role?: Database["public"]["Enums"]["resort_role"]
+              p_username: string
+            }
+            Returns: Json
+          }
       create_staff_notification_for_user: {
         Args: {
           p_link_url?: string
