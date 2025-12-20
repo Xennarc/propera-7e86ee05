@@ -2788,11 +2788,14 @@ export type Database = {
           email: string
           expires_at: string
           id: string
+          invite_message: string
+          invited_by_name: string
           name: string
           resort_id: string
           resort_name: string
-          resort_role: Database["public"]["Enums"]["resort_role"]
+          resort_role: string
           status: string
+          username: string
         }[]
       }
       guest_add_party_member: {

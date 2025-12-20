@@ -12,12 +12,16 @@ const corsHeaders = {
 interface StaffInviteRequest {
   email: string;
   name: string | null;
+  username: string;
   resortName: string;
   resortId: string;
   role: string;
   inviteLink: string;
   expiresIn: string;
+  expiresAt: string;
   invitationId?: string;
+  inviterName: string;
+  inviteMessage?: string | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -69,7 +73,20 @@ serve(async (req) => {
       );
     }
 
-    const { email, name, resortName, resortId, role, inviteLink, expiresIn, invitationId }: StaffInviteRequest = await req.json();
+    const { 
+      email, 
+      name, 
+      username,
+      resortName, 
+      resortId, 
+      role, 
+      inviteLink, 
+      expiresIn, 
+      expiresAt,
+      invitationId,
+      inviterName,
+      inviteMessage
+    }: StaffInviteRequest = await req.json();
 
     // Validate required fields
     if (!resortId) {
@@ -110,60 +127,155 @@ serve(async (req) => {
 
     const roleLabel = ROLE_LABELS[role] || role;
     const greeting = name ? `Hi ${name},` : 'Hi,';
+    const expiryDateFormatted = new Date(expiresAt).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    // Build personal note section if provided
+    const personalNoteHtml = inviteMessage ? `
+      <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;">
+        <p style="font-size: 14px; color: #92400e; margin: 0 0 8px 0; font-weight: 600;">Message from ${inviterName}:</p>
+        <p style="font-size: 14px; color: #78350f; margin: 0; font-style: italic;">"${inviteMessage}"</p>
+      </div>
+    ` : '';
+
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Propera Staff Invitation</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f3f4f6;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #0E7490 0%, #0891B2 50%, #06B6D4 100%); padding: 40px 30px; text-align: center;">
+          <div style="display: inline-block; background: rgba(255,255,255,0.15); padding: 12px 24px; border-radius: 12px; margin-bottom: 20px;">
+            <span style="color: white; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">Propera</span>
+          </div>
+          <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            You're invited to join<br/>${resortName}
+          </h1>
+        </div>
+        
+        <!-- Main Content -->
+        <div style="background: #ffffff; padding: 40px 30px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <p style="font-size: 16px; margin-bottom: 24px; color: #374151;">${greeting}</p>
+          
+          <p style="font-size: 16px; margin-bottom: 24px; color: #374151;">
+            <strong>${inviterName}</strong> has invited you to join the <strong>${resortName}</strong> team on Propera, our resort operations platform.
+          </p>
+          
+          <!-- Details Card -->
+          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin: 24px 0;">
+            <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280;">Your Account Details</h3>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">Invited by</td>
+                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 500;">${inviterName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Your Role</td>
+                <td style="padding: 8px 0;">
+                  <span style="display: inline-block; background: #0E7490; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 500;">${roleLabel}</span>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Username</td>
+                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-family: monospace; font-weight: 600;">@${username}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Link expires</td>
+                <td style="padding: 8px 0; color: #dc2626; font-size: 14px;">${expiryDateFormatted}</td>
+              </tr>
+            </table>
+          </div>
+
+          ${personalNoteHtml}
+          
+          <!-- CTA Button -->
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${inviteLink}" style="display: inline-block; background: linear-gradient(135deg, #0E7490 0%, #0891B2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(14, 116, 144, 0.4); transition: transform 0.2s;">
+              Accept Invitation
+            </a>
+          </div>
+          
+          <!-- Link Fallback -->
+          <div style="text-align: center; margin-bottom: 24px;">
+            <p style="font-size: 13px; color: #9ca3af; margin-bottom: 8px;">
+              Or copy and paste this link into your browser:
+            </p>
+            <p style="font-size: 12px; color: #0E7490; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 6px; font-family: monospace;">
+              ${inviteLink}
+            </p>
+          </div>
+          
+          <!-- Security Note -->
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 24px;">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+              <div style="width: 32px; height: 32px; background: #ecfdf5; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span style="font-size: 16px;">🔒</span>
+              </div>
+              <div>
+                <p style="font-size: 13px; color: #6b7280; margin: 0;">
+                  <strong style="color: #374151;">Security note:</strong> You'll set your own password when you accept this invitation. Never share your login credentials with anyone.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="text-align: center; padding: 24px; color: #9ca3af; font-size: 12px;">
+          <p style="margin: 0 0 8px 0;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+          <p style="margin: 0;">© ${new Date().getFullYear()} Propera • Resort Operations Platform</p>
+        </div>
+        
+      </body>
+      </html>
+    `;
+
+    const plainText = `
+You're invited to join ${resortName} on Propera
+
+${greeting}
+
+${inviterName} has invited you to join the ${resortName} team on Propera, our resort operations platform.
+
+YOUR ACCOUNT DETAILS
+--------------------
+Invited by: ${inviterName}
+Your Role: ${roleLabel}
+Username: @${username}
+Link expires: ${expiryDateFormatted}
+
+${inviteMessage ? `MESSAGE FROM ${inviterName.toUpperCase()}:\n"${inviteMessage}"\n\n` : ''}
+ACCEPT YOUR INVITATION
+----------------------
+Click or copy this link to set up your account:
+${inviteLink}
+
+SECURITY NOTE
+-------------
+You'll set your own password when you accept this invitation. Never share your login credentials with anyone.
+
+---
+If you weren't expecting this invitation, you can safely ignore this email.
+© ${new Date().getFullYear()} Propera • Resort Operations Platform
+    `;
 
     const emailResponse = await resend.emails.send({
       from: "Propera <reservations@propera.cc>",
       to: [email],
-      subject: `You're invited to join ${resortName} on Propera`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: linear-gradient(135deg, #0E7490 0%, #0891B2 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to Propera</h1>
-          </div>
-          
-          <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <p style="font-size: 16px; margin-bottom: 20px;">${greeting}</p>
-            
-            <p style="font-size: 16px; margin-bottom: 20px;">
-              You've been invited to join <strong>${resortName}</strong> as a <strong>${roleLabel}</strong> on Propera, our resort operations platform.
-            </p>
-            
-            <p style="font-size: 16px; margin-bottom: 25px;">
-              Click the button below to accept your invitation and set up your account:
-            </p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${inviteLink}" style="display: inline-block; background: #0E7490; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                Accept Invitation
-              </a>
-            </div>
-            
-            <p style="font-size: 14px; color: #6b7280; margin-top: 25px;">
-              Or copy and paste this link into your browser:
-            </p>
-            <p style="font-size: 12px; color: #0E7490; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 6px;">
-              ${inviteLink}
-            </p>
-            
-            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
-            
-            <p style="font-size: 13px; color: #9ca3af;">
-              This invitation expires in ${expiresIn}. If you didn't expect this invitation, you can safely ignore this email.
-            </p>
-          </div>
-          
-          <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
-            <p>Powered by Propera • Resort Operations Platform</p>
-          </div>
-        </body>
-        </html>
-      `,
+      subject: `You're invited to ${resortName} Staff Console on Propera`,
+      html: emailHtml,
+      text: plainText,
     });
 
     console.log("Email sent successfully:", emailResponse);
@@ -179,6 +291,7 @@ serve(async (req) => {
         metadata_json: {
           email,
           name,
+          username,
           role,
           invitation_id: invitationId || null
         }
