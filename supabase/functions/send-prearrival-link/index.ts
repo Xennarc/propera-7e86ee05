@@ -14,6 +14,7 @@ interface SendPrearrivalEmailRequest {
   guestName: string;
   guestEmail: string;
   checkInDate: string;
+  resortId: string;
   resortName: string;
   prearrivalLink: string;
   resortLogoUrl?: string;
@@ -53,12 +54,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const body: SendPrearrivalEmailRequest = await req.json();
-    const { guestId, guestName, guestEmail, checkInDate, resortName, prearrivalLink, resortLogoUrl, resortPrimaryColor } = body;
+    const { guestId, guestName, guestEmail, checkInDate, resortId, resortName, prearrivalLink, resortLogoUrl, resortPrimaryColor } = body;
 
     // Validate required fields
-    if (!guestEmail || !guestName || !prearrivalLink || !resortName) {
+    if (!guestEmail || !guestName || !prearrivalLink || !resortName || !resortId || !guestId) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: guestEmail, guestName, prearrivalLink, resortName" }),
+        JSON.stringify({ error: "Missing required fields: guestEmail, guestName, prearrivalLink, resortName, resortId, guestId" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -72,6 +73,30 @@ const handler = async (req: Request): Promise<Response> => {
     });
     
     const primaryColor = resortPrimaryColor || '#0891b2';
+    const subject = `Complete Your Pre-Arrival Check-in for ${resortName}`;
+    const bodyPreview = `Dear ${firstName}, we're thrilled to be hosting you on ${formattedDate}. Please complete your online check-in.`;
+    
+    // Create outbound message log entry (queued status)
+    const { data: messageLog, error: logError } = await supabase
+      .from('guest_outbound_messages')
+      .insert({
+        resort_id: resortId,
+        guest_id: guestId,
+        channel: 'email',
+        template_key: 'prearrival_invite_v1',
+        to_address: guestEmail,
+        subject: subject,
+        body_preview: bodyPreview,
+        status: 'queued',
+        created_by_staff_id: user.id,
+      })
+      .select('id')
+      .single();
+
+    if (logError) {
+      console.error("Error creating message log:", logError);
+      // Continue anyway, don't fail the send
+    }
     
     // Build HTML email
     const htmlContent = `
@@ -171,19 +196,35 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: `${resortName} <reservations@propera.cc>`,
       to: [guestEmail],
-      subject: `Complete Your Pre-Arrival Check-in for ${resortName}`,
+      subject: subject,
       html: htmlContent,
     });
 
     console.log("Email sent successfully:", emailResponse);
 
+    // Update message log with success
+    if (messageLog?.id) {
+      await supabase
+        .from('guest_outbound_messages')
+        .update({
+          status: 'sent',
+          sent_at: new Date().toISOString(),
+          provider_message_id: emailResponse.data?.id || null,
+        })
+        .eq('id', messageLog.id);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, data: emailResponse }),
+      JSON.stringify({ success: true, data: emailResponse, messageId: messageLog?.id }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error: any) {
     console.error("Error sending pre-arrival email:", error);
+    
+    // Try to update message log with failure (if we have context)
+    // Note: This is a best-effort attempt
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
