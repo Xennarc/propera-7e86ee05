@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -22,6 +23,10 @@ import {
   ExternalLink,
   CheckCircle,
   X,
+  Activity,
+  ClipboardList,
+  Search,
+  Zap,
 } from 'lucide-react';
 import {
   Select,
@@ -52,16 +57,35 @@ interface SupportSession {
   reason: string;
 }
 
+interface ActivityLogEntry {
+  id: string;
+  action: string;
+  timestamp: Date;
+  details?: string;
+}
+
 export default function SupportToolsPage() {
   const navigate = useNavigate();
   const { resorts, setCurrentResort } = useResort();
   const { profile } = useAuth();
   const [activeSessions, setActiveSessions] = useState<SupportSession[]>([]);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
   const [viewAsDialogOpen, setViewAsDialogOpen] = useState(false);
   const [viewAsType, setViewAsType] = useState<'staff' | 'guest'>('staff');
   const [selectedResort, setSelectedResort] = useState<string>('');
   const [viewAsReason, setViewAsReason] = useState('');
   const [readOnly, setReadOnly] = useState(true);
+
+  // Update countdown timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveSessions(prev => prev.map(session => ({
+        ...session,
+        // Force re-render for countdown
+      })));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleStartViewAs = () => {
     if (!selectedResort || !viewAsReason.trim()) {
@@ -84,6 +108,13 @@ export default function SupportToolsPage() {
     };
 
     setActiveSessions(prev => [...prev, session]);
+    setActivityLog(prev => [{
+      id: crypto.randomUUID(),
+      action: `Started ${viewAsType} view for ${resort.name}`,
+      timestamp: new Date(),
+      details: viewAsReason,
+    }, ...prev]);
+
     setViewAsDialogOpen(false);
     setViewAsReason('');
 
@@ -103,7 +134,15 @@ export default function SupportToolsPage() {
   };
 
   const handleEndSession = (sessionId: string) => {
+    const session = activeSessions.find(s => s.id === sessionId);
     setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
+    if (session) {
+      setActivityLog(prev => [{
+        id: crypto.randomUUID(),
+        action: `Ended ${session.type} view for ${session.resortName}`,
+        timestamp: new Date(),
+      }, ...prev]);
+    }
     toast.success('Support session ended');
   };
 
@@ -112,7 +151,7 @@ export default function SupportToolsPage() {
     if (remaining <= 0) return 'Expired';
     const minutes = Math.floor(remaining / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);
-    return `${minutes}m ${seconds}s`;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -125,12 +164,12 @@ export default function SupportToolsPage() {
             Support Tools
           </h1>
           <p className="text-muted-foreground mt-1">
-            Debug tools and "View As" mode for support
+            Pro-level debugging tools and "View As" mode
           </p>
         </div>
       </div>
 
-      {/* Active Sessions */}
+      {/* Active Sessions Banner */}
       {activeSessions.length > 0 && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-3">
@@ -160,11 +199,14 @@ export default function SupportToolsPage() {
                         <Badge variant="outline" className={session.readOnly ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'}>
                           {session.readOnly ? 'Read-Only' : 'Actions Enabled'}
                         </Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span className="text-sm font-mono text-warning flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatTimeRemaining(session.expiresAt)}
                         </span>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Reason: {session.reason}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -198,111 +240,158 @@ export default function SupportToolsPage() {
         </Card>
       )}
 
-      {/* View As Tool */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5" />
-            View As Mode
-          </CardTitle>
-          <CardDescription>
-            View the platform as a staff member or guest for debugging purposes
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Staff View */}
-            <div className="p-6 bg-muted/30 rounded-xl border border-border/50">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Shield className="h-6 w-6 text-primary" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* View As Tool */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              View As Mode
+            </CardTitle>
+            <CardDescription>
+              View the platform as a staff member or guest for debugging purposes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Staff View */}
+              <div className="p-6 bg-muted/30 rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-xl bg-primary/10">
+                    <Shield className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">View as Staff</h3>
+                    <p className="text-sm text-muted-foreground">See the staff console for a specific resort</p>
+                  </div>
                 </div>
+                <Button 
+                  className="w-full"
+                  onClick={() => {
+                    setViewAsType('staff');
+                    setViewAsDialogOpen(true);
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Start Staff View
+                </Button>
+              </div>
+
+              {/* Guest View */}
+              <div className="p-6 bg-muted/30 rounded-xl border border-border/50 hover:border-success/30 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-xl bg-success/10">
+                    <User className="h-6 w-6 text-success" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">View as Guest</h3>
+                    <p className="text-sm text-muted-foreground">See the guest portal experience</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setViewAsType('guest');
+                    setViewAsDialogOpen(true);
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Start Guest View
+                </Button>
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Guardrails Info */}
+            <div className="p-4 bg-info/10 rounded-xl border border-info/30">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-info mt-0.5" />
                 <div>
-                  <h3 className="font-semibold">View as Staff</h3>
-                  <p className="text-sm text-muted-foreground">See the staff console for a specific resort</p>
+                  <p className="font-medium text-sm">Security Guardrails</p>
+                  <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                    <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /> Sessions are time-limited (15 minutes)</li>
+                    <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /> Prominent banner shown in support mode</li>
+                    <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /> Read-only mode enabled by default</li>
+                    <li className="flex items-center gap-2"><CheckCircle className="h-3 w-3 text-success" /> All actions logged with reason</li>
+                  </ul>
                 </div>
               </div>
-              <Button 
-                className="w-full"
-                onClick={() => {
-                  setViewAsType('staff');
-                  setViewAsDialogOpen(true);
-                }}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Start Staff View
-              </Button>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Guest View */}
-            <div className="p-6 bg-muted/30 rounded-xl border border-border/50">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-xl bg-success/10">
-                  <User className="h-6 w-6 text-success" />
+        {/* Activity Log Sidebar */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Session Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activityLog.length > 0 ? (
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-3">
+                  {activityLog.map(entry => (
+                    <div key={entry.id} className="flex items-start gap-2 text-sm">
+                      <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                      <div>
+                        <p className="font-medium">{entry.action}</p>
+                        {entry.details && (
+                          <p className="text-xs text-muted-foreground">{entry.details}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {entry.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <h3 className="font-semibold">View as Guest</h3>
-                  <p className="text-sm text-muted-foreground">See the guest portal experience</p>
-                </div>
+              </ScrollArea>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">No activity yet</p>
               </div>
-              <Button 
-                variant="outline"
-                className="w-full"
-                onClick={() => {
-                  setViewAsType('guest');
-                  setViewAsDialogOpen(true);
-                }}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Start Guest View
-              </Button>
-            </div>
-          </div>
-
-          <Separator className="my-6" />
-
-          {/* Guardrails Info */}
-          <div className="p-4 bg-info/10 rounded-xl border border-info/30">
-            <div className="flex items-start gap-3">
-              <Shield className="h-5 w-5 text-info mt-0.5" />
-              <div>
-                <p className="font-medium text-sm">Security Guardrails</p>
-                <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                  <li>• Sessions are time-limited (15 minutes by default)</li>
-                  <li>• A prominent banner is shown while in support mode</li>
-                  <li>• Read-only mode is enabled by default</li>
-                  <li>• All actions are logged to the audit trail with reason</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Diagnostics */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
-            Quick Diagnostics
+            <Zap className="h-5 w-5" />
+            Quick Actions
           </CardTitle>
           <CardDescription>
-            Common support actions and checks
+            Fast entry points for common support tasks
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin/health')}>
-              <span className="font-semibold">Check System Health</span>
+              <Activity className="h-5 w-5 text-primary" />
+              <span className="font-semibold">System Health</span>
               <span className="text-xs text-muted-foreground">View infrastructure status</span>
             </Button>
             <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin/audit')}>
-              <span className="font-semibold">View Audit Logs</span>
+              <ClipboardList className="h-5 w-5 text-primary" />
+              <span className="font-semibold">Audit Logs</span>
               <span className="text-xs text-muted-foreground">Recent platform activity</span>
             </Button>
             <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin/users')}>
+              <User className="h-5 w-5 text-primary" />
               <span className="font-semibold">User Lookup</span>
               <span className="text-xs text-muted-foreground">Find and manage users</span>
+            </Button>
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin')}>
+              <Search className="h-5 w-5 text-primary" />
+              <span className="font-semibold">Command Center</span>
+              <span className="text-xs text-muted-foreground">Back to overview</span>
             </Button>
           </div>
         </CardContent>
@@ -371,7 +460,7 @@ export default function SupportToolsPage() {
               <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg border border-warning/30">
                 <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
                 <p className="text-xs text-warning">
-                  Actions mode enabled. All changes will be made as the super admin account.
+                  Actions mode enabled. All changes will be made as the super admin account and logged.
                 </p>
               </div>
             )}
