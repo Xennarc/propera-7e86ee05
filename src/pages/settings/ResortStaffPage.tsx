@@ -2,15 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
-import { Profile, ResortMembership, ResortRole, GlobalRole, StaffInvitation } from '@/types/database';
+import { ResortMembership, ResortRole, GlobalRole, StaffInvitation, Profile } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { Users, Shield, Trash2, Search, UserPlus, Mail, Clock, XCircle, KeyRound, User, AtSign, Pencil, Eye } from 'lucide-react';
@@ -51,9 +48,7 @@ export default function ResortStaffPage() {
   const { currentResort } = useResort();
   const [memberships, setMemberships] = useState<MembershipWithProfile[]>([]);
   const [invitations, setInvitations] = useState<StaffInvitation[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [createAccountDialogOpen, setCreateAccountDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -61,12 +56,6 @@ export default function ResortStaffPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resetPasswordDialogOpen, setResetPasswordDialogOpen] = useState(false);
   const [selectedMembership, setSelectedMembership] = useState<MembershipWithProfile | null>(null);
-  const [newMembership, setNewMembership] = useState({
-    user_id: '',
-    resort_role: '' as ResortRole | '',
-    department: '',
-  });
-  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentUserResortRole = currentResort ? getResortRole(currentResort.id) : null;
@@ -75,7 +64,6 @@ export default function ResortStaffPage() {
   useEffect(() => {
     if (currentResort && canManage) {
       fetchMemberships();
-      fetchAvailableUsers();
       fetchInvitations();
     }
   }, [currentResort, canManage]);
@@ -122,38 +110,6 @@ export default function ResortStaffPage() {
     }
   };
 
-  const fetchAvailableUsers = async () => {
-    if (!currentResort) return;
-
-    try {
-      // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('full_name');
-
-      if (profilesError) throw profilesError;
-
-      // Get existing memberships for this resort
-      const { data: existingMemberships, error: membershipsError } = await supabase
-        .from('resort_memberships')
-        .select('user_id')
-        .eq('resort_id', currentResort.id);
-
-      if (membershipsError) throw membershipsError;
-
-      const existingUserIds = new Set((existingMemberships || []).map(m => m.user_id));
-      // Filter out SUPER_ADMIN users and those already in resort
-      const available = (profiles || []).filter(p => 
-        !existingUserIds.has(p.id) && p.global_role !== 'SUPER_ADMIN'
-      );
-      
-      setAvailableUsers(available as Profile[]);
-    } catch (error) {
-      console.error('Error fetching available users:', error);
-    }
-  };
-
   const fetchInvitations = async () => {
     if (!currentResort) return;
 
@@ -188,36 +144,6 @@ export default function ResortStaffPage() {
     }
   };
 
-  const handleAddMembership = async () => {
-    if (!currentResort || !newMembership.user_id || !newMembership.resort_role) return;
-
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('resort_memberships')
-        .insert({
-          user_id: newMembership.user_id,
-          resort_id: currentResort.id,
-          resort_role: newMembership.resort_role,
-          department: newMembership.department || null,
-        });
-
-      if (error) throw error;
-
-      toast.success('Staff member added to resort');
-      setAddDialogOpen(false);
-      setNewMembership({ user_id: '', resort_role: '', department: '' });
-      fetchMemberships();
-      fetchAvailableUsers();
-    } catch (error) {
-      console.error('Error adding membership:', error);
-      toast.error('Failed to add staff member');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-
   const handleDeleteMembership = async () => {
     if (!selectedMembership) return;
 
@@ -242,7 +168,6 @@ export default function ResortStaffPage() {
       toast.success('Staff member removed from resort');
       setDeleteDialogOpen(false);
       fetchMemberships();
-      fetchAvailableUsers();
     } catch (error) {
       console.error('Error deleting membership:', error);
       toast.error('Failed to remove staff member');
@@ -290,10 +215,6 @@ export default function ResortStaffPage() {
         description={`Manage staff members for ${currentResort.name}`}
         action={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setAddDialogOpen(true)}>
-              <User className="h-4 w-4 mr-2" />
-              Add Existing
-            </Button>
             <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
               <Mail className="h-4 w-4 mr-2" />
               Invite by Email
@@ -329,9 +250,9 @@ export default function ResortStaffPage() {
           description={searchQuery ? "No staff match your search" : "Add staff members to this resort"}
           action={
             !searchQuery && (
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Staff Member
+              <Button onClick={() => setInviteDialogOpen(true)}>
+                <Mail className="h-4 w-4 mr-2" />
+                Invite Staff
               </Button>
             )
           }
@@ -434,81 +355,6 @@ export default function ResortStaffPage() {
         </div>
       )}
 
-      {/* Add Staff Dialog */}
-      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Staff Member</DialogTitle>
-            <DialogDescription>
-              Add a user to {currentResort.name} with a specific role
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>User</Label>
-              <Select 
-                value={newMembership.user_id} 
-                onValueChange={(value) => setNewMembership(prev => ({ ...prev, user_id: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableUsers.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      All users already have access to this resort
-                    </div>
-                  ) : (
-                    availableUsers.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.full_name || 'Unnamed User'}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Select 
-                value={newMembership.resort_role} 
-                onValueChange={(value) => setNewMembership(prev => ({ ...prev, resort_role: value as ResortRole }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_RESORT_ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Department (optional)</Label>
-              <Input
-                value={newMembership.department}
-                onChange={(e) => setNewMembership(prev => ({ ...prev, department: e.target.value }))}
-                placeholder="e.g., Dive Center, Reception"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddMembership} 
-              disabled={!newMembership.user_id || !newMembership.resort_role || saving}
-            >
-              {saving ? 'Adding...' : 'Add Staff Member'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Staff Profile View Dialog */}
       {selectedMembership && (
         <StaffProfileViewDialog
@@ -597,7 +443,6 @@ export default function ResortStaffPage() {
         onOpenChange={setCreateAccountDialogOpen}
         onSuccess={() => {
           fetchMemberships();
-          fetchAvailableUsers();
         }}
       />
 
