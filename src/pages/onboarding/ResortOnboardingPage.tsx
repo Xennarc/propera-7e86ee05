@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { getGuestPortalUrl } from '@/lib/url-utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -267,7 +268,7 @@ export default function ResortOnboardingPage() {
     toast.info('Restaurants skipped—you can set them up later in Settings');
   };
 
-  const guestLoginUrl = currentResort ? `${window.location.origin}/resort/${currentResort.code}/guest/login` : '';
+  const guestLoginUrl = currentResort ? getGuestPortalUrl(currentResort.code) : '';
 
   const copyLink = async () => {
     await navigator.clipboard.writeText(guestLoginUrl);

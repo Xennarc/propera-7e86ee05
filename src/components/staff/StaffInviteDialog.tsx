@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { getStaffInviteUrl } from '@/lib/url-utils';
 import { ResortRole } from '@/types/database';
 import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 import { Button } from '@/components/ui/button';
@@ -198,7 +199,7 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/staff/invite/${token}`;
+      const link = getStaffInviteUrl(token);
       setInviteLink(link);
 
       // Log the invite creation

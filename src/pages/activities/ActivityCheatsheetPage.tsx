@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getGuestActivityUrl } from '@/lib/url-utils';
 import { Activity, DifficultyLevel } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -140,8 +141,7 @@ export default function ActivityCheatsheetPage() {
   };
 
   const getGuestLink = (activityId: string) => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/resort/${currentResort.code}/guest/activities/${activityId}`;
+    return getGuestActivityUrl(currentResort.code, activityId);
   };
 
   const generateExplainerText = (activity: Activity) => {

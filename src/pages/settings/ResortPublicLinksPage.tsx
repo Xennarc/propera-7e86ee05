@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Copy, Check, QrCode, Link as LinkIcon, ExternalLink, Info, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRCodeSVG } from 'qrcode.react';
+import { getGuestPortalUrl, getGuestActivitiesUrl } from '@/lib/url-utils';
 
 export default function ResortPublicLinksPage() {
   const { currentResort } = useResort();
@@ -57,9 +58,8 @@ export default function ResortPublicLinksPage() {
     );
   }
 
-  const baseUrl = window.location.origin;
-  const guestPortalUrl = `${baseUrl}/resort/${currentResort.code}/guest/login`;
-  const guestActivitiesUrl = `${baseUrl}/resort/${currentResort.code}/guest/activities`;
+  const guestPortalUrl = getGuestPortalUrl(currentResort.code);
+  const guestActivitiesUrl = getGuestActivitiesUrl(currentResort.code);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {

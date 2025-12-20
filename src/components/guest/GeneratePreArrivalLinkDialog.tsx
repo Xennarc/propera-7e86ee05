@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getPrearrivalUrl } from '@/lib/url-utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -65,7 +66,7 @@ export function GeneratePreArrivalLinkDialog({
 
   const copyLink = () => {
     if (!token) return;
-    const url = `${window.location.origin}/prearrival/${token}`;
+    const url = getPrearrivalUrl(token);
     navigator.clipboard.writeText(url);
     setCopied(true);
     toast({
@@ -132,7 +133,7 @@ export function GeneratePreArrivalLinkDialog({
                 <div className="flex gap-2 mt-1.5">
                   <Input
                     id="link"
-                    value={`${window.location.origin}/prearrival/${token}`}
+                    value={getPrearrivalUrl(token)}
                     readOnly
                     className="font-mono text-xs"
                   />

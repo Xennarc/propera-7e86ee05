@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
+import { getPrearrivalUrl } from '@/lib/url-utils';
 import { Guest } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ export function SendPrearrivalEmailDialog({
     mutationFn: async ({ guest, email }: { guest: Guest; email: string }) => {
       // First generate/get the prearrival link
       const token = await generateLinkMutation.mutateAsync(guest.id);
-      const prearrivalLink = `${window.location.origin}/prearrival/${token}`;
+      const prearrivalLink = getPrearrivalUrl(token);
 
       // Send via edge function
       const { data, error } = await supabase.functions.invoke('send-prearrival-link', {
@@ -184,7 +185,7 @@ export function SendPrearrivalEmailDialog({
     if (!singleGuest) return;
     try {
       const token = await generateLinkMutation.mutateAsync(singleGuest.id);
-      const link = `${window.location.origin}/prearrival/${token}`;
+      const link = getPrearrivalUrl(token);
       await navigator.clipboard.writeText(link);
       toast({ title: 'Link copied!', description: 'Pre-arrival link copied to clipboard' });
     } catch (error: any) {

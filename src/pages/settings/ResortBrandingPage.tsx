@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
+import { getGuestPortalUrl } from '@/lib/url-utils';
 import { useInvalidateResortBranding } from '@/hooks/useResortBranding';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -222,12 +223,12 @@ export default function ResortBrandingPage() {
 
   const copyGuestUrl = () => {
     if (currentResort) {
-      navigator.clipboard.writeText(`${window.location.origin}/resort/${currentResort.code}/guest/login`);
+      navigator.clipboard.writeText(getGuestPortalUrl(currentResort.code));
       toast.success('Guest login URL copied to clipboard');
     }
   };
 
-  const guestLoginUrl = currentResort ? `${window.location.origin}/resort/${currentResort.code}/guest/login` : '';
+  const guestLoginUrl = currentResort ? getGuestPortalUrl(currentResort.code) : '';
 
   if (!currentResort) {
     return (

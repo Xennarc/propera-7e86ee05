@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getStaffInviteUrl } from '@/lib/url-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -163,7 +164,7 @@ export function CreateResortDialog({ open, onOpenChange, onSuccess }: CreateReso
         toast.warning('Resort created, but invitation failed. You can manually invite the admin.');
       }
 
-      const inviteLink = `${window.location.origin}/staff/invite/${token}`;
+      const inviteLink = getStaffInviteUrl(token);
       
       setSuccess({
         resortName: formData.name,

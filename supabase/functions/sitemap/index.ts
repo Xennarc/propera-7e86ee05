@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const BASE_URL = 'https://propera.cc'
+const BASE_URL = 'https://propera.cc';
 
 // Static public pages to include in sitemap
 const STATIC_PAGES = [
