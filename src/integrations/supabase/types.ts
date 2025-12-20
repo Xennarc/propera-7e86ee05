@@ -2357,6 +2357,8 @@ export type Database = {
           email: string
           expires_at: string
           id: string
+          invite_message: string | null
+          invited_by_name: string | null
           invited_by_user_id: string | null
           name: string | null
           resort_id: string
@@ -2364,6 +2366,7 @@ export type Database = {
           status: string
           token: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -2371,6 +2374,8 @@ export type Database = {
           email: string
           expires_at: string
           id?: string
+          invite_message?: string | null
+          invited_by_name?: string | null
           invited_by_user_id?: string | null
           name?: string | null
           resort_id: string
@@ -2378,6 +2383,7 @@ export type Database = {
           status?: string
           token: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -2385,6 +2391,8 @@ export type Database = {
           email?: string
           expires_at?: string
           id?: string
+          invite_message?: string | null
+          invited_by_name?: string | null
           invited_by_user_id?: string | null
           name?: string | null
           resort_id?: string
@@ -2392,6 +2400,7 @@ export type Database = {
           status?: string
           token?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: [
           {
