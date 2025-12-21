@@ -8,6 +8,7 @@ import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { createGuestNotification, createStaffNotificationsForRoles, formatActivityBookingMessage } from '@/lib/notifications';
 import { calculatePriceBreakdown, parsePricingCharges } from '@/lib/pricing-utils';
 import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
+import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Info, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCategoryConfig } from '@/lib/activity-category-config';
@@ -23,6 +24,7 @@ import { CategoryIcon } from '@/components/ui/category-badge';
 import { NumberStepper } from '@/components/ui/number-stepper';
 import { AttendeeSelector } from '@/components/guest/AttendeeSelector';
 import { useTravelParty } from '@/hooks/useTravelParty';
+
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
   const lowerError = error.toLowerCase();
@@ -53,8 +55,11 @@ export default function GuestActivityBookingPage() {
     error?: string;
   } | null>(null);
 
+  // Enable real-time sync for activity bookings
+  useGuestActivitySync(guest?.guestId);
+
   // Fetch all available sessions
-  const { data: allSessions, isLoading } = useQuery({
+  const { data: allSessions, isLoading, refetch: refetchSessions } = useQuery({
     queryKey: ['guest-all-sessions', guest?.guestId],
     queryFn: async () => {
       if (!guest) return [];
@@ -67,6 +72,8 @@ export default function GuestActivityBookingPage() {
       return (data as any[]) || [];
     },
     enabled: !!guest,
+    refetchOnWindowFocus: true,
+    staleTime: 10000, // 10 seconds
   });
 
   // Fetch room occupancy (count of guests in the same room for this resort)

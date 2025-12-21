@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { differenceInHours, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { usePrearrivalData, useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useQuery } from '@tanstack/react-query';
@@ -8,10 +10,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { PrearrivalCountdown } from '@/components/guest/prearrival/PrearrivalCountdown';
 import { PrearrivalChecklist } from '@/components/guest/prearrival/PrearrivalChecklist';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
+import { PrearrivalSummaryCard } from '@/components/guest/prearrival/PrearrivalSummaryCard';
 import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
-import { Plane, Sparkles } from 'lucide-react';
+import { Plane, Sparkles, ChevronRight } from 'lucide-react';
 import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons';
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 export default function GuestPrearrivalHome() {
   const { guest } = useGuestAuth();
@@ -60,6 +63,22 @@ export default function GuestPrearrivalHome() {
   const firstName = guest.fullName.split(' ')[0];
   const settings = prearrivalData?.settings;
   const profile = prearrivalData?.profile;
+  
+  // Check if profile has data (user has submitted something)
+  const hasSubmittedData = profile && (
+    profile.arrival_time ||
+    profile.arrival_flight_number ||
+    profile.transfer_preference ||
+    (profile.dietary_preferences && profile.dietary_preferences.length > 0) ||
+    profile.allergies ||
+    profile.water_comfort_level ||
+    (profile.special_occasions && profile.special_occasions.length > 0) ||
+    profile.special_requests
+  );
+
+  // Check if editing is locked (within 24 hours of check-in)
+  const hoursUntilCheckin = differenceInHours(parseISO(guest.checkInDate), new Date());
+  const editLocked = hoursUntilCheckin <= 24 && hoursUntilCheckin > 0;
 
   // If pre-arrival is not enabled for this resort, don't show this
   if (!settings?.is_enabled) {
@@ -105,16 +124,27 @@ export default function GuestPrearrivalHome() {
         roomNumber={guest.roomNumber}
       />
 
-      {/* Pre-arrival Checklist */}
-      <PrearrivalChecklist 
-        profile={profile || null}
-        settings={settings}
-        onOpenWizard={handleOpenWizard}
-        onOpenActivities={() => navigate('/guest/activities')}
-        onOpenDining={() => navigate('/guest/restaurants')}
-        activityBookingsCount={bookingCounts?.activities || 0}
-        diningBookingsCount={bookingCounts?.dining || 0}
-      />
+      {/* Pre-arrival Checklist OR Summary Card based on completion */}
+      {hasSubmittedData && profile?.prearrival_status === 'completed' ? (
+        <PrearrivalSummaryCard
+          profile={profile}
+          settings={settings}
+          checkInDate={guest.checkInDate}
+          onEdit={() => handleOpenWizard(0)}
+          editLocked={editLocked}
+          editLockedMessage="Some changes may require contacting reception"
+        />
+      ) : (
+        <PrearrivalChecklist 
+          profile={profile || null}
+          settings={settings}
+          onOpenWizard={handleOpenWizard}
+          onOpenActivities={() => navigate('/guest/activities')}
+          onOpenDining={() => navigate('/guest/restaurants')}
+          activityBookingsCount={bookingCounts?.activities || 0}
+          diningBookingsCount={bookingCounts?.dining || 0}
+        />
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">

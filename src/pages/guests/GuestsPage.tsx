@@ -37,6 +37,7 @@ import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 import { usePrearrivalStatuses, GuestPrearrivalStatus } from '@/hooks/usePrearrivalStatus';
 import { usePrearrivalListRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useQuery } from '@tanstack/react-query';
+import { GuestPrearrivalQuickFlags } from '@/components/guests/GuestPrearrivalQuickFlags';
 
 type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending' | 'prearrival-completed' | 'has-allergies' | 'arriving-72h';
 
@@ -526,10 +527,20 @@ function GuestsPageContent() {
                     header: 'Pre-Arrival',
                     accessor: (guest: Guest) => {
                       if (!isFutureArrival(guest)) return <span className="text-muted-foreground">-</span>;
+                      const status = prearrivalStatuses?.[guest.id];
                       return (
-                        <div className="flex items-center gap-1.5">
-                          {getPrearrivalBadge(guest.id)}
-                          {getInviteBadge(guest.id)}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            {getPrearrivalBadge(guest.id)}
+                            {getInviteBadge(guest.id)}
+                          </div>
+                          {status && (
+                            <GuestPrearrivalQuickFlags 
+                              status={status} 
+                              compact 
+                              showUpdatedAt={status.prearrivalStatus === 'completed' || status.prearrivalStatus === 'partial'}
+                            />
+                          )}
                         </div>
                       );
                     },

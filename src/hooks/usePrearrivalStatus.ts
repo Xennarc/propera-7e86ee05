@@ -9,11 +9,15 @@ export interface GuestPrearrivalStatus {
   // Enhanced fields for list display
   lastUpdatedAt: string | null;
   hasAllergies: boolean;
+  allergies: string | null;
   hasDietaryPreferences: boolean;
+  dietaryPreferences: string[];
   hasSpecialRequests: boolean;
   hasSpecialOccasions: boolean;
+  specialOccasions: string[];
   isLateArrival: boolean;
   requiresTransfer: boolean;
+  transferPreference: string | null;
   arrivalTime: string | null;
 }
 
@@ -102,11 +106,15 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
           // Enhanced fields
           lastUpdatedAt: profile?.last_updated_at || null,
           hasAllergies: !!profile?.allergies,
+          allergies: profile?.allergies || null,
           hasDietaryPreferences: !!(profile?.dietary_preferences && profile.dietary_preferences.length > 0),
+          dietaryPreferences: (profile?.dietary_preferences as string[]) || [],
           hasSpecialRequests: !!profile?.special_requests,
           hasSpecialOccasions: !!(profile?.special_occasions && profile.special_occasions.length > 0),
+          specialOccasions: (profile?.special_occasions as string[]) || [],
           isLateArrival: isLateArrival(profile?.arrival_time || null),
           requiresTransfer: !!profile?.transfer_preference && profile.transfer_preference !== 'none',
+          transferPreference: profile?.transfer_preference || null,
           arrivalTime: profile?.arrival_time || null,
         };
       });
