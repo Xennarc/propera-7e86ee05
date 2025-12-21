@@ -17,3 +17,9 @@ verify_jwt = true
 
 [functions.send-prearrival-link]
 verify_jwt = true
+
+[functions.bootstrap-resort-admin]
+verify_jwt = true
+
+[functions.complete-password-reset]
+verify_jwt = true
