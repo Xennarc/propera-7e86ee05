@@ -23,13 +23,14 @@ import {
   Plane,
   Clock,
   Plus,
-  Search,
+  Bell,
+  TrendingUp,
+  XCircle,
+  MessageSquare,
   Building2,
   Crown,
   User,
   FileText,
-  MessageSquare,
-  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -159,6 +160,43 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       keywords: ['analytics', 'stats', 'metrics'],
       category: 'navigation',
     },
+    {
+      id: 'reports-sales',
+      title: 'Sales Report',
+      subtitle: 'Revenue & sales performance',
+      icon: TrendingUp,
+      action: () => navigate('/staff/reports/sales'),
+      keywords: ['revenue', 'money', 'performance'],
+      category: 'navigation',
+    },
+    {
+      id: 'reports-cancellations',
+      title: 'Cancellations Report',
+      subtitle: 'Cancelled bookings',
+      icon: XCircle,
+      action: () => navigate('/staff/reports/cancellations'),
+      keywords: ['cancelled', 'refunds'],
+      category: 'navigation',
+    },
+    {
+      id: 'reports-feedback',
+      title: 'Stay Feedback Report',
+      subtitle: 'Guest feedback & reviews',
+      icon: MessageSquare,
+      action: () => navigate('/staff/reports/stay-feedback'),
+      keywords: ['reviews', 'ratings', 'satisfaction'],
+      category: 'navigation',
+    },
+    // Notifications
+    {
+      id: 'notifications',
+      title: 'Notifications',
+      subtitle: 'View all notifications',
+      icon: Bell,
+      action: () => navigate('/staff/notifications'),
+      keywords: ['alerts', 'messages', 'inbox'],
+      category: 'navigation',
+    },
     // Admin
     {
       id: 'settings',
@@ -167,6 +205,15 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       icon: Settings,
       action: () => navigate('/staff/settings'),
       keywords: ['config', 'options', 'preferences'],
+      category: 'navigation',
+    },
+    {
+      id: 'prearrival-settings',
+      title: 'Pre-Arrival Settings',
+      subtitle: 'Configure pre-arrival forms',
+      icon: Plane,
+      action: () => navigate('/staff/settings/prearrival'),
+      keywords: ['onboarding', 'checkin', 'forms'],
       category: 'navigation',
     },
   ];

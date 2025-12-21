@@ -36,6 +36,19 @@ const routeLabels: Record<string, string> = {
   'subscriptions': 'Subscriptions',
   'access': 'Access Management',
   'superadmin': 'Super Admin',
+  'new': 'New',
+  'sales': 'Sales Performance',
+  'stay-feedback': 'Stay Feedback',
+  'import': 'Import',
+  'public-links': 'Public Links',
+  'pricing': 'Pricing',
+  'users': 'Platform Users',
+  'booking-health': 'Booking Health',
+  'resources': 'Resources',
+  'onboarding': 'Resort Onboarding',
+  'members': 'Members',
+  'notifications': 'Notifications',
+  'permissions': 'Permissions Debug',
 };
 
 export function StaffBreadcrumbs({ className }: { className?: string }) {

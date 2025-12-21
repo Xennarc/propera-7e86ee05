@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone } from 'lucide-react';
+import { Building2, Anchor, ChevronRight, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { TierGate, TierBadge } from '@/components/tier/TierGate';
@@ -24,6 +24,14 @@ export default function SettingsPage() {
   const canManageResortStaff = isSuperAdmin() || currentResortRole === 'RESORT_ADMIN';
 
   const settingsSections: SettingsSection[] = [
+    {
+      title: 'Pre-Arrival Settings',
+      description: 'Configure pre-arrival forms, verification, and guest onboarding',
+      icon: Plane,
+      href: '/staff/settings/prearrival',
+      visible: canManageResortStaff,
+      feature: 'pre_arrival_links',
+    },
     {
       title: 'Guest Portal Branding',
       description: 'Customize your resort logo, colors, and guest login page',
@@ -62,6 +70,13 @@ export default function SettingsPage() {
       href: '/staff/settings/resort-staff',
       visible: canManageResortStaff,
       feature: 'settings_staff_management',
+    },
+    {
+      title: 'Subscription Tiers',
+      description: 'Manage subscription plans and feature access',
+      icon: Sparkles,
+      href: '/staff/settings/subscriptions',
+      visible: isSuperAdmin(),
     },
     {
       title: 'Guest Import',
