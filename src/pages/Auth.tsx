@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
-import { Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, AlertCircle, Lock, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
@@ -19,22 +19,65 @@ const loginSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const passwordResetSchema = z.object({
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().min(8, 'Please confirm your password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 export default function Auth() {
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState(searchParams.get('username') || '');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Password reset state
+  const [mustResetPassword, setMustResetPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   
   const { signIn, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if already logged in (but wait for auth to finish loading)
-  if (!authLoading && user) {
-    navigate('/staff/dashboard', { replace: true });
-    return null;
-  }
+  // Check if user needs password reset after login
+  useEffect(() => {
+    const checkPasswordReset = async () => {
+      if (user && !mustResetPassword) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('must_reset_password, temp_password_expires_at')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.must_reset_password) {
+          // Check if temp password expired
+          if (profile.temp_password_expires_at && new Date(profile.temp_password_expires_at) < new Date()) {
+            toast({
+              title: 'Password Expired',
+              description: 'Your temporary password has expired. Please contact your administrator.',
+              variant: 'destructive',
+            });
+            await supabase.auth.signOut();
+            return;
+          }
+          setMustResetPassword(true);
+        } else {
+          navigate('/staff/dashboard', { replace: true });
+        }
+      }
+    };
+
+    if (!authLoading && user) {
+      checkPasswordReset();
+    }
+  }, [user, authLoading, mustResetPassword, navigate, toast]);
 
   // Show loading state while checking auth
   if (authLoading) {
@@ -67,7 +110,6 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      // First, lookup the user by username or email to get their actual email
       const { data: lookupData, error: lookupError } = await supabase
         .rpc('staff_lookup_by_identifier', { p_identifier: loginIdentifier });
 
@@ -82,7 +124,6 @@ export default function Auth() {
         throw new Error('Invalid username/email or password');
       }
 
-      // Use the found email to sign in
       const actualEmail = userData[0].email;
       const { error } = await signIn(actualEmail, loginPassword);
 
@@ -90,9 +131,8 @@ export default function Auth() {
         throw new Error('Invalid username/email or password');
       }
       
-      navigate('/staff/dashboard', { replace: true });
+      // Navigation handled by useEffect after checking password reset
     } catch (error: any) {
-      // Clear password field for security but keep identifier
       setLoginPassword('');
       setErrors({
         login_form: error.message || 'Invalid username/email or password. Please try again.',
@@ -102,6 +142,134 @@ export default function Auth() {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const result = passwordResetSchema.safeParse({ newPassword, confirmPassword });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('complete-password-reset', {
+        body: { new_password: newPassword },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Failed to update password');
+      }
+
+      toast({
+        title: 'Password Updated',
+        description: 'Your password has been set successfully. Welcome to Propera!',
+      });
+
+      setMustResetPassword(false);
+      navigate('/staff/dashboard', { replace: true });
+    } catch (error: any) {
+      setErrors({
+        reset_form: error.message || 'Failed to update password. Please try again.',
+      });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  // Password reset screen
+  if (mustResetPassword && user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <SEOHead title="Set Your Password" noIndex={true} />
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
+        
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Lock className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle className="text-xl">Set Your New Password</CardTitle>
+            <CardDescription>
+              Please create a secure password for your account
+            </CardDescription>
+          </CardHeader>
+
+          <form onSubmit={handlePasswordReset}>
+            <CardContent className="space-y-5">
+              {errors.reset_form && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{errors.reset_form}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                {errors.newPassword && <p className="text-sm text-destructive">{errors.newPassword}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                />
+                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+              </div>
+            </CardContent>
+
+            <CardFooter>
+              <Button type="submit" className="w-full" disabled={resettingPassword}>
+                {resettingPassword ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting Password...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Set Password & Continue
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       <SEOHead
@@ -109,12 +277,10 @@ export default function Auth() {
         description="Sign in to the Propera staff console to manage resort operations, guests, activities, and reservations."
         noIndex={true}
       />
-      {/* Theme toggle */}
       <div className="absolute top-4 right-4 z-10">
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
       </div>
 
-      {/* Brand Panel - Left side on desktop, top on mobile */}
       <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full space-y-6">
           <div className="flex items-center gap-3">
@@ -135,17 +301,14 @@ export default function Auth() {
             </p>
           </div>
 
-          {/* Decorative element */}
           <div className="hidden lg:block">
             <div className="h-1 w-16 bg-primary/20 rounded-full" />
           </div>
         </div>
 
-        {/* Background decoration */}
         <div className="absolute bottom-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
       </div>
 
-      {/* Form Panel - Right side on desktop, bottom on mobile */}
       <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-6 animate-fade-in">
           <Card className="shadow-lg border-border/50">

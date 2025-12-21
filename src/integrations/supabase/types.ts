@@ -1833,7 +1833,10 @@ export type Database = {
           full_name: string | null
           global_role: Database["public"]["Enums"]["global_role"]
           id: string
+          must_reset_password: boolean
+          password_reset_completed_at: string | null
           resort_id: string | null
+          temp_password_expires_at: string | null
           updated_at: string
           username: string | null
         }
@@ -1843,7 +1846,10 @@ export type Database = {
           full_name?: string | null
           global_role?: Database["public"]["Enums"]["global_role"]
           id: string
+          must_reset_password?: boolean
+          password_reset_completed_at?: string | null
           resort_id?: string | null
+          temp_password_expires_at?: string | null
           updated_at?: string
           username?: string | null
         }
@@ -1853,7 +1859,10 @@ export type Database = {
           full_name?: string | null
           global_role?: Database["public"]["Enums"]["global_role"]
           id?: string
+          must_reset_password?: boolean
+          password_reset_completed_at?: string | null
           resort_id?: string | null
+          temp_password_expires_at?: string | null
           updated_at?: string
           username?: string | null
         }
