@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Production domain - ALWAYS use this for all external links
+const PRODUCTION_URL = 'https://propera.cc';
+
 interface StaffInviteRequest {
   email: string;
   name: string | null;
@@ -16,7 +19,7 @@ interface StaffInviteRequest {
   resortName: string;
   resortId: string;
   role: string;
-  inviteLink: string;
+  inviteLink: string; // May contain dev URLs - we extract token and rebuild
   expiresIn: string;
   expiresAt: string;
   invitationId?: string;
@@ -32,6 +35,31 @@ const ROLE_LABELS: Record<string, string> = {
   FNB: 'F&B',
   RESERVATIONS: 'Reservations',
 };
+
+// Extract token from any staff invite link and build production URL
+function getStaffInviteProductionUrl(linkOrToken: string): string {
+  // If it's already just a token (no slashes), use it directly
+  if (!linkOrToken.includes('/')) {
+    return `${PRODUCTION_URL}/staff/invite/${linkOrToken}`;
+  }
+  
+  // Extract token from URL path (handles any domain)
+  const match = linkOrToken.match(/\/staff\/invite\/([^/?#]+)/);
+  if (match && match[1]) {
+    return `${PRODUCTION_URL}/staff/invite/${match[1]}`;
+  }
+  
+  // Fallback: try to get the last path segment
+  const urlParts = linkOrToken.split('/');
+  const token = urlParts[urlParts.length - 1];
+  if (token) {
+    return `${PRODUCTION_URL}/staff/invite/${token}`;
+  }
+  
+  // Last resort: return production URL with the original (should not happen)
+  console.warn('Could not extract token from staff invite link:', linkOrToken);
+  return linkOrToken;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -134,6 +162,11 @@ serve(async (req) => {
       day: 'numeric' 
     });
 
+    // ALWAYS use production URL for emails - extract token and rebuild
+    const productionInviteLink = getStaffInviteProductionUrl(inviteLink);
+    console.log('Original link:', inviteLink);
+    console.log('Production link:', productionInviteLink);
+
     // Build personal note section if provided
     const personalNoteHtml = inviteMessage ? `
       <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;">
@@ -197,11 +230,11 @@ serve(async (req) => {
             </table>
           </div>
 
-          ${personalNoteHtml}
+          \${personalNoteHtml}
           
           <!-- CTA Button -->
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${inviteLink}" style="display: inline-block; background: linear-gradient(135deg, #0E7490 0%, #0891B2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(14, 116, 144, 0.4); transition: transform 0.2s;">
+            <a href="${productionInviteLink}" style="display: inline-block; background: linear-gradient(135deg, #0E7490 0%, #0891B2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(14, 116, 144, 0.4); transition: transform 0.2s;">
               Accept Invitation
             </a>
           </div>
@@ -212,7 +245,7 @@ serve(async (req) => {
               Or copy and paste this link into your browser:
             </p>
             <p style="font-size: 12px; color: #0E7490; word-break: break-all; background: #f3f4f6; padding: 12px; border-radius: 6px; font-family: monospace;">
-              ${inviteLink}
+              ${productionInviteLink}
             </p>
           </div>
           
@@ -234,7 +267,7 @@ serve(async (req) => {
         <!-- Footer -->
         <div style="text-align: center; padding: 24px; color: #9ca3af; font-size: 12px;">
           <p style="margin: 0 0 8px 0;">If you weren't expecting this invitation, you can safely ignore this email.</p>
-          <p style="margin: 0;">© ${new Date().getFullYear()} Propera • Resort Operations Platform</p>
+          <p style="margin: 0;">© \${new Date().getFullYear()} Propera • Resort Operations Platform</p>
         </div>
         
       </body>
@@ -259,7 +292,7 @@ ${inviteMessage ? `MESSAGE FROM ${inviterName.toUpperCase()}:\n"${inviteMessage}
 ACCEPT YOUR INVITATION
 ----------------------
 Click or copy this link to set up your account:
-${inviteLink}
+${productionInviteLink}
 
 SECURITY NOTE
 -------------

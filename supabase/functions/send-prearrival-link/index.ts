@@ -9,6 +9,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Production domain - ALWAYS use this for all external links
+const PRODUCTION_URL = 'https://propera.cc';
+
 interface SendPrearrivalEmailRequest {
   guestId: string;
   guestName: string;
@@ -16,9 +19,34 @@ interface SendPrearrivalEmailRequest {
   checkInDate: string;
   resortId: string;
   resortName: string;
-  prearrivalLink: string;
+  prearrivalLink: string; // May contain dev URLs - we extract token and rebuild with production URL
   resortLogoUrl?: string;
   resortPrimaryColor?: string;
+}
+
+// Extract token from any prearrival link and build production URL
+function getPrearrivalProductionUrl(linkOrToken: string): string {
+  // If it's already just a token (no slashes), use it directly
+  if (!linkOrToken.includes('/')) {
+    return `${PRODUCTION_URL}/prearrival/${linkOrToken}`;
+  }
+  
+  // Extract token from URL path (handles any domain)
+  const match = linkOrToken.match(/\/prearrival\/([^/?#]+)/);
+  if (match && match[1]) {
+    return `${PRODUCTION_URL}/prearrival/${match[1]}`;
+  }
+  
+  // Fallback: try to get the last path segment
+  const urlParts = linkOrToken.split('/');
+  const token = urlParts[urlParts.length - 1];
+  if (token) {
+    return `${PRODUCTION_URL}/prearrival/${token}`;
+  }
+  
+  // Last resort: return production URL with the original (should not happen)
+  console.warn('Could not extract token from prearrival link:', linkOrToken);
+  return linkOrToken;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -71,6 +99,11 @@ const handler = async (req: Request): Promise<Response> => {
       month: 'long',
       day: 'numeric'
     });
+    
+    // ALWAYS use production URL for emails - extract token and rebuild
+    const productionPrearrivalLink = getPrearrivalProductionUrl(prearrivalLink);
+    console.log('Original link:', prearrivalLink);
+    console.log('Production link:', productionPrearrivalLink);
     
     const primaryColor = resortPrimaryColor || '#0891b2';
     const subject = `Your stay at ${resortName} — complete online check-in`;
@@ -149,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
               <table role="presentation" style="width: 100%; margin: 0 0 32px;">
                 <tr>
                   <td align="center">
-                    <a href="${prearrivalLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; box-shadow: 0 2px 8px ${primaryColor}40;">
+                    <a href="${productionPrearrivalLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; box-shadow: 0 2px 8px ${primaryColor}40;">
                       Complete Your Check-in
                     </a>
                   </td>
@@ -235,7 +268,7 @@ const handler = async (req: Request): Promise<Response> => {
                 If the button above doesn't work, copy and paste this link into your browser:
               </p>
               <p style="font-size: 11px; color: #cbd5e1; margin: 0; word-break: break-all; line-height: 1.5; background-color: #f8fafc; padding: 12px; border-radius: 6px;">
-                ${prearrivalLink}
+                ${productionPrearrivalLink}
               </p>
             </td>
           </tr>
