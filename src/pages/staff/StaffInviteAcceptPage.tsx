@@ -171,7 +171,7 @@ export default function StaffInviteAcceptPage() {
 
     setAccepting(true);
     try {
-      // Use the create_staff_account RPC to create user with assigned username
+      // Create the staff user account
       const { data, error } = await supabase.rpc('create_staff_account', {
         p_username: invitation.username || invitation.email.split('@')[0],
         p_password: formData.password,
@@ -193,17 +193,7 @@ export default function StaffInviteAcceptPage() {
         throw new Error(response.error || 'Failed to create account');
       }
 
-      // Mark invitation as accepted with timestamp
-      await supabase
-        .from('staff_invitations')
-        .update({ 
-          status: 'ACCEPTED',
-          accepted_at: new Date().toISOString(),
-          accepted_by_user_id: response.user_id
-        })
-        .eq('token', token);
-
-      // Sign in the new user - use invitation email as fallback
+      // Sign in the new user (required before joining the resort staff area)
       const signInEmail = response.email || invitation.email;
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: signInEmail,
@@ -212,14 +202,30 @@ export default function StaffInviteAcceptPage() {
 
       if (signInError) {
         console.error('Sign-in error after account creation:', signInError);
-        // Account created but sign-in failed - redirect to login
         toast.success('Account created! Please sign in with your credentials.');
-        navigate('/auth');
+        navigate('/staff/auth');
         return;
       }
 
+      // Accept the invitation (marks invite accepted + ensures resort membership exists)
+      const { error: acceptError } = await supabase.rpc('accept_staff_invitation', {
+        p_token: token as string,
+        p_user_id: response.user_id as string,
+      });
+
+      if (acceptError) {
+        console.error('Error accepting invitation after login:', acceptError);
+        toast.error('Signed in, but failed to activate your resort access. Please contact your administrator.');
+        navigate('/staff/dashboard');
+        return;
+      }
+
+      // Ensure the app selects the invited resort after login
+      localStorage.setItem('propera-current-resort-id', invitation.resort_id);
+      await refetchUserData();
+
       toast.success('Welcome to the team! Your account is ready.');
-      navigate('/staff');
+      navigate('/staff/dashboard', { replace: true });
     } catch (err) {
       console.error('Error accepting invitation:', err);
       toast.error('Failed to create account. Please try again.');
