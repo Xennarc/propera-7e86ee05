@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { format, parseISO, addDays, differenceInDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles, Calendar } from 'lucide-react';
+import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles, Calendar, X, ClipboardCheck } from 'lucide-react';
 import {
   IconActivities,
   IconRestaurants,
@@ -35,15 +35,22 @@ import { GuestOnboardingTour, useGuestOnboarding } from '@/components/guest/Gues
 import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions';
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
 import { TravelPartyCard } from '@/components/guest/TravelPartyCard';
-import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import { useIsPrearrivalGuest, usePrearrivalData } from '@/hooks/usePrearrivalData';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
+import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { isPrearrival } = useIsPrearrivalGuest();
+  const { data: prearrivalData } = usePrearrivalData();
+
+  // Pre-arrival nudge state
+  const [prearrivalNudgeDismissed, setPrearrivalNudgeDismissed] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Show pre-arrival home if guest hasn't checked in yet
   if (isPrearrival) {
@@ -226,6 +233,45 @@ export default function GuestHome() {
       )}
 
       <div className="space-y-6">
+      {/* Soft Pre-arrival Nudge for In-Stay Guests */}
+      {!isPrearrival && 
+       prearrivalData?.settings?.is_enabled && 
+       prearrivalData?.profile?.prearrival_status !== 'completed' &&
+       !prearrivalNudgeDismissed && (
+        <Card className="guest-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+                <ClipboardCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                  Complete your pre-arrival info
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Share your preferences in 2 minutes to help us personalize your stay.
+                </p>
+              </div>
+              <button
+                onClick={() => setPrearrivalNudgeDismissed(true)}
+                className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Dismiss"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <Button 
+              size="sm" 
+              className="mt-3 w-full"
+              onClick={() => setWizardOpen(true)}
+            >
+              Complete Now
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Feedback Prompt - Show when eligible */}
       {canSubmitFeedback?.can_submit && (
         <Card className="guest-card bg-gradient-to-br from-warning/10 via-warning/5 to-transparent border-warning/20 overflow-hidden">
@@ -434,6 +480,17 @@ export default function GuestHome() {
         </div>
       )}
     </div>
+
+    {/* Pre-arrival Wizard Dialog for in-stay nudge */}
+    {prearrivalData?.settings && (
+      <PrearrivalWizard 
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        profile={prearrivalData?.profile || null}
+        settings={prearrivalData.settings}
+        checkInDate={guest.checkInDate}
+      />
+    )}
     </>
   );
 }
