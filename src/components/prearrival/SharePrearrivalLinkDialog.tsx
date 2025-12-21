@@ -20,6 +20,7 @@ interface SharePrearrivalLinkDialogProps {
     check_in_date: string;
     email?: string | null;
   };
+  resortId: string;
   resortName: string;
   resortLogoUrl?: string | null;
   resortPrimaryColor?: string | null;
@@ -30,6 +31,7 @@ export function SharePrearrivalLinkDialog({
   onOpenChange,
   link,
   guest,
+  resortId,
   resortName,
   resortLogoUrl,
   resortPrimaryColor,
@@ -112,6 +114,7 @@ The ${resortName} Team`,
           guestName: guest.full_name,
           guestEmail: emailAddress,
           checkInDate: guest.check_in_date,
+          resortId,
           resortName,
           prearrivalLink: link,
           resortLogoUrl: resortLogoUrl || undefined,
