@@ -341,6 +341,7 @@ export function PrearrivalLinkManager({
           check_in_date: checkInDate,
           email: guestEmail,
         }}
+        resortId={resortId}
         resortName={resortName}
         resortLogoUrl={resortLogoUrl}
         resortPrimaryColor={resortPrimaryColor}
