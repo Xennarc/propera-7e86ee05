@@ -1749,7 +1749,6 @@ export type Database = {
           guest_id: string
           guest_names: Json | null
           id: string
-          last_updated_at: string
           passport_details: Json | null
           pickup_notes: string | null
           policy_acknowledged_at: string | null
@@ -1763,6 +1762,7 @@ export type Database = {
           stay_confirmation_notes: string | null
           stay_confirmed: boolean | null
           transfer_preference: string | null
+          updated_at: string
           water_comfort_level: string | null
         }
         Insert: {
@@ -1780,7 +1780,6 @@ export type Database = {
           guest_id: string
           guest_names?: Json | null
           id?: string
-          last_updated_at?: string
           passport_details?: Json | null
           pickup_notes?: string | null
           policy_acknowledged_at?: string | null
@@ -1794,6 +1793,7 @@ export type Database = {
           stay_confirmation_notes?: string | null
           stay_confirmed?: boolean | null
           transfer_preference?: string | null
+          updated_at?: string
           water_comfort_level?: string | null
         }
         Update: {
@@ -1811,7 +1811,6 @@ export type Database = {
           guest_id?: string
           guest_names?: Json | null
           id?: string
-          last_updated_at?: string
           passport_details?: Json | null
           pickup_notes?: string | null
           policy_acknowledged_at?: string | null
@@ -1825,6 +1824,7 @@ export type Database = {
           stay_confirmation_notes?: string | null
           stay_confirmed?: boolean | null
           transfer_preference?: string | null
+          updated_at?: string
           water_comfort_level?: string | null
         }
         Relationships: [
@@ -3595,23 +3595,51 @@ export type Database = {
         }
         Returns: Json
       }
-      guest_update_prearrival_profile: {
-        Args: {
-          p_allergies?: string
-          p_arrival_date?: string
-          p_arrival_flight_number?: string
-          p_arrival_time?: string
-          p_custom_answers_json?: Json
-          p_dietary_preferences?: Json
-          p_guest_id: string
-          p_room_preferences?: Json
-          p_special_occasions?: Json
-          p_special_requests?: string
-          p_transfer_preference?: string
-          p_water_comfort_level?: string
-        }
-        Returns: Json
-      }
+      guest_update_prearrival_profile:
+        | {
+            Args: {
+              p_allergies?: string
+              p_arrival_date?: string
+              p_arrival_flight_number?: string
+              p_arrival_time?: string
+              p_custom_answers_json?: Json
+              p_dietary_preferences?: Json
+              p_guest_id: string
+              p_room_preferences?: Json
+              p_special_occasions?: Json
+              p_special_requests?: string
+              p_transfer_preference?: string
+              p_water_comfort_level?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_allergies?: string
+              p_arrival_date?: string
+              p_arrival_flight_number?: string
+              p_arrival_time?: string
+              p_baggage_count?: number
+              p_complete_checkin?: boolean
+              p_custom_answers_json?: Json
+              p_dietary_preferences?: Json
+              p_esignature_date?: string
+              p_esignature_name?: string
+              p_guest_id: string
+              p_guest_names?: Json
+              p_passport_details?: Json
+              p_pickup_notes?: string
+              p_policy_acknowledged?: boolean
+              p_room_preferences?: Json
+              p_special_occasions?: Json
+              p_special_requests?: string
+              p_stay_confirmation_notes?: string
+              p_stay_confirmed?: boolean
+              p_transfer_preference?: string
+              p_water_comfort_level?: string
+            }
+            Returns: Json
+          }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
