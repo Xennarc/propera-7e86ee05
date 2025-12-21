@@ -346,20 +346,22 @@ export default function GuestDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Pre-Arrival Profile Card */}
-      <PrearrivalProfileCard
-        guestId={guest.id}
-        guestName={guest.full_name}
-        guestEmail={guest.email}
-        resortId={guest.resort_id}
-        resortName={currentResort?.name || 'Resort'}
-        resortLogoUrl={currentResort?.login_logo_url}
-        resortPrimaryColor={currentResort?.login_primary_color}
-        checkInDate={guest.check_in_date}
-        checkOutDate={guest.check_out_date}
-        data={prearrivalData || { profile: null, settings: null, link: null, review: null, status: 'not_started', hasAnyData: false }}
-        isLoading={prearrivalLoading}
-      />
+      {/* Pre-Arrival Profile Card - Only show for pre-arrival guests (check-in date is in the future) */}
+      {new Date(guest.check_in_date) > new Date(new Date().toDateString()) && (
+        <PrearrivalProfileCard
+          guestId={guest.id}
+          guestName={guest.full_name}
+          guestEmail={guest.email}
+          resortId={guest.resort_id}
+          resortName={currentResort?.name || 'Resort'}
+          resortLogoUrl={currentResort?.login_logo_url}
+          resortPrimaryColor={currentResort?.login_primary_color}
+          checkInDate={guest.check_in_date}
+          checkOutDate={guest.check_out_date}
+          data={prearrivalData || { profile: null, settings: null, link: null, review: null, status: 'not_started', hasAnyData: false }}
+          isLoading={prearrivalLoading}
+        />
+      )}
 
       {/* Loyalty & Internal Notes */}
       <TierGate feature="guest_management_loyalty" fallback="hide">
