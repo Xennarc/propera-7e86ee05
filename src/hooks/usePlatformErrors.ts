@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { subHours, subDays } from 'date-fns';
 
+
 export interface PlatformError {
   id: string;
   resort_id: string | null;
@@ -29,7 +30,7 @@ export interface ErrorMetrics {
   byResort: { resortId: string; resortName: string; count: number }[];
 }
 
-type TimeRange = '24h' | '7d' | '30d';
+export type TimeRange = '24h' | '7d' | '30d';
 
 function getTimeRangeDate(timeRange: TimeRange): Date {
   switch (timeRange) {
