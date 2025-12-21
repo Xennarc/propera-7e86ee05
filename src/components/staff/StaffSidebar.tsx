@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTierAccess } from '@/hooks/useTierAccess';
 import { ResortRole } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -12,6 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Tooltip,
   TooltipContent,
@@ -25,10 +33,21 @@ import {
   Activity,
   Settings,
   BarChart3,
-  LogOut,
-  Crown,
-  ChevronLeft,
+  Plane,
+  Clock,
+  ChevronDown,
   ChevronRight,
+  Building2,
+  Crown,
+  LogOut,
+  MessageSquare,
+  User,
+  Sparkles,
+  HelpCircle,
+  TrendingUp,
+  FileText,
+  Shield,
+  Palette,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
@@ -37,16 +56,23 @@ interface NavItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: ResortRole[];
-  adminOnly?: boolean;
+  badge?: string;
+}
+
+interface NavGroup {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: NavItem[];
+  defaultOpen?: boolean;
 }
 
 interface StaffSidebarProps {
   onNavigate?: () => void;
   collapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
-export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }: StaffSidebarProps) {
+export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProps) {
   const location = useLocation();
   const { user, profile, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
@@ -56,19 +82,18 @@ export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }
   const isAdmin = isSuperAdmin() || currentRole === 'RESORT_ADMIN';
 
   // Check if user can view nav item
-  const canView = (item: NavItem) => {
+  const canView = (roles?: ResortRole[]) => {
     if (isSuperAdmin()) return true;
-    if (item.adminOnly && !isAdmin) return false;
-    if (!item.roles) return true;
+    if (!roles) return true;
     if (!currentRole) return false;
-    return item.roles.includes(currentRole);
+    return roles.includes(currentRole);
   };
 
   // Get role display
   const getRoleDisplay = () => {
     if (isSuperAdmin()) return 'Super Admin';
     const roleMap: Record<ResortRole, string> = {
-      'RESORT_ADMIN': 'Admin',
+      'RESORT_ADMIN': 'Resort Admin',
       'MANAGER': 'Manager',
       'FRONT_OFFICE': 'Front Office',
       'RESERVATIONS': 'Reservations',
@@ -78,72 +103,119 @@ export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }
     return currentRole ? roleMap[currentRole] : 'Staff';
   };
 
-  // Minimal 6-item navigation
-  const navItems: NavItem[] = [
-    { 
-      title: 'Today', 
-      url: '/staff/dashboard', 
+  // Navigation structure - 3 layers: Today, Departments, Admin
+  const navGroups: NavGroup[] = [
+    {
+      id: 'operations',
+      title: 'Operations',
       icon: Calendar,
+      defaultOpen: true,
+      items: [
+        { title: 'Dashboard', url: '/staff/dashboard', icon: Building2 },
+        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+        { title: 'Team Directory', url: '/staff/team', icon: Users },
+      ],
     },
-    { 
-      title: 'Guests', 
-      url: '/staff/guests', 
+    {
+      id: 'guests',
+      title: 'Guests',
       icon: Users,
-      roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'],
+      items: [
+        { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+        { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'] },
+        { title: 'Requests', url: '/staff/guest-requests', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+      ],
     },
-    { 
-      title: 'Activities', 
-      url: '/staff/activities/sessions', 
+    {
+      id: 'activities',
+      title: 'Activities',
       icon: Activity,
-      roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'],
+      items: [
+        { title: 'Catalogue', url: '/staff/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+        { title: 'Sessions', url: '/staff/activities/sessions', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+        { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'] },
+      ],
     },
-    { 
-      title: 'Dining', 
-      url: '/staff/restaurants/slots', 
+    {
+      id: 'dining',
+      title: 'Dining',
       icon: UtensilsCrossed,
-      roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'],
+      items: [
+        { title: 'Restaurants', url: '/staff/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+        { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+      ],
     },
-    { 
-      title: 'Reports', 
-      url: '/staff/reports', 
+    {
+      id: 'loyalty',
+      title: 'Loyalty',
+      icon: Crown,
+      items: [
+        { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'] },
+        { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'] },
+      ],
+    },
+    {
+      id: 'reports',
+      title: 'Reports',
       icon: BarChart3,
-      roles: ['RESORT_ADMIN', 'MANAGER'],
-    },
-    { 
-      title: 'Settings', 
-      url: '/staff/settings', 
-      icon: Settings,
-      adminOnly: true,
+      items: [
+        { title: 'Overview', url: '/staff/reports', icon: BarChart3, roles: ['RESORT_ADMIN', 'MANAGER'] },
+        { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'] },
+        { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'] },
+        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+      ],
     },
   ];
 
-  const isActive = (url: string) => {
-    if (url === '/staff/dashboard') {
-      return location.pathname === '/staff/dashboard' || location.pathname === '/staff' || location.pathname === '/staff/';
-    }
-    return location.pathname.startsWith(url);
+  // Admin group (only for admins)
+  const adminGroup: NavGroup = {
+    id: 'admin',
+    title: 'Admin',
+    icon: Settings,
+    items: [
+      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: Users, roles: ['RESORT_ADMIN'] },
+      { title: 'Branding', url: '/staff/settings/branding', icon: Palette, roles: ['RESORT_ADMIN'] },
+      { title: 'Settings', url: '/staff/settings', icon: Settings, roles: ['RESORT_ADMIN'] },
+      { title: 'Access Control', url: '/staff/settings/access', icon: Shield, roles: ['RESORT_ADMIN'] },
+    ],
+  };
+
+  // Check if group has any visible items
+  const groupHasVisibleItems = (group: NavGroup) => {
+    return group.items.some(item => canView(item.roles));
+  };
+
+  // Check if current path is in group
+  const isGroupActive = (group: NavGroup) => {
+    return group.items.some(item => location.pathname.startsWith(item.url));
+  };
+
+  // Track open groups
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    navGroups.forEach(g => {
+      initial[g.id] = g.defaultOpen || isGroupActive(g);
+    });
+    initial['admin'] = isGroupActive(adminGroup);
+    return initial;
+  });
+
+  const toggleGroup = (id: string) => {
+    setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
-    <div className="flex h-full flex-col bg-card border-r border-border/50">
+    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       {/* Header */}
-      <div className="p-4 border-b border-border/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ProperaMark size={28} className="text-primary shrink-0" />
-            {!collapsed && (
-              <span className="font-semibold text-foreground">Propera</span>
-            )}
-          </div>
-          {onToggleCollapse && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleCollapse}
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </Button>
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <ProperaMark size={36} className="text-sidebar-primary shrink-0" />
+          {!collapsed && (
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-sidebar-foreground truncate">Propera</h1>
+              <p className="text-xs text-sidebar-foreground/50">Staff Console</p>
+            </div>
           )}
         </div>
 
@@ -157,16 +229,16 @@ export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }
                 setCurrentResort(resort || null);
               }}
             >
-              <SelectTrigger className="w-full h-10 bg-muted/50 border-0 text-sm font-medium">
+              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent h-11">
                 <SelectValue placeholder="Select resort" />
               </SelectTrigger>
               <SelectContent>
                 {resorts.map((resort) => (
                   <SelectItem key={resort.id} value={resort.id}>
                     <div className="flex items-center gap-2">
-                      <span className="truncate">{resort.name}</span>
+                      <span className="font-medium truncate">{resort.name}</span>
                       {resort.is_demo && (
-                        <Badge variant="outline" className="text-2xs px-1 py-0 shrink-0">Demo</Badge>
+                        <Badge variant="outline" className="text-2xs px-1 py-0 shrink-0">DEMO</Badge>
                       )}
                     </div>
                   </SelectItem>
@@ -178,67 +250,164 @@ export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {/* Super Admin Link */}
-        {isSuperAdmin() && (
-          <NavLink
-            to="/superadmin"
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                isActive
-                  ? 'bg-primary/10 text-primary font-medium'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )
-            }
-          >
-            <Crown className="h-4 w-4 shrink-0" />
-            {!collapsed && <span>Command Center</span>}
-          </NavLink>
-        )}
+      <ScrollArea className="flex-1 px-3 py-4">
+        <nav className="space-y-1">
+          {/* Super Admin Link */}
+          {isSuperAdmin() && (
+            <div className="mb-4">
+              <NavLink
+                to="/superadmin"
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-sidebar-primary/20 text-sidebar-primary'
+                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                  )
+                }
+              >
+                <Crown className="h-4 w-4 shrink-0" />
+                {!collapsed && <span>Command Center</span>}
+              </NavLink>
+            </div>
+          )}
 
-        {/* Main Nav Items */}
-        {navItems.map((item) => {
-          if (!canView(item)) return null;
+          {/* Nav Groups */}
+          {navGroups.map((group) => {
+            if (!groupHasVisibleItems(group)) return null;
 
-          return (
-            <Tooltip key={item.url} delayDuration={collapsed ? 0 : 1000}>
-              <TooltipTrigger asChild>
-                <NavLink
-                  to={item.url}
-                  onClick={onNavigate}
+            const isOpen = openGroups[group.id];
+            const Icon = group.icon;
+
+            return (
+              <Collapsible
+                key={group.id}
+                open={isOpen}
+                onOpenChange={() => toggleGroup(group.id)}
+              >
+                <CollapsibleTrigger
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                    isActive(item.url)
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                    isGroupActive(group) && 'text-sidebar-foreground'
                   )}
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {!collapsed && <span>{item.title}</span>}
-                </NavLink>
-              </TooltipTrigger>
-              {collapsed && (
-                <TooltipContent side="right">{item.title}</TooltipContent>
-              )}
-            </Tooltip>
-          );
-        })}
-      </nav>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">{group.title}</span>
+                      {isOpen ? (
+                        <ChevronDown className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0" />
+                      )}
+                    </>
+                  )}
+                </CollapsibleTrigger>
 
-      {/* Footer - User */}
-      <div className="p-3 border-t border-border/30">
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
+                  {group.items.map((item) => {
+                    if (!canView(item.roles)) return null;
+
+                    return (
+                      <NavLink
+                        key={item.url}
+                        to={item.url}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive
+                              ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                          )
+                        }
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                        {item.badge && !collapsed && (
+                          <Badge variant="secondary" className="ml-auto text-2xs">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+
+          {/* Admin Group */}
+          {isAdmin && groupHasVisibleItems(adminGroup) && (
+            <div className="pt-4 mt-4 border-t border-sidebar-border/50">
+              <Collapsible
+                open={openGroups['admin']}
+                onOpenChange={() => toggleGroup('admin')}
+              >
+                <CollapsibleTrigger
+                  className={cn(
+                    'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                    isGroupActive(adminGroup) && 'text-sidebar-foreground'
+                  )}
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 text-left">Admin</span>
+                      {openGroups['admin'] ? (
+                        <ChevronDown className="h-4 w-4 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 shrink-0" />
+                      )}
+                    </>
+                  )}
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
+                  {adminGroup.items.map((item) => {
+                    if (!canView(item.roles)) return null;
+
+                    return (
+                      <NavLink
+                        key={item.url}
+                        to={item.url}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive
+                              ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                          )
+                        }
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          )}
+        </nav>
+      </ScrollArea>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-foreground text-xs font-semibold shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-foreground text-sm font-bold shrink-0">
             {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {profile?.full_name || 'Staff'}
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {profile?.full_name || 'Staff User'}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
+              <p className="text-xs text-sidebar-foreground/50 truncate">
                 {getRoleDisplay()}
               </p>
             </div>
@@ -249,12 +418,12 @@ export function StaffSidebar({ onNavigate, collapsed = false, onToggleCollapse }
                 variant="ghost"
                 size="icon"
                 onClick={() => signOut()}
-                className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground"
+                className="shrink-0 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side={collapsed ? 'right' : 'top'}>Sign out</TooltipContent>
+            <TooltipContent side="top">Sign out</TooltipContent>
           </Tooltip>
         </div>
       </div>

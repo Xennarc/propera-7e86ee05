@@ -1,24 +1,34 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isToday, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
+  Calendar,
   Users,
   UtensilsCrossed,
   Activity,
   Plane,
+  Clock,
   ArrowRight,
   AlertCircle,
+  TrendingUp,
   Plus,
+  Eye,
   ChevronRight,
+  Sparkles,
+  Star,
   ArrowUpRight,
   ArrowDownRight,
-  AlertTriangle,
+  MessageSquare,
 } from 'lucide-react';
 
 interface TodayHubProps {
@@ -28,308 +38,533 @@ interface TodayHubProps {
 export function TodayHub({ className }: TodayHubProps) {
   const { currentResort } = useResort();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'all' | 'guests' | 'activities' | 'dining'>('all');
 
   const today = format(new Date(), 'yyyy-MM-dd');
+  const tomorrow = format(addDays(new Date(), 1), 'yyyy-MM-dd');
 
-  // Fetch all data in one query batch
-  const { data, isLoading } = useQuery({
-    queryKey: ['today-hub', currentResort?.id, today],
+  // Fetch arrivals/departures
+  const { data: guestStats, isLoading: loadingGuests } = useQuery({
+    queryKey: ['today-guests', currentResort?.id, today],
     queryFn: async () => {
       if (!currentResort) return null;
 
-      const [guestsRes, sessionsRes, diningRes, flagsRes] = await Promise.all([
-        // Guests: arrivals, departures, in-house
-        supabase
-          .from('guests')
-          .select('id, full_name, room_number, is_vip, check_in_date, check_out_date')
-          .eq('resort_id', currentResort.id)
-          .or(`check_in_date.eq.${today},check_out_date.eq.${today}`)
-          .limit(20),
-        
-        // Sessions today
-        supabase
-          .from('activity_sessions')
-          .select(`
-            id, start_time, end_time, capacity, status,
-            activity:activities(name)
-          `)
-          .eq('resort_id', currentResort.id)
-          .eq('date', today)
-          .eq('status', 'SCHEDULED')
-          .order('start_time')
-          .limit(6),
-        
-        // Dining slots today
-        supabase
-          .from('restaurant_time_slots')
-          .select(`
-            id, start_time, end_time, capacity, meal_period, status,
-            restaurant:restaurants(name)
-          `)
-          .eq('resort_id', currentResort.id)
-          .eq('date', today)
-          .eq('status', 'OPEN')
-          .order('start_time')
-          .limit(6),
-        
-        // Flags: VIPs, special occasions
+      const [arrivalsRes, departuresRes, inHouseRes] = await Promise.all([
         supabase
           .from('guests')
           .select('id, full_name, room_number, is_vip')
           .eq('resort_id', currentResort.id)
-          .eq('is_vip', true)
+          .eq('check_in_date', today)
+          .limit(10),
+        supabase
+          .from('guests')
+          .select('id, full_name, room_number')
+          .eq('resort_id', currentResort.id)
+          .eq('check_out_date', today)
+          .limit(10),
+        supabase
+          .from('guests')
+          .select('id', { count: 'exact' })
+          .eq('resort_id', currentResort.id)
           .lte('check_in_date', today)
-          .gte('check_out_date', today)
-          .limit(5),
+          .gte('check_out_date', today),
       ]);
 
-      const guests = guestsRes.data || [];
-      const arrivals = guests.filter(g => g.check_in_date === today);
-      const departures = guests.filter(g => g.check_out_date === today);
-
       return {
-        arrivals,
-        departures,
-        sessions: sessionsRes.data || [],
-        diningSlots: diningRes.data || [],
-        vipGuests: flagsRes.data || [],
+        arrivals: arrivalsRes.data || [],
+        departures: departuresRes.data || [],
+        inHouseCount: inHouseRes.count || 0,
+        arrivalsCount: arrivalsRes.data?.length || 0,
+        departuresCount: departuresRes.data?.length || 0,
       };
     },
     enabled: !!currentResort,
-    staleTime: 60000, // 1 minute
+  });
+
+  // Fetch today's sessions
+  const { data: sessionStats, isLoading: loadingSessions } = useQuery({
+    queryKey: ['today-sessions', currentResort?.id, today],
+    queryFn: async () => {
+      if (!currentResort) return null;
+
+      const { data: sessions, error } = await supabase
+        .from('activity_sessions')
+        .select(`
+          id, date, start_time, end_time, capacity, status,
+          activity:activities(name, icon_key),
+          bookings:activity_bookings(num_adults, num_children, status)
+        `)
+        .eq('resort_id', currentResort.id)
+        .eq('date', today)
+        .eq('status', 'SCHEDULED')
+        .order('start_time')
+        .limit(8);
+
+      if (error) throw error;
+
+      const mapped = (sessions || []).map(session => {
+        const confirmedPax = session.bookings
+          ?.filter((b: any) => b.status === 'CONFIRMED')
+          .reduce((sum: number, b: any) => sum + b.num_adults + b.num_children, 0) || 0;
+        return {
+          ...session,
+          confirmedPax,
+          activityName: session.activity?.name || 'Activity',
+        };
+      });
+
+      return {
+        sessions: mapped,
+        totalSessions: mapped.length,
+        totalPax: mapped.reduce((sum, s) => sum + s.confirmedPax, 0),
+      };
+    },
+    enabled: !!currentResort,
+  });
+
+  // Fetch today's dining slots
+  const { data: diningStats, isLoading: loadingDining } = useQuery({
+    queryKey: ['today-dining', currentResort?.id, today],
+    queryFn: async () => {
+      if (!currentResort) return null;
+
+      const { data: slots, error } = await supabase
+        .from('restaurant_time_slots')
+        .select(`
+          id, date, start_time, end_time, capacity, meal_period, status,
+          restaurant:restaurants(name),
+          reservations:restaurant_reservations(num_adults, num_children, status)
+        `)
+        .eq('resort_id', currentResort.id)
+        .eq('date', today)
+        .eq('status', 'OPEN')
+        .order('start_time')
+        .limit(8);
+
+      if (error) throw error;
+
+      const mapped = (slots || []).map(slot => {
+        const confirmedCovers = slot.reservations
+          ?.filter((r: any) => r.status === 'CONFIRMED')
+          .reduce((sum: number, r: any) => sum + r.num_adults + r.num_children, 0) || 0;
+        return {
+          ...slot,
+          confirmedCovers,
+          restaurantName: slot.restaurant?.name || 'Restaurant',
+        };
+      });
+
+      return {
+        slots: mapped,
+        totalSlots: mapped.length,
+        totalCovers: mapped.reduce((sum, s) => sum + s.confirmedCovers, 0),
+      };
+    },
+    enabled: !!currentResort,
+  });
+
+  // Fetch guest requests
+  const { data: requests, isLoading: loadingRequests } = useQuery({
+    queryKey: ['today-requests', currentResort?.id],
+    queryFn: async () => {
+      if (!currentResort) return [];
+
+      const { data, error } = await supabase
+        .from('guest_requests')
+        .select('id, special_request_text, status, guest:guests(full_name, room_number)')
+        .eq('resort_id', currentResort.id)
+        .in('status', ['OPEN', 'IN_PROGRESS'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentResort,
   });
 
   if (!currentResort) {
     return (
-      <div className={cn('flex items-center justify-center py-16', className)}>
-        <div className="text-center">
-          <AlertCircle className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
-          <p className="text-muted-foreground">Select a resort to view operations.</p>
-        </div>
-      </div>
+      <Card className={className}>
+        <CardContent className="py-12 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-muted-foreground">Select a resort to view today's operations.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className={cn('space-y-8', className)}>
+    <div className={cn('space-y-6', className)}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(), 'EEEE, MMMM d')}
-          </p>
-          <h1 className="text-2xl font-semibold text-foreground mt-1">
-            {currentResort.name}
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Today at {currentResort.name}
           </h1>
+          <p className="text-muted-foreground mt-1">
+            {format(new Date(), 'EEEE, MMMM d, yyyy')}
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/staff/restaurants/slots/new">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              New Slot
+          <Button variant="outline" asChild>
+            <Link to="/staff/today">
+              <Sparkles className="h-4 w-4 mr-2" />
+              Opportunities
             </Link>
           </Button>
-          <Button size="sm" asChild>
+          <Button asChild>
             <Link to="/staff/activities/sessions/new">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              <Plus className="h-4 w-4 mr-2" />
               New Session
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* 4-column grid on desktop, 2 on tablet, 1 on mobile */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Section 1: Arrivals */}
-        <Section
+      {/* Quick Stats */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <QuickStatCard
+          title="In-House"
+          value={guestStats?.inHouseCount ?? 0}
+          icon={Users}
+          loading={loadingGuests}
+          variant="default"
+        />
+        <QuickStatCard
           title="Arrivals"
+          value={guestStats?.arrivalsCount ?? 0}
           icon={ArrowUpRight}
-          iconColor="text-success"
-          count={data?.arrivals.length}
-          loading={isLoading}
-          viewAllLink="/staff/guests?filter=arrivals"
-        >
-          {data?.arrivals.length === 0 ? (
-            <EmptyMessage>No arrivals today</EmptyMessage>
-          ) : (
-            <div className="space-y-1.5">
-              {data?.arrivals.slice(0, 5).map((guest: any) => (
-                <Link
-                  key={guest.id}
-                  to={`/staff/guests/${guest.id}`}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors group"
-                >
-                  <span className="text-xs font-mono text-muted-foreground w-8">{guest.room_number}</span>
-                  <span className="text-sm truncate flex-1">{guest.full_name}</span>
-                  {guest.is_vip && <Badge variant="default" className="text-2xs shrink-0">VIP</Badge>}
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        {/* Section 2: Sessions */}
-        <Section
+          loading={loadingGuests}
+          variant="success"
+        />
+        <QuickStatCard
           title="Sessions"
+          value={sessionStats?.totalSessions ?? 0}
           icon={Activity}
-          iconColor="text-primary"
-          count={data?.sessions.length}
-          loading={isLoading}
-          viewAllLink="/staff/activities/sessions"
-        >
-          {data?.sessions.length === 0 ? (
-            <EmptyMessage>No sessions scheduled</EmptyMessage>
-          ) : (
-            <div className="space-y-1.5">
-              {data?.sessions.map((session: any) => (
-                <Link
-                  key={session.id}
-                  to={`/staff/activities/sessions/${session.id}`}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-xs text-muted-foreground w-12">{session.start_time.slice(0, 5)}</span>
-                  <span className="text-sm truncate flex-1">{session.activity?.name}</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        {/* Section 3: Dining */}
-        <Section
-          title="Dining"
+          loading={loadingSessions}
+          variant="primary"
+          subtitle={`${sessionStats?.totalPax ?? 0} pax`}
+        />
+        <QuickStatCard
+          title="Covers"
+          value={diningStats?.totalCovers ?? 0}
           icon={UtensilsCrossed}
-          iconColor="text-orange-500"
-          count={data?.diningSlots.length}
-          loading={isLoading}
-          viewAllLink="/staff/restaurants/slots"
-        >
-          {data?.diningSlots.length === 0 ? (
-            <EmptyMessage>No dining slots open</EmptyMessage>
-          ) : (
-            <div className="space-y-1.5">
-              {data?.diningSlots.map((slot: any) => (
-                <Link
-                  key={slot.id}
-                  to={`/staff/restaurants/slots/${slot.id}`}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-xs text-muted-foreground w-12">{slot.start_time.slice(0, 5)}</span>
-                  <span className="text-sm truncate flex-1">{slot.restaurant?.name}</span>
-                  <Badge variant="outline" className="text-2xs shrink-0">{slot.meal_period}</Badge>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        {/* Section 4: Flags */}
-        <Section
-          title="Flags"
-          icon={AlertTriangle}
-          iconColor="text-warning"
-          count={data?.vipGuests.length}
-          loading={isLoading}
-          viewAllLink="/staff/guests"
-        >
-          {data?.vipGuests.length === 0 ? (
-            <EmptyMessage>No special flags</EmptyMessage>
-          ) : (
-            <div className="space-y-1.5">
-              {data?.vipGuests.map((guest: any) => (
-                <Link
-                  key={guest.id}
-                  to={`/staff/guests/${guest.id}`}
-                  className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  <span className="text-xs font-mono text-muted-foreground w-8">{guest.room_number}</span>
-                  <span className="text-sm truncate flex-1">{guest.full_name}</span>
-                  <Badge variant="default" className="text-2xs shrink-0">VIP</Badge>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Section>
+          loading={loadingDining}
+          variant="warning"
+          subtitle={`${diningStats?.totalSlots ?? 0} slots`}
+        />
       </div>
 
-      {/* Departures row */}
-      {(data?.departures.length ?? 0) > 0 && (
-        <Section
-          title="Departures"
-          icon={ArrowDownRight}
-          iconColor="text-muted-foreground"
-          count={data?.departures.length}
-          loading={isLoading}
-          viewAllLink="/staff/guests?filter=departures"
-          horizontal
-        >
-          <div className="flex flex-wrap gap-2">
-            {data?.departures.slice(0, 8).map((guest: any) => (
-              <Link
-                key={guest.id}
-                to={`/staff/guests/${guest.id}`}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 hover:bg-muted text-sm transition-colors"
-              >
-                <span className="font-mono text-xs text-muted-foreground">{guest.room_number}</span>
-                <span className="truncate max-w-[120px]">{guest.full_name}</span>
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-    </div>
-  );
-}
+      {/* Filter Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+        <TabsList className="bg-muted/50">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="guests">Guests</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="dining">Dining</TabsTrigger>
+        </TabsList>
 
-// Section component
-interface SectionProps {
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  iconColor?: string;
-  count?: number;
-  loading?: boolean;
-  viewAllLink?: string;
-  children: React.ReactNode;
-  horizontal?: boolean;
-}
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          {/* Column 1: Arrivals & Requests */}
+          {(activeTab === 'all' || activeTab === 'guests') && (
+            <div className="space-y-6">
+              {/* Arrivals */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Plane className="h-4 w-4 text-success" />
+                      Arrivals Today
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/staff/guests?filter=arrivals">
+                        View all <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loadingGuests ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-12" />)}
+                    </div>
+                  ) : guestStats?.arrivals && guestStats.arrivals.length > 0 ? (
+                    <div className="space-y-2">
+                      {guestStats.arrivals.map((guest: any) => (
+                        <Link
+                          key={guest.id}
+                          to={`/staff/guests/${guest.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success text-xs font-bold shrink-0">
+                              {guest.room_number}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{guest.full_name}</p>
+                              {guest.is_vip && (
+                                <Badge variant="default" className="text-2xs mt-0.5">VIP</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No arrivals today</p>
+                  )}
+                </CardContent>
+              </Card>
 
-function Section({ title, icon: Icon, iconColor, count, loading, viewAllLink, children, horizontal }: SectionProps) {
-  return (
-    <div className={cn(horizontal && 'lg:col-span-4')}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Icon className={cn('h-4 w-4', iconColor || 'text-muted-foreground')} />
-          <h2 className="text-sm font-medium text-foreground">{title}</h2>
-          {typeof count === 'number' && (
-            <span className="text-xs text-muted-foreground">({count})</span>
+              {/* Guest Requests */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-warning" />
+                      Open Requests
+                      {requests && requests.length > 0 && (
+                        <Badge variant="warning" className="text-2xs">{requests.length}</Badge>
+                      )}
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/staff/guest-requests">
+                        View all <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {loadingRequests ? (
+                    <div className="space-y-2">
+                      {[1, 2].map(i => <Skeleton key={i} className="h-12" />)}
+                    </div>
+                  ) : requests && requests.length > 0 ? (
+                    <div className="space-y-2">
+                      {requests.map((req: any) => (
+                        <Link
+                          key={req.id}
+                          to="/staff/guest-requests"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium truncate">{req.guest?.full_name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{req.special_request_text}</p>
+                          </div>
+                          <Badge variant={req.status === 'OPEN' ? 'warning' : 'secondary'} className="text-2xs shrink-0 ml-2">
+                            {req.status}
+                          </Badge>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No open requests</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Column 2: Activities */}
+          {(activeTab === 'all' || activeTab === 'activities') && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Today's Sessions
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/staff/activities/sessions">
+                      View all <ChevronRight className="h-4 w-4 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {loadingSessions ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14" />)}
+                  </div>
+                ) : sessionStats?.sessions && sessionStats.sessions.length > 0 ? (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2 pr-2">
+                      {sessionStats.sessions.map((session: any) => (
+                        <Link
+                          key={session.id}
+                          to={`/staff/activities/sessions/${session.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{session.activityName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {session.start_time.slice(0, 5)} – {session.end_time.slice(0, 5)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant={session.confirmedPax >= session.capacity * 0.8 ? 'success' : 'secondary'} className="text-2xs">
+                              {session.confirmedPax}/{session.capacity}
+                            </Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="py-8 text-center">
+                    <Calendar className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-sm text-muted-foreground">No sessions scheduled</p>
+                    <Button variant="link" size="sm" asChild className="mt-2">
+                      <Link to="/staff/activities/sessions/new">Create session</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Column 3: Dining */}
+          {(activeTab === 'all' || activeTab === 'dining') && (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <UtensilsCrossed className="h-4 w-4 text-sunset" />
+                    Dining Today
+                  </CardTitle>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/staff/restaurants/slots">
+                      View all <ChevronRight className="h-4 w-4 ml-1" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {loadingDining ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14" />)}
+                  </div>
+                ) : diningStats?.slots && diningStats.slots.length > 0 ? (
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2 pr-2">
+                      {diningStats.slots.map((slot: any) => (
+                        <Link
+                          key={slot.id}
+                          to={`/staff/restaurants/slots/${slot.id}`}
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm truncate">{slot.restaurantName}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{slot.meal_period}</span>
+                              <span>•</span>
+                              <span>{slot.start_time.slice(0, 5)}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant={slot.confirmedCovers >= slot.capacity * 0.7 ? 'success' : 'secondary'} className="text-2xs">
+                              {slot.confirmedCovers}/{slot.capacity}
+                            </Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="py-8 text-center">
+                    <UtensilsCrossed className="h-10 w-10 mx-auto text-muted-foreground/50 mb-3" />
+                    <p className="text-sm text-muted-foreground">No dining slots today</p>
+                    <Button variant="link" size="sm" asChild className="mt-2">
+                      <Link to="/staff/restaurants/slots/new">Create slot</Link>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
-        {viewAllLink && (
-          <Link
-            to={viewAllLink}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-          >
-            View all <ChevronRight className="h-3 w-3" />
-          </Link>
-        )}
-      </div>
-      <div className="min-h-[100px]">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-3/4" />
+      </Tabs>
+
+      {/* Quick Actions */}
+      <Card className="bg-muted/30 border-dashed">
+        <CardContent className="py-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-muted-foreground">Quick actions:</span>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/staff/activities/sessions/new">
+                <Plus className="h-4 w-4 mr-1" />
+                New Session
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/staff/restaurants/slots/new">
+                <Plus className="h-4 w-4 mr-1" />
+                New Slot
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/staff/prearrival">
+                <Plane className="h-4 w-4 mr-1" />
+                Pre-Arrivals
+              </Link>
+            </Button>
           </div>
-        ) : (
-          children
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
-function EmptyMessage({ children }: { children: React.ReactNode }) {
+// Quick Stat Card Component
+interface QuickStatCardProps {
+  title: string;
+  value: number | string;
+  icon: React.ComponentType<{ className?: string }>;
+  loading?: boolean;
+  variant?: 'default' | 'primary' | 'success' | 'warning';
+  subtitle?: string;
+}
+
+function QuickStatCard({ title, value, icon: Icon, loading, variant = 'default', subtitle }: QuickStatCardProps) {
+  const variantStyles = {
+    default: 'bg-card',
+    primary: 'bg-primary/5 border-primary/20',
+    success: 'bg-success/5 border-success/20',
+    warning: 'bg-warning/5 border-warning/20',
+  };
+
+  const iconStyles = {
+    default: 'text-muted-foreground',
+    primary: 'text-primary',
+    success: 'text-success',
+    warning: 'text-warning',
+  };
+
   return (
-    <p className="text-sm text-muted-foreground py-4 text-center">{children}</p>
+    <Card className={cn('transition-colors', variantStyles[variant])}>
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">{value}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
+            {subtitle && <p className="text-2xs text-muted-foreground/70">{subtitle}</p>}
+          </div>
+          <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center bg-background/50', iconStyles[variant])}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export default TodayHub;
