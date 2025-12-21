@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
         resort_id: resortId,
         guest_id: guestId,
         channel: 'email',
-        template_key: 'prearrival_invite_v1',
+        template_key: 'prearrival_invite',
         to_address: guestEmail,
         subject: subject,
         body_preview: bodyPreview,
