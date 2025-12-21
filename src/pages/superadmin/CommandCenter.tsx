@@ -12,12 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { getTierInfo, SubscriptionTier } from '@/lib/tier-features';
-import { format, subDays, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ActionQueue, ActionQueueItem } from '@/components/superadmin/ActionQueue';
 import { ResortDrawer } from '@/components/superadmin/ResortDrawer';
 import { RolloutsPanel } from '@/components/superadmin/RolloutsPanel';
 import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
 import { FounderControls } from '@/components/superadmin/FounderControls';
+import { usePlatformActivityRealtime, EVENT_TYPE_CONFIG } from '@/hooks/usePlatformActivity';
+import { useErrorCount24h } from '@/hooks/usePlatformErrors';
 import {
   Building2, Users, Calendar, Utensils, TrendingUp, AlertTriangle, AlertCircle,
   CheckCircle2, ArrowUpRight, ExternalLink, Plane, Activity, Bell, Clock,
@@ -86,13 +88,21 @@ export default function CommandCenter() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
+  // Get resort IDs for queries
+  const activeResorts = includeDemos ? resorts : resorts.filter(r => r.status === 'ACTIVE' && !r.is_demo);
+  const resortIds = activeResorts.map(r => r.id);
+
+  // Real-time activity feed
+  const { events: activityEvents, isLoading: loadingActivity } = usePlatformActivityRealtime(undefined, resorts);
+
+  // Real error count
+  const { data: errorCount24h } = useErrorCount24h(resortIds);
+
   // Platform KPIs
   const { data: kpis, isLoading: loadingKPIs } = useQuery({
     queryKey: ['command-center-kpis', today, includeDemos],
     queryFn: async () => {
-      const activeResorts = includeDemos ? resorts : resorts.filter(r => r.status === 'ACTIVE' && !r.is_demo);
-      const resortIds = activeResorts.map(r => r.id);
-      if (resortIds.length === 0) return { activeResorts: 0, guestsInHouse: 0, upcomingArrivals: 0, activityPax: 0, diningCovers: 0, prearrivalRate: 0, errors24h: 0 };
+      if (resortIds.length === 0) return { activeResorts: 0, guestsInHouse: 0, upcomingArrivals: 0, activityPax: 0, diningCovers: 0, prearrivalRate: 0 };
 
       const { count: guestsInHouse } = await supabase.from('guests').select('*', { count: 'exact', head: true }).in('resort_id', resortIds).lte('check_in_date', today).gte('check_out_date', today);
       const threeDaysLater = format(new Date(Date.now() + 72 * 60 * 60 * 1000), 'yyyy-MM-dd');
@@ -101,7 +111,27 @@ export default function CommandCenter() {
       const { count: completedPrearrival } = await supabase.from('prearrival_profiles').select('*', { count: 'exact', head: true }).in('resort_id', resortIds).eq('prearrival_status', 'completed');
       const prearrivalRate = totalPrearrival && totalPrearrival > 0 ? Math.round((completedPrearrival || 0) / totalPrearrival * 100) : 0;
 
-      return { activeResorts: activeResorts.length, guestsInHouse: guestsInHouse || 0, upcomingArrivals: upcomingArrivals || 0, activityPax: 0, diningCovers: 0, prearrivalRate, errors24h: 0 };
+      // Real activity pax for today
+      const { data: activityBookings } = await supabase
+        .from('activity_bookings')
+        .select('num_adults, num_children, session:activity_sessions!inner(date)')
+        .in('resort_id', resortIds)
+        .eq('status', 'CONFIRMED');
+      
+      const activityPax = activityBookings?.filter((b: any) => b.session?.date === today)
+        .reduce((sum: number, b: any) => sum + (b.num_adults || 0) + (b.num_children || 0), 0) || 0;
+
+      // Real dining covers for today
+      const { data: diningReservations } = await supabase
+        .from('restaurant_reservations')
+        .select('num_adults, num_children, slot:restaurant_time_slots!inner(date)')
+        .in('resort_id', resortIds)
+        .eq('status', 'CONFIRMED');
+      
+      const diningCovers = diningReservations?.filter((r: any) => r.slot?.date === today)
+        .reduce((sum: number, r: any) => sum + (r.num_adults || 0) + (r.num_children || 0), 0) || 0;
+
+      return { activeResorts: activeResorts.length, guestsInHouse: guestsInHouse || 0, upcomingArrivals: upcomingArrivals || 0, activityPax, diningCovers, prearrivalRate };
     },
   });
 
@@ -110,8 +140,8 @@ export default function CommandCenter() {
     queryKey: ['command-center-actions', resorts.map(r => r.id)],
     queryFn: async () => {
       const items: ActionQueueItem[] = [];
-      const activeResorts = resorts.filter(r => r.status === 'ACTIVE');
-      for (const resort of activeResorts) {
+      const activeResortsList = resorts.filter(r => r.status === 'ACTIVE');
+      for (const resort of activeResortsList) {
         const { count: activityCount } = await supabase.from('activities').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).eq('is_active', true);
         const { count: sessionCount } = await supabase.from('activity_sessions').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).gte('date', today);
         if (activityCount && activityCount > 0 && (!sessionCount || sessionCount === 0)) {
@@ -182,7 +212,7 @@ export default function CommandCenter() {
         <KPICard title="Activity Pax" value={kpis?.activityPax || 0} icon={Calendar} loading={loadingKPIs} variant="success" />
         <KPICard title="Covers" value={kpis?.diningCovers || 0} icon={Utensils} loading={loadingKPIs} variant="warning" />
         <KPICard title="Pre-arrival" value={`${kpis?.prearrivalRate || 0}%`} icon={CheckCircle2} loading={loadingKPIs} />
-        <KPICard title="Errors 24h" value={kpis?.errors24h || 0} icon={AlertCircle} loading={loadingKPIs} onClick={() => navigate('/superadmin/health')} />
+        <KPICard title="Errors 24h" value={errorCount24h || 0} icon={AlertCircle} loading={false} onClick={() => navigate('/superadmin/health')} />
       </div>
 
       {/* Mode Content */}
@@ -190,13 +220,68 @@ export default function CommandCenter() {
         <div className="grid gap-6 lg:grid-cols-4">
           <div className="lg:col-span-3 space-y-6">
             <ActionQueue items={actionItems || []} loading={loadingActions} />
+            
+            {/* Real Activity Feed */}
             <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4" />Activity Feed</CardTitle></CardHeader>
-              <CardContent><div className="flex flex-col items-center justify-center py-8"><Clock className="h-10 w-10 text-muted-foreground/30 mb-2" /><p className="text-sm text-muted-foreground">Recent activity will appear here</p></div></CardContent>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Activity Feed
+                  {activityEvents.length > 0 && (
+                    <Badge variant="outline" className="ml-auto text-xs">{activityEvents.length} events</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingActivity ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                  </div>
+                ) : activityEvents.length > 0 ? (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-2">
+                      {activityEvents.slice(0, 20).map((event) => {
+                        const config = EVENT_TYPE_CONFIG[event.event_type] || { label: event.event_type, icon: Activity, color: 'text-muted-foreground' };
+                        const EventIcon = config.icon;
+                        return (
+                          <div key={event.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                            <div className={`p-1.5 rounded-lg bg-muted ${config.color}`}>
+                              <EventIcon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{config.label}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {event.actor_name && <span>{event.actor_name}</span>}
+                                {event.target_name && <span> → {event.target_name}</span>}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
+                                {event.resort_name && (
+                                  <>
+                                    <span>•</span>
+                                    <Building2 className="h-3 w-3" />
+                                    <span>{event.resort_name}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Clock className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">Recent activity will appear here</p>
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </div>
           <div className="lg:col-span-1">
-            <FounderControls />
+            <FounderControls resortIds={resortIds} />
           </div>
         </div>
       )}

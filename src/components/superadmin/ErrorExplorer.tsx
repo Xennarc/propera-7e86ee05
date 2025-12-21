@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -15,9 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { format, subDays, subHours } from 'date-fns';
+import { usePlatformErrors, useResolveError, TimeRange } from '@/hooks/usePlatformErrors';
+import { format } from 'date-fns';
 import {
   Search,
   AlertTriangle,
@@ -26,74 +24,56 @@ import {
   Clock,
   Building2,
   Eye,
-  ExternalLink,
   Filter,
   BarChart3,
   Activity,
   RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
-
-interface ErrorEntry {
-  id: string;
-  route: string;
-  action: string;
-  message: string;
-  resortId?: string;
-  resortName?: string;
-  timestamp: Date;
-  count: number;
-}
+import { toast } from 'sonner';
 
 export function ErrorExplorer() {
   const navigate = useNavigate();
   const { resorts } = useResort();
   const [resortFilter, setResortFilter] = useState<string>('all');
-  const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h');
+  const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Simulated error data - in production this would come from an error logging table
-  const { data: errorData, isLoading } = useQuery({
-    queryKey: ['error-explorer', resortFilter, timeRange],
-    queryFn: async () => {
-      // Simulated error metrics
-      const errors: ErrorEntry[] = [
-        { id: '1', route: '/guest/activities', action: 'load_sessions', message: 'No sessions found for date', timestamp: new Date(), count: 3 },
-        { id: '2', route: '/staff/bookings', action: 'cancel_booking', message: 'Booking already cancelled', timestamp: subHours(new Date(), 2), count: 1 },
-        { id: '3', route: '/guest/dining', action: 'make_reservation', message: 'Slot no longer available', timestamp: subHours(new Date(), 5), count: 2 },
-      ];
+  const { data, isLoading, refetch } = usePlatformErrors(
+    resortFilter === 'all' ? undefined : resortFilter,
+    timeRange,
+    resorts
+  );
 
-      // Filter by resort if specified
-      let filteredErrors = errors;
-      if (resortFilter !== 'all') {
-        filteredErrors = errors.filter(e => e.resortId === resortFilter);
-      }
+  const resolveError = useResolveError();
 
-      // Calculate metrics
-      const totalErrors = filteredErrors.reduce((sum, e) => sum + e.count, 0);
-      const errorsByRoute = filteredErrors.reduce((acc, e) => {
-        acc[e.route] = (acc[e.route] || 0) + e.count;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const topRoutes = Object.entries(errorsByRoute)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([route, count]) => ({ route, count }));
-
-      return {
-        errors: filteredErrors,
-        totalErrors,
-        topRoutes,
-        trend: -15, // % change vs previous period
-      };
-    },
-  });
-
-  const filteredErrors = errorData?.errors.filter(e => 
+  const filteredErrors = data?.errors.filter(e => 
     searchQuery === '' || 
     e.route.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.message.toLowerCase().includes(searchQuery.toLowerCase())
+    e.error_message.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const handleResolve = async (errorId: string) => {
+    try {
+      await resolveError.mutateAsync(errorId);
+      toast.success('Error marked as resolved');
+    } catch {
+      toast.error('Failed to resolve error');
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'critical':
+        return <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs">Critical</Badge>;
+      case 'error':
+        return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Error</Badge>;
+      case 'warning':
+        return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30 text-xs">Warning</Badge>;
+      default:
+        return <Badge variant="outline" className="text-xs">{severity}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -116,7 +96,7 @@ export function ErrorExplorer() {
           </SelectContent>
         </Select>
 
-        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as typeof timeRange)}>
+        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
           <SelectTrigger className="w-32">
             <SelectValue />
           </SelectTrigger>
@@ -147,7 +127,11 @@ export function ErrorExplorer() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase">Total Errors</p>
-                <p className="text-2xl font-bold">{errorData?.totalErrors || 0}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{data?.metrics.totalErrors || 0}</p>
+                )}
               </div>
               <AlertTriangle className="h-8 w-8 text-warning/50" />
             </div>
@@ -159,14 +143,18 @@ export function ErrorExplorer() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase">Trend</p>
-                <div className="flex items-center gap-1">
-                  <p className="text-2xl font-bold">{errorData?.trend || 0}%</p>
-                  {(errorData?.trend || 0) < 0 ? (
-                    <TrendingDown className="h-5 w-5 text-success" />
-                  ) : (
-                    <TrendingUp className="h-5 w-5 text-destructive" />
-                  )}
-                </div>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-16 mt-1" />
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <p className="text-2xl font-bold">{data?.metrics.trend || 0}%</p>
+                    {(data?.metrics.trend || 0) < 0 ? (
+                      <TrendingDown className="h-5 w-5 text-success" />
+                    ) : (
+                      <TrendingUp className="h-5 w-5 text-destructive" />
+                    )}
+                  </div>
+                )}
               </div>
               <Activity className="h-8 w-8 text-muted-foreground/50" />
             </div>
@@ -176,14 +164,23 @@ export function ErrorExplorer() {
         <Card className="sm:col-span-2">
           <CardContent className="p-4">
             <p className="text-xs font-medium text-muted-foreground uppercase mb-3">Top Failing Routes</p>
-            <div className="space-y-2">
-              {errorData?.topRoutes.slice(0, 3).map((route, i) => (
-                <div key={route.route} className="flex items-center justify-between text-sm">
-                  <span className="font-mono text-muted-foreground">{route.route}</span>
-                  <Badge variant="outline">{route.count}</Badge>
-                </div>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-6 w-full" />)}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data?.metrics.topRoutes.slice(0, 3).map((route, i) => (
+                  <div key={route.route} className="flex items-center justify-between text-sm">
+                    <span className="font-mono text-muted-foreground truncate">{route.route}</span>
+                    <Badge variant="outline">{route.count}</Badge>
+                  </div>
+                ))}
+                {(!data?.metrics.topRoutes || data.metrics.topRoutes.length === 0) && (
+                  <p className="text-sm text-muted-foreground">No errors recorded</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -196,7 +193,7 @@ export function ErrorExplorer() {
               <BarChart3 className="h-5 w-5" />
               Error Log
             </CardTitle>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
             </Button>
@@ -218,25 +215,37 @@ export function ErrorExplorer() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 text-xs">
-                            {error.count}x
-                          </Badge>
+                          {getSeverityBadge(error.severity)}
                           <span className="font-mono text-sm">{error.route}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{error.message}</p>
+                        <p className="text-sm text-muted-foreground">{error.error_message}</p>
                         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {format(error.timestamp, 'MMM d, HH:mm')}
-                          {error.resortName && (
+                          {format(new Date(error.created_at), 'MMM d, HH:mm')}
+                          {error.resort_name && (
                             <>
                               <span>•</span>
                               <Building2 className="h-3 w-3" />
-                              {error.resortName}
+                              {error.resort_name}
+                            </>
+                          )}
+                          {error.user_type && (
+                            <>
+                              <span>•</span>
+                              <span className="capitalize">{error.user_type}</span>
                             </>
                           )}
                         </div>
                       </div>
                       <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleResolve(error.id)}
+                          disabled={resolveError.isPending}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/audit')}>
                           <Clock className="h-4 w-4" />
                         </Button>

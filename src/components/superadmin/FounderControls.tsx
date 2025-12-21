@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Star, X, Clock, TrendingUp, Building2, AlertTriangle, Plane } from 'lucide-react';
+import { useDailyBriefing } from '@/hooks/usePlatformActivity';
 
 interface Favorite {
   type: 'resort' | 'user' | 'page';
@@ -25,7 +26,11 @@ const DEFAULT_SAVED_VIEWS: SavedView[] = [
   { id: 'arrivals-72h', name: 'Arrivals 72h', description: 'Upcoming arrivals', icon: Plane },
 ];
 
-export function FounderControls() {
+interface FounderControlsProps {
+  resortIds?: string[];
+}
+
+export function FounderControls({ resortIds }: FounderControlsProps) {
   const [favorites, setFavorites] = useState<Favorite[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('superadmin-favorites') || '[]');
@@ -34,16 +39,8 @@ export function FounderControls() {
     }
   });
 
-  const [briefing, setBriefing] = useState<{ changes: number; issues: number; growth: string } | null>(null);
-
-  useEffect(() => {
-    // Simulated daily briefing data
-    setBriefing({
-      changes: 12,
-      issues: 2,
-      growth: '+5%',
-    });
-  }, []);
+  // Real daily briefing data from the database
+  const { data: briefing, isLoading: loadingBriefing } = useDailyBriefing(resortIds);
 
   const removeFavorite = (id: string) => {
     setFavorites(prev => {
@@ -56,15 +53,21 @@ export function FounderControls() {
   return (
     <div className="space-y-4">
       {/* Daily Briefing */}
-      {briefing && (
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Daily Briefing
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card className="bg-primary/5 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Daily Briefing
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingBriefing ? (
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : briefing ? (
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{briefing.changes}</p>
@@ -82,9 +85,11 @@ export function FounderControls() {
                 <p className="text-xs text-muted-foreground">Growth</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No data available</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Favorites */}
       <Card>
