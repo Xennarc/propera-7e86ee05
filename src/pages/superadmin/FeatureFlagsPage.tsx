@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { toast } from 'sonner';
+import {
+  useFeatureFlags,
+  useToggleFeatureFlag,
+  useRemoveResortOverride,
+  FEATURE_CATEGORIES,
+} from '@/hooks/useFeatureFlags';
 import {
   ToggleRight,
   Search,
@@ -20,7 +24,7 @@ import {
   Shield,
   Building2,
   Info,
-  Save,
+  X,
 } from 'lucide-react';
 import {
   Dialog,
@@ -38,111 +42,93 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-// Feature flags definition (in a real app, this would come from the database)
-const FEATURE_FLAGS = [
-  // Core Features
-  { key: 'enable_activities', label: 'Activities Module', description: 'Enable activity management and bookings', category: 'core', tier: 'essential' },
-  { key: 'enable_dining', label: 'Dining Module', description: 'Enable restaurant management and reservations', category: 'core', tier: 'essential' },
-  { key: 'enable_spa', label: 'Spa Module', description: 'Enable spa and wellness bookings', category: 'core', tier: 'professional' },
-  
-  // Guest Portal
-  { key: 'enable_guest_portal', label: 'Guest Portal', description: 'Enable guest self-service portal', category: 'guest', tier: 'essential' },
-  { key: 'enable_prearrival', label: 'Pre-Arrival', description: 'Enable pre-arrival check-in flow', category: 'guest', tier: 'professional' },
-  { key: 'enable_guest_bookings', label: 'Guest Self-Booking', description: 'Allow guests to book activities/dining', category: 'guest', tier: 'essential' },
-  
-  // Premium Features
-  { key: 'enable_loyalty', label: 'Loyalty Program', description: 'Enable loyalty points and rewards', category: 'premium', tier: 'elite', dangerous: true },
-  { key: 'enable_ai_insights', label: 'AI Insights', description: 'Enable AI-powered analytics and suggestions', category: 'premium', tier: 'elite' },
-  { key: 'enable_multi_language', label: 'Multi-Language', description: 'Enable guest portal translations', category: 'premium', tier: 'professional' },
-  
-  // Experimental
-  { key: 'enable_waitlist', label: 'Waitlist System', description: 'Enable waitlist for full sessions', category: 'experimental', tier: 'essential' },
-  { key: 'enable_travel_party', label: 'Travel Party', description: 'Enable travel party management', category: 'experimental', tier: 'professional' },
-  { key: 'enable_smart_suggestions', label: 'Smart Suggestions', description: 'AI-powered activity suggestions', category: 'experimental', tier: 'elite' },
-  
-  // Danger Zone
-  { key: 'maintenance_mode', label: 'Maintenance Mode', description: 'Put platform in maintenance mode', category: 'danger', dangerous: true },
-  { key: 'disable_guest_access', label: 'Disable Guest Access', description: 'Prevent all guest portal access', category: 'danger', dangerous: true },
-  { key: 'emergency_readonly', label: 'Emergency Read-Only', description: 'Disable all write operations', category: 'danger', dangerous: true },
-];
-
-const CATEGORIES = {
-  core: { label: 'Core Features', icon: Building2, color: 'text-primary' },
-  guest: { label: 'Guest Portal', icon: ToggleRight, color: 'text-success' },
-  premium: { label: 'Premium Features', icon: Zap, color: 'text-warning' },
-  experimental: { label: 'Experimental', icon: FlaskConical, color: 'text-info' },
-  danger: { label: 'Danger Zone', icon: AlertTriangle, color: 'text-destructive' },
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  core: Building2,
+  guest: ToggleRight,
+  premium: Zap,
+  experimental: FlaskConical,
+  danger: AlertTriangle,
 };
 
 export default function FeatureFlagsPage() {
-  const queryClient = useQueryClient();
   const { resorts } = useResort();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResort, setSelectedResort] = useState<string>('global');
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; flag: typeof FEATURE_FLAGS[0] | null; newValue: boolean }>({
+  const [confirmDialog, setConfirmDialog] = useState<{ 
+    open: boolean; 
+    flagKey: string | null; 
+    flagLabel: string;
+    newValue: boolean;
+    isDangerous: boolean;
+  }>({
     open: false,
-    flag: null,
+    flagKey: null,
+    flagLabel: '',
     newValue: false,
+    isDangerous: false,
   });
 
-  // Simulated flag states (in real app, would come from database)
-  const [flagStates, setFlagStates] = useState<Record<string, Record<string, boolean>>>(() => {
-    const initial: Record<string, Record<string, boolean>> = { global: {} };
-    FEATURE_FLAGS.forEach(flag => {
-      initial.global[flag.key] = !flag.dangerous; // Enable all non-dangerous by default
-    });
-    return initial;
-  });
+  const { data: flags, isLoading } = useFeatureFlags(
+    selectedResort === 'global' ? undefined : selectedResort
+  );
+  const toggleFlag = useToggleFeatureFlag();
+  const removeOverride = useRemoveResortOverride();
 
-  const filteredFlags = FEATURE_FLAGS.filter(flag => {
+  const filteredFlags = flags?.filter(flag => {
     if (!searchQuery) return true;
     return flag.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           flag.description.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+           (flag.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+  }) || [];
 
-  const groupedFlags = Object.entries(CATEGORIES).map(([key, config]) => ({
+  const groupedFlags = Object.entries(FEATURE_CATEGORIES).map(([key, config]) => ({
     key,
     ...config,
     flags: filteredFlags.filter(f => f.category === key),
   })).filter(g => g.flags.length > 0);
 
-  const handleToggle = (flag: typeof FEATURE_FLAGS[0], newValue: boolean) => {
-    if (flag.dangerous) {
-      setConfirmDialog({ open: true, flag, newValue });
+  const handleToggle = (flag: typeof filteredFlags[0], newValue: boolean) => {
+    if (flag.is_dangerous) {
+      setConfirmDialog({ 
+        open: true, 
+        flagKey: flag.key, 
+        flagLabel: flag.label,
+        newValue, 
+        isDangerous: true 
+      });
     } else {
       applyToggle(flag.key, newValue);
     }
   };
 
-  const applyToggle = (flagKey: string, newValue: boolean) => {
-    const scope = selectedResort;
-    setFlagStates(prev => ({
-      ...prev,
-      [scope]: {
-        ...prev[scope],
-        [flagKey]: newValue,
-      },
-    }));
-    toast.success(`Feature flag updated`);
+  const applyToggle = async (flagKey: string, newValue: boolean) => {
+    try {
+      await toggleFlag.mutateAsync({
+        flagKey,
+        isEnabled: newValue,
+        resortId: selectedResort === 'global' ? undefined : selectedResort,
+      });
+    } catch (error) {
+      // Error handled in hook
+    }
   };
 
   const confirmToggle = () => {
-    if (confirmDialog.flag) {
-      applyToggle(confirmDialog.flag.key, confirmDialog.newValue);
+    if (confirmDialog.flagKey) {
+      applyToggle(confirmDialog.flagKey, confirmDialog.newValue);
     }
-    setConfirmDialog({ open: false, flag: null, newValue: false });
+    setConfirmDialog({ open: false, flagKey: null, flagLabel: '', newValue: false, isDangerous: false });
   };
 
-  const getFlagState = (flagKey: string) => {
-    const scope = selectedResort;
-    if (scope !== 'global' && flagStates[scope]?.[flagKey] !== undefined) {
-      return flagStates[scope][flagKey];
+  const handleRemoveOverride = async (flagKey: string) => {
+    if (selectedResort === 'global') return;
+    try {
+      await removeOverride.mutateAsync({
+        flagKey,
+        resortId: selectedResort,
+      });
+    } catch (error) {
+      // Error handled in hook
     }
-    return flagStates.global?.[flagKey] ?? false;
-  };
-
-  const hasOverride = (flagKey: string) => {
-    return selectedResort !== 'global' && flagStates[selectedResort]?.[flagKey] !== undefined;
   };
 
   return (
@@ -213,71 +199,105 @@ export default function FeatureFlagsPage() {
         </div>
       )}
 
-      {/* Feature Flag Groups */}
-      <div className="space-y-6">
-        {groupedFlags.map(group => {
-          const IconComponent = group.icon;
-          const isDanger = group.key === 'danger';
-          
-          return (
-            <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
-              <CardHeader className="pb-3">
-                <CardTitle className={`flex items-center gap-2 ${group.color}`}>
-                  <IconComponent className="h-5 w-5" />
-                  {group.label}
-                </CardTitle>
-                {isDanger && (
-                  <CardDescription className="text-destructive">
-                    These flags can significantly impact platform availability. Use with extreme caution.
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {group.flags.map(flag => {
-                    const isEnabled = getFlagState(flag.key);
-                    const isOverridden = hasOverride(flag.key);
-                    
-                    return (
-                      <div
-                        key={flag.key}
-                        className={`flex items-center justify-between p-4 rounded-xl border ${
-                          isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{flag.label}</span>
-                            {flag.tier && (
-                              <Badge variant="outline" className="text-[9px] capitalize">
-                                {flag.tier}
-                              </Badge>
-                            )}
-                            {isOverridden && (
-                              <Badge variant="outline" className="text-[9px] bg-info/10 text-info border-info/30">
-                                Override
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
-                        </div>
-                        <Switch
-                          checked={isEnabled}
-                          onCheckedChange={(checked) => handleToggle(flag, checked)}
-                          className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+      {/* Loading State */}
+      {isLoading && (
+        <div className="space-y-6">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+              <CardContent className="space-y-4">
+                {[1, 2].map(j => <Skeleton key={j} className="h-20 w-full" />)}
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* Feature Flag Groups */}
+      {!isLoading && (
+        <div className="space-y-6">
+          {groupedFlags.map(group => {
+            const IconComponent = CATEGORY_ICONS[group.key] || ToggleRight;
+            const isDanger = group.key === 'danger';
+            
+            return (
+              <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
+                <CardHeader className="pb-3">
+                  <CardTitle className={`flex items-center gap-2 ${group.color}`}>
+                    <IconComponent className="h-5 w-5" />
+                    {group.label}
+                  </CardTitle>
+                  {isDanger && (
+                    <CardDescription className="text-destructive">
+                      These flags can significantly impact platform availability. Use with extreme caution.
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {group.flags.map(flag => {
+                      const isOverridden = flag.scope === 'resort' && selectedResort !== 'global';
+                      
+                      return (
+                        <div
+                          key={flag.key}
+                          className={`flex items-center justify-between p-4 rounded-xl border ${
+                            isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{flag.label}</span>
+                              {flag.tier && (
+                                <Badge variant="outline" className="text-[9px] capitalize">
+                                  {flag.tier}
+                                </Badge>
+                              )}
+                              {isOverridden && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[9px] bg-info/10 text-info border-info/30 cursor-pointer"
+                                  onClick={() => handleRemoveOverride(flag.key)}
+                                >
+                                  Override
+                                  <X className="h-2.5 w-2.5 ml-1" />
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
+                          </div>
+                          <Switch
+                            checked={flag.is_enabled}
+                            onCheckedChange={(checked) => handleToggle(flag, checked)}
+                            disabled={toggleFlag.isPending}
+                            className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!isLoading && filteredFlags.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <ToggleRight className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <p className="font-medium">No feature flags found</p>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? 'Try adjusting your search' : 'Feature flags will appear here'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, flag: null, newValue: false })}>
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, flagKey: null, flagLabel: '', newValue: false, isDangerous: false })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -287,19 +307,18 @@ export default function FeatureFlagsPage() {
             <DialogDescription className="space-y-2">
               <p>
                 You are about to {confirmDialog.newValue ? 'enable' : 'disable'}{' '}
-                <strong>{confirmDialog.flag?.label}</strong>.
+                <strong>{confirmDialog.flagLabel}</strong>.
               </p>
               <p className="text-destructive font-medium">
-                {confirmDialog.flag?.description}
+                This action may significantly impact platform availability. Are you sure?
               </p>
-              <p>This action may significantly impact platform availability. Are you sure?</p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, flag: null, newValue: false })}>
+            <Button variant="outline" onClick={() => setConfirmDialog({ open: false, flagKey: null, flagLabel: '', newValue: false, isDangerous: false })}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmToggle}>
+            <Button variant="destructive" onClick={confirmToggle} disabled={toggleFlag.isPending}>
               Yes, {confirmDialog.newValue ? 'Enable' : 'Disable'}
             </Button>
           </DialogFooter>
