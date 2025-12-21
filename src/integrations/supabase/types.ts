@@ -595,6 +595,56 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link_url: string | null
+          message: string
+          read_at: string | null
+          resort_id: string | null
+          severity: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          message: string
+          read_at?: string | null
+          resort_id?: string | null
+          severity?: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link_url?: string | null
+          message?: string
+          read_at?: string | null
+          resort_id?: string | null
+          severity?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_attendees: {
         Row: {
           activity_booking_id: string | null
@@ -702,6 +752,62 @@ export type Database = {
           old_values?: Json | null
         }
         Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_dangerous: boolean
+          is_enabled: boolean
+          key: string
+          label: string
+          resort_id: string | null
+          scope: string
+          tier: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dangerous?: boolean
+          is_enabled?: boolean
+          key: string
+          label: string
+          resort_id?: string | null
+          scope?: string
+          tier?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dangerous?: boolean
+          is_enabled?: boolean
+          key?: string
+          label?: string
+          resort_id?: string | null
+          scope?: string
+          tier?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       guest_outbound_messages: {
         Row: {
@@ -1520,6 +1626,112 @@ export type Database = {
           label?: string
         }
         Relationships: []
+      }
+      platform_activity_events: {
+        Row: {
+          actor_id: string | null
+          actor_name: string | null
+          actor_type: string | null
+          created_at: string
+          event_type: string
+          id: string
+          metadata_json: Json | null
+          resort_id: string | null
+          target_id: string | null
+          target_name: string | null
+          target_type: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_type?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_type?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata_json?: Json | null
+          resort_id?: string | null
+          target_id?: string | null
+          target_name?: string | null
+          target_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_activity_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_errors: {
+        Row: {
+          action: string | null
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          id: string
+          metadata_json: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resort_id: string | null
+          route: string
+          severity: string
+          user_id: string | null
+          user_type: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          id?: string
+          metadata_json?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resort_id?: string | null
+          route: string
+          severity?: string
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          id?: string
+          metadata_json?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resort_id?: string | null
+          route?: string
+          severity?: string
+          user_id?: string | null
+          user_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_errors_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prearrival_profiles: {
         Row: {
@@ -2514,6 +2726,51 @@ export type Database = {
           },
         ]
       }
+      rollout_history: {
+        Row: {
+          affected_resort_ids: string[] | null
+          change_label: string
+          change_type: string
+          executed_at: string
+          executed_by: string
+          id: string
+          metadata_json: Json | null
+          notes: string | null
+          rollback_at: string | null
+          rollback_by: string | null
+          scope: string
+          status: string
+        }
+        Insert: {
+          affected_resort_ids?: string[] | null
+          change_label: string
+          change_type: string
+          executed_at?: string
+          executed_by: string
+          id?: string
+          metadata_json?: Json | null
+          notes?: string | null
+          rollback_at?: string | null
+          rollback_by?: string | null
+          scope: string
+          status?: string
+        }
+        Update: {
+          affected_resort_ids?: string[] | null
+          change_label?: string
+          change_type?: string
+          executed_at?: string
+          executed_by?: string
+          id?: string
+          metadata_json?: Json | null
+          notes?: string | null
+          rollback_at?: string | null
+          rollback_by?: string | null
+          scope?: string
+          status?: string
+        }
+        Relationships: []
+      }
       staff_audit_logs: {
         Row: {
           action: string
@@ -2691,6 +2948,56 @@ export type Database = {
           },
           {
             foreignKeyName: "stay_feedback_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_sessions: {
+        Row: {
+          actions_taken: Json | null
+          admin_user_id: string
+          ended_at: string | null
+          expires_at: string
+          id: string
+          read_only: boolean
+          reason: string
+          resort_id: string
+          session_type: string
+          started_at: string
+          target_user_id: string | null
+        }
+        Insert: {
+          actions_taken?: Json | null
+          admin_user_id: string
+          ended_at?: string | null
+          expires_at: string
+          id?: string
+          read_only?: boolean
+          reason: string
+          resort_id: string
+          session_type: string
+          started_at?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          actions_taken?: Json | null
+          admin_user_id?: string
+          ended_at?: string | null
+          expires_at?: string
+          id?: string
+          read_only?: boolean
+          reason?: string
+          resort_id?: string
+          session_type?: string
+          started_at?: string
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_sessions_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
@@ -3026,6 +3333,18 @@ export type Database = {
         }
         Returns: Json
       }
+      create_admin_notification: {
+        Args: {
+          p_link_url?: string
+          p_message: string
+          p_resort_id?: string
+          p_severity?: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       create_guest_notification: {
         Args: {
           p_guest_id: string
@@ -3331,6 +3650,30 @@ export type Database = {
       }
       log_admin_action: {
         Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
+        Returns: string
+      }
+      log_platform_activity: {
+        Args: {
+          p_event_type: string
+          p_metadata?: Json
+          p_resort_id?: string
+          p_target_id?: string
+          p_target_name?: string
+          p_target_type?: string
+        }
+        Returns: string
+      }
+      log_platform_error: {
+        Args: {
+          p_action?: string
+          p_error_message: string
+          p_error_stack?: string
+          p_metadata?: Json
+          p_resort_id?: string
+          p_route: string
+          p_severity?: string
+          p_user_type?: string
+        }
         Returns: string
       }
       log_staff_action: {
