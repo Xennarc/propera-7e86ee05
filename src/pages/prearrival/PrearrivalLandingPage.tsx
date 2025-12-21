@@ -3,20 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { format, parseISO, differenceInDays, isToday, isPast } from 'date-fns';
 import { 
   Plane, Calendar, Utensils, CheckCircle2, ChevronRight, 
-  AlertCircle, Lock, Sparkles, Clock, Shield, HelpCircle,
-  MapPin, User, PartyPopper, ChevronDown
+  AlertCircle, Sparkles, Clock, Shield, PartyPopper, MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 interface ValidatedData {
@@ -99,21 +95,15 @@ export default function PrearrivalLandingPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const [validating, setValidating] = useState(true);
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [lastName, setLastName] = useState('');
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [verifying, setVerifying] = useState(false);
-  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [data, setData] = useState<ValidatedData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [resortBranding, setResortBranding] = useState<{
     name: string;
     logo_url: string | null;
     primary_color: string | null;
   } | null>(null);
 
-  // Validate token (no verification yet)
+  // Validate token and load directly
   useEffect(() => {
     const validateToken = async () => {
       if (!token) {
@@ -163,22 +153,8 @@ export default function PrearrivalLandingPage() {
           .update({ last_opened_at: new Date().toISOString() })
           .eq('id', linkData.id);
 
-        // Fetch resort settings to check verification mode
-        const { data: settings } = await supabase
-          .from('prearrival_settings')
-          .select('verification_mode')
-          .eq('resort_id', linkData.resort_id)
-          .maybeSingle();
-
-        const verificationMode = settings?.verification_mode || 'light';
-
-        if (verificationMode === 'light') {
-          setNeedsVerification(true);
-          setValidating(false);
-        } else {
-          // No verification needed, validate directly
-          await performValidation(token, '');
-        }
+        // Validate directly without verification
+        await performValidation(token);
       } catch (err) {
         console.error('Validation error:', err);
         setError('Something went wrong. Please try again.');
@@ -189,11 +165,12 @@ export default function PrearrivalLandingPage() {
     validateToken();
   }, [token]);
 
-  const performValidation = useCallback(async (tkn: string, lastNameValue: string) => {
+  const performValidation = useCallback(async (tkn: string) => {
     try {
+      // Skip verification - pass empty string for last name
       const { data: result, error: rpcError } = await supabase.rpc('validate_prearrival_link', {
         p_token: tkn,
-        p_last_name: lastNameValue.trim().toLowerCase(),
+        p_last_name: '',
       });
 
       if (rpcError) throw rpcError;
@@ -201,9 +178,10 @@ export default function PrearrivalLandingPage() {
       const validationResult = result as any;
       
       if (!validationResult?.success) {
+        // Ignore verification failures since we're skipping verification
         if (validationResult?.error === 'VERIFICATION_FAILED') {
-          setVerificationError('The last name doesn\'t match our records. Please try again.');
-          setVerifying(false);
+          // This shouldn't happen with empty last name, but handle gracefully
+          setError('Unable to access your pre-arrival information. Please contact the resort.');
           return;
         }
         setError(validationResult?.error || 'Validation failed');
@@ -211,9 +189,6 @@ export default function PrearrivalLandingPage() {
       }
 
       const validatedData = validationResult.data as ValidatedData;
-      
-      // Show success animation briefly
-      setVerificationSuccess(true);
       
       // Check if guest is IN_STAY - redirect to guest portal
       const guestState = getGuestState(validatedData, validatedData.guest.check_in_date, validatedData.guest.check_out_date);
@@ -243,31 +218,15 @@ export default function PrearrivalLandingPage() {
         return;
       }
 
-      // Brief delay for success animation
-      setTimeout(() => {
-        setData(validatedData);
-        setNeedsVerification(false);
-        setVerificationError(null);
-        setVerifying(false);
-        setVerificationSuccess(false);
-      }, prefersReducedMotion ? 0 : 600);
+      // Set data directly - no verification animation needed
+      setData(validatedData);
     } catch (err: any) {
       console.error('Validation error:', err);
       setError('Something went wrong. Please try again.');
-      setVerifying(false);
     } finally {
       setValidating(false);
     }
-  }, [navigate, toast, prefersReducedMotion]);
-
-  const handleVerification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!token || !lastName.trim()) return;
-
-    setVerifying(true);
-    setVerificationError(null);
-    await performValidation(token, lastName.trim());
-  };
+  }, [navigate, toast]);
 
   // Navigate to wizard
   const handleStartCheckin = () => {
@@ -347,182 +306,6 @@ export default function PrearrivalLandingPage() {
     );
   }
 
-  // Verification screen
-  if (needsVerification) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-background to-muted/20">
-        {/* Header with resort branding */}
-        <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-lg">
-          <div className="container max-w-lg flex h-14 items-center justify-between px-4">
-            <div className="flex items-center gap-3">
-              {resortBranding?.logo_url && (
-                <img src={resortBranding.logo_url} alt="" className="h-7 w-auto" />
-              )}
-              <span className="font-semibold text-sm">{resortBranding?.name || 'Resort'}</span>
-            </div>
-            <ThemeToggle />
-          </div>
-        </header>
-
-        <main className="flex-1 flex items-center justify-center p-4">
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="w-full max-w-md space-y-6"
-          >
-            {/* Welcome header */}
-            <motion.div variants={itemVariants} className="text-center space-y-3">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-2">
-                <Lock className="h-8 w-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight">Confirm it's you</h1>
-              <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-                For your security, please enter your last name to access your pre-arrival information.
-              </p>
-            </motion.div>
-
-            {/* Verification form */}
-            <motion.div variants={itemVariants}>
-              <Card className="border-border/50 shadow-lg">
-                <CardContent className="p-6">
-                  <AnimatePresence mode="wait">
-                    {verificationSuccess ? (
-                      <motion.div
-                        key="success"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="py-8 text-center space-y-3"
-                      >
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                          className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto"
-                        >
-                          <CheckCircle2 className="h-8 w-8 text-success" />
-                        </motion.div>
-                        <p className="font-semibold text-success">Verified!</p>
-                      </motion.div>
-                    ) : (
-                      <motion.form
-                        key="form"
-                        onSubmit={handleVerification}
-                        className="space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <Label htmlFor="lastName" className="text-sm font-medium">
-                            Last Name
-                          </Label>
-                          <Input
-                            id="lastName"
-                            value={lastName}
-                            onChange={(e) => {
-                              setLastName(e.target.value);
-                              setVerificationError(null);
-                            }}
-                            placeholder="Enter your last name"
-                            className={cn(
-                              "h-12 text-base",
-                              verificationError && "border-destructive focus-visible:ring-destructive"
-                            )}
-                            autoFocus
-                            autoComplete="family-name"
-                            autoCapitalize="words"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Enter the last name on the reservation (case doesn't matter)
-                          </p>
-                          {verificationError && (
-                            <motion.p
-                              initial={{ opacity: 0, y: -4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="text-sm text-destructive flex items-center gap-1.5"
-                            >
-                              <AlertCircle className="h-3.5 w-3.5" />
-                              {verificationError}
-                            </motion.p>
-                          )}
-                        </div>
-                        
-                        <Button 
-                          type="submit" 
-                          className="w-full h-12 text-base font-semibold"
-                          disabled={!lastName.trim() || verifying}
-                        >
-                          {verifying ? (
-                            <>
-                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
-                              Verifying...
-                            </>
-                          ) : (
-                            <>
-                              Continue
-                              <ChevronRight className="h-5 w-5 ml-1" />
-                            </>
-                          )}
-                        </Button>
-                      </motion.form>
-                    )}
-                  </AnimatePresence>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Help accordion */}
-            <motion.div variants={itemVariants}>
-              <Collapsible open={helpOpen} onOpenChange={setHelpOpen}>
-                <CollapsibleTrigger asChild>
-                  <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center">
-                    <HelpCircle className="h-4 w-4" />
-                    <span>Having trouble?</span>
-                    <ChevronDown className={cn(
-                      "h-4 w-4 transition-transform",
-                      helpOpen && "rotate-180"
-                    )} />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3">
-                  <Card className="bg-muted/50 border-dashed">
-                    <CardContent className="p-4 space-y-3 text-sm">
-                      <div className="flex items-start gap-2">
-                        <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium">Try the lead guest's last name</p>
-                          <p className="text-muted-foreground text-xs">
-                            Use the name on the original booking
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium">Contact the resort</p>
-                          <p className="text-muted-foreground text-xs">
-                            The front desk can help verify your reservation
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </CollapsibleContent>
-              </Collapsible>
-            </motion.div>
-
-            {/* Trust signal */}
-            <motion.p 
-              variants={itemVariants}
-              className="text-xs text-center text-muted-foreground flex items-center justify-center gap-2"
-            >
-              <Shield className="h-3 w-3" />
-              Secure link • Your information is protected
-            </motion.p>
-          </motion.div>
-        </main>
-      </div>
-    );
-  }
 
   // Main landing page
   if (!data) return null;
