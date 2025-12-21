@@ -35,6 +35,8 @@ import { GuestBookingsLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { Link } from 'react-router-dom';
+import { useGuestDiningSync } from '@/hooks/useDiningBookingSync';
+import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -68,6 +70,10 @@ export default function GuestMyBookings() {
     slot_id?: string;
     max_pax_per_booking?: number;
   } | null>(null);
+
+  // Enable real-time sync for activities and dining
+  useGuestActivitySync(guest?.guestId);
+  useGuestDiningSync(guest?.guestId);
 
   // First get room guests to show shared room bookings
   const { data: roomGuests } = useQuery({

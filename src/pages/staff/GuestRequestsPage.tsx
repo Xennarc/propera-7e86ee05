@@ -32,6 +32,7 @@ import { Calendar, Utensils, Check, X, Loader2, Users, Clock, MessageSquare, Ext
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { useStaffRequestsPageSync } from '@/hooks/useGuestRequestsSync';
 
 type RequestStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED';
 type SourceFilter = 'ALL' | 'ACTIVITY' | 'RESTAURANT';
@@ -41,6 +42,9 @@ export default function GuestRequestsPage() {
   const { currentResort } = useResort();
   const { hasAnyRole } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Enable real-time sync for requests
+  useStaffRequestsPageSync();
   
   // Filter states
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('ALL');

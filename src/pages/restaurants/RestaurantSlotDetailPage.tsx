@@ -14,6 +14,7 @@ import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { BookingAuditTrail } from '@/components/bookings/BookingAuditTrail';
 import { RestaurantSlotDialog } from './RestaurantSlotDialog';
 import { RestaurantReservationDialog } from './RestaurantReservationDialog';
+import { useStaffDiningSlotSync } from '@/hooks/useDiningBookingSync';
 
 interface SlotWithRestaurant extends RestaurantTimeSlot {
   restaurant: Restaurant;
@@ -50,6 +51,9 @@ export default function RestaurantSlotDetailPage() {
   const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
 
   const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'FNB']);
+
+  // Enable real-time sync for this slot
+  useStaffDiningSlotSync(id);
 
   const fetchSlot = async () => {
     if (!id) return;
