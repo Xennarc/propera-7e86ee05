@@ -34,7 +34,9 @@ import {
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
 import { PrearrivalLinkManager } from './PrearrivalLinkManager';
+import { PrearrivalHistoryTimeline } from './PrearrivalHistoryTimeline';
 import { StaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
+import { usePrearrivalRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +77,9 @@ export function PrearrivalProfileCard({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const { profile, settings, review, status } = data;
+  
+  // Enable real-time updates for this guest
+  usePrearrivalRealtime({ guestId, enabled: true });
   
   // Fetch invite status
   const { 
@@ -590,6 +595,15 @@ export function PrearrivalProfileCard({
               resortPrimaryColor={resortPrimaryColor}
             />
           </div>
+        </div>
+
+        {/* Pre-arrival History */}
+        <div className="pt-3 border-t">
+          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 mb-3">
+            <Clock className="h-3.5 w-3.5" />
+            Change History
+          </h4>
+          <PrearrivalHistoryTimeline guestId={guestId} initialLimit={3} />
         </div>
 
         {/* Activity Timeline */}
