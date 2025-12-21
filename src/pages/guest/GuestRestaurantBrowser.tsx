@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useGuestDiningSync } from '@/hooks/useDiningBookingSync';
 
 const MEAL_PERIOD_ORDER = ['BREAKFAST', 'LUNCH', 'DINNER', 'EVENT'];
 
@@ -32,6 +33,9 @@ export default function GuestRestaurantBrowser() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedRestaurant, setSelectedRestaurant] = useState<string>('all');
+
+  // Enable real-time sync for dining
+  useGuestDiningSync(guest?.guestId);
 
   const mealPeriodConfig: Record<string, { icon: typeof Coffee; label: string; colorClass: string; bgClass: string }> = {
     BREAKFAST: { icon: Coffee, label: t('dining.mealPeriods.BREAKFAST'), colorClass: 'text-sunset', bgClass: 'bg-sunset/10' },
