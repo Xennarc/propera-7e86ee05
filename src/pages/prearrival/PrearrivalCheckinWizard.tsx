@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,9 +14,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { format, parseISO } from 'date-fns';
 import { 
   ChevronLeft, ChevronRight, Check, Plane, Utensils, Heart, 
-  FileCheck, Sparkles, AlertCircle, Calendar, CheckCircle2
+  FileCheck, Sparkles, AlertCircle, Calendar, CheckCircle2,
+  Cloud, Save, Loader2, PartyPopper, Copy, Download, MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { Badge } from '@/components/ui/badge';
 
 interface WizardData {
   guest: {
@@ -48,19 +52,38 @@ interface WizardData {
 
 const STORAGE_KEY = 'propera_checkin_progress';
 
-const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-free', 'Dairy-free', 'Pescatarian'];
-const WATER_COMFORT_LEVELS = [
-  { value: 'confident', label: 'Confident swimmer' },
-  { value: 'comfortable', label: 'Comfortable in water' },
-  { value: 'beginner', label: 'Beginner/Learning' },
-  { value: 'non-swimmer', label: 'Non-swimmer' },
+const DIETARY_OPTIONS = [
+  { value: 'Vegetarian', emoji: '🥬' },
+  { value: 'Vegan', emoji: '🌱' },
+  { value: 'Halal', emoji: '🍖' },
+  { value: 'Kosher', emoji: '✡️' },
+  { value: 'Gluten-free', emoji: '🌾' },
+  { value: 'Dairy-free', emoji: '🥛' },
+  { value: 'Pescatarian', emoji: '🐟' },
 ];
-const SPECIAL_OCCASIONS = ['Honeymoon', 'Anniversary', 'Birthday', 'Engagement', 'Babymoon', 'Family reunion', 'Retirement'];
+
+const WATER_COMFORT_LEVELS = [
+  { value: 'confident', label: 'Confident swimmer', emoji: '🏊' },
+  { value: 'comfortable', label: 'Comfortable in water', emoji: '🌊' },
+  { value: 'beginner', label: 'Beginner/Learning', emoji: '🏖️' },
+  { value: 'non-swimmer', label: 'Non-swimmer', emoji: '🏝️' },
+];
+
+const SPECIAL_OCCASIONS = [
+  { value: 'Honeymoon', emoji: '💒' },
+  { value: 'Anniversary', emoji: '💍' },
+  { value: 'Birthday', emoji: '🎂' },
+  { value: 'Engagement', emoji: '💎' },
+  { value: 'Babymoon', emoji: '👶' },
+  { value: 'Family reunion', emoji: '👨‍👩‍👧‍👦' },
+  { value: 'Retirement', emoji: '🎉' },
+];
+
 const TRANSFER_OPTIONS = [
-  { value: 'seaplane', label: 'Seaplane' },
-  { value: 'speedboat', label: 'Speedboat' },
-  { value: 'domestic_flight', label: 'Domestic flight + boat' },
-  { value: 'unsure', label: 'Not sure yet' },
+  { value: 'seaplane', label: 'Seaplane', emoji: '🛩️' },
+  { value: 'speedboat', label: 'Speedboat', emoji: '🚤' },
+  { value: 'domestic_flight', label: 'Domestic flight + boat', emoji: '✈️' },
+  { value: 'unsure', label: 'Not sure yet', emoji: '❓' },
 ];
 
 export default function PrearrivalCheckinWizard() {
@@ -68,12 +91,15 @@ export default function PrearrivalCheckinWizard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const prefersReducedMotion = useReducedMotion();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<WizardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -107,10 +133,13 @@ export default function PrearrivalCheckinWizard() {
     }
   }, [token]);
 
-  // Save progress on change
+  // Save progress on change with debounce
   useEffect(() => {
     if (!token || loading) return;
-    localStorage.setItem(`${STORAGE_KEY}_${token}`, JSON.stringify(formData));
+    const timeout = setTimeout(() => {
+      localStorage.setItem(`${STORAGE_KEY}_${token}`, JSON.stringify(formData));
+    }, 500);
+    return () => clearTimeout(timeout);
   }, [formData, token, loading]);
 
   // Validate and fetch data
@@ -172,24 +201,54 @@ export default function PrearrivalCheckinWizard() {
   }, [token]);
 
   // Build steps based on settings
-  const steps: Array<{ id: string; title: string; icon: React.ReactNode }> = [];
+  const steps: Array<{ id: string; title: string; subtitle: string; icon: React.ReactNode }> = [];
   
   if (data) {
-    steps.push({ id: 'confirm', title: 'Confirm Stay', icon: <Calendar className="h-4 w-4" /> });
+    steps.push({ 
+      id: 'confirm', 
+      title: 'Confirm Stay', 
+      subtitle: 'Review your booking',
+      icon: <Calendar className="h-4 w-4" /> 
+    });
     
     if (data.settings.show_arrival_details) {
-      steps.push({ id: 'arrival', title: 'Arrival Details', icon: <Plane className="h-4 w-4" /> });
+      steps.push({ 
+        id: 'arrival', 
+        title: 'Arrival Details', 
+        subtitle: 'Flight & transfers',
+        icon: <Plane className="h-4 w-4" /> 
+      });
     }
     if (data.settings.show_preferences) {
-      steps.push({ id: 'preferences', title: 'Preferences', icon: <Utensils className="h-4 w-4" /> });
+      steps.push({ 
+        id: 'preferences', 
+        title: 'Preferences', 
+        subtitle: 'Dietary & comfort',
+        icon: <Utensils className="h-4 w-4" /> 
+      });
     }
     if (data.settings.show_special_occasions) {
-      steps.push({ id: 'occasions', title: 'Special Occasions', icon: <Heart className="h-4 w-4" /> });
+      steps.push({ 
+        id: 'occasions', 
+        title: 'Special Occasions', 
+        subtitle: 'Celebrations',
+        icon: <Heart className="h-4 w-4" /> 
+      });
     }
     if (data.settings.require_policy_acknowledgement || data.settings.require_esignature) {
-      steps.push({ id: 'policies', title: 'Policies', icon: <FileCheck className="h-4 w-4" /> });
+      steps.push({ 
+        id: 'policies', 
+        title: 'Policies', 
+        subtitle: 'Review & sign',
+        icon: <FileCheck className="h-4 w-4" /> 
+      });
     }
-    steps.push({ id: 'complete', title: 'Complete', icon: <Sparkles className="h-4 w-4" /> });
+    steps.push({ 
+      id: 'complete', 
+      title: 'Complete', 
+      subtitle: 'All done!',
+      icon: <Sparkles className="h-4 w-4" /> 
+    });
   }
 
   // Auto-save mutation
@@ -213,6 +272,7 @@ export default function PrearrivalCheckinWizard() {
       });
 
       if (error) throw error;
+      setLastSaved(new Date());
     },
   });
 
@@ -237,6 +297,7 @@ export default function PrearrivalCheckinWizard() {
     onSuccess: () => {
       localStorage.removeItem(`${STORAGE_KEY}_${token}`);
       queryClient.invalidateQueries({ queryKey: ['prearrival'] });
+      setShowConfetti(true);
       toast({
         title: 'Check-in complete!',
         description: 'Thank you! We\'re looking forward to welcoming you.',
@@ -251,9 +312,9 @@ export default function PrearrivalCheckinWizard() {
     },
   });
 
-  const handleNext = async () => {
+  const handleNext = useCallback(async () => {
     // Auto-save on step change
-    if (!saving) {
+    if (!saving && data) {
       setSaving(true);
       try {
         await saveMutation.mutateAsync();
@@ -266,7 +327,7 @@ export default function PrearrivalCheckinWizard() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
-  };
+  }, [saving, data, currentStep, steps.length, saveMutation]);
 
   const handleBack = () => {
     if (currentStep > 0) {
@@ -280,6 +341,25 @@ export default function PrearrivalCheckinWizard() {
     completeMutation.mutate();
   };
 
+  const handleSaveAndExit = async () => {
+    setSaving(true);
+    try {
+      await saveMutation.mutateAsync();
+      toast({
+        title: 'Progress saved',
+        description: 'You can continue where you left off anytime.',
+      });
+      navigate(`/prearrival/${token}`);
+    } catch (e) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to save',
+        description: 'Please try again.',
+      });
+    }
+    setSaving(false);
+  };
+
   const toggleArrayValue = (array: string[], value: string, setter: (val: string[]) => void) => {
     if (array.includes(value)) {
       setter(array.filter(v => v !== value));
@@ -288,10 +368,33 @@ export default function PrearrivalCheckinWizard() {
     }
   };
 
+  // Animation variants
+  const stepVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 20 : -20,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 20 : -20,
+      opacity: 0,
+    }),
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center space-y-3"
+        >
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading your check-in...</p>
+        </motion.div>
       </div>
     );
   }
@@ -314,20 +417,24 @@ export default function PrearrivalCheckinWizard() {
 
   const currentStepData = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
+  const progressPercent = Math.round(((currentStep + 1) / steps.length) * 100);
 
   const renderStepContent = () => {
     switch (currentStepData?.id) {
       case 'confirm':
         return (
-          <div className="space-y-6">
-            <div className="p-4 rounded-xl bg-muted/50 space-y-2">
+          <div className="space-y-5">
+            <div className="p-4 rounded-2xl bg-muted/50 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Guest</span>
                 <span className="font-medium">{data.guest.full_name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Room</span>
-                <span className="font-medium">{data.guest.room_number}</span>
+                <span className="font-medium flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {data.guest.room_number}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Check-in</span>
@@ -339,27 +446,30 @@ export default function PrearrivalCheckinWizard() {
               </div>
             </div>
 
-            <label className="flex items-start gap-3 p-4 rounded-xl border cursor-pointer hover:bg-muted/50 transition-colors">
+            <label className="flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer hover:bg-muted/30 transition-all group">
               <Checkbox
                 checked={formData.stayConfirmed}
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, stayConfirmed: !!checked }))}
                 className="mt-0.5"
               />
               <div>
-                <span className="font-medium">I confirm these details are correct</span>
-                <p className="text-sm text-muted-foreground">
+                <span className="font-medium group-hover:text-primary transition-colors">
+                  I confirm these details are correct
+                </span>
+                <p className="text-sm text-muted-foreground mt-0.5">
                   If anything has changed, please add a note below.
                 </p>
               </div>
             </label>
 
             <div className="space-y-2">
-              <Label>Anything changed? (optional)</Label>
+              <Label className="text-sm">Anything changed? (optional)</Label>
               <Textarea
                 value={formData.stayNotes}
                 onChange={(e) => setFormData(prev => ({ ...prev, stayNotes: e.target.value }))}
                 placeholder="e.g., We're arriving a day later, party size changed..."
                 rows={3}
+                className="resize-none"
               />
             </div>
           </div>
@@ -367,65 +477,76 @@ export default function PrearrivalCheckinWizard() {
 
       case 'arrival':
         return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label>Expected arrival time</Label>
-              <Input
-                type="time"
-                value={formData.arrivalTime}
-                onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
-                className="h-12"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Flight number (optional)</Label>
-              <Input
-                value={formData.flightNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, flightNumber: e.target.value }))}
-                placeholder="e.g., SQ422"
-                className="h-12"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Transfer preference</Label>
-              <Select 
-                value={formData.transferPreference} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, transferPreference: value }))}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Select transfer type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRANSFER_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Number of bags (optional)</Label>
+                <Label className="text-sm">Arrival time</Label>
                 <Input
-                  type="number"
-                  min="0"
-                  value={formData.baggageCount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, baggageCount: e.target.value }))}
-                  placeholder="e.g., 2"
-                  className="h-12"
+                  type="time"
+                  value={formData.arrivalTime}
+                  onChange={(e) => setFormData(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm">Flight number</Label>
+                <Input
+                  value={formData.flightNumber}
+                  onChange={(e) => setFormData(prev => ({ ...prev, flightNumber: e.target.value.toUpperCase() }))}
+                  placeholder="e.g., SQ422"
+                  className="h-11"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Pickup notes (optional)</Label>
+              <Label className="text-sm">Transfer preference</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {TRANSFER_OPTIONS.map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={cn(
+                      "flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                      formData.transferPreference === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted/50"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="transfer"
+                      value={opt.value}
+                      checked={formData.transferPreference === opt.value}
+                      onChange={(e) => setFormData(prev => ({ ...prev, transferPreference: e.target.value }))}
+                      className="sr-only"
+                    />
+                    <span className="text-lg">{opt.emoji}</span>
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Number of bags (optional)</Label>
+              <Input
+                type="number"
+                min="0"
+                value={formData.baggageCount}
+                onChange={(e) => setFormData(prev => ({ ...prev, baggageCount: e.target.value }))}
+                placeholder="e.g., 2"
+                className="h-11 max-w-32"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Pickup notes (optional)</Label>
               <Textarea
                 value={formData.pickupNotes}
                 onChange={(e) => setFormData(prev => ({ ...prev, pickupNotes: e.target.value }))}
                 placeholder="Any special pickup requirements..."
                 rows={2}
+                className="resize-none"
               />
             </div>
           </div>
@@ -433,56 +554,63 @@ export default function PrearrivalCheckinWizard() {
 
       case 'preferences':
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="space-y-3">
-              <Label>Dietary preferences</Label>
+              <Label className="text-sm">Dietary preferences</Label>
               <div className="grid grid-cols-2 gap-2">
                 {DIETARY_OPTIONS.map((option) => (
                   <label
-                    key={option}
+                    key={option.value}
                     className={cn(
-                      "flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-colors",
-                      formData.dietaryPreferences.includes(option)
+                      "flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                      formData.dietaryPreferences.includes(option.value)
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/50"
                     )}
                   >
                     <Checkbox
-                      checked={formData.dietaryPreferences.includes(option)}
+                      checked={formData.dietaryPreferences.includes(option.value)}
                       onCheckedChange={() => toggleArrayValue(
                         formData.dietaryPreferences, 
-                        option, 
+                        option.value, 
                         (val) => setFormData(prev => ({ ...prev, dietaryPreferences: val }))
                       )}
                     />
-                    <span className="text-sm">{option}</span>
+                    <span className="text-base">{option.emoji}</span>
+                    <span className="text-sm">{option.value}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Food allergies</Label>
+              <Label className="text-sm">Food allergies</Label>
               <Textarea
                 value={formData.allergies}
                 onChange={(e) => setFormData(prev => ({ ...prev, allergies: e.target.value }))}
-                placeholder="Please list any food allergies..."
+                placeholder="Please list any food allergies or intolerances..."
                 rows={2}
+                className="resize-none"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Water comfort level</Label>
+              <Label className="text-sm">Water comfort level</Label>
               <Select 
                 value={formData.waterComfort} 
                 onValueChange={(value) => setFormData(prev => ({ ...prev, waterComfort: value }))}
               >
-                <SelectTrigger className="h-12">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Select your comfort level" />
                 </SelectTrigger>
                 <SelectContent>
                   {WATER_COMFORT_LEVELS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <span className="flex items-center gap-2">
+                        <span>{opt.emoji}</span>
+                        <span>{opt.label}</span>
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -493,41 +621,43 @@ export default function PrearrivalCheckinWizard() {
 
       case 'occasions':
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="space-y-3">
-              <Label>Are you celebrating anything special?</Label>
+              <Label className="text-sm">Are you celebrating anything special?</Label>
               <div className="grid grid-cols-2 gap-2">
                 {SPECIAL_OCCASIONS.map((option) => (
                   <label
-                    key={option}
+                    key={option.value}
                     className={cn(
-                      "flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-colors",
-                      formData.specialOccasions.includes(option)
+                      "flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all",
+                      formData.specialOccasions.includes(option.value)
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted/50"
                     )}
                   >
                     <Checkbox
-                      checked={formData.specialOccasions.includes(option)}
+                      checked={formData.specialOccasions.includes(option.value)}
                       onCheckedChange={() => toggleArrayValue(
                         formData.specialOccasions, 
-                        option, 
+                        option.value, 
                         (val) => setFormData(prev => ({ ...prev, specialOccasions: val }))
                       )}
                     />
-                    <span className="text-sm">{option}</span>
+                    <span className="text-base">{option.emoji}</span>
+                    <span className="text-sm">{option.value}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Any special requests?</Label>
+              <Label className="text-sm">Any special requests?</Label>
               <Textarea
                 value={formData.specialRequests}
                 onChange={(e) => setFormData(prev => ({ ...prev, specialRequests: e.target.value }))}
-                placeholder="e.g., Surprise cake, flower decoration..."
+                placeholder="e.g., Surprise cake, flower decoration, room setup..."
                 rows={3}
+                className="resize-none"
               />
             </div>
           </div>
@@ -535,19 +665,19 @@ export default function PrearrivalCheckinWizard() {
 
       case 'policies':
         return (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {data.settings.require_policy_acknowledgement && data.settings.policy_text && (
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-muted/50 max-h-48 overflow-y-auto text-sm">
+                <div className="p-4 rounded-2xl bg-muted/50 max-h-48 overflow-y-auto text-sm prose prose-sm dark:prose-invert">
                   {data.settings.policy_text}
                 </div>
-                <label className="flex items-start gap-3 p-4 rounded-xl border cursor-pointer hover:bg-muted/50 transition-colors">
+                <label className="flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer hover:bg-muted/30 transition-all">
                   <Checkbox
                     checked={formData.policyAcknowledged}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, policyAcknowledged: !!checked }))}
                     className="mt-0.5"
                   />
-                  <span className="text-sm">I have read and agree to the policies above</span>
+                  <span className="text-sm font-medium">I have read and agree to the policies above</span>
                 </label>
               </div>
             )}
@@ -558,12 +688,12 @@ export default function PrearrivalCheckinWizard() {
                   <p className="text-sm text-muted-foreground">{data.settings.esignature_instruction}</p>
                 )}
                 <div className="space-y-2">
-                  <Label>Type your full name to sign</Label>
+                  <Label className="text-sm">Type your full name to sign</Label>
                   <Input
                     value={formData.esignatureName}
                     onChange={(e) => setFormData(prev => ({ ...prev, esignatureName: e.target.value }))}
                     placeholder="Your full name"
-                    className="h-12 font-medium"
+                    className="h-12 text-base font-medium"
                   />
                   <p className="text-xs text-muted-foreground">
                     Today's date: {format(new Date(), 'MMMM d, yyyy')}
@@ -576,41 +706,108 @@ export default function PrearrivalCheckinWizard() {
 
       case 'complete':
         return (
-          <div className="text-center space-y-6 py-4">
-            <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
-              <CheckCircle2 className="h-10 w-10 text-success" />
-            </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-6 py-4"
+          >
+            {/* Success icon with animation */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.1 }}
+              className="inline-flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-success/20 to-success/10 mx-auto"
+            >
+              <PartyPopper className="h-12 w-12 text-success" />
+            </motion.div>
+            
             <div className="space-y-2">
               <h2 className="text-2xl font-bold">You're all set!</h2>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground max-w-sm mx-auto">
                 Thank you for completing your pre-arrival check-in. We're looking forward to welcoming you!
               </p>
             </div>
-            
-            <div className="p-4 rounded-xl bg-muted/50 text-left space-y-2 text-sm">
-              <h4 className="font-semibold">Summary</h4>
-              {formData.arrivalTime && <p>Arrival: {formData.arrivalTime}</p>}
-              {formData.flightNumber && <p>Flight: {formData.flightNumber}</p>}
-              {formData.dietaryPreferences.length > 0 && (
-                <p>Dietary: {formData.dietaryPreferences.join(', ')}</p>
-              )}
-              {formData.specialOccasions.length > 0 && (
-                <p>Celebrating: {formData.specialOccasions.join(', ')}</p>
-              )}
+
+            {/* Summary cards */}
+            <div className="text-left space-y-3">
+              <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Summary</h4>
+              
+              <div className="grid gap-3">
+                {(formData.arrivalTime || formData.flightNumber || formData.transferPreference) && (
+                  <div className="p-4 rounded-2xl bg-muted/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Plane className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">Arrival</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      {formData.arrivalTime && <p>Time: {formData.arrivalTime}</p>}
+                      {formData.flightNumber && <p>Flight: {formData.flightNumber}</p>}
+                      {formData.transferPreference && (
+                        <p>Transfer: {TRANSFER_OPTIONS.find(o => o.value === formData.transferPreference)?.label}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(formData.dietaryPreferences.length > 0 || formData.allergies) && (
+                  <div className="p-4 rounded-2xl bg-muted/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Utensils className="h-4 w-4 text-lagoon" />
+                      <span className="font-medium text-sm">Preferences</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      {formData.dietaryPreferences.length > 0 && (
+                        <p>Dietary: {formData.dietaryPreferences.join(', ')}</p>
+                      )}
+                      {formData.allergies && <p>Allergies: {formData.allergies}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {formData.specialOccasions.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-muted/50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Heart className="h-4 w-4 text-coral" />
+                      <span className="font-medium text-sm">Celebrating</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.specialOccasions.join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {(data.settings.allow_activity_bookings || data.settings.allow_dining_bookings) && (
+            {/* What's next */}
+            <div className="pt-4 border-t text-sm text-muted-foreground">
+              <p>
+                <span className="font-medium text-foreground">What's next?</span>{' '}
+                On arrival, this automatically becomes your Guest Portal.
+              </p>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col gap-2 pt-2">
+              {(data.settings.allow_activity_bookings || data.settings.allow_dining_bookings) && (
+                <Button
+                  size="lg"
+                  onClick={() => navigate(`/prearrival/${token}/experiences`)}
+                  className="w-full"
+                >
+                  <Calendar className="h-5 w-5 mr-2" />
+                  Plan Experiences
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => navigate(`/prearrival/${token}/experiences`)}
+                onClick={() => navigate(`/prearrival/${token}`)}
                 className="w-full"
               >
-                <Calendar className="h-5 w-5 mr-2" />
-                Explore & Book Experiences
+                Back to Overview
               </Button>
-            )}
-          </div>
+            </div>
+          </motion.div>
         );
 
       default:
@@ -629,36 +826,76 @@ export default function PrearrivalCheckinWizard() {
             )}
             <span className="font-medium text-sm">{data.resort.name}</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            {/* Auto-save indicator */}
+            <AnimatePresence mode="wait">
+              {saving ? (
+                <motion.div
+                  key="saving"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
+                  <Cloud className="h-3.5 w-3.5 animate-pulse" />
+                  <span>Saving...</span>
+                </motion.div>
+              ) : lastSaved ? (
+                <motion.div
+                  key="saved"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+                  <span>Saved</span>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       {/* Progress */}
       <div className="border-b bg-muted/30">
         <div className="container max-w-2xl px-4 py-3">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {/* Progress bar */}
+          <div className="h-1 bg-muted rounded-full overflow-hidden mb-3">
+            <motion.div 
+              className="h-full bg-primary rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            />
+          </div>
+          
+          {/* Step indicators - horizontal scroll on mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center gap-2 shrink-0">
-                <div
+                <motion.div
+                  whileHover={!prefersReducedMotion ? { scale: 1.05 } : {}}
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors",
+                    "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-colors",
                     index < currentStep
                       ? "bg-primary text-primary-foreground"
                       : index === currentStep
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground ring-2 ring-primary/20 ring-offset-2 ring-offset-background"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
-                  {index < currentStep ? <Check className="h-3 w-3" /> : index + 1}
-                </div>
+                  {index < currentStep ? <Check className="h-4 w-4" /> : index + 1}
+                </motion.div>
                 <span className={cn(
-                  "text-xs hidden sm:inline",
+                  "text-xs hidden sm:inline whitespace-nowrap",
                   index === currentStep ? "font-medium" : "text-muted-foreground"
                 )}>
                   {step.title}
                 </span>
                 {index < steps.length - 1 && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                 )}
               </div>
             ))}
@@ -668,41 +905,81 @@ export default function PrearrivalCheckinWizard() {
 
       {/* Content */}
       <main className="container max-w-2xl px-4 py-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-6">
-              {currentStepData?.icon}
-              <h2 className="text-lg font-semibold">{currentStepData?.title}</h2>
-              {saving && <span className="text-xs text-muted-foreground ml-auto">Saving...</span>}
+        <Card className="border-border/50">
+          <CardContent className="p-5 md:p-6">
+            {/* Step header */}
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                {currentStepData?.icon}
+              </div>
+              <div>
+                <h2 className="font-semibold">{currentStepData?.title}</h2>
+                <p className="text-xs text-muted-foreground">{currentStepData?.subtitle}</p>
+              </div>
+              <Badge variant="outline" className="ml-auto text-xs">
+                Step {currentStep + 1} of {steps.length}
+              </Badge>
             </div>
 
-            {renderStepContent()}
+            {/* Step content with animation */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={currentStep}
+                initial={prefersReducedMotion ? {} : { opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={prefersReducedMotion ? {} : { opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                {renderStepContent()}
+              </motion.div>
+            </AnimatePresence>
           </CardContent>
         </Card>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-6">
-          <Button variant="ghost" onClick={handleBack}>
+        <div className="flex items-center justify-between mt-5 gap-3">
+          <Button 
+            variant="ghost" 
+            onClick={handleBack}
+            className="shrink-0"
+          >
             <ChevronLeft className="h-4 w-4 mr-1" />
             {currentStep === 0 ? 'Back' : 'Previous'}
           </Button>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveAndExit}
+            disabled={saving}
+            className="hidden sm:flex"
+          >
+            <Save className="h-4 w-4 mr-1.5" />
+            Save & Exit
+          </Button>
+
           {isLastStep ? (
-            completeMutation.isSuccess ? (
-              <Button onClick={() => navigate(`/prearrival/${token}`)}>
-                Back to Overview
-              </Button>
-            ) : (
+            completeMutation.isSuccess ? null : (
               <Button 
                 onClick={handleComplete}
                 disabled={completeMutation.isPending}
+                className="shrink-0"
               >
-                {completeMutation.isPending ? 'Completing...' : 'Complete Check-in'}
-                <Check className="h-4 w-4 ml-2" />
+                {completeMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Completing...
+                  </>
+                ) : (
+                  <>
+                    Complete Check-in
+                    <Check className="h-4 w-4 ml-2" />
+                  </>
+                )}
               </Button>
             )
           ) : (
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} className="shrink-0">
               Next
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
