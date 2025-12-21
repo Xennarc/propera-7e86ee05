@@ -6,6 +6,15 @@ export interface GuestPrearrivalStatus {
   prearrivalStatus: 'not_started' | 'partial' | 'completed' | null;
   lastInviteSent: string | null;
   inviteStatus: 'not_sent' | 'sent' | 'failed' | null;
+  // Enhanced fields for list display
+  lastUpdatedAt: string | null;
+  hasAllergies: boolean;
+  hasDietaryPreferences: boolean;
+  hasSpecialRequests: boolean;
+  hasSpecialOccasions: boolean;
+  isLateArrival: boolean;
+  requiresTransfer: boolean;
+  arrivalTime: string | null;
 }
 
 interface UsePrearrivalStatusesOptions {
@@ -24,7 +33,17 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
       const [profilesResult, messagesResult] = await Promise.all([
         supabase
           .from('prearrival_profiles')
-          .select('guest_id, prearrival_status')
+          .select(`
+            guest_id, 
+            prearrival_status, 
+            last_updated_at,
+            allergies,
+            dietary_preferences,
+            special_requests,
+            special_occasions,
+            arrival_time,
+            transfer_preference
+          `)
           .eq('resort_id', resortId)
           .in('guest_id', guestIds),
         supabase
@@ -36,8 +55,20 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
           .order('created_at', { ascending: false }),
       ]);
 
-      const profilesByGuest = new Map<string, { prearrival_status: string }>();
-      (profilesResult.data || []).forEach(p => {
+      interface ProfileData {
+        guest_id: string;
+        prearrival_status: string;
+        last_updated_at: string | null;
+        allergies: string | null;
+        dietary_preferences: any[] | null;
+        special_requests: string | null;
+        special_occasions: any[] | null;
+        arrival_time: string | null;
+        transfer_preference: string | null;
+      }
+
+      const profilesByGuest = new Map<string, ProfileData>();
+      (profilesResult.data || []).forEach((p: any) => {
         profilesByGuest.set(p.guest_id, p);
       });
 
@@ -48,6 +79,13 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
           messagesByGuest.set(m.guest_id, m);
         }
       });
+
+      // Helper to check for late arrival (after 20:00)
+      const isLateArrival = (arrivalTime: string | null): boolean => {
+        if (!arrivalTime) return false;
+        const hour = parseInt(arrivalTime.slice(0, 2), 10);
+        return hour >= 20;
+      };
 
       const result: Record<string, GuestPrearrivalStatus> = {};
       guestIds.forEach(guestId => {
@@ -61,6 +99,15 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
           inviteStatus: message 
             ? (message.status === 'sent' ? 'sent' : message.status === 'failed' ? 'failed' : null)
             : 'not_sent',
+          // Enhanced fields
+          lastUpdatedAt: profile?.last_updated_at || null,
+          hasAllergies: !!profile?.allergies,
+          hasDietaryPreferences: !!(profile?.dietary_preferences && profile.dietary_preferences.length > 0),
+          hasSpecialRequests: !!profile?.special_requests,
+          hasSpecialOccasions: !!(profile?.special_occasions && profile.special_occasions.length > 0),
+          isLateArrival: isLateArrival(profile?.arrival_time || null),
+          requiresTransfer: !!profile?.transfer_preference && profile.transfer_preference !== 'none',
+          arrivalTime: profile?.arrival_time || null,
         };
       });
 

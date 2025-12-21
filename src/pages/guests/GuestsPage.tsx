@@ -35,9 +35,10 @@ import { isWithinInterval, isToday, startOfDay, addDays, isBefore, isAfter } fro
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 import { usePrearrivalStatuses, GuestPrearrivalStatus } from '@/hooks/usePrearrivalStatus';
+import { usePrearrivalListRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useQuery } from '@tanstack/react-query';
 
-type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending';
+type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending' | 'prearrival-completed' | 'has-allergies' | 'arriving-72h';
 
 function GuestsPageContent() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -95,6 +96,9 @@ function GuestsPageContent() {
     fetchGuests();
     setSelectedGuests(new Set()); // Clear selection on resort change
   }, [currentResort]);
+
+  // Enable real-time updates for prearrival statuses
+  usePrearrivalListRealtime();
 
   // Fetch prearrival statuses for all guests
   const guestIds = useMemo(() => guests.map(g => g.id), [guests]);
@@ -160,6 +164,21 @@ function GuestsPageContent() {
     return isAfter(checkIn, today) && isBefore(checkIn, in7Days);
   };
 
+  const isArrivingIn72Hours = (guest: Guest) => {
+    const checkIn = safeParseDateISO(guest.check_in_date);
+    if (!checkIn) return false;
+    const today = startOfDay(new Date());
+    const in3Days = addDays(today, 3);
+    return isAfter(checkIn, today) && isBefore(checkIn, in3Days);
+  };
+
+  const hasAllergies = (guestId: string) => {
+    const status = prearrivalStatuses?.[guestId];
+    // We can't fully determine this without the prearrival profile data
+    // So we'll track this in prearrival_profiles and add a flag to the status hook
+    return false; // Will be implemented when we enhance the status hook
+  };
+
   // Calculate stats
   const stats = useMemo(() => {
     const inHouse = guests.filter(isCurrentGuest).length;
@@ -171,7 +190,14 @@ function GuestsPageContent() {
           return isFutureArrival(g) && (!status?.prearrivalStatus || status.prearrivalStatus === 'not_started');
         }).length
       : 0;
-    return { inHouse, arrivals, departures, pendingPrearrival };
+    const completedPrearrival = prearrivalEnabled
+      ? guests.filter(g => {
+          const status = prearrivalStatuses?.[g.id];
+          return isFutureArrival(g) && status?.prearrivalStatus === 'completed';
+        }).length
+      : 0;
+    const arriving72h = guests.filter(isArrivingIn72Hours).length;
+    return { inHouse, arrivals, departures, pendingPrearrival, completedPrearrival, arriving72h };
   }, [guests, prearrivalStatuses, prearrivalEnabled]);
 
   // Filter guests
@@ -194,6 +220,19 @@ function GuestsPageContent() {
           const status = prearrivalStatuses?.[g.id];
           return isArrivingInNext7Days(g) && (!status?.prearrivalStatus || status.prearrivalStatus !== 'completed');
         });
+        break;
+      case 'prearrival-completed':
+        result = result.filter(g => {
+          const status = prearrivalStatuses?.[g.id];
+          return isFutureArrival(g) && status?.prearrivalStatus === 'completed';
+        });
+        break;
+      case 'arriving-72h':
+        result = result.filter(isArrivingIn72Hours);
+        break;
+      case 'has-allergies':
+        // For now filter future arrivals - allergy flag would need to be in prearrival status
+        result = result.filter(g => isFutureArrival(g));
         break;
     }
 
@@ -358,7 +397,7 @@ function GuestsPageContent() {
             <FilterBar>
               <FilterBarGroup>
                 <Select value={filter} onValueChange={(v) => setFilter(v as GuestFilter)}>
-                  <SelectTrigger className="w-44 bg-background">
+                  <SelectTrigger className="w-48 bg-background">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -367,12 +406,17 @@ function GuestsPageContent() {
                     <SelectItem value="arrivals">Arrivals Today</SelectItem>
                     <SelectItem value="departures">Departures Today</SelectItem>
                     {prearrivalEnabled && (
-                      <SelectItem value="prearrival-pending">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3" />
-                          Arriving Soon (7d)
-                        </div>
-                      </SelectItem>
+                      <>
+                        <SelectItem value="arriving-72h">
+                          Arriving Next 72h ({stats.arriving72h})
+                        </SelectItem>
+                        <SelectItem value="prearrival-pending">
+                          Pre-Arrival Incomplete
+                        </SelectItem>
+                        <SelectItem value="prearrival-completed">
+                          Pre-Arrival Complete ({stats.completedPrearrival})
+                        </SelectItem>
+                      </>
                     )}
                   </SelectContent>
                 </Select>

@@ -772,6 +772,57 @@ export type Database = {
           },
         ]
       }
+      guest_profile_events: {
+        Row: {
+          actor: string
+          actor_user_id: string | null
+          changed_fields: Json | null
+          created_at: string
+          event_type: string
+          guest_id: string
+          id: string
+          resort_id: string
+          summary: string | null
+        }
+        Insert: {
+          actor?: string
+          actor_user_id?: string | null
+          changed_fields?: Json | null
+          created_at?: string
+          event_type: string
+          guest_id: string
+          id?: string
+          resort_id: string
+          summary?: string | null
+        }
+        Update: {
+          actor?: string
+          actor_user_id?: string | null
+          changed_fields?: Json | null
+          created_at?: string
+          event_type?: string
+          guest_id?: string
+          id?: string
+          resort_id?: string
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_profile_events_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_profile_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_requests: {
         Row: {
           activity_booking_id: string | null
