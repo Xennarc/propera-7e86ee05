@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { usePrearrivalInviteStatus } from '@/hooks/useGuestOutboundMessages';
 import { 
   ClipboardList, 
   Copy, 
   Check, 
   Plane, 
-  Clock, 
   Car, 
   UtensilsCrossed, 
   AlertTriangle,
@@ -21,9 +22,16 @@ import {
   UserCheck,
   ChevronDown,
   ChevronUp,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Mail,
+  Send,
+  Clock,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  RotateCcw
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
 import { PrearrivalLinkManager } from './PrearrivalLinkManager';
 import { StaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
@@ -64,8 +72,17 @@ export function PrearrivalProfileCard({
   const [showFullRequests, setShowFullRequests] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const { profile, settings, review, status } = data;
+  
+  // Fetch invite status
+  const { 
+    lastInvite, 
+    hasBeenSent, 
+    isLoading: inviteLoading,
+    refetch: refetchInvite 
+  } = usePrearrivalInviteStatus(guestId, resortId);
 
   // Mark as reviewed mutation
   const markReviewedMutation = useMutation({
@@ -89,6 +106,60 @@ export function PrearrivalProfileCard({
     },
     onError: (error: any) => {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
+    },
+  });
+
+  // Send email mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!guestEmail) throw new Error('No email address');
+      
+      // First generate link if needed
+      const { data: linkData, error: linkError } = await supabase.rpc('generate_prearrival_token', {
+        p_guest_id: guestId,
+      });
+      if (linkError) throw linkError;
+      
+      const linkResult = linkData as { success: boolean; token?: string; error?: string } | null;
+      if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
+      
+      const prearrivalLink = `${window.location.origin}/prearrival/${linkResult.token}`;
+      
+      // Send email
+      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-prearrival-link', {
+        body: {
+          guestId,
+          guestName,
+          guestEmail,
+          checkInDate,
+          resortId,
+          resortName,
+          prearrivalLink,
+          resortLogoUrl: resortLogoUrl || undefined,
+          resortPrimaryColor: resortPrimaryColor || undefined,
+        },
+      });
+      
+      if (emailError) throw emailError;
+      if (!emailData?.success) throw new Error(emailData?.error || 'Failed to send email');
+      
+      return emailData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages', guestId] });
+      queryClient.invalidateQueries({ queryKey: ['prearrival-link', guestId] });
+      toast({ 
+        title: 'Email sent!', 
+        description: `Pre-arrival invite sent to ${guestEmail}` 
+      });
+      refetchInvite();
+    },
+    onError: (error: any) => {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Failed to send', 
+        description: error.message 
+      });
     },
   });
 
@@ -125,6 +196,23 @@ export function PrearrivalProfileCard({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSendEmail = () => {
+    if (!guestEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'No email address',
+        description: 'Please add an email address to this guest first.',
+      });
+      return;
+    }
+    sendEmailMutation.mutate();
+  };
+
+  // Determine button state
+  const isCompleted = status === 'completed';
+  const isCheckedIn = new Date(checkInDate) <= new Date();
+  const canSend = !!guestEmail && !sendEmailMutation.isPending;
+
   if (isLoading) {
     return (
       <Card>
@@ -149,33 +237,82 @@ export function PrearrivalProfileCard({
   // Empty state when no profile exists
   if (!profile || !data.hasAnyData) {
     return (
-      <Card className="border-dashed border-2">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-muted-foreground">
-            <ClipboardList className="h-5 w-5" />
-            Pre-Arrival Profile
-          </CardTitle>
+      <Card className="border-2 border-dashed">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-muted-foreground">
+              <ClipboardList className="h-5 w-5" />
+              Pre-Arrival
+            </CardTitle>
+            <InviteStatusBadge 
+              lastInvite={lastInvite} 
+              isLoading={inviteLoading} 
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
-            <LinkIcon className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground mb-2">No pre-arrival details yet</p>
-            <p className="text-sm text-muted-foreground/80 mb-4">
-              Send the guest a pre-arrival link to collect arrival details and preferences.
-            </p>
-            <div className="flex justify-center">
-              <PrearrivalLinkManager
-                guestId={guestId}
-                guestName={guestName}
-                guestEmail={guestEmail}
-                checkInDate={checkInDate}
-                checkOutDate={checkOutDate}
-                resortId={resortId}
-                resortName={resortName}
-                resortLogoUrl={resortLogoUrl}
-                resortPrimaryColor={resortPrimaryColor}
-              />
+            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+              <Mail className="h-6 w-6 text-muted-foreground/60" />
             </div>
+            <p className="font-medium mb-1">No pre-arrival details yet</p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Send an invite so the guest can share arrival details and preferences.
+            </p>
+            
+            {/* Primary Action */}
+            <div className="flex flex-col items-center gap-3">
+              <Button 
+                onClick={handleSendEmail}
+                disabled={!canSend}
+                className="w-full max-w-xs"
+              >
+                {sendEmailMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : hasBeenSent ? (
+                  <>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Resend Pre-Arrival Email
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Pre-Arrival Email
+                  </>
+                )}
+              </Button>
+              
+              {!guestEmail && (
+                <p className="text-xs text-muted-foreground">
+                  Add guest email to enable sending
+                </p>
+              )}
+              
+              {/* Secondary actions */}
+              <div className="flex items-center gap-2 mt-2">
+                <PrearrivalLinkManager
+                  guestId={guestId}
+                  guestName={guestName}
+                  guestEmail={guestEmail}
+                  checkInDate={checkInDate}
+                  checkOutDate={checkOutDate}
+                  resortId={resortId}
+                  resortName={resortName}
+                  resortLogoUrl={resortLogoUrl}
+                  resortPrimaryColor={resortPrimaryColor}
+                />
+              </div>
+            </div>
+            
+            {/* Last invite activity */}
+            {lastInvite && (
+              <div className="mt-6 pt-4 border-t">
+                <InviteActivityLine invite={lastInvite} />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -202,6 +339,66 @@ export function PrearrivalProfileCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
+        {/* Email Invite Status Banner */}
+        <div className="rounded-lg bg-muted/50 p-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <InviteStatusBadge lastInvite={lastInvite} isLoading={inviteLoading} />
+            {lastInvite && (
+              <span className="text-xs text-muted-foreground truncate">
+                {lastInvite.status === 'sent' && lastInvite.sent_at
+                  ? `Sent ${formatDistanceToNow(parseISO(lastInvite.sent_at), { addSuffix: true })}`
+                  : lastInvite.status === 'failed'
+                  ? 'Send failed'
+                  : 'Queued'}
+                {lastInvite.staff_name && ` by ${lastInvite.staff_name}`}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isCompleted ? (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSendEmail}
+                disabled={!canSend}
+              >
+                {sendEmailMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <RotateCcw className="h-3 w-3 mr-1.5" />
+                    Resend
+                  </>
+                )}
+              </Button>
+            ) : isCheckedIn ? (
+              <Badge variant="secondary" className="text-xs">
+                Already checked in
+              </Badge>
+            ) : (
+              <Button 
+                size="sm"
+                onClick={handleSendEmail}
+                disabled={!canSend}
+              >
+                {sendEmailMutation.isPending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : hasBeenSent ? (
+                  <>
+                    <RotateCcw className="h-3 w-3 mr-1.5" />
+                    Resend Email
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1.5" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Arrival Details */}
         {settings?.show_arrival_details !== false && (
           <Section title="Arrival Details" icon={Plane}>
@@ -394,8 +591,94 @@ export function PrearrivalProfileCard({
             />
           </div>
         </div>
+
+        {/* Activity Timeline */}
+        {lastInvite && (
+          <div className="pt-3 border-t">
+            <InviteActivityLine invite={lastInvite} showLabel />
+          </div>
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+// Invite Status Badge Component
+function InviteStatusBadge({ 
+  lastInvite, 
+  isLoading 
+}: { 
+  lastInvite: any; 
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return <Skeleton className="h-5 w-16" />;
+  }
+
+  if (!lastInvite) {
+    return (
+      <Badge variant="outline" className="text-xs text-muted-foreground">
+        <Clock className="h-3 w-3 mr-1" />
+        Not sent
+      </Badge>
+    );
+  }
+
+  if (lastInvite.status === 'sent') {
+    return (
+      <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
+        <CheckCircle2 className="h-3 w-3 mr-1" />
+        Sent
+      </Badge>
+    );
+  }
+
+  if (lastInvite.status === 'failed') {
+    return (
+      <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
+        <XCircle className="h-3 w-3 mr-1" />
+        Failed
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="outline" className="text-xs">
+      <Clock className="h-3 w-3 mr-1" />
+      Queued
+    </Badge>
+  );
+}
+
+// Activity Line Component
+function InviteActivityLine({ 
+  invite, 
+  showLabel = false 
+}: { 
+  invite: any; 
+  showLabel?: boolean;
+}) {
+  const statusIcon = invite.status === 'sent' 
+    ? <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+    : invite.status === 'failed'
+    ? <XCircle className="h-3.5 w-3.5 text-destructive" />
+    : <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+
+  const timeAgo = invite.sent_at 
+    ? formatDistanceToNow(parseISO(invite.sent_at), { addSuffix: true })
+    : formatDistanceToNow(parseISO(invite.created_at), { addSuffix: true });
+
+  return (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      {statusIcon}
+      <span>
+        {showLabel && 'Pre-arrival invite '}
+        {invite.status === 'sent' ? 'sent' : invite.status === 'failed' ? 'failed' : 'queued'}
+        {' • '}
+        {timeAgo}
+        {invite.staff_name && invite.staff_name !== 'System' && ` by ${invite.staff_name}`}
+      </span>
+    </div>
   );
 }
 
