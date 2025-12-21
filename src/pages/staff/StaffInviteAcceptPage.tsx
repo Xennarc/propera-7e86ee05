@@ -227,8 +227,59 @@ export default function StaffInviteAcceptPage() {
       toast.success('Welcome to the team! Your account is ready.');
       navigate('/staff/dashboard', { replace: true });
     } catch (err) {
+      // Provide a helpful, actionable error message instead of a generic failure.
+      const raw = err as any;
+      const msg =
+        typeof raw?.message === 'string'
+          ? raw.message
+          : typeof raw?.error?.message === 'string'
+            ? raw.error.message
+            : typeof raw?.details === 'string'
+              ? raw.details
+              : 'Failed to create account. Please try again.';
+
       console.error('Error accepting invitation:', err);
-      toast.error('Failed to create account. Please try again.');
+
+      // Common case: account already exists (e.g. user clicked twice or invite resent)
+      const looksLikeDuplicate =
+        typeof msg === 'string' &&
+        (msg.toLowerCase().includes('duplicate') ||
+          msg.toLowerCase().includes('already exists') ||
+          msg.toLowerCase().includes('already registered') ||
+          msg.toLowerCase().includes('unique constraint') ||
+          msg.toLowerCase().includes('23505'));
+
+      if (looksLikeDuplicate) {
+        // Try to sign in anyway, then activate resort access.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitation.email,
+          password: formData.password,
+        });
+
+        if (!signInError) {
+          const { data: userData } = await supabase.auth.getUser();
+          const signedInUserId = userData.user?.id;
+
+          const { error: acceptError } = await supabase.rpc('accept_staff_invitation', {
+            p_token: token as string,
+            p_user_id: signedInUserId as string,
+          });
+
+          if (!acceptError) {
+            localStorage.setItem('propera-current-resort-id', invitation.resort_id);
+            await refetchUserData();
+            toast.success('Welcome to the team! Your account is ready.');
+            navigate('/staff/dashboard', { replace: true });
+            return;
+          }
+        }
+
+        toast.error('An account already exists for this email. Please sign in instead.');
+        navigate('/staff/auth');
+        return;
+      }
+
+      toast.error(msg);
     } finally {
       setAccepting(false);
     }
