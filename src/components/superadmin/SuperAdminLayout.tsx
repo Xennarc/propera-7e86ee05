@@ -42,13 +42,11 @@ import {
   Crown,
   ExternalLink,
   Settings,
-  Bell,
-  X,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessDenied } from '@/components/ui/access-denied';
 import { CommandBar } from '@/components/superadmin/CommandBar';
+import { AdminNotificationBell } from '@/components/superadmin/AdminNotificationBell';
 
 type NavItem = {
   title: string;
@@ -240,12 +238,7 @@ export default function SuperAdminLayout() {
             </Select>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center">
-                3
-              </span>
-            </Button>
+            <AdminNotificationBell />
 
             {/* Profile Menu */}
             <DropdownMenu>

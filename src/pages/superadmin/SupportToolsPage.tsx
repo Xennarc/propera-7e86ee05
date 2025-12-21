@@ -9,9 +9,17 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  useActiveSupportSessions,
+  useStartSupportSession,
+  useEndSupportSession,
+  useSupportSessionHistory,
+} from '@/hooks/useSupportSessions';
 import {
   Headset,
   Eye,
@@ -27,6 +35,7 @@ import {
   ClipboardList,
   Search,
   Zap,
+  History,
 } from 'lucide-react';
 import {
   Select,
@@ -43,51 +52,33 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-interface SupportSession {
-  id: string;
-  type: 'staff' | 'guest';
-  resortId: string;
-  resortName: string;
-  targetId?: string;
-  targetName?: string;
-  startedAt: Date;
-  expiresAt: Date;
-  readOnly: boolean;
-  reason: string;
-}
-
-interface ActivityLogEntry {
-  id: string;
-  action: string;
-  timestamp: Date;
-  details?: string;
-}
+import { formatDistanceToNow } from 'date-fns';
 
 export default function SupportToolsPage() {
   const navigate = useNavigate();
   const { resorts, setCurrentResort } = useResort();
   const { profile } = useAuth();
-  const [activeSessions, setActiveSessions] = useState<SupportSession[]>([]);
-  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [activeTab, setActiveTab] = useState<'sessions' | 'history'>('sessions');
   const [viewAsDialogOpen, setViewAsDialogOpen] = useState(false);
   const [viewAsType, setViewAsType] = useState<'staff' | 'guest'>('staff');
   const [selectedResort, setSelectedResort] = useState<string>('');
   const [viewAsReason, setViewAsReason] = useState('');
   const [readOnly, setReadOnly] = useState(true);
 
+  // Real data from hooks
+  const { data: activeSessions, isLoading: loadingSessions } = useActiveSupportSessions();
+  const { data: sessionHistory, isLoading: loadingHistory } = useSupportSessionHistory(20);
+  const startSession = useStartSupportSession();
+  const endSession = useEndSupportSession();
+
   // Update countdown timer
+  const [, setTick] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveSessions(prev => prev.map(session => ({
-        ...session,
-        // Force re-render for countdown
-      })));
-    }, 1000);
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleStartViewAs = () => {
+  const handleStartViewAs = async () => {
     if (!selectedResort || !viewAsReason.trim()) {
       toast.error('Please select a resort and provide a reason');
       return;
@@ -96,62 +87,54 @@ export default function SupportToolsPage() {
     const resort = resorts.find(r => r.id === selectedResort);
     if (!resort) return;
 
-    const session: SupportSession = {
-      id: crypto.randomUUID(),
-      type: viewAsType,
-      resortId: selectedResort,
-      resortName: resort.name,
-      startedAt: new Date(),
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
-      readOnly,
-      reason: viewAsReason,
-    };
+    try {
+      await startSession.mutateAsync({
+        sessionType: viewAsType,
+        resortId: selectedResort,
+        reason: viewAsReason,
+        readOnly: readOnly,
+      });
 
-    setActiveSessions(prev => [...prev, session]);
-    setActivityLog(prev => [{
-      id: crypto.randomUUID(),
-      action: `Started ${viewAsType} view for ${resort.name}`,
-      timestamp: new Date(),
-      details: viewAsReason,
-    }, ...prev]);
+      setViewAsDialogOpen(false);
+      setViewAsReason('');
 
-    setViewAsDialogOpen(false);
-    setViewAsReason('');
+      // Switch to the resort context
+      setCurrentResort(resort);
 
-    // Switch to the resort context
-    setCurrentResort(resort);
+      toast.success(`Support mode activated for ${resort.name}`, {
+        description: `Session expires in 15 minutes. ${readOnly ? 'Read-only mode.' : 'Actions enabled.'}`,
+      });
 
-    toast.success(`Support mode activated for ${resort.name}`, {
-      description: `Session expires in 15 minutes. ${readOnly ? 'Read-only mode.' : 'Actions enabled.'}`,
-    });
-
-    // Navigate to appropriate portal
-    if (viewAsType === 'staff') {
-      navigate('/staff/dashboard');
-    } else {
-      navigate('/guest');
+      // Navigate to appropriate portal
+      if (viewAsType === 'staff') {
+        navigate('/staff/dashboard');
+      } else {
+        navigate('/guest');
+      }
+    } catch (error) {
+      // Error handled by mutation
     }
   };
 
-  const handleEndSession = (sessionId: string) => {
-    const session = activeSessions.find(s => s.id === sessionId);
-    setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
-    if (session) {
-      setActivityLog(prev => [{
-        id: crypto.randomUUID(),
-        action: `Ended ${session.type} view for ${session.resortName}`,
-        timestamp: new Date(),
-      }, ...prev]);
+  const handleEndSession = async (sessionId: string) => {
+    try {
+      await endSession.mutateAsync(sessionId);
+      toast.success('Support session ended');
+    } catch (error) {
+      // Error handled by mutation
     }
-    toast.success('Support session ended');
   };
 
-  const formatTimeRemaining = (expiresAt: Date) => {
-    const remaining = expiresAt.getTime() - Date.now();
+  const formatTimeRemaining = (expiresAt: string) => {
+    const remaining = new Date(expiresAt).getTime() - Date.now();
     if (remaining <= 0) return 'Expired';
     const minutes = Math.floor(remaining / 60000);
     const seconds = Math.floor((remaining % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const getResortName = (resortId: string) => {
+    return resorts.find(r => r.id === resortId)?.name || 'Unknown Resort';
   };
 
   return (
@@ -170,7 +153,7 @@ export default function SupportToolsPage() {
       </div>
 
       {/* Active Sessions Banner */}
-      {activeSessions.length > 0 && (
+      {activeSessions && activeSessions.length > 0 && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-warning">
@@ -188,20 +171,20 @@ export default function SupportToolsPage() {
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-warning/10 text-warning">
-                        {session.type === 'staff' ? <Shield className="h-5 w-5" /> : <User className="h-5 w-5" />}
+                        {session.session_type === 'staff' ? <Shield className="h-5 w-5" /> : <User className="h-5 w-5" />}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">
-                        {session.type === 'staff' ? 'Staff Portal' : 'Guest Portal'} - {session.resortName}
+                        {session.session_type === 'staff' ? 'Staff Portal' : 'Guest Portal'} - {getResortName(session.resort_id)}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className={session.readOnly ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'}>
-                          {session.readOnly ? 'Read-Only' : 'Actions Enabled'}
+                        <Badge variant="outline" className={session.read_only ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'}>
+                          {session.read_only ? 'Read-Only' : 'Actions Enabled'}
                         </Badge>
                         <span className="text-sm font-mono text-warning flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {formatTimeRemaining(session.expiresAt)}
+                          {formatTimeRemaining(session.expires_at)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -214,10 +197,10 @@ export default function SupportToolsPage() {
                       variant="outline" 
                       size="sm"
                       onClick={() => {
-                        const resort = resorts.find(r => r.id === session.resortId);
+                        const resort = resorts.find(r => r.id === session.resort_id);
                         if (resort) {
                           setCurrentResort(resort);
-                          navigate(session.type === 'staff' ? '/staff/dashboard' : '/guest');
+                          navigate(session.session_type === 'staff' ? '/staff/dashboard' : '/guest');
                         }
                       }}
                     >
@@ -229,6 +212,7 @@ export default function SupportToolsPage() {
                       size="sm"
                       className="text-destructive hover:text-destructive"
                       onClick={() => handleEndSession(session.id)}
+                      disabled={endSession.isPending}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -322,39 +306,87 @@ export default function SupportToolsPage() {
           </CardContent>
         </Card>
 
-        {/* Activity Log Sidebar */}
+        {/* Session History Sidebar */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Session Activity
-            </CardTitle>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+              <TabsList className="w-full">
+                <TabsTrigger value="sessions" className="flex-1 text-xs">
+                  <Activity className="h-3 w-3 mr-1" />
+                  Active
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex-1 text-xs">
+                  <History className="h-3 w-3 mr-1" />
+                  History
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
-            {activityLog.length > 0 ? (
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-3">
-                  {activityLog.map(entry => (
-                    <div key={entry.id} className="flex items-start gap-2 text-sm">
-                      <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
-                      <div>
-                        <p className="font-medium">{entry.action}</p>
-                        {entry.details && (
-                          <p className="text-xs text-muted-foreground">{entry.details}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {entry.timestamp.toLocaleTimeString()}
-                        </p>
-                      </div>
+            {activeTab === 'sessions' && (
+              <>
+                {loadingSessions ? (
+                  <div className="space-y-3">
+                    {[1, 2].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+                  </div>
+                ) : activeSessions && activeSessions.length > 0 ? (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-3">
+                      {activeSessions.map(session => (
+                        <div key={session.id} className="flex items-start gap-2 text-sm p-3 bg-muted/30 rounded-lg">
+                          <div className="h-2 w-2 rounded-full bg-warning mt-2 shrink-0 animate-pulse" />
+                          <div>
+                            <p className="font-medium">{session.session_type} view</p>
+                            <p className="text-xs text-muted-foreground">{getResortName(session.resort_id)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Expires: {formatTimeRemaining(session.expires_at)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                <p className="text-sm text-muted-foreground">No activity yet</p>
-              </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Eye className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">No active sessions</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'history' && (
+              <>
+                {loadingHistory ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+                  </div>
+                ) : sessionHistory && sessionHistory.length > 0 ? (
+                  <ScrollArea className="h-[300px]">
+                    <div className="space-y-3">
+                      {sessionHistory.map(session => (
+                        <div key={session.id} className="flex items-start gap-2 text-sm p-3 bg-muted/30 rounded-lg">
+                          <div className={`h-2 w-2 rounded-full mt-2 shrink-0 ${
+                            session.ended_at ? 'bg-success' : 'bg-muted-foreground'
+                          }`} />
+                          <div>
+                            <p className="font-medium">{session.session_type} view - {getResortName(session.resort_id)}</p>
+                            <p className="text-xs text-muted-foreground">{session.reason}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(session.started_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                    <p className="text-sm text-muted-foreground">No session history</p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -460,7 +492,7 @@ export default function SupportToolsPage() {
               <div className="flex items-start gap-2 p-3 bg-warning/10 rounded-lg border border-warning/30">
                 <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
                 <p className="text-xs text-warning">
-                  Actions mode enabled. All changes will be made as the super admin account and logged.
+                  Actions mode enabled. All changes will be logged and attributed to your account.
                 </p>
               </div>
             )}
@@ -470,9 +502,9 @@ export default function SupportToolsPage() {
             <Button variant="outline" onClick={() => setViewAsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleStartViewAs}>
+            <Button onClick={handleStartViewAs} disabled={startSession.isPending}>
               <Eye className="h-4 w-4 mr-2" />
-              Start Session
+              {startSession.isPending ? 'Starting...' : 'Start Session'}
             </Button>
           </DialogFooter>
         </DialogContent>
