@@ -138,7 +138,7 @@ export function NotificationBell() {
         <DropdownMenuItem 
           className="text-center justify-center text-sm text-primary cursor-pointer"
           onClick={() => {
-            navigate('/notifications');
+            navigate('/staff/notifications');
             setOpen(false);
           }}
         >

@@ -1,6 +1,6 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown } from 'lucide-react';
+import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { ResortRole } from '@/types/database';
@@ -29,6 +29,7 @@ const primaryNavItems: NavItem[] = [
 ];
 
 const moreNavItems: NavItem[] = [
+  { label: 'Notifications', href: '/staff/notifications', icon: Bell, resortRoles: null },
   { label: 'Pre-Arrival', href: '/staff/prearrival', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'] },
   { label: 'Reports', href: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
   { label: 'Loyalty', href: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
