@@ -203,12 +203,19 @@ export default function StaffInviteAcceptPage() {
         })
         .eq('token', token);
 
-      // Sign in the new user
-      if (response.email) {
-        await supabase.auth.signInWithPassword({
-          email: response.email,
-          password: formData.password,
-        });
+      // Sign in the new user - use invitation email as fallback
+      const signInEmail = response.email || invitation.email;
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: signInEmail,
+        password: formData.password,
+      });
+
+      if (signInError) {
+        console.error('Sign-in error after account creation:', signInError);
+        // Account created but sign-in failed - redirect to login
+        toast.success('Account created! Please sign in with your credentials.');
+        navigate('/auth');
+        return;
       }
 
       toast.success('Welcome to the team! Your account is ready.');

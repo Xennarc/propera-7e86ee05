@@ -2982,7 +2982,7 @@ export type Database = {
             Args: {
               p_department?: string
               p_email?: string
-              p_full_name: string
+              p_full_name?: string
               p_password: string
               p_resort_id?: string
               p_resort_role?: Database["public"]["Enums"]["resort_role"]
