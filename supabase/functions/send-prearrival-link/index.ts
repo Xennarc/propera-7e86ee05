@@ -73,8 +73,8 @@ const handler = async (req: Request): Promise<Response> => {
     });
     
     const primaryColor = resortPrimaryColor || '#0891b2';
-    const subject = `Complete Your Pre-Arrival Check-in for ${resortName}`;
-    const bodyPreview = `Dear ${firstName}, we're thrilled to be hosting you on ${formattedDate}. Please complete your online check-in.`;
+    const subject = `Your stay at ${resortName} — complete online check-in`;
+    const bodyPreview = `Dear ${firstName}, your stay begins ${formattedDate}. Complete your online check-in in just 3 minutes.`;
     
     // Create outbound message log entry (queued status)
     const { data: messageLog, error: logError } = await supabase
@@ -98,90 +98,173 @@ const handler = async (req: Request): Promise<Response> => {
       // Continue anyway, don't fail the send
     }
     
-    // Build HTML email
+    // Build premium HTML email
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Complete Your Pre-Arrival Check-in</title>
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>Your stay at ${resortName}</title>
+  <!--[if mso]>
+  <style type="text/css">
+    table { border-collapse: collapse; }
+    td { padding: 0; }
+  </style>
+  <![endif]-->
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8fafc;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+      <td align="center" style="padding: 40px 16px;">
+        <table role="presentation" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);">
           
-          <!-- Header -->
+          <!-- Header with gradient -->
           <tr>
-            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); padding: 40px 40px 30px; text-align: center;">
-              ${resortLogoUrl ? `<img src="${resortLogoUrl}" alt="${resortName}" style="max-height: 60px; margin-bottom: 16px;">` : ''}
-              <h1 style="color: #ffffff; font-size: 28px; font-weight: 600; margin: 0; line-height: 1.3;">
+            <td style="background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); padding: 48px 40px 40px; text-align: center;">
+              ${resortLogoUrl ? `<img src="${resortLogoUrl}" alt="${resortName}" style="max-height: 48px; margin-bottom: 20px;">` : ''}
+              <h1 style="color: #ffffff; font-size: 26px; font-weight: 600; margin: 0; line-height: 1.3; letter-spacing: -0.02em;">
                 Welcome to ${resortName}
               </h1>
+              <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin: 12px 0 0; line-height: 1.5;">
+                Your stay begins ${formattedDate}
+              </p>
             </td>
           </tr>
           
           <!-- Content -->
           <tr>
             <td style="padding: 40px;">
-              <p style="font-size: 16px; color: #27272a; margin: 0 0 24px; line-height: 1.6;">
+              <p style="font-size: 16px; color: #1e293b; margin: 0 0 20px; line-height: 1.6;">
                 Dear ${firstName},
               </p>
               
-              <p style="font-size: 16px; color: #27272a; margin: 0 0 24px; line-height: 1.6;">
-                We're thrilled to be hosting you on <strong>${formattedDate}</strong>. To help us prepare for your arrival, please take a moment to complete your online check-in.
+              <p style="font-size: 16px; color: #1e293b; margin: 0 0 28px; line-height: 1.7;">
+                We're excited to welcome you soon! To ensure a seamless arrival, please take a moment to complete your online check-in.
               </p>
               
               <!-- CTA Button -->
-              <table role="presentation" style="width: 100%; margin: 32px 0;">
+              <table role="presentation" style="width: 100%; margin: 0 0 32px;">
                 <tr>
                   <td align="center">
-                    <a href="${prearrivalLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 40px; border-radius: 8px;">
+                    <a href="${prearrivalLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; box-shadow: 0 2px 8px ${primaryColor}40;">
                       Complete Your Check-in
                     </a>
                   </td>
                 </tr>
               </table>
               
-              <p style="font-size: 14px; color: #71717a; margin: 0 0 24px; line-height: 1.6;">
-                This quick process (2–3 minutes) allows you to:
-              </p>
+              <!-- Benefits -->
+              <table role="presentation" style="width: 100%; margin: 0 0 28px; background-color: #f8fafc; border-radius: 12px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <p style="font-size: 13px; color: #64748b; margin: 0 0 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                      Takes just 3 minutes
+                    </p>
+                    <table role="presentation" style="width: 100%;">
+                      <tr>
+                        <td style="padding: 6px 0; vertical-align: top; width: 24px;">
+                          <span style="color: ${primaryColor}; font-size: 14px;">✓</span>
+                        </td>
+                        <td style="padding: 6px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                          Confirm arrival details & flight information
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; vertical-align: top; width: 24px;">
+                          <span style="color: ${primaryColor}; font-size: 14px;">✓</span>
+                        </td>
+                        <td style="padding: 6px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                          Share dietary preferences & allergies
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; vertical-align: top; width: 24px;">
+                          <span style="color: ${primaryColor}; font-size: 14px;">✓</span>
+                        </td>
+                        <td style="padding: 6px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                          Let us know about special occasions
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; vertical-align: top; width: 24px;">
+                          <span style="color: ${primaryColor}; font-size: 14px;">✓</span>
+                        </td>
+                        <td style="padding: 6px 0; font-size: 14px; color: #475569; line-height: 1.5;">
+                          Pre-book activities & dining experiences
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
               
-              <ul style="font-size: 14px; color: #52525b; margin: 0 0 24px; padding-left: 20px; line-height: 1.8;">
-                <li>Confirm your arrival details and flight information</li>
-                <li>Share any dietary preferences or allergies</li>
-                <li>Let us know about special occasions</li>
-                <li>Pre-book activities and dining experiences</li>
-              </ul>
+              <!-- What happens next -->
+              <table role="presentation" style="width: 100%; margin: 0 0 28px; border-left: 3px solid ${primaryColor}; background-color: ${primaryColor}08;">
+                <tr>
+                  <td style="padding: 16px 20px;">
+                    <p style="font-size: 13px; color: #64748b; margin: 0 0 4px; font-weight: 600;">
+                      What happens next?
+                    </p>
+                    <p style="font-size: 14px; color: #475569; margin: 0; line-height: 1.6;">
+                      Once you arrive, this automatically becomes your <strong>Guest Portal</strong> — access your itinerary, book experiences, and more. No extra login needed.
+                    </p>
+                  </td>
+                </tr>
+              </table>
               
-              <p style="font-size: 14px; color: #71717a; margin: 0 0 8px; line-height: 1.6;">
+              <!-- Trust signals -->
+              <table role="presentation" style="width: 100%; margin: 0 0 24px;">
+                <tr>
+                  <td align="center">
+                    <p style="font-size: 12px; color: #94a3b8; margin: 0; display: inline-flex; align-items: center; gap: 16px;">
+                      <span>🔒 Secure link</span>
+                      <span>•</span>
+                      <span>⏱️ ~3 minutes</span>
+                      <span>•</span>
+                      <span>💾 Save & finish later</span>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Fallback link -->
+              <p style="font-size: 12px; color: #94a3b8; margin: 0 0 8px; line-height: 1.5;">
                 If the button above doesn't work, copy and paste this link into your browser:
               </p>
-              
-              <p style="font-size: 12px; color: #a1a1aa; margin: 0 0 24px; word-break: break-all; line-height: 1.4;">
+              <p style="font-size: 11px; color: #cbd5e1; margin: 0; word-break: break-all; line-height: 1.5; background-color: #f8fafc; padding: 12px; border-radius: 6px;">
                 ${prearrivalLink}
-              </p>
-              
-              <hr style="border: none; border-top: 1px solid #e4e4e7; margin: 32px 0;">
-              
-              <p style="font-size: 14px; color: #71717a; margin: 0; line-height: 1.6;">
-                If you have any questions, please don't hesitate to reach out. We look forward to welcoming you!
               </p>
             </td>
           </tr>
           
           <!-- Footer -->
           <tr>
-            <td style="background-color: #fafafa; padding: 24px 40px; text-align: center; border-top: 1px solid #e4e4e7;">
-              <p style="font-size: 12px; color: #a1a1aa; margin: 0; line-height: 1.5;">
+            <td style="background-color: #f8fafc; padding: 28px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
+              <p style="font-size: 14px; color: #64748b; margin: 0 0 8px; line-height: 1.5;">
+                Questions? Contact our guest services team.
+              </p>
+              <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
                 Warm regards,<br>
-                <strong style="color: #71717a;">The ${resortName} Team</strong>
+                <strong style="color: #64748b;">The ${resortName} Team</strong>
               </p>
             </td>
           </tr>
           
+        </table>
+        
+        <!-- Sub-footer -->
+        <table role="presentation" style="max-width: 560px; width: 100%; margin-top: 24px;">
+          <tr>
+            <td align="center">
+              <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.5;">
+                This email was sent to ${guestEmail} because you have an upcoming reservation.<br>
+                Powered by <a href="https://propera.cc" style="color: #94a3b8;">Propera</a>
+              </p>
+            </td>
+          </tr>
         </table>
       </td>
     </tr>
@@ -221,9 +304,6 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error("Error sending pre-arrival email:", error);
-    
-    // Try to update message log with failure (if we have context)
-    // Note: This is a best-effort attempt
     
     return new Response(
       JSON.stringify({ error: error.message }),
