@@ -34,13 +34,13 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
       if (guestIds.length === 0) return {};
 
       // Fetch prearrival profiles and outbound messages in parallel
-      const [profilesResult, messagesResult] = await Promise.all([
+        const [profilesResult, messagesResult] = await Promise.all([
         supabase
           .from('prearrival_profiles')
           .select(`
             guest_id, 
             prearrival_status, 
-            last_updated_at,
+            updated_at,
             allergies,
             dietary_preferences,
             special_requests,
@@ -62,7 +62,7 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
       interface ProfileData {
         guest_id: string;
         prearrival_status: string;
-        last_updated_at: string | null;
+        updated_at: string | null;
         allergies: string | null;
         dietary_preferences: any[] | null;
         special_requests: string | null;
@@ -104,7 +104,7 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
             ? (message.status === 'sent' ? 'sent' : message.status === 'failed' ? 'failed' : null)
             : 'not_sent',
           // Enhanced fields
-          lastUpdatedAt: profile?.last_updated_at || null,
+          lastUpdatedAt: profile?.updated_at || null,
           hasAllergies: !!profile?.allergies,
           allergies: profile?.allergies || null,
           hasDietaryPreferences: !!(profile?.dietary_preferences && profile.dietary_preferences.length > 0),
