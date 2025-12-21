@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface SupportSession {
   id: string;
@@ -168,7 +169,7 @@ export function useLogSupportAction() {
 
       const { error } = await supabase
         .from('support_sessions')
-        .update({ actions_taken: actions as unknown })
+        .update({ actions_taken: actions as Json })
         .eq('id', sessionId);
 
       if (error) throw error;
