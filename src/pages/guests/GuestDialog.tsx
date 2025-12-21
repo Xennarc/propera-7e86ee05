@@ -216,7 +216,19 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
                 id="check_in_date"
                 type="date"
                 value={formData.check_in_date}
-                onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
+                onChange={(e) => {
+                  const newCheckIn = e.target.value;
+                  setFormData(prev => {
+                    // Auto-correct check-out if it becomes invalid
+                    if (prev.check_out_date && newCheckIn && prev.check_out_date < newCheckIn) {
+                      return { ...prev, check_in_date: newCheckIn, check_out_date: newCheckIn };
+                    }
+                    return { ...prev, check_in_date: newCheckIn };
+                  });
+                  if (errors.check_in_date) {
+                    setErrors(prev => ({ ...prev, check_in_date: '' }));
+                  }
+                }}
               />
               {errors.check_in_date && <p className="text-sm text-destructive">{errors.check_in_date}</p>}
             </div>
@@ -226,9 +238,21 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
                 id="check_out_date"
                 type="date"
                 value={formData.check_out_date}
-                onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                min={formData.check_in_date || undefined}
+                onChange={(e) => {
+                  setFormData({ ...formData, check_out_date: e.target.value });
+                  if (errors.check_out_date) {
+                    setErrors(prev => ({ ...prev, check_out_date: '' }));
+                  }
+                }}
+                aria-describedby="check_out_hint check_out_error"
               />
-              {errors.check_out_date && <p className="text-sm text-destructive">{errors.check_out_date}</p>}
+              <p id="check_out_hint" className="text-xs text-muted-foreground">
+                Check-out must be on or after check-in.
+              </p>
+              {errors.check_out_date && (
+                <p id="check_out_error" className="text-sm text-destructive">{errors.check_out_date}</p>
+              )}
             </div>
           </div>
 
