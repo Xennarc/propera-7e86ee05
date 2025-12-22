@@ -149,14 +149,14 @@ export function RestaurantSlotDialog({
       // Check if this slot matches a recurring rule
       checkRecurringRule(slot.restaurant_id, slot.date, slot.start_time.slice(0, 5), slot.end_time.slice(0, 5), slot.capacity, slot.meal_period);
     } else {
-      const defaultRestaurant = restaurants[0];
+      // Reset to clean defaults for new slot - NO pre-selection of restaurant
       setFormData({
-        restaurant_id: defaultRestaurant?.id || '',
+        restaurant_id: '',
         date: format(new Date(), 'yyyy-MM-dd'),
-        start_time: '19:00',
-        end_time: '21:00',
+        start_time: '',
+        end_time: '',
         meal_period: 'DINNER',
-        capacity: defaultRestaurant?.total_capacity || 50,
+        capacity: 50,
         status: 'OPEN',
       });
       setMatchingRule(null);
@@ -166,7 +166,7 @@ export function RestaurantSlotDialog({
     if (open) {
       setTimeout(() => dateInputRef.current?.focus(), 100);
     }
-  }, [slot, open, restaurants]);
+  }, [slot, open]);
 
   // Check if slot matches a recurring rule
   const checkRecurringRule = async (restaurantId: string, date: string, startTime: string, endTime: string, capacity: number, mealPeriod: MealPeriod) => {
@@ -251,6 +251,17 @@ export function RestaurantSlotDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required selections
+    if (!formData.restaurant_id) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select a restaurant' });
+      return;
+    }
+    
+    if (!formData.start_time || !formData.end_time) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set start and end times' });
+      return;
+    }
     
     // Validate time range
     if (formData.end_time <= formData.start_time) {
@@ -350,7 +361,7 @@ export function RestaurantSlotDialog({
         <DialogHeader>
           <DialogTitle>{slot ? 'Edit Time Slot' : 'New Time Slot'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Recurring rule indicator */}
           {slot && matchingRule && (
             <div className={`p-3 rounded-lg border ${isModifiedFromRule ? 'bg-amber-500/10 border-amber-300' : 'bg-primary/5 border-primary/20'}`}>

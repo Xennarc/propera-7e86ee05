@@ -58,7 +58,8 @@ export function RestaurantReservationDialog({
   useEffect(() => {
     if (open) {
       setSelectedGuest(initialGuest || null);
-      setFormData({ num_adults: 2, num_children: 0, special_requests: '' });
+      // Reset to sensible defaults - 1 adult, not 2
+      setFormData({ num_adults: 1, num_children: 0, special_requests: '' });
       setValidationError(null);
     }
   }, [open, initialGuest]);
@@ -144,7 +145,7 @@ export function RestaurantReservationDialog({
           <DialogHeader>
             <DialogTitle>New Restaurant Reservation</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Validation Error */}
             {validationError && (
               <Alert variant="destructive">

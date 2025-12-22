@@ -82,28 +82,34 @@ export function PrearrivalWizard({
 
   const [currentStep, setCurrentStep] = useState(0);
   
-  // Form state
-  const [arrivalTime, setArrivalTime] = useState(profile?.arrival_time || '');
-  const [flightNumber, setFlightNumber] = useState(profile?.arrival_flight_number || '');
-  const [transferPreference, setTransferPreference] = useState(profile?.transfer_preference || '');
-  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>(
-    Array.isArray(profile?.dietary_preferences) ? profile.dietary_preferences : []
-  );
-  const [allergies, setAllergies] = useState(profile?.allergies || '');
-  const [waterComfort, setWaterComfort] = useState(profile?.water_comfort_level || '');
-  const [specialOccasions, setSpecialOccasions] = useState<string[]>(
-    Array.isArray(profile?.special_occasions) ? profile.special_occasions : []
-  );
-  const [specialRequests, setSpecialRequests] = useState(profile?.special_requests || '');
+  // Form state - initialized from profile prop
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [flightNumber, setFlightNumber] = useState('');
+  const [transferPreference, setTransferPreference] = useState('');
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [allergies, setAllergies] = useState('');
+  const [waterComfort, setWaterComfort] = useState('');
+  const [specialOccasions, setSpecialOccasions] = useState<string[]>([]);
+  const [specialRequests, setSpecialRequests] = useState('');
 
-  // Reset step on open
+  // Reset form state when dialog opens - load from profile
   useEffect(() => {
     if (open) {
       // Map initialStep to actual step index based on enabled settings
       const mappedStep = Math.min(initialStep, steps.length - 1);
       setCurrentStep(mappedStep >= 0 ? mappedStep : 0);
+      
+      // Load profile data fresh each time dialog opens
+      setArrivalTime(profile?.arrival_time || '');
+      setFlightNumber(profile?.arrival_flight_number || '');
+      setTransferPreference(profile?.transfer_preference || '');
+      setDietaryPreferences(Array.isArray(profile?.dietary_preferences) ? profile.dietary_preferences : []);
+      setAllergies(profile?.allergies || '');
+      setWaterComfort(profile?.water_comfort_level || '');
+      setSpecialOccasions(Array.isArray(profile?.special_occasions) ? profile.special_occasions : []);
+      setSpecialRequests(profile?.special_requests || '');
     }
-  }, [open, initialStep, steps.length]);
+  }, [open, initialStep, steps.length, profile]);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {

@@ -73,17 +73,18 @@ export function SessionTemplateDialog({
         notes: template.notes || '',
       });
     } else {
+      // Reset to clean defaults - NO pre-selection of activity
       setFormData({
         name: '',
-        activity_id: activities[0]?.id || '',
-        start_time: '09:00',
-        end_time: '10:00',
+        activity_id: '',
+        start_time: '',
+        end_time: '',
         capacity: 10,
         resource_id: '',
         notes: '',
       });
     }
-  }, [template, open, activities]);
+  }, [template, open]);
 
   useEffect(() => {
     fetchResources();
@@ -124,6 +125,10 @@ export function SessionTemplateDialog({
     }
     if (!formData.activity_id) {
       toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select an activity' });
+      return;
+    }
+    if (!formData.start_time || !formData.end_time) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set start and end times' });
       return;
     }
 
@@ -176,7 +181,7 @@ export function SessionTemplateDialog({
         <DialogHeader>
           <DialogTitle>{template ? 'Edit Template' : 'New Session Template'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-2">
             <Label>Template Name *</Label>
             <Input

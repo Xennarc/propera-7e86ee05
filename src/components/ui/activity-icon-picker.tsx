@@ -14,9 +14,11 @@ interface ActivityIconPickerProps {
   value: string | null;
   onChange: (value: string | null) => void;
   disabled?: boolean;
+  required?: boolean;
+  error?: string;
 }
 
-export function ActivityIconPicker({ value, onChange, disabled }: ActivityIconPickerProps) {
+export function ActivityIconPicker({ value, onChange, disabled, required, error }: ActivityIconPickerProps) {
   const [open, setOpen] = useState(false);
   const iconsByCategory = getIconsByCategory();
   const categories = Object.keys(iconsByCategory);
@@ -25,6 +27,8 @@ export function ActivityIconPicker({ value, onChange, disabled }: ActivityIconPi
     ? activityIconOptions.find(o => o.key === value) 
     : null;
 
+  const placeholderText = required ? "Select an icon *" : "Select an icon";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -32,8 +36,12 @@ export function ActivityIconPicker({ value, onChange, disabled }: ActivityIconPi
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-invalid={!!error}
           disabled={disabled}
-          className="w-full justify-between h-10"
+          className={cn(
+            "w-full justify-between h-10",
+            error && "border-destructive focus:ring-destructive"
+          )}
         >
           <span className="flex items-center gap-2">
             {selectedOption ? (
@@ -42,7 +50,7 @@ export function ActivityIconPicker({ value, onChange, disabled }: ActivityIconPi
                 <span>{selectedOption.label}</span>
               </>
             ) : (
-              <span className="text-muted-foreground">Select an icon (optional)</span>
+              <span className="text-muted-foreground">{placeholderText}</span>
             )}
           </span>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -51,21 +59,23 @@ export function ActivityIconPicker({ value, onChange, disabled }: ActivityIconPi
       <PopoverContent className="w-80 p-0" align="start">
         <ScrollArea className="h-80">
           <div className="p-2">
-            {/* Clear selection option */}
-            <button
-              onClick={() => {
-                onChange(null);
-                setOpen(false);
-              }}
-              className={cn(
-                "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors",
-                !value && "bg-primary/10 text-primary"
-              )}
-            >
-              <span className="h-4 w-4" />
-              <span>Use category default</span>
-              {!value && <Check className="ml-auto h-4 w-4" />}
-            </button>
+            {/* Clear selection option - only show if not required */}
+            {!required && (
+              <button
+                onClick={() => {
+                  onChange(null);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted transition-colors",
+                  !value && "bg-primary/10 text-primary"
+                )}
+              >
+                <span className="h-4 w-4" />
+                <span>Use category default</span>
+                {!value && <Check className="ml-auto h-4 w-4" />}
+              </button>
+            )}
             
             {/* Icons by category */}
             {categories.map((category) => (

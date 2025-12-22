@@ -216,7 +216,7 @@ export function CreateStaffAccountDialog({
 
           {!createdCredentials ? (
             <>
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4" role="form">
                 {/* Super Admin toggle (only for allowed users) */}
                 {showSuperAdminOption && (
                   <div 
