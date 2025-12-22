@@ -77,11 +77,12 @@ export function ActivitySessionDialog({
       // Check if this session matches a recurring rule
       checkRecurringRule(session.activity_id, session.date, session.start_time.slice(0, 5), session.end_time.slice(0, 5), session.capacity);
     } else {
+      // Reset to clean defaults for new session - NO pre-selection of activity
       setFormData({
-        activity_id: activities[0]?.id || '',
+        activity_id: '',
         date: format(new Date(), 'yyyy-MM-dd'),
-        start_time: '09:00',
-        end_time: '10:00',
+        start_time: '',
+        end_time: '',
         capacity: 10,
         resource_id: '',
         status: 'SCHEDULED',
@@ -94,7 +95,7 @@ export function ActivitySessionDialog({
     if (open) {
       setTimeout(() => dateInputRef.current?.focus(), 100);
     }
-  }, [session, open, activities]);
+  }, [session, open]);
 
   // Check if session matches a recurring rule
   const checkRecurringRule = async (activityId: string, date: string, startTime: string, endTime: string, capacity: number) => {
@@ -208,8 +209,12 @@ export function ActivitySessionDialog({
       toast({ variant: 'destructive', title: 'Validation Error', description: 'Please select a date' });
       return;
     }
-    if (!formData.start_time || !formData.end_time) {
-      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set start and end times' });
+    if (!formData.start_time) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set a start time' });
+      return;
+    }
+    if (!formData.end_time) {
+      toast({ variant: 'destructive', title: 'Validation Error', description: 'Please set an end time' });
       return;
     }
     if (!resortId) {
@@ -307,7 +312,7 @@ export function ActivitySessionDialog({
         <DialogHeader>
           <DialogTitle>{session ? 'Edit Session' : 'New Activity Session'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {/* Recurring rule indicator */}
           {session && matchingRule && (
             <div className={`p-3 rounded-lg border ${isModifiedFromRule ? 'bg-amber-500/10 border-amber-300' : 'bg-primary/5 border-primary/20'}`}>

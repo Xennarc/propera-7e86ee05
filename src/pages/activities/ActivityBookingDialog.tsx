@@ -204,7 +204,7 @@ export function ActivityBookingDialog({
           <DialogHeader>
             <DialogTitle>New Activity Booking</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Validation Error */}
             {validationError && (
               <Alert variant="destructive">

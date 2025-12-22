@@ -83,7 +83,7 @@ export function FormModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(sizeClasses[size], 'overflow-hidden', className)}>
-        <form ref={formRef} onSubmit={handleSubmit}>
+        <form ref={formRef} onSubmit={handleSubmit} autoComplete="off">
           <DialogHeader className="pb-4">
             <DialogTitle>{title}</DialogTitle>
             {description && (

@@ -275,7 +275,7 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
@@ -323,6 +323,8 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
                   setErrors(prev => ({ ...prev, icon_key: '' }));
                 }
               }}
+              required
+              error={errors.icon_key}
             />
             {errors.icon_key && <p className="text-sm text-destructive">{errors.icon_key}</p>}
             <p className="text-xs text-muted-foreground">
