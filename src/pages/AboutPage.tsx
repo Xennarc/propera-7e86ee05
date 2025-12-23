@@ -1,17 +1,20 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
-import { LogIn } from 'lucide-react';
+import { LogIn, Menu, X } from 'lucide-react';
 
-import { AboutHeroSection } from '@/components/about/AboutHeroSection';
-import { AboutValuesSection } from '@/components/about/AboutValuesSection';
-import { AboutTimelineSection } from '@/components/about/AboutTimelineSection';
-import { AboutGlobalSection } from '@/components/about/AboutGlobalSection';
-import { AboutProductSection } from '@/components/about/AboutProductSection';
-import { AboutTeamSection } from '@/components/about/AboutTeamSection';
-import { AboutCTASection } from '@/components/about/AboutCTASection';
+import { AboutHero } from '@/components/about/AboutHero';
+import { OriginSection } from '@/components/about/OriginSection';
+import { FlowJourney } from '@/components/about/FlowJourney';
+import { DesignPhilosophy } from '@/components/about/DesignPhilosophy';
+import { GlobalReadyGallery } from '@/components/about/GlobalReadyGallery';
+import { TrustSection } from '@/components/about/TrustSection';
+import { PrinciplesSection } from '@/components/about/PrinciplesSection';
+import { FoundersNote } from '@/components/about/FoundersNote';
+import { AboutFinalCTA } from '@/components/about/AboutFinalCTA';
 
 const ABOUT_PAGE_SCHEMA = {
   '@context': 'https://schema.org',
@@ -22,6 +25,17 @@ const ABOUT_PAGE_SCHEMA = {
 };
 
 export default function AboutPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead 
@@ -32,45 +46,102 @@ export default function AboutPage() {
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, ABOUT_PAGE_SCHEMA]} 
       />
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
+      {/* Header with scroll effect */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm' 
+          : 'bg-background/60 backdrop-blur-md'
+      }`}>
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <ProperaMark size={40} className="text-primary" />
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </Link>
+          
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Home
+            </Link>
+            <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Pricing
+            </Link>
+            <Link to="/about" className="text-sm text-foreground font-medium">
+              About
+            </Link>
+          </div>
+          
           <div className="flex items-center gap-2 md:gap-3">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:flex rounded-full px-4 font-medium">
-              <Link to="/">Home</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:flex rounded-full px-4 font-medium">
-              <Link to="/pricing">Pricing</Link>
-            </Button>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button asChild size="sm" className="rounded-full px-5 font-semibold shadow-md">
+            <Button asChild size="sm" className="hidden sm:flex rounded-full px-5 font-semibold shadow-md">
               <Link to="/guest/login">
                 <LogIn className="h-4 w-4 mr-2" />
                 Guest Login
               </Link>
             </Button>
+            
+            {/* Mobile menu button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           </div>
         </nav>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 px-4 py-4 space-y-4">
+            <Link 
+              to="/" 
+              className="block text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link 
+              to="/pricing" 
+              className="block text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link 
+              to="/about" 
+              className="block text-foreground font-medium"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Button asChild size="sm" className="w-full rounded-full font-semibold">
+              <Link to="/guest/login" onClick={() => setMobileMenuOpen(false)}>
+                <LogIn className="h-4 w-4 mr-2" />
+                Guest Login
+              </Link>
+            </Button>
+          </div>
+        )}
       </header>
 
       <main>
-        <AboutHeroSection />
-        <AboutValuesSection />
-        <AboutTimelineSection />
-        <AboutGlobalSection />
-        <AboutProductSection />
-        <AboutTeamSection />
-        <AboutCTASection />
+        <AboutHero />
+        <OriginSection />
+        <FlowJourney />
+        <DesignPhilosophy />
+        <GlobalReadyGallery />
+        <TrustSection />
+        <PrinciplesSection />
+        <FoundersNote />
+        <AboutFinalCTA />
       </main>
 
       {/* Footer */}
-      <footer className="py-10 bg-card border-t border-border/50">
+      <footer className="py-12 bg-card border-t border-border/50">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-3">
               <ProperaMark size={36} className="text-primary" />
               <div className="flex flex-col">
@@ -78,7 +149,7 @@ export default function AboutPage() {
                 <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
               </div>
             </Link>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-8 text-sm text-muted-foreground">
               <Link to="/" className="hover:text-primary transition-colors">Home</Link>
               <Link to="/about" className="hover:text-primary transition-colors">About</Link>
               <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
