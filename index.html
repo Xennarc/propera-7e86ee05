@@ -115,6 +115,35 @@
       ]
     }
     </script>
+    <!-- Critical CSS for initial paint - prevents flash of unstyled content -->
+    <style>
+      /* Minimal critical styles for immediate render */
+      :root { 
+        --background: 0 0% 100%; 
+        --foreground: 222.2 47.4% 11.2%;
+        color-scheme: light;
+      }
+      .dark { 
+        --background: 224 71% 4%; 
+        --foreground: 213 31% 91%;
+        color-scheme: dark;
+      }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; }
+      html { -webkit-text-size-adjust: 100%; }
+      body { 
+        background-color: hsl(var(--background)); 
+        color: hsl(var(--foreground));
+        font-family: 'Sora', system-ui, -apple-system, sans-serif;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      #root { min-height: 100vh; }
+      /* Loading spinner for Suspense fallback */
+      .flex { display: flex; }
+      .items-center { align-items: center; }
+      .justify-center { justify-content: center; }
+      .min-h-\\[50vh\\] { min-height: 50vh; }
+    </style>
   </head>
 
   <body>
