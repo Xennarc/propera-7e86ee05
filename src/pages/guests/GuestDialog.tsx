@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useGuestMutations } from '@/hooks/useGuestMutations';
+import { GuestCreatedModal } from '@/components/guests/GuestCreatedModal';
 import { z } from 'zod';
+import { Key } from 'lucide-react';
 
 // Validate that a date string is a valid, reasonable date (year 1900-2100)
 const isValidDateString = (dateStr: string): boolean => {
@@ -58,14 +62,19 @@ interface GuestDialogProps {
   onOpenChange: (open: boolean) => void;
   guest: Guest | null;
   resortId: string;
+  resortCode?: string;
   onSuccess: () => void;
 }
 
 const channels = ['DIRECT', 'OTA', 'TA', 'CORPORATE', 'GROUP'];
 
-export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: GuestDialogProps) {
-  const [loading, setLoading] = useState(false);
+export function GuestDialog({ open, onOpenChange, guest, resortId, resortCode, onSuccess }: GuestDialogProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [generatePin, setGeneratePin] = useState(true);
+  const [createdGuest, setCreatedGuest] = useState<{
+    guest: { id: string; full_name: string; room_number: string; check_in_date: string; check_out_date: string };
+    pin?: string;
+  } | null>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     room_number: '',
@@ -80,6 +89,7 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
   });
   
   const { toast } = useToast();
+  const { createGuest, updateGuest } = useGuestMutations();
 
   useEffect(() => {
     if (guest) {
@@ -95,6 +105,7 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
         channel: guest.channel || '',
         notes: guest.notes || '',
       });
+      setGeneratePin(false); // Don't regenerate PIN for existing guests
     } else {
       setFormData({
         full_name: '',
@@ -108,6 +119,7 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
         channel: '',
         notes: '',
       });
+      setGeneratePin(true); // Generate PIN for new guests by default
     }
     setErrors({});
   }, [guest, open]);
@@ -128,216 +140,243 @@ export function GuestDialog({ open, onOpenChange, guest, resortId, onSuccess }: 
       return;
     }
 
-    setLoading(true);
-
-    const guestData = {
-      resort_id: resortId,
-      full_name: formData.full_name.trim(),
-      room_number: formData.room_number.trim(),
-      check_in_date: formData.check_in_date,
-      check_out_date: formData.check_out_date,
-      nationality: formData.nationality.trim() || null,
-      email: formData.email.trim() || null,
-      phone: formData.phone.trim() || null,
-      booking_reference: formData.booking_reference.trim() || null,
-      channel: formData.channel || null,
-      notes: formData.notes.trim() || null,
-    };
-
-    let error;
     if (guest) {
-      const { error: updateError } = await supabase
-        .from('guests')
-        .update(guestData)
-        .eq('id', guest.id);
-      error = updateError;
+      // Update existing guest
+      updateGuest.mutate(
+        { guestId: guest.id, resortId, data: formData },
+        {
+          onSuccess: () => {
+            onOpenChange(false);
+            onSuccess();
+          },
+        }
+      );
     } else {
-      const { error: insertError } = await supabase
-        .from('guests')
-        .insert(guestData);
-      error = insertError;
-    }
-
-    setLoading(false);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      toast({ title: 'Success', description: guest ? 'Guest updated' : 'Guest added' });
-      onOpenChange(false);
-      onSuccess();
+      // Create new guest with optional PIN generation
+      createGuest.mutate(
+        { resortId, data: formData, generatePin },
+        {
+          onSuccess: (data) => {
+            // Show the created modal with credentials
+            setCreatedGuest({
+              guest: {
+                id: data.guest.id,
+                full_name: data.guest.full_name,
+                room_number: data.guest.room_number,
+                check_in_date: data.guest.check_in_date,
+                check_out_date: data.guest.check_out_date,
+              },
+              pin: data.pin,
+            });
+            onOpenChange(false);
+            onSuccess();
+          },
+        }
+      );
     }
   };
 
+  const isLoading = createGuest.isPending || updateGuest.isPending;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{guest ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
-          <DialogDescription>
-            {guest ? 'Update guest information' : 'Add a new guest to the resort'}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{guest ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
+            <DialogDescription>
+              {guest ? 'Update guest information' : 'Add a new guest to the resort'}
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name *</Label>
-              <Input
-                id="full_name"
-                value={formData.full_name}
-                onChange={(e) => {
-                  setFormData({ ...formData, full_name: e.target.value });
-                  // Clear error when user types valid value
-                  if (e.target.value.trim().length >= 2 && errors.full_name) {
-                    setErrors(prev => ({ ...prev, full_name: '' }));
-                  }
-                }}
-                placeholder="John Smith"
-              />
-              {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="room_number">Room Number *</Label>
-              <Input
-                id="room_number"
-                value={formData.room_number}
-                onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-                placeholder="101"
-              />
-              {errors.room_number && <p className="text-sm text-destructive">{errors.room_number}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="check_in_date">Check-in Date *</Label>
-              <Input
-                id="check_in_date"
-                type="date"
-                value={formData.check_in_date}
-                onChange={(e) => {
-                  const newCheckIn = e.target.value;
-                  setFormData(prev => {
-                    // Auto-correct check-out if it becomes invalid
-                    if (prev.check_out_date && newCheckIn && prev.check_out_date < newCheckIn) {
-                      return { ...prev, check_in_date: newCheckIn, check_out_date: newCheckIn };
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name *</Label>
+                <Input
+                  id="full_name"
+                  value={formData.full_name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, full_name: e.target.value });
+                    if (e.target.value.trim().length >= 2 && errors.full_name) {
+                      setErrors(prev => ({ ...prev, full_name: '' }));
                     }
-                    return { ...prev, check_in_date: newCheckIn };
-                  });
-                  if (errors.check_in_date) {
-                    setErrors(prev => ({ ...prev, check_in_date: '' }));
-                  }
-                }}
-              />
-              {errors.check_in_date && <p className="text-sm text-destructive">{errors.check_in_date}</p>}
+                  }}
+                  placeholder="John Smith"
+                />
+                {errors.full_name && <p className="text-sm text-destructive">{errors.full_name}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="room_number">Room Number *</Label>
+                <Input
+                  id="room_number"
+                  value={formData.room_number}
+                  onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
+                  placeholder="101"
+                />
+                {errors.room_number && <p className="text-sm text-destructive">{errors.room_number}</p>}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="check_out_date">Check-out Date *</Label>
-              <Input
-                id="check_out_date"
-                type="date"
-                value={formData.check_out_date}
-                min={formData.check_in_date || undefined}
-                onChange={(e) => {
-                  setFormData({ ...formData, check_out_date: e.target.value });
-                  if (errors.check_out_date) {
-                    setErrors(prev => ({ ...prev, check_out_date: '' }));
-                  }
-                }}
-                aria-describedby="check_out_hint check_out_error"
-              />
-              <p id="check_out_hint" className="text-xs text-muted-foreground">
-                Check-out must be on or after check-in.
-              </p>
-              {errors.check_out_date && (
-                <p id="check_out_error" className="text-sm text-destructive">{errors.check_out_date}</p>
-              )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="john@example.com"
-              />
-              {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="check_in_date">Check-in Date *</Label>
+                <Input
+                  id="check_in_date"
+                  type="date"
+                  value={formData.check_in_date}
+                  onChange={(e) => {
+                    const newCheckIn = e.target.value;
+                    setFormData(prev => {
+                      if (prev.check_out_date && newCheckIn && prev.check_out_date < newCheckIn) {
+                        return { ...prev, check_in_date: newCheckIn, check_out_date: newCheckIn };
+                      }
+                      return { ...prev, check_in_date: newCheckIn };
+                    });
+                    if (errors.check_in_date) {
+                      setErrors(prev => ({ ...prev, check_in_date: '' }));
+                    }
+                  }}
+                />
+                {errors.check_in_date && <p className="text-sm text-destructive">{errors.check_in_date}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="check_out_date">Check-out Date *</Label>
+                <Input
+                  id="check_out_date"
+                  type="date"
+                  value={formData.check_out_date}
+                  min={formData.check_in_date || undefined}
+                  onChange={(e) => {
+                    setFormData({ ...formData, check_out_date: e.target.value });
+                    if (errors.check_out_date) {
+                      setErrors(prev => ({ ...prev, check_out_date: '' }));
+                    }
+                  }}
+                  aria-describedby="check_out_hint check_out_error"
+                />
+                <p id="check_out_hint" className="text-xs text-muted-foreground">
+                  Check-out must be on or after check-in.
+                </p>
+                {errors.check_out_date && (
+                  <p id="check_out_error" className="text-sm text-destructive">{errors.check_out_date}</p>
+                )}
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@example.com"
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="+1 234 567 8900"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nationality">Nationality</Label>
+                <Input
+                  id="nationality"
+                  value={formData.nationality}
+                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                  placeholder="American"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="booking_reference">Booking Reference</Label>
+                <Input
+                  id="booking_reference"
+                  value={formData.booking_reference}
+                  onChange={(e) => setFormData({ ...formData, booking_reference: e.target.value })}
+                  placeholder="BK123456"
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 234 567 8900"
+              <Label htmlFor="channel">Booking Channel</Label>
+              <Select
+                value={formData.channel}
+                onValueChange={(value) => setFormData({ ...formData, channel: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select channel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {channels.map((channel) => (
+                    <SelectItem key={channel} value={channel}>{channel}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Guest preferences, special requests, or any relevant information"
+                rows={3}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nationality">Nationality</Label>
-              <Input
-                id="nationality"
-                value={formData.nationality}
-                onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                placeholder="American"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="booking_reference">Booking Reference</Label>
-              <Input
-                id="booking_reference"
-                value={formData.booking_reference}
-                onChange={(e) => setFormData({ ...formData, booking_reference: e.target.value })}
-                placeholder="BK123456"
-              />
-            </div>
-          </div>
+            {/* PIN Generation Option (only for new guests) */}
+            {!guest && (
+              <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <Key className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="font-medium">Generate Portal PIN</p>
+                    <p className="text-sm text-muted-foreground">
+                      Create a PIN so the guest can log into the guest portal immediately
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={generatePin}
+                  onCheckedChange={setGeneratePin}
+                />
+              </div>
+            )}
 
-          <div className="space-y-2">
-            <Label htmlFor="channel">Booking Channel</Label>
-            <Select
-              value={formData.channel}
-              onValueChange={(value) => setFormData({ ...formData, channel: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select channel" />
-              </SelectTrigger>
-              <SelectContent>
-                {channels.map((channel) => (
-                  <SelectItem key={channel} value={channel}>{channel}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Saving...' : guest ? 'Update Guest' : 'Add Guest'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Guest preferences, special requests, or any relevant information"
-              rows={3}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Saving...' : guest ? 'Update Guest' : 'Add Guest'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      {/* Show created guest modal with credentials */}
+      {createdGuest && (
+        <GuestCreatedModal
+          open={!!createdGuest}
+          onOpenChange={(open) => !open && setCreatedGuest(null)}
+          guest={createdGuest.guest}
+          pin={createdGuest.pin}
+          resortCode={resortCode}
+        />
+      )}
+    </>
   );
 }

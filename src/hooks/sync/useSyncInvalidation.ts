@@ -165,10 +165,19 @@ export function useSyncInvalidation() {
     queryClient.invalidateQueries({ 
       queryKey: queryKeys.guests.list(resortId) 
     });
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.guests.arrivals(resortId) 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.guests.inHouse(resortId) 
+    });
 
     if (guestId) {
       queryClient.invalidateQueries({ 
-        queryKey: queryKeys.guests.detail(guestId) 
+        queryKey: queryKeys.guests.detail(resortId, guestId) 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ['guest', guestId] // Legacy key support
       });
     }
   }, [queryClient]);

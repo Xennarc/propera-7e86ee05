@@ -1,13 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star, Mail, Send, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star, Mail, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GuestDialog } from './GuestDialog';
 import { SendPrearrivalEmailDialog } from '@/components/guests/SendPrearrivalEmailDialog';
@@ -34,16 +33,17 @@ import {
 import { isWithinInterval, isToday, startOfDay, addDays, isBefore, isAfter } from 'date-fns';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
-import { usePrearrivalStatuses, GuestPrearrivalStatus } from '@/hooks/usePrearrivalStatus';
+import { usePrearrivalStatuses } from '@/hooks/usePrearrivalStatus';
 import { usePrearrivalListRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useQuery } from '@tanstack/react-query';
 import { GuestPrearrivalQuickFlags } from '@/components/guests/GuestPrearrivalQuickFlags';
+import { useGuestsQuery } from '@/hooks/useGuestsQuery';
+import { useGuestMutations } from '@/hooks/useGuestMutations';
+import { supabase } from '@/integrations/supabase/client';
 
 type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending' | 'prearrival-completed' | 'has-allergies' | 'arriving-72h';
 
 function GuestsPageContent() {
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<GuestFilter>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -56,6 +56,15 @@ function GuestsPageContent() {
   const { currentResort } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Use React Query for guests - enables instant sync
+  const { data: guests = [], isLoading: loading, refetch } = useGuestsQuery({
+    resortId: currentResort?.id,
+    enabled: !!currentResort,
+  });
+
+  // Use mutations hook for delete
+  const { deleteGuest: deleteGuestMutation } = useGuestMutations();
 
   // Check if prearrival is enabled for this resort
   const { data: prearrivalSettings } = useQuery({
@@ -75,29 +84,6 @@ function GuestsPageContent() {
 
   const prearrivalEnabled = prearrivalSettings?.is_enabled ?? false;
 
-  const fetchGuests = async () => {
-    if (!currentResort) return;
-    
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('guests')
-      .select('*')
-      .eq('resort_id', currentResort.id)
-      .order('check_in_date', { ascending: false });
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      setGuests(data as Guest[]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchGuests();
-    setSelectedGuests(new Set()); // Clear selection on resort change
-  }, [currentResort]);
-
   // Enable real-time updates for prearrival statuses
   usePrearrivalListRealtime();
 
@@ -110,20 +96,19 @@ function GuestsPageContent() {
   });
 
   const handleDelete = async () => {
-    if (!deleteGuest) return;
+    if (!deleteGuest || !currentResort) return;
     
-    const { error } = await supabase
-      .from('guests')
-      .delete()
-      .eq('id', deleteGuest.id);
-
-    if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      toast({ title: 'Success', description: 'Guest deleted successfully' });
-      fetchGuests();
-    }
-    setDeleteGuest(null);
+    deleteGuestMutation.mutate(
+      { guestId: deleteGuest.id, resortId: currentResort.id },
+      {
+        onSuccess: () => {
+          setDeleteGuest(null);
+        },
+        onError: () => {
+          setDeleteGuest(null);
+        },
+      }
+    );
   };
 
   const isCurrentGuest = (guest: Guest) => {
@@ -171,13 +156,6 @@ function GuestsPageContent() {
     const today = startOfDay(new Date());
     const in3Days = addDays(today, 3);
     return isAfter(checkIn, today) && isBefore(checkIn, in3Days);
-  };
-
-  const hasAllergies = (guestId: string) => {
-    const status = prearrivalStatuses?.[guestId];
-    // We can't fully determine this without the prearrival profile data
-    // So we'll track this in prearrival_profiles and add a flag to the status hook
-    return false; // Will be implemented when we enhance the status hook
   };
 
   // Calculate stats
@@ -232,7 +210,6 @@ function GuestsPageContent() {
         result = result.filter(isArrivingIn72Hours);
         break;
       case 'has-allergies':
-        // For now filter future arrivals - allergy flag would need to be in prearrival status
         result = result.filter(g => isFutureArrival(g));
         break;
     }
@@ -317,7 +294,6 @@ function GuestsPageContent() {
     setSelectedGuests(newSet);
   };
 
-  const isAllSelected = filteredGuests.length > 0 && filteredGuests.every(g => selectedGuests.has(g.id));
   const isSomeSelected = selectedGuests.size > 0;
 
   // Email actions
@@ -605,7 +581,10 @@ function GuestsPageContent() {
         onOpenChange={setDialogOpen}
         guest={editingGuest}
         resortId={currentResort.id}
-        onSuccess={fetchGuests}
+        resortCode={currentResort.code}
+        onSuccess={() => {
+          // React Query will auto-refetch via invalidation
+        }}
       />
 
       <AlertDialog open={!!deleteGuest} onOpenChange={() => setDeleteGuest(null)}>
@@ -618,8 +597,12 @@ function GuestsPageContent() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteGuestMutation.isPending}
+            >
+              {deleteGuestMutation.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -632,7 +615,6 @@ function GuestsPageContent() {
         guests={emailTargetGuests}
         onSuccess={() => {
           setSelectedGuests(new Set());
-          fetchGuests();
         }}
       />
     </div>
