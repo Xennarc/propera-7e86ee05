@@ -177,6 +177,7 @@ export default function StaffInviteAcceptPage() {
         p_password: formData.password,
         p_full_name: invitation.name || null,
         p_email: invitation.email,
+        p_global_role: 'STANDARD',
         p_resort_id: invitation.resort_id,
         p_resort_role: invitation.resort_role,
         p_department: invitation.department,
