@@ -12,7 +12,7 @@ interface ComparisonFeature {
   name: string;
   essential: boolean | string;
   professional: boolean | string;
-  elite: boolean | string;
+  enterprise: boolean | string;
 }
 
 interface PricingComparisonTableProps {
@@ -21,59 +21,37 @@ interface PricingComparisonTableProps {
 
 const FEATURE_GROUPS = [
   {
-    title: 'Guest Experience',
-    icon: '👤',
+    title: 'Core Features',
+    icon: '📱',
     features: [
-      'Guest web portal',
-      'Activity & restaurant bookings',
-      'Booking cancellation',
-      'Booking modification',
-      'Guest notifications',
-      'Stay feedback collection',
-      'Multi-language portal',
-      'Pre-arrival booking',
-      'Custom branding',
+      'Guest Portal + Staff Console',
+      'Activities, Excursions & Spa bookings',
+      'Guest profiles + pre-arrival details',
+      'Live availability + capacity controls',
+      'Email notifications',
+      'Standard support',
     ],
   },
   {
-    title: 'Staff Operations',
+    title: 'Operations',
     icon: '⚙️',
     features: [
-      'Guest records & PIN management',
-      'CSV guest import',
-      'Guest 360° profile',
-      'Guest requests queue',
-      'Recurring schedules',
-      'Closure day management',
-      "Today's opportunities",
-      'In-stay upsell suggestions',
-      'Booking source tracking',
+      'Restaurant bookings + request routing',
+      'Department views',
+      'Advanced scheduling controls',
+      'Role-based access',
+      'Analytics: bookings, utilization, cancellations',
     ],
   },
   {
-    title: 'Analytics & Insights',
-    icon: '📊',
+    title: 'Enterprise Features',
+    icon: '🏢',
     features: [
-      'Basic reports',
-      'Operational reports (activities, restaurants)',
-      'Guest & feedback reports',
-      'CSV export',
-      'Sales performance analytics',
-      'Revenue attribution by source',
-      'Guest segment analysis',
-      'Cancellation loss tracking',
-      'AI Revenue Coach',
-      'AI-powered insights on all reports',
-    ],
-  },
-  {
-    title: 'Loyalty & Advanced',
-    icon: '👑',
-    features: [
-      'Loyalty program',
-      'Loyalty tiers & rewards',
-      'Loyalty member management',
-      'Booking health check',
+      'Enhanced white-label branding',
+      'Priority support + faster response times',
+      'Advanced analytics + performance reporting',
+      'Integration readiness (API/webhooks)',
+      'Optional SLA packages',
     ],
   },
 ];
@@ -82,7 +60,7 @@ function FeatureIcon({ value, tier }: { value: boolean | string; tier: string })
   if (typeof value === 'string') {
     return (
       <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-        tier === 'elite' ? 'bg-violet-500/10 text-violet-500' :
+        tier === 'enterprise' ? 'bg-violet-500/10 text-violet-500' :
         tier === 'professional' ? 'bg-primary/10 text-primary' :
         'bg-muted text-muted-foreground'
       }`}>
@@ -95,7 +73,7 @@ function FeatureIcon({ value, tier }: { value: boolean | string; tier: string })
     return <Minus className="h-4 w-4 text-muted-foreground/30" />;
   }
   
-  if (tier === 'elite') {
+  if (tier === 'enterprise') {
     return (
       <motion.div 
         className="h-6 w-6 rounded-full bg-violet-500/10 flex items-center justify-center"
@@ -130,7 +108,7 @@ function FeatureIcon({ value, tier }: { value: boolean | string; tier: string })
 // Mobile accordion view
 function MobileComparisonView({ features, getFeatureValue }: { 
   features: ComparisonFeature[]; 
-  getFeatureValue: (name: string, tier: 'essential' | 'professional' | 'elite') => boolean | string;
+  getFeatureValue: (name: string, tier: 'essential' | 'professional' | 'enterprise') => boolean | string;
 }) {
   return (
     <div className="md:hidden">
@@ -162,8 +140,8 @@ function MobileComparisonView({ features, getFeatureValue }: {
                         <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
                       </div>
                       <div className="flex flex-col items-center gap-1 bg-violet-500/5 rounded-lg py-1">
-                        <span className="text-[10px] text-violet-500">Elite</span>
-                        <FeatureIcon value={getFeatureValue(featureName, 'elite')} tier="elite" />
+                        <span className="text-[10px] text-violet-500">Enterprise</span>
+                        <FeatureIcon value={getFeatureValue(featureName, 'enterprise')} tier="enterprise" />
                       </div>
                     </div>
                   </div>
@@ -178,7 +156,7 @@ function MobileComparisonView({ features, getFeatureValue }: {
 }
 
 export function PricingComparisonTable({ features }: PricingComparisonTableProps) {
-  const getFeatureValue = (name: string, tier: 'essential' | 'professional' | 'elite') => {
+  const getFeatureValue = (name: string, tier: 'essential' | 'professional' | 'enterprise') => {
     const feature = features.find(f => f.name === name);
     return feature ? feature[tier] : false;
   };
@@ -221,15 +199,15 @@ export function PricingComparisonTable({ features }: PricingComparisonTableProps
                   <th className="text-left py-5 px-6 font-medium text-muted-foreground w-1/2">Feature</th>
                   <th className="text-center py-5 px-4 w-1/6">
                     <div className="font-semibold text-foreground">Essential</div>
-                    <div className="text-xs text-muted-foreground font-normal mt-0.5">Get started</div>
+                    <div className="text-xs text-muted-foreground font-normal mt-0.5">$499/mo</div>
                   </th>
                   <th className="text-center py-5 px-4 w-1/6 bg-primary/5 rounded-t-xl">
                     <div className="font-semibold text-primary">Professional</div>
-                    <div className="text-xs text-primary/70 font-normal mt-0.5">Most popular</div>
+                    <div className="text-xs text-primary/70 font-normal mt-0.5">$899/mo</div>
                   </th>
                   <th className="text-center py-5 px-4 w-1/6 bg-violet-500/5 rounded-t-xl">
-                    <div className="font-semibold text-violet-500">Elite</div>
-                    <div className="text-xs text-violet-400 font-normal mt-0.5">Data-driven</div>
+                    <div className="font-semibold text-violet-500">Enterprise</div>
+                    <div className="text-xs text-violet-400 font-normal mt-0.5">$1,499/mo</div>
                   </th>
                 </tr>
               </thead>
@@ -248,33 +226,33 @@ export function PricingComparisonTable({ features }: PricingComparisonTableProps
                     </tr>
                     
                     {/* Features */}
-                    {group.features.map((featureName, featureIndex) => (
-                      <motion.tr 
-                        key={`${groupIndex}-${featureIndex}`} 
-                        className="border-b border-border/30 hover:bg-muted/5 transition-colors"
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: featureIndex * 0.02 }}
-                      >
-                        <td className="py-3 px-6 text-sm text-foreground">{featureName}</td>
-                        <td className="py-3 px-4 text-center">
-                          <div className="flex justify-center">
-                            <FeatureIcon value={getFeatureValue(featureName, 'essential')} tier="essential" />
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center bg-primary/5">
-                          <div className="flex justify-center">
-                            <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center bg-violet-500/5">
-                          <div className="flex justify-center">
-                            <FeatureIcon value={getFeatureValue(featureName, 'elite')} tier="elite" />
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
+                      {group.features.map((featureName, featureIndex) => (
+                        <motion.tr 
+                          key={`${groupIndex}-${featureIndex}`} 
+                          className="border-b border-border/30 hover:bg-muted/5 transition-colors"
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: featureIndex * 0.02 }}
+                        >
+                          <td className="py-3 px-6 text-sm text-foreground">{featureName}</td>
+                          <td className="py-3 px-4 text-center">
+                            <div className="flex justify-center">
+                              <FeatureIcon value={getFeatureValue(featureName, 'essential')} tier="essential" />
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center bg-primary/5">
+                            <div className="flex justify-center">
+                              <FeatureIcon value={getFeatureValue(featureName, 'professional')} tier="professional" />
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center bg-violet-500/5">
+                            <div className="flex justify-center">
+                              <FeatureIcon value={getFeatureValue(featureName, 'enterprise')} tier="enterprise" />
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
                   </>
                 ))}
               </tbody>

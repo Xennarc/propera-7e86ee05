@@ -41,19 +41,19 @@ const QUESTIONS = [
 function getRecommendation(state: ScenarioState): { plan: string; reason: string } {
   if (state.properties === '6+' || state.loyalty === 'yes') {
     return { 
-      plan: 'Elite', 
-      reason: 'Best for portfolio analytics, loyalty programs, and AI-powered insights.'
+      plan: 'Enterprise', 
+      reason: 'Best for high-volume resorts and groups wanting premium control and integrations.'
     };
   }
   if (state.properties === '2-5' || state.prearrival === 'yes') {
     return { 
       plan: 'Professional', 
-      reason: 'Perfect for multi-outlet coordination, pre-arrival, and detailed reporting.'
+      reason: 'Perfect for full resort operations with restaurants and advanced scheduling.'
     };
   }
   return { 
     plan: 'Essential', 
-    reason: 'Great starting point for centralised booking and guest self-service.'
+    reason: 'Great starting point for boutique resorts launching digital booking.'
   };
 }
 
@@ -201,7 +201,7 @@ export function PricingScenarioGuide() {
               className="mt-10"
             >
               <Card className={`overflow-hidden ${
-                recommendation.plan === 'Elite' 
+                recommendation.plan === 'Enterprise' 
                   ? 'border-violet-500/30 bg-gradient-to-br from-violet-500/5 to-purple-500/5' 
                   : recommendation.plan === 'Professional'
                   ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-primary/0'
@@ -209,7 +209,7 @@ export function PricingScenarioGuide() {
               }`}>
                 <CardContent className="p-8 text-center">
                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-4 ${
-                    recommendation.plan === 'Elite' 
+                    recommendation.plan === 'Enterprise' 
                       ? 'bg-violet-500/10 text-violet-500' 
                       : recommendation.plan === 'Professional'
                       ? 'bg-primary/10 text-primary'
@@ -220,7 +220,7 @@ export function PricingScenarioGuide() {
                   </div>
                   
                   <h3 className={`text-3xl font-bold mb-3 ${
-                    recommendation.plan === 'Elite' ? 'text-violet-500' : 
+                    recommendation.plan === 'Enterprise' ? 'text-violet-500' : 
                     recommendation.plan === 'Professional' ? 'text-primary' : 'text-foreground'
                   }`}>
                     {recommendation.plan}
@@ -234,7 +234,7 @@ export function PricingScenarioGuide() {
                     <Button 
                       asChild
                       className={`rounded-full px-8 h-12 font-semibold ${
-                        recommendation.plan === 'Elite' 
+                        recommendation.plan === 'Enterprise' 
                           ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white' 
                           : ''
                       }`}

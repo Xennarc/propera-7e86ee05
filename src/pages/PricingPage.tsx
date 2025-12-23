@@ -10,9 +10,9 @@ import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingValueSection } from '@/components/pricing/PricingValueSection';
 import { PricingComparisonTable } from '@/components/pricing/PricingComparisonTable';
 import { PricingScenarioGuide } from '@/components/pricing/PricingScenarioGuide';
-import { PricingEliteSpotlight } from '@/components/pricing/PricingEliteSpotlight';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
+import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 
 // ==========================================
 // PRICING CONFIGURATION
@@ -24,116 +24,114 @@ const PLANS = [
     name: 'Essential',
     badge: 'Get started',
     badgeVariant: 'default' as const,
-    price: 'From $200/mo',
-    description: 'Core tools to centralise activity and restaurant bookings in one live system.',
+    price: '$499',
+    priceUnit: 'per resort / month',
+    description: 'For boutique resorts launching a clean digital booking experience.',
     features: [
-      'Guest web portal (no app download)',
-      'Activity & excursion bookings',
-      'Restaurant reservations with live capacity',
-      'Guest PIN management for portal access',
-      'Staff console for day-to-day operations',
-      'In-app notifications',
-      'Basic reporting dashboard',
+      'Guest Portal + Staff Console',
+      'Activities, Excursions & Spa bookings',
+      'Guest profiles + pre-arrival details',
+      'Live availability + capacity controls',
+      'Email notifications (via your configured sender)',
+      'Standard support',
     ],
-    whoItsFor: 'Ideal for boutique and smaller resorts moving away from spreadsheets.',
+    usage: 'Includes up to 1,500 guest stays / month',
+    overage: 'Overage: $0.10 per guest stay',
+    cta: 'Start with Essential',
+    whoItsFor: 'Ideal for boutique resorts moving away from spreadsheets.',
   },
   {
     id: 'professional',
     name: 'Professional',
     badge: 'Most popular',
     badgeVariant: 'popular' as const,
-    price: 'From $400/mo',
-    description: 'Full operations platform with advanced scheduling, guest engagement, and detailed analytics.',
+    price: '$899',
+    priceUnit: 'per resort / month',
+    description: 'Our most popular plan for full resort operations.',
     features: [
-      'Everything in Essential',
-      'Recurring schedules for activities & restaurants',
-      'Pre-arrival booking links',
-      'Guest stay feedback collection',
-      'Multi-language portal (EN/ZH)',
-      'Custom resort branding',
-      'Detailed reports with CSV export',
+      'Everything in Essential, plus:',
+      'Restaurant bookings + request routing',
+      'Department views for smoother daily ops',
+      'Advanced scheduling controls (sessions, time slots, limits)',
+      'Role-based access (so not everyone becomes admin)',
+      'Analytics: bookings, utilization, cancellations',
     ],
+    usage: 'Includes up to 3,000 guest stays / month',
+    overage: 'Overage: $0.08 per guest stay',
+    cta: 'Choose Professional',
     whoItsFor: 'Best for island resorts with multiple outlets needing coordination.',
   },
   {
-    id: 'elite',
-    name: 'Elite',
-    badge: 'Data-driven excellence',
+    id: 'enterprise',
+    name: 'Enterprise',
+    badge: 'Premium control',
     badgeVariant: 'elite' as const,
-    price: 'From $700/mo',
-    description: 'Transform your resort with AI-powered analytics, revenue intelligence, and guest loyalty programs.',
+    price: '$1,499',
+    priceUnit: 'per resort / month',
+    description: 'For high-volume resorts and groups that want premium control.',
     features: [
-      'Everything in Professional',
-      'AI Revenue Coach with recommendations',
-      'Sales performance & revenue attribution',
-      'Guest segment analysis & behaviour insights',
-      'Guest loyalty program with tiers & rewards',
-      'Booking health diagnostics',
-      'Dedicated success management',
+      'Everything in Professional, plus:',
+      'Enhanced white-label branding options',
+      'Priority support + faster response times',
+      'Advanced analytics + performance reporting',
+      'Integration readiness (API/webhooks available)',
+      'Optional SLA packages',
     ],
-    whoItsFor: 'For data-driven resort leaders maximising revenue and guest loyalty.',
+    usage: 'Includes up to 6,000 guest stays / month',
+    overage: 'Overage: $0.06 per guest stay',
+    cta: 'Talk to Sales',
+    whoItsFor: 'For high-volume resorts and groups that want premium control.',
   },
 ];
 
+const ADDONS = [
+  { name: 'Integrations Pack', price: 'from $300 / month', description: 'PMS/POS/CRM, API & webhooks.' },
+  { name: 'Analytics Plus', price: '$199 / month', description: 'Executive dashboards & deeper insights.' },
+  { name: 'Premium Support', price: '$199 / month', description: 'Priority channels & extended coverage.' },
+  { name: 'Managed Content', price: 'from $150 / month', description: 'We maintain your activity catalog & seasonal updates.' },
+];
+
+const ONBOARDING = {
+  priceRange: '$2,500 – $7,500',
+  label: 'per resort (one-time)',
+  description: 'Includes resort setup, branding guidance, activity catalog setup, staff training, and a full test run before launch.',
+};
+
 const COMPARISON_FEATURES = [
-  { name: 'Guest web portal', essential: true, professional: true, elite: true },
-  { name: 'Activity & restaurant bookings', essential: true, professional: true, elite: true },
-  { name: 'Booking cancellation', essential: true, professional: true, elite: true },
-  { name: 'Booking modification', essential: false, professional: true, elite: true },
-  { name: 'Guest notifications', essential: true, professional: true, elite: true },
-  { name: 'Stay feedback collection', essential: false, professional: true, elite: true },
-  { name: 'Multi-language portal', essential: false, professional: true, elite: true },
-  { name: 'Pre-arrival booking', essential: false, professional: true, elite: true },
-  { name: 'Custom branding', essential: false, professional: true, elite: true },
-  { name: 'Guest records & PIN management', essential: true, professional: true, elite: true },
-  { name: 'CSV guest import', essential: false, professional: true, elite: true },
-  { name: 'Guest 360° profile', essential: false, professional: true, elite: true },
-  { name: 'Guest requests queue', essential: false, professional: true, elite: true },
-  { name: 'Recurring schedules', essential: false, professional: true, elite: true },
-  { name: 'Closure day management', essential: false, professional: true, elite: true },
-  { name: "Today's opportunities", essential: false, professional: true, elite: true },
-  { name: 'In-stay upsell suggestions', essential: false, professional: true, elite: true },
-  { name: 'Booking source tracking', essential: false, professional: true, elite: true },
-  { name: 'Basic reports', essential: true, professional: true, elite: true },
-  { name: 'Operational reports (activities, restaurants)', essential: false, professional: true, elite: true },
-  { name: 'Guest & feedback reports', essential: false, professional: true, elite: true },
-  { name: 'CSV export', essential: false, professional: true, elite: true },
-  { name: 'Sales performance analytics', essential: false, professional: false, elite: true },
-  { name: 'Revenue attribution by source', essential: false, professional: false, elite: true },
-  { name: 'Guest segment analysis', essential: false, professional: false, elite: true },
-  { name: 'Cancellation loss tracking', essential: false, professional: false, elite: true },
-  { name: 'AI Revenue Coach', essential: false, professional: false, elite: true },
-  { name: 'AI-powered insights on all reports', essential: false, professional: false, elite: true },
-  { name: 'Loyalty program', essential: false, professional: false, elite: true },
-  { name: 'Loyalty tiers & rewards', essential: false, professional: false, elite: true },
-  { name: 'Loyalty member management', essential: false, professional: false, elite: true },
-  { name: 'Booking health check', essential: false, professional: false, elite: true },
+  { name: 'Guest Portal + Staff Console', essential: true, professional: true, enterprise: true },
+  { name: 'Activities, Excursions & Spa bookings', essential: true, professional: true, enterprise: true },
+  { name: 'Guest profiles + pre-arrival details', essential: true, professional: true, enterprise: true },
+  { name: 'Live availability + capacity controls', essential: true, professional: true, enterprise: true },
+  { name: 'Email notifications', essential: true, professional: true, enterprise: true },
+  { name: 'Standard support', essential: true, professional: true, enterprise: true },
+  { name: 'Restaurant bookings + request routing', essential: false, professional: true, enterprise: true },
+  { name: 'Department views', essential: false, professional: true, enterprise: true },
+  { name: 'Advanced scheduling controls', essential: false, professional: true, enterprise: true },
+  { name: 'Role-based access', essential: false, professional: true, enterprise: true },
+  { name: 'Analytics: bookings, utilization, cancellations', essential: false, professional: true, enterprise: true },
+  { name: 'Enhanced white-label branding', essential: false, professional: false, enterprise: true },
+  { name: 'Priority support + faster response times', essential: false, professional: false, enterprise: true },
+  { name: 'Advanced analytics + performance reporting', essential: false, professional: false, enterprise: true },
+  { name: 'Integration readiness (API/webhooks)', essential: false, professional: false, enterprise: true },
+  { name: 'Optional SLA packages', essential: false, professional: false, enterprise: true },
 ];
 
 const FAQS = [
   {
-    question: 'Which plan is right for our resort?',
-    answer: 'It depends on your outlets and complexity. Essential suits smaller resorts with activities and dining. Professional is ideal for island resorts with spa, dive and watersports. Elite is for multi-property brands or those wanting AI and advanced analytics.',
+    question: 'Do you charge per staff user?',
+    answer: "No — unlimited staff on every plan. Resorts shouldn't be punished for being staffed.",
   },
   {
-    question: 'Can we change plans later?',
-    answer: 'Absolutely. You can upgrade or downgrade your plan at any time. Upgrades take effect immediately, and downgrades apply at the end of your current billing period.',
+    question: 'What is a "guest stay"?',
+    answer: 'One guest reservation/stay counted once for the month. It keeps pricing fair as occupancy changes.',
   },
   {
-    question: 'Do you support resorts in different countries and time zones?',
-    answer: 'Yes, Propera is built for global resort operations. Each property can have its own timezone, currency display, and language settings.',
+    question: 'Can guests book from their phones?',
+    answer: 'Yes — Propera is mobile-first and designed for real resort Wi-Fi.',
   },
   {
-    question: 'How long does implementation usually take?',
-    answer: 'Most resorts are live within 1–2 weeks. Complex multi-outlet setups may take 3–4 weeks. We work around your schedule to minimise disruption.',
-  },
-  {
-    question: 'Can we pilot Propera with one property first?',
-    answer: 'Yes, many groups start with a single property to validate the fit before rolling out to additional resorts. We support phased implementations.',
-  },
-  {
-    question: 'What if we need custom integrations?',
-    answer: 'We offer integrations with popular property management systems. Contact us to discuss your specific PMS and integration requirements.',
+    question: 'Can we start with one resort and expand?',
+    answer: 'Absolutely. Many groups roll out property-by-property after the first resort proves ROI.',
   },
 ];
 
@@ -188,10 +186,10 @@ export default function PricingPage() {
       <main>
         <PricingHeroSection />
         <PricingPlanGrid plans={PLANS} />
+        <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
         <PricingValueSection />
         <PricingComparisonTable features={COMPARISON_FEATURES} />
         <PricingScenarioGuide />
-        <PricingEliteSpotlight />
         <PricingFAQSection faqs={FAQS} />
         <PricingCTASection />
       </main>
