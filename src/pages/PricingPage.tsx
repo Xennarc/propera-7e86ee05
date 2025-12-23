@@ -7,16 +7,14 @@ import { LogIn } from 'lucide-react';
 
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
-import { PricingFeatureBreakdown } from '@/components/pricing/PricingFeatureBreakdown';
-import { PricingAlwaysIncluded } from '@/components/pricing/PricingAlwaysIncluded';
-import { PricingComingSoon } from '@/components/pricing/PricingComingSoon';
-import { PricingValueSection } from '@/components/pricing/PricingValueSection';
+import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
+import { PricingTrustSection } from '@/components/pricing/PricingTrustSection';
 import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
 
 // ==========================================
-// PRICING CONFIGURATION
+// PRICING CONFIGURATION (DO NOT CHANGE PRICES)
 // ==========================================
 
 const PLANS = [
@@ -101,19 +99,19 @@ const ONBOARDING = {
 const FAQS = [
   {
     question: 'Do you charge per staff user?',
-    answer: "No — unlimited staff on every plan. Resorts shouldn't be punished for being staffed.",
+    answer: "No. Unlimited staff on every plan — your team can grow without extra cost.",
   },
   {
     question: 'What is a "guest stay"?',
-    answer: 'One guest reservation/stay counted once for the month. It keeps pricing fair as occupancy changes.',
+    answer: 'One reservation counted once per month. It keeps pricing fair as occupancy changes.',
   },
   {
     question: 'Can guests book from their phones?',
-    answer: 'Yes — Propera is mobile-first and designed for real resort Wi-Fi.',
+    answer: 'Yes. Propera is mobile-first and designed for real resort conditions.',
   },
   {
     question: 'Can we start with one resort and expand?',
-    answer: 'Absolutely. Many groups roll out property-by-property after the first resort proves ROI.',
+    answer: 'Absolutely. Many groups start with one property, then roll out after seeing results.',
   },
 ];
 
@@ -168,11 +166,9 @@ export default function PricingPage() {
       <main>
         <PricingHeroSection />
         <PricingPlanGrid plans={PLANS} />
-        <PricingFeatureBreakdown />
-        <PricingAlwaysIncluded />
-        <PricingComingSoon />
+        <PricingComparisonMatrix />
+        <PricingTrustSection />
         <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
-        <PricingValueSection />
         <PricingFAQSection faqs={FAQS} />
         <PricingCTASection />
       </main>
