@@ -10,8 +10,12 @@ interface Plan {
   badge: string;
   badgeVariant: 'default' | 'popular' | 'elite';
   price: string;
+  priceUnit?: string;
   description: string;
   features: string[];
+  usage?: string;
+  overage?: string;
+  cta?: string;
   whoItsFor: string;
 }
 
@@ -181,7 +185,7 @@ function EliteVisual() {
 const PLAN_VISUALS: Record<string, { icon: any; visual: React.ReactNode }> = {
   essential: { icon: Smartphone, visual: <EssentialVisual /> },
   professional: { icon: Monitor, visual: <ProfessionalVisual /> },
-  elite: { icon: BarChart3, visual: <EliteVisual /> },
+  enterprise: { icon: BarChart3, visual: <EliteVisual /> },
 };
 
 export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
@@ -223,7 +227,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                 className="group"
               >
                 <Card className={`h-full relative overflow-hidden transition-all duration-500 hover:shadow-2xl ${
-                  plan.id === 'elite' 
+                  plan.id === 'enterprise' 
                     ? 'border-violet-500/30 hover:border-violet-500/60 bg-gradient-to-b from-card to-violet-500/5' 
                     : plan.id === 'professional'
                     ? 'border-primary/30 hover:border-primary/60 ring-2 ring-primary/10'
@@ -242,7 +246,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-semibold text-center py-1.5">
                       <span className="flex items-center justify-center gap-1.5">
                         <Sparkles className="h-3 w-3" />
-                        Data-driven excellence
+                        Premium control
                       </span>
                     </div>
                   )}
@@ -260,27 +264,28 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     <div className="flex items-center gap-3 mb-3">
                       <motion.div 
                         className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                          plan.id === 'elite' ? 'bg-violet-500/20 group-hover:bg-violet-500/30' : 
+                          plan.id === 'enterprise' ? 'bg-violet-500/20 group-hover:bg-violet-500/30' : 
                           plan.id === 'professional' ? 'bg-primary/10 group-hover:bg-primary/20' : 
                           'bg-muted group-hover:bg-muted/80'
                         }`}
                         whileHover={{ rotate: 5 }}
                       >
                         <Icon className={`h-6 w-6 ${
-                          plan.id === 'elite' ? 'text-violet-500' : 
+                          plan.id === 'enterprise' ? 'text-violet-500' : 
                           plan.id === 'professional' ? 'text-primary' : 'text-muted-foreground'
                         }`} />
                       </motion.div>
                       <div>
                         <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                         <p className="text-2xl font-extrabold text-foreground">{plan.price}</p>
+                        {plan.priceUnit && <p className="text-xs text-muted-foreground">{plan.priceUnit}</p>}
                       </div>
                     </div>
                     
                     <p className="text-sm text-muted-foreground mb-6">{plan.description}</p>
                     
                     {/* Features list */}
-                    <ul className="space-y-2.5 mb-6">
+                    <ul className="space-y-2.5 mb-4">
                       {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
                         <motion.li 
                           key={i} 
@@ -290,11 +295,11 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                           transition={{ delay: i * 0.05 }}
                         >
                           <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                            plan.id === 'elite' ? 'bg-violet-500/10' : 
+                            plan.id === 'enterprise' ? 'bg-violet-500/10' : 
                             plan.id === 'professional' ? 'bg-primary/10' : 'bg-muted'
                           }`}>
                             <Check className={`h-3 w-3 ${
-                              plan.id === 'elite' ? 'text-violet-500' : 
+                              plan.id === 'enterprise' ? 'text-violet-500' : 
                               plan.id === 'professional' ? 'text-primary' : 'text-muted-foreground'
                             }`} />
                           </div>
@@ -302,6 +307,14 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                         </motion.li>
                       ))}
                     </ul>
+                    
+                    {/* Usage info */}
+                    {(plan.usage || plan.overage) && (
+                      <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                        {plan.usage && <p className="text-xs text-foreground font-medium">{plan.usage}</p>}
+                        {plan.overage && <p className="text-xs text-muted-foreground mt-1">{plan.overage}</p>}
+                      </div>
+                    )}
                     
                     {/* Expand/collapse */}
                     {plan.features.length > 5 && (
@@ -323,16 +336,16 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     <Button 
                       asChild 
                       className={`w-full rounded-full font-semibold h-12 text-base transition-all duration-300 ${
-                        plan.id === 'elite' 
+                        plan.id === 'enterprise' 
                           ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40' 
                           : plan.id === 'professional'
                           ? 'shadow-lg shadow-primary/20 hover:shadow-primary/40'
                           : 'bg-muted text-foreground hover:bg-muted/80'
                       }`}
-                      variant={plan.id === 'professional' ? 'default' : plan.id === 'elite' ? 'default' : 'secondary'}
+                      variant={plan.id === 'professional' ? 'default' : plan.id === 'enterprise' ? 'default' : 'secondary'}
                     >
                       <a href={`mailto:hello@propera.cc?subject=${plan.name} Plan Inquiry`}>
-                        Talk to us
+                        {plan.cta || 'Talk to us'}
                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                       </a>
                     </Button>
@@ -342,7 +355,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                   
                   {/* Hover glow effect */}
                   <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
-                    plan.id === 'elite' ? 'bg-gradient-to-t from-violet-500/5 to-transparent' :
+                    plan.id === 'enterprise' ? 'bg-gradient-to-t from-violet-500/5 to-transparent' :
                     plan.id === 'professional' ? 'bg-gradient-to-t from-primary/5 to-transparent' : ''
                   }`} />
                 </Card>
