@@ -4,24 +4,24 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { LogIn, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-// Landing page sections
-import { HeroSection } from '@/components/landing/HeroSection';
-import { WhyProperaSection } from '@/components/landing/WhyProperaSection';
-import { ProductTourSection } from '@/components/landing/ProductTourSection';
-import { GlobalResortsSection } from '@/components/landing/GlobalResortsSection';
-import { MetricsSection } from '@/components/landing/MetricsSection';
-import { PersonasSection } from '@/components/landing/PersonasSection';
-import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { FinalCTASection } from '@/components/landing/FinalCTASection';
+// New landing page sections
+import { HomeHero } from '@/components/landing/HomeHero';
+import { WhyProperaCards } from '@/components/landing/WhyProperaCards';
+import { PlatformModules } from '@/components/landing/PlatformModules';
+import { HowItWorks } from '@/components/landing/HowItWorks';
+import { GlobalReady } from '@/components/landing/GlobalReady';
+import { PricingTeaser } from '@/components/landing/PricingTeaser';
+import { TrustStrip } from '@/components/landing/TrustStrip';
+import { HomeFinalCTA } from '@/components/landing/HomeFinalCTA';
 
 // Landing page structured data
 const LANDING_PAGE_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
-  name: 'Propera - The Operating System for Resort Stays',
-  description: 'Multi-resort booking platform connecting guest apps and staff consoles for activities, dining, loyalty, and operations worldwide.',
+  name: 'Propera - Resort Operations, Beautifully Organized',
+  description: 'Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless.',
   url: 'https://propera.cc/',
   mainEntity: {
     '@type': 'SoftwareApplication',
@@ -37,28 +37,48 @@ const LANDING_PAGE_SCHEMA = {
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Track scroll for nav background
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="The Operating System for Resort Stays | Propera"
-        description="Propera connects your staff console and guest app into one live system for bookings, operations, and loyalty – across every property you run. Built for world-class resorts worldwide."
+        title="Resort Operations, Beautifully Organized | Propera"
+        description="Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless. Built for resorts worldwide."
         canonicalUrl="/"
-        keywords="resort booking platform, resort management software, guest experience platform, multi-resort operations, resort activities booking, restaurant reservations, resort loyalty program"
+        keywords="resort booking platform, resort management software, guest experience platform, multi-resort operations, resort activities booking, restaurant reservations"
         structuredData={[PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA, LANDING_PAGE_SCHEMA]}
       />
       
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
+      {/* Header - translucent becoming solid on scroll */}
+      <header 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled 
+            ? 'bg-background/95 backdrop-blur-xl border-b border-border/50 shadow-sm' 
+            : 'bg-background/60 backdrop-blur-md border-b border-transparent'
+        }`}
+      >
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between" aria-label="Main navigation">
+          {/* Left: Logo */}
           <div className="flex items-center gap-3">
             <ProperaMark size={40} className="text-primary" />
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </div>
           
-          {/* Desktop Nav */}
+          {/* Center: Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#product-tour" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a 
+              href="#platform-overview" 
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
               Product
             </a>
             <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -69,17 +89,17 @@ export default function LandingPage() {
             </Link>
           </div>
           
+          {/* Right: CTAs */}
           <div className="hidden md:flex items-center gap-3">
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
             <Button asChild variant="ghost" size="sm">
-              <Link to="/guest/login">
-                Guest Portal
+              <Link to="/auth">
+                Sign In
               </Link>
             </Button>
             <Button asChild size="sm" className="rounded-full px-5 font-semibold">
               <Link to="/auth">
-                <LogIn className="h-4 w-4 mr-2" />
-                Sign In
+                Book a demo
               </Link>
             </Button>
           </div>
@@ -93,63 +113,61 @@ export default function LandingPage() {
           </div>
         </nav>
         
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Drawer style */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-background border-b border-border/30 py-4">
+          <div className="md:hidden bg-background/98 backdrop-blur-xl border-b border-border/50 py-6">
             <div className="container mx-auto px-4 flex flex-col gap-4">
               <a 
-                href="#product-tour" 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                href="#platform-overview" 
+                className="text-base text-foreground hover:text-primary transition-colors py-3 border-b border-border/30"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Product
               </a>
               <Link 
                 to="/pricing" 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                className="text-base text-foreground hover:text-primary transition-colors py-3 border-b border-border/30"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Pricing
               </Link>
               <Link 
                 to="/about" 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                className="text-base text-foreground hover:text-primary transition-colors py-3 border-b border-border/30"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 About
               </Link>
-              <hr className="border-border/30" />
-              <Link 
-                to="/guest/login" 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Guest Portal
-              </Link>
-              <Button asChild size="sm" className="w-full">
-                <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
-                </Link>
-              </Button>
+              <div className="pt-4 space-y-3">
+                <Button asChild variant="outline" size="lg" className="w-full rounded-xl">
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild size="lg" className="w-full rounded-xl">
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    Book a demo
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         )}
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Premium page structure */}
       <main>
-        <HeroSection />
-        <WhyProperaSection />
-        <ProductTourSection />
-        <GlobalResortsSection />
-        <MetricsSection />
-        <PersonasSection />
-        <TestimonialsSection />
-        <FinalCTASection />
+        <HomeHero />
+        <WhyProperaCards />
+        <PlatformModules />
+        <HowItWorks />
+        <GlobalReady />
+        <PricingTeaser />
+        <TrustStrip />
+        <HomeFinalCTA />
       </main>
 
-      {/* Footer */}
+      {/* Footer - Clean and minimal */}
       <footer className="py-12 bg-card border-t border-border/50">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
@@ -160,7 +178,7 @@ export default function LandingPage() {
                 <span className="font-bold text-foreground">Propera</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                The operating system for world-class resort stays.
+                Resort operations, beautifully organized.
               </p>
             </div>
             
@@ -168,7 +186,7 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold text-foreground mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#product-tour" className="hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="#platform-overview" className="hover:text-foreground transition-colors">Features</a></li>
                 <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><Link to="/guest/login" className="hover:text-foreground transition-colors">Guest Portal</Link></li>
               </ul>
