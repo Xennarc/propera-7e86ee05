@@ -77,7 +77,7 @@ export function AboutGlobalSection() {
               
               {/* Label */}
               <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h3 className="text-white font-semibold text-sm md:text-base">{item.label}</h3>
+                <h3 className="text-primary-foreground font-semibold text-sm md:text-base">{item.label}</h3>
               </div>
               
               {/* Propera UI Overlay pill */}

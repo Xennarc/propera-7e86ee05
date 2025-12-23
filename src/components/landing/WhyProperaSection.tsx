@@ -409,7 +409,7 @@ export function WhyProperaSection() {
             shouldAnimate={shouldAnimate}
             mockup={
               <div className="flex items-center gap-2 mt-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sunset to-coral-400 flex items-center justify-center text-[10px] text-white font-bold">VIP</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sunset to-coral-400 flex items-center justify-center text-[10px] text-primary-foreground font-bold">VIP</div>
                 <div className="text-[10px] text-muted-foreground">2,450 pts</div>
               </div>
             }

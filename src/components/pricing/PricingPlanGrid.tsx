@@ -82,7 +82,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     </div>
                   )}
                   {isElite && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-semibold text-center py-2">
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-primary-foreground text-xs font-semibold text-center py-2">
                       <span className="flex items-center justify-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5" />
                         Premium control
@@ -155,7 +155,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       asChild 
                       className={`w-full rounded-xl font-semibold h-11 transition-all duration-200 ${
                         isElite 
-                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md' 
+                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-primary-foreground shadow-md' 
                           : isProfessional
                           ? 'shadow-md'
                           : ''

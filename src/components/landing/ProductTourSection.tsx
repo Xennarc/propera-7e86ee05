@@ -398,7 +398,7 @@ function InsightsMockup({ reducedMotion }: { reducedMotion: boolean }) {
         initial={reducedMotion ? {} : { scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="bg-gradient-to-br from-sunset to-coral-400 rounded-xl p-4 text-white relative overflow-hidden"
+        className="bg-gradient-to-br from-sunset to-coral-400 rounded-xl p-4 text-primary-foreground relative overflow-hidden"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(255,255,255,0.2),_transparent)]" />
         <p className="text-xs opacity-80 relative">Gold Member</p>

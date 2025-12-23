@@ -91,15 +91,15 @@ const MetricCard = memo(function MetricCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.08 }}
-      className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] will-change-transform"
+      className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border/50 p-6 transition-all duration-300 hover:-translate-y-1 hover:bg-card will-change-transform shadow-lg"
     >
       <div className="mb-4">
-        <span className="text-4xl md:text-5xl font-bold text-white">
+        <span className="text-4xl md:text-5xl font-bold text-foreground">
           {displayValue}{metric.suffix}
         </span>
       </div>
-      <p className="text-white font-medium mb-1">{metric.label}</p>
-      <p className="text-sm text-white/50 mb-4">{metric.description}</p>
+      <p className="text-foreground font-medium mb-1">{metric.label}</p>
+      <p className="text-sm text-muted-foreground mb-4">{metric.description}</p>
 
       {/* Chart - CSS-only animation */}
       {metric.chart ? (
@@ -141,9 +141,9 @@ export function MetricsSection() {
 
   return (
     <section ref={sectionRef} className="py-24 relative overflow-hidden">
-      {/* Dark gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
+      {/* Adaptive gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-muted via-background to-muted" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-teal-400/10 via-transparent to-transparent" />
       
       <div className="container relative mx-auto px-4">
@@ -153,10 +153,10 @@ export function MetricsSection() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             The results speak for themselves
           </h2>
-          <p className="text-lg text-white/60">
+          <p className="text-lg text-muted-foreground">
             Real impact from real resorts using Propera
           </p>
         </motion.div>
@@ -179,7 +179,7 @@ export function MetricsSection() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="text-center text-white/40 text-sm mt-12"
+          className="text-center text-muted-foreground/60 text-sm mt-12"
         >
           Sample data from multi-resort portfolios
         </motion.p>
