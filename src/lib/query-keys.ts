@@ -110,17 +110,29 @@ export const queryKeys = {
 
   // ==================== GUESTS ====================
   guests: {
-    // Guest list
+    // Guest list for staff
     list: (resortId: string) => 
       ['guests', resortId],
     
     // Single guest detail
-    detail: (guestId: string) => 
-      ['guest', guestId],
+    detail: (resortId: string, guestId: string) => 
+      ['guest', resortId, guestId],
     
     // Room guests
     roomGuests: (resortId: string, roomNumber: string) => 
       ['room-guests', resortId, roomNumber],
+    
+    // Guest auth lookup (for login validation)
+    authLookup: (resortId: string, roomNumber: string, lastName: string) =>
+      ['guest-auth', resortId, roomNumber, lastName],
+    
+    // Arrivals list
+    arrivals: (resortId: string, date?: string) =>
+      ['guest-arrivals', resortId, date].filter(Boolean),
+    
+    // In-house guests
+    inHouse: (resortId: string) =>
+      ['guests-in-house', resortId],
   },
 
   // ==================== NOTIFICATIONS ====================

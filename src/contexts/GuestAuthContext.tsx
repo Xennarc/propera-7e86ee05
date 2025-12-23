@@ -83,6 +83,16 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (resortId: string, roomNumber: string, lastName: string, pin: string): Promise<{ error: string | null }> => {
+    const attemptLogin = async (): Promise<{ data: any; error: any }> => {
+      const pinHash = await hashPin(pin);
+      return supabase.rpc('guest_portal_login', {
+        p_resort_id: resortId,
+        p_room_number: roomNumber.trim(),
+        p_last_name: lastName.trim(),
+        p_pin_hash: pinHash,
+      });
+    };
+
     try {
       // Validate inputs
       if (!roomNumber.trim() || !lastName.trim() || !pin.trim()) {
@@ -93,14 +103,16 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         return { error: 'Your PIN should be 4-6 digits.' };
       }
 
-      const pinHash = await hashPin(pin);
+      // First attempt
+      let { data, error } = await attemptLogin();
 
-      const { data, error } = await supabase.rpc('guest_portal_login', {
-        p_resort_id: resortId,
-        p_room_number: roomNumber.trim(),
-        p_last_name: lastName.trim(),
-        p_pin_hash: pinHash,
-      });
+      // Retry once after short delay if no data found (handles propagation latency)
+      if (!error && (!data || data.length === 0)) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        const retry = await attemptLogin();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (error) {
         console.error('Login error:', error);
