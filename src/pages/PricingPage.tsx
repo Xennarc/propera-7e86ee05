@@ -7,12 +7,13 @@ import { LogIn } from 'lucide-react';
 
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
+import { PricingFeatureBreakdown } from '@/components/pricing/PricingFeatureBreakdown';
+import { PricingAlwaysIncluded } from '@/components/pricing/PricingAlwaysIncluded';
+import { PricingComingSoon } from '@/components/pricing/PricingComingSoon';
 import { PricingValueSection } from '@/components/pricing/PricingValueSection';
-import { PricingComparisonTable } from '@/components/pricing/PricingComparisonTable';
-import { PricingScenarioGuide } from '@/components/pricing/PricingScenarioGuide';
+import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
-import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 
 // ==========================================
 // PRICING CONFIGURATION
@@ -63,7 +64,7 @@ const PLANS = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise',
+    name: 'Elite',
     badge: 'Premium control',
     badgeVariant: 'elite' as const,
     price: '$1,499',
@@ -96,25 +97,6 @@ const ONBOARDING = {
   label: 'per resort (one-time)',
   description: 'Includes resort setup, branding guidance, activity catalog setup, staff training, and a full test run before launch.',
 };
-
-const COMPARISON_FEATURES = [
-  { name: 'Guest Portal + Staff Console', essential: true, professional: true, enterprise: true },
-  { name: 'Activities, Excursions & Spa bookings', essential: true, professional: true, enterprise: true },
-  { name: 'Guest profiles + pre-arrival details', essential: true, professional: true, enterprise: true },
-  { name: 'Live availability + capacity controls', essential: true, professional: true, enterprise: true },
-  { name: 'Email notifications', essential: true, professional: true, enterprise: true },
-  { name: 'Standard support', essential: true, professional: true, enterprise: true },
-  { name: 'Restaurant bookings + request routing', essential: false, professional: true, enterprise: true },
-  { name: 'Department views', essential: false, professional: true, enterprise: true },
-  { name: 'Advanced scheduling controls', essential: false, professional: true, enterprise: true },
-  { name: 'Role-based access', essential: false, professional: true, enterprise: true },
-  { name: 'Analytics: bookings, utilization, cancellations', essential: false, professional: true, enterprise: true },
-  { name: 'Enhanced white-label branding', essential: false, professional: false, enterprise: true },
-  { name: 'Priority support + faster response times', essential: false, professional: false, enterprise: true },
-  { name: 'Advanced analytics + performance reporting', essential: false, professional: false, enterprise: true },
-  { name: 'Integration readiness (API/webhooks)', essential: false, professional: false, enterprise: true },
-  { name: 'Optional SLA packages', essential: false, professional: false, enterprise: true },
-];
 
 const FAQS = [
   {
@@ -186,10 +168,11 @@ export default function PricingPage() {
       <main>
         <PricingHeroSection />
         <PricingPlanGrid plans={PLANS} />
+        <PricingFeatureBreakdown />
+        <PricingAlwaysIncluded />
+        <PricingComingSoon />
         <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
         <PricingValueSection />
-        <PricingComparisonTable features={COMPARISON_FEATURES} />
-        <PricingScenarioGuide />
         <PricingFAQSection faqs={FAQS} />
         <PricingCTASection />
       </main>
