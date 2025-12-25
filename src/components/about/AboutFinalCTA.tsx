@@ -43,10 +43,10 @@ export function AboutFinalCTA() {
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
                 <Button asChild size="lg" className="text-base px-10 h-14 rounded-full shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all group w-full sm:w-auto">
-                  <a href="mailto:hello@propera.cc?subject=Demo Request">
+                  <Link to="/book-demo">
                     Book a demo
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </a>
+                  </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="text-base px-10 h-14 rounded-full w-full sm:w-auto">
                   <Link to="/pricing">View pricing</Link>
