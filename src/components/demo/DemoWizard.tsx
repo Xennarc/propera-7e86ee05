@@ -6,13 +6,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw, Key, User, DoorOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface DemoWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface DemoResponse {
+  email: string;
+  temp_password?: string;
+  tenant_id?: string;
+  resort_code?: string;
+  staff_login_url?: string;
+  guest_login?: {
+    guest_name: string;
+    room_number: string;
+    last_name: string;
+    pin: string;
+    portal_url: string;
+  };
 }
 
 const DEPARTMENTS = [
@@ -46,11 +61,7 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'form' | 'creating' | 'success' | 'existing' | 'rate_limited'>('form');
-  const [demoData, setDemoData] = useState<{
-    email: string;
-    temp_password?: string;
-    tenant_id?: string;
-  } | null>(null);
+  const [demoData, setDemoData] = useState<DemoResponse | null>(null);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -101,13 +112,21 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
 
       if (data?.success) {
         if (data.existing) {
-          setDemoData({ email: formData.email, tenant_id: data.tenant_id });
+          setDemoData({ 
+            email: formData.email, 
+            tenant_id: data.tenant_id,
+            resort_code: data.resort_code,
+            staff_login_url: data.staff_login_url,
+          });
           setStep('existing');
         } else {
           setDemoData({
             email: data.email || formData.email,
             temp_password: data.temp_password,
             tenant_id: data.tenant_id,
+            resort_code: data.resort_code,
+            staff_login_url: data.staff_login_url,
+            guest_login: data.guest_login,
           });
           setStep('success');
         }
@@ -135,11 +154,28 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
 
   const goToStaffConsole = () => {
     handleClose();
-    navigate(`/staff/auth?email=${encodeURIComponent(demoData?.email || formData.email)}`);
+    // Use the URL from the response, or construct it from resort code
+    if (demoData?.staff_login_url) {
+      // Extract path from full URL and navigate
+      try {
+        const url = new URL(demoData.staff_login_url);
+        navigate(url.pathname + url.search);
+      } catch {
+        navigate(`/staff/auth?username=${encodeURIComponent(demoData?.email || formData.email)}`);
+      }
+    } else {
+      navigate(`/staff/auth?username=${encodeURIComponent(demoData?.email || formData.email)}`);
+    }
   };
 
   const openGuestPortal = () => {
-    window.open('/guest', '_blank');
+    if (demoData?.guest_login?.portal_url) {
+      window.open(demoData.guest_login.portal_url, '_blank');
+    } else if (demoData?.resort_code) {
+      window.open(`/resort/${demoData.resort_code}/guest/login`, '_blank');
+    } else {
+      window.open('/guest', '_blank');
+    }
   };
 
   return (
@@ -277,29 +313,62 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
         )}
 
         {step === 'success' && demoData && (
-          <div className="py-8">
+          <div className="py-6">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
             <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">Your demo is ready.</DialogTitle>
+              <DialogTitle className="text-2xl">Your demo is ready!</DialogTitle>
               <DialogDescription>
                 Open the staff console, then try a booking in the guest portal.
               </DialogDescription>
             </DialogHeader>
 
-            {demoData.temp_password && (
-              <div className="bg-muted/50 rounded-lg p-4 mb-6 space-y-2">
+            {/* Staff Login Credentials */}
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <User className="h-4 w-4 text-primary" />
+                <span>Staff Console</span>
+              </div>
+              <div className="space-y-1.5 pl-6">
                 <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Email:</span>
                   <span className="font-medium">{demoData.email}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground ml-6">Password:</span>
-                  <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
-                    {demoData.temp_password}
-                  </code>
+                {demoData.temp_password && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Password:</span>
+                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
+                      {demoData.temp_password}
+                    </code>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Guest Login Credentials */}
+            {demoData.guest_login && (
+              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-6 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <DoorOpen className="h-4 w-4 text-success" />
+                  <span>Guest Portal</span>
+                </div>
+                <div className="space-y-1.5 pl-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Guest:</span>
+                    <span className="font-medium">{demoData.guest_login.guest_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Room:</span>
+                    <span className="font-medium">{demoData.guest_login.room_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Key className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">PIN:</span>
+                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm tracking-wider">
+                      {demoData.guest_login.pin}
+                    </code>
+                  </div>
                 </div>
               </div>
             )}

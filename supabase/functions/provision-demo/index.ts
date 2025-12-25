@@ -15,11 +15,14 @@ const DEMO_ACTIVITIES = [
   { name: "Kayak Adventure", category: "WATERSPORT", description: "Explore the lagoon by kayak", short_description: "Self-guided kayak tour", duration_minutes: 60, default_max_capacity: 10, default_price_per_person: 35, guest_can_book: true, guest_cutoff_hours: 1, difficulty_level: "EASY" },
   { name: "Sunrise Yoga", category: "SPA", description: "Start your day with beachfront yoga", short_description: "Morning yoga session", duration_minutes: 60, default_max_capacity: 15, default_price_per_person: 25, guest_can_book: true, guest_cutoff_hours: 2, difficulty_level: "EASY" },
   { name: "Night Fishing", category: "EXCURSION", description: "Traditional Maldivian fishing experience", short_description: "Evening fishing trip", duration_minutes: 180, default_max_capacity: 8, default_price_per_person: 95, guest_can_book: true, guest_cutoff_hours: 6, difficulty_level: "EASY" },
+  { name: "Deep Tissue Massage", category: "SPA", description: "Relaxing full body massage", short_description: "60-min massage", duration_minutes: 60, default_max_capacity: 2, default_price_per_person: 120, guest_can_book: true, guest_cutoff_hours: 4, difficulty_level: "EASY" },
+  { name: "Advanced Reef Dive", category: "DIVE", description: "For certified divers", short_description: "2-tank dive trip", duration_minutes: 240, default_max_capacity: 6, default_price_per_person: 200, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "INTERMEDIATE" },
 ];
 
 const DEMO_RESTAURANTS = [
   { name: "Lagoon Restaurant", description: "Overwater dining with stunning views", total_capacity: 60, guest_can_book: true, guest_cutoff_minutes: 60, max_pax_per_booking: 8 },
   { name: "Sunset Grill", description: "Beachfront BBQ and seafood", total_capacity: 40, guest_can_book: true, guest_cutoff_minutes: 120, max_pax_per_booking: 6, requires_approval: true },
+  { name: "The Teppanyaki", description: "Japanese cuisine with live cooking", total_capacity: 24, guest_can_book: true, guest_cutoff_minutes: 180, max_pax_per_booking: 6 },
 ];
 
 const DEMO_GUESTS = [
@@ -53,6 +56,15 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
+function getBaseUrl(req: Request): string {
+  // Use origin header if available, fallback to production URL
+  const origin = req.headers.get("origin");
+  if (origin && (origin.includes("localhost") || origin.includes("lovableproject.com"))) {
+    return origin;
+  }
+  return PRODUCTION_URL;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -68,7 +80,10 @@ serve(async (req) => {
       });
     }
 
-    console.log("Starting demo provision for:", email, resort_name);
+    console.log("Starting demo provision for:", email, resort_name, "departments:", departments);
+
+    const baseUrl = getBaseUrl(req);
+    console.log("Using base URL:", baseUrl);
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -123,10 +138,21 @@ serve(async (req) => {
         .single();
 
       if (existingDemo) {
+        // Get the existing resort code
+        const { data: existingResort } = await supabaseAdmin
+          .from("resorts")
+          .select("code")
+          .eq("id", existingDemo.tenant_id)
+          .single();
+
+        const resortCode = existingResort?.code || "";
+        
         return new Response(JSON.stringify({
           success: true,
           existing: true,
           tenant_id: existingDemo.tenant_id,
+          resort_code: resortCode,
+          staff_login_url: `${baseUrl}/staff/auth?username=${encodeURIComponent(email)}`,
           message: "You already have an active demo",
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -182,7 +208,7 @@ serve(async (req) => {
       .single();
 
     if (resortError) throw resortError;
-    console.log("Resort created:", resort.id);
+    console.log("Resort created:", resort.id, "code:", resortCode);
 
     // Create demo tenant record
     const expiresAt = addDays(new Date(), 14);
@@ -196,45 +222,77 @@ serve(async (req) => {
 
     if (demoTenantError) throw demoTenantError;
 
-    // Generate admin credentials
+    // Generate admin credentials with plus-addressing for uniqueness
     const tempPassword = generatePassword();
-    const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20) + ".demo";
+    const emailParts = email.split("@");
+    const demoEmail = `${emailParts[0]}+${resortCode.toLowerCase()}@${emailParts[1]}`;
+    const username = emailParts[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20) + ".demo";
 
-    // Create the demo admin user
+    // Create the demo admin user with plus-addressed email
     let userId: string;
-    let isExistingUser = false;
+    let staffIdentifier: string;
 
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.toLowerCase(),
+      email: demoEmail,
       password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name: "Demo Admin", must_reset_password: false },
     });
 
     if (authError) {
-      if (authError.message.includes("already been registered")) {
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find((u: any) => u.email === email.toLowerCase());
-        
-        if (existingUser) {
-          userId = existingUser.id;
-          isExistingUser = true;
+      console.error("Auth user creation error:", authError);
+      // If plus-addressed email fails, try with original email
+      const { data: fallbackUser, error: fallbackError } = await supabaseAdmin.auth.admin.createUser({
+        email: email.toLowerCase(),
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: "Demo Admin", must_reset_password: false },
+      });
+
+      if (fallbackError) {
+        if (fallbackError.message.includes("already been registered")) {
+          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = existingUsers?.users?.find((u: any) => u.email === email.toLowerCase());
           
-          // Add resort membership for existing user
-          await supabaseAdmin.from("resort_memberships").insert({
-            user_id: existingUser.id,
-            resort_id: resort.id,
-            resort_role: "RESORT_ADMIN",
-          });
+          if (existingUser) {
+            userId = existingUser.id;
+            staffIdentifier = email;
+            
+            // Add resort membership for existing user
+            await supabaseAdmin.from("resort_memberships").insert({
+              user_id: existingUser.id,
+              resort_id: resort.id,
+              resort_role: "RESORT_ADMIN",
+            });
+          } else {
+            throw fallbackError;
+          }
         } else {
-          throw authError;
+          throw fallbackError;
         }
       } else {
-        throw authError;
+        userId = fallbackUser.user.id;
+        staffIdentifier = email;
+
+        // Create profile
+        await supabaseAdmin.from("profiles").upsert({
+          id: userId,
+          username,
+          full_name: "Demo Admin",
+          global_role: "STANDARD",
+        });
+
+        // Create resort membership
+        await supabaseAdmin.from("resort_memberships").insert({
+          user_id: userId,
+          resort_id: resort.id,
+          resort_role: "RESORT_ADMIN",
+        });
       }
     } else {
       userId = authUser.user.id;
-      
+      staffIdentifier = demoEmail;
+
       // Create profile
       await supabaseAdmin.from("profiles").upsert({
         id: userId,
@@ -251,11 +309,15 @@ serve(async (req) => {
       });
     }
 
-    console.log("Admin user setup complete:", userId);
+    console.log("Admin user setup complete:", userId, "identifier:", staffIdentifier);
 
     // Seed demo data and get a guest with PIN for demo
     const demoGuestInfo = await seedDemoData(supabaseAdmin, resort.id, departments || [], resortCode);
     console.log("Demo data seeded, guest info:", demoGuestInfo);
+
+    // Build URLs
+    const staffLoginUrl = `${baseUrl}/staff/auth?username=${encodeURIComponent(staffIdentifier)}`;
+    const guestLoginUrl = `${baseUrl}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(demoGuestInfo.roomNumber)}&lastName=${encodeURIComponent(demoGuestInfo.lastName)}`;
 
     // Log event
     await supabaseAdmin.from("lead_events").insert({
@@ -269,9 +331,6 @@ serve(async (req) => {
     try {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (resendApiKey) {
-        const staffLoginUrl = `${PRODUCTION_URL}/auth?email=${encodeURIComponent(email)}`;
-        const guestLoginUrl = `${PRODUCTION_URL}/guest/${resortCode.toLowerCase()}`;
-
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -280,7 +339,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             from: "Propera <noreply@propera.cc>",
-            to: [email],
+            to: [email], // Send to original email, not plus-addressed
             subject: `🎉 Your ${resort_name} demo is ready!`,
             html: `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
@@ -298,8 +357,8 @@ serve(async (req) => {
                   Manage activities, sessions, guests, and view bookings.
                 </p>
                 <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${email}</p>
-                  <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${isExistingUser ? "(use your existing password)" : tempPassword}</code></p>
+                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${staffIdentifier}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
                 </div>
                 <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
                   Open Staff Console →
@@ -356,16 +415,16 @@ serve(async (req) => {
       success: true,
       tenant_id: resort.id,
       resort_code: resortCode,
-      email,
-      temp_password: isExistingUser ? null : tempPassword,
-      existing_user: isExistingUser,
+      email: staffIdentifier,
+      temp_password: tempPassword,
       guest_login: {
         guest_name: demoGuestInfo.guestName,
         room_number: demoGuestInfo.roomNumber,
+        last_name: demoGuestInfo.lastName,
         pin: demoGuestInfo.pin,
-        portal_url: `${PRODUCTION_URL}/guest/${resortCode.toLowerCase()}`,
+        portal_url: guestLoginUrl,
       },
-      staff_login_url: `${PRODUCTION_URL}/auth`,
+      staff_login_url: staffLoginUrl,
       email_sent: emailSent,
       expires_at: expiresAt.toISOString(),
     }), {
@@ -381,24 +440,39 @@ serve(async (req) => {
   }
 });
 
-async function seedDemoData(supabase: any, resortId: string, departments: string[], resortCode: string): Promise<{ guestName: string; roomNumber: string; pin: string }> {
+async function seedDemoData(supabase: any, resortId: string, departments: string[], resortCode: string): Promise<{ guestName: string; roomNumber: string; lastName: string; pin: string }> {
   const today = new Date();
 
-  // Create activities
-  const activitiesToSeed = DEMO_ACTIVITIES.filter((a) => {
-    if (departments.length === 0) return true;
-    const deptMap: Record<string, string[]> = {
-      activities: ["WATERSPORT", "EXCURSION"],
-      dive_center: ["DIVE"],
-      spa: ["SPA"],
-    };
-    return departments.some((d) => deptMap[d]?.includes(a.category));
-  });
+  // Department mapping: frontend values -> activity categories
+  // Frontend: dive, watersports, spa, excursions, dining
+  const deptMap: Record<string, string[]> = {
+    dive: ["DIVE"],
+    watersports: ["WATERSPORT"],
+    spa: ["SPA"],
+    excursions: ["EXCURSION"],
+  };
 
-  const { data: activities } = await supabase
+  // Filter activities based on selected departments
+  // If no departments or empty, seed all activities
+  const activitiesToSeed = departments.length === 0 
+    ? DEMO_ACTIVITIES 
+    : DEMO_ACTIVITIES.filter((a) => {
+        return departments.some((dept) => deptMap[dept]?.includes(a.category));
+      });
+
+  // Always seed at least some activities if the filter results in empty
+  const finalActivities = activitiesToSeed.length > 0 ? activitiesToSeed : DEMO_ACTIVITIES.slice(0, 3);
+
+  console.log("Seeding activities:", finalActivities.map(a => a.name));
+
+  const { data: activities, error: actError } = await supabase
     .from("activities")
-    .insert(activitiesToSeed.map((a) => ({ ...a, resort_id: resortId })))
+    .insert(finalActivities.map((a) => ({ ...a, resort_id: resortId })))
     .select();
+
+  if (actError) {
+    console.error("Error creating activities:", actError);
+  }
 
   // Create sessions for next 10 days
   if (activities?.length) {
@@ -406,6 +480,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     for (let day = 0; day <= 10; day++) {
       const sessionDate = formatDate(addDays(today, day));
       activities.forEach((activity: any) => {
+        // Morning session
         sessions.push({
           resort_id: resortId,
           activity_id: activity.id,
@@ -415,6 +490,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
           capacity: activity.default_max_capacity,
           status: "SCHEDULED",
         });
+        // Afternoon session on even days
         if (day % 2 === 0) {
           sessions.push({
             resort_id: resortId,
@@ -428,21 +504,56 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
         }
       });
     }
-    await supabase.from("activity_sessions").insert(sessions);
+    const { error: sessError } = await supabase.from("activity_sessions").insert(sessions);
+    if (sessError) {
+      console.error("Error creating sessions:", sessError);
+    } else {
+      console.log("Created", sessions.length, "activity sessions");
+    }
   }
 
-  // Create restaurants (if fnb department selected or no departments)
-  if (departments.length === 0 || departments.includes("fnb")) {
-    const { data: restaurants } = await supabase
+  // Create restaurants if dining department selected or no departments specified
+  const shouldSeedDining = departments.length === 0 || departments.includes("dining");
+  
+  if (shouldSeedDining) {
+    console.log("Seeding restaurants and time slots");
+    const { data: restaurants, error: restError } = await supabase
       .from("restaurants")
       .insert(DEMO_RESTAURANTS.map((r) => ({ ...r, resort_id: resortId })))
       .select();
+
+    if (restError) {
+      console.error("Error creating restaurants:", restError);
+    }
 
     if (restaurants?.length) {
       const slots: any[] = [];
       for (let day = 0; day <= 10; day++) {
         const slotDate = formatDate(addDays(today, day));
         restaurants.forEach((restaurant: any) => {
+          // Breakfast
+          slots.push({
+            resort_id: resortId,
+            restaurant_id: restaurant.id,
+            date: slotDate,
+            start_time: "07:00",
+            end_time: "10:00",
+            meal_period: "BREAKFAST",
+            capacity: restaurant.total_capacity,
+            status: "OPEN",
+          });
+          // Lunch
+          slots.push({
+            resort_id: resortId,
+            restaurant_id: restaurant.id,
+            date: slotDate,
+            start_time: "12:00",
+            end_time: "14:30",
+            meal_period: "LUNCH",
+            capacity: Math.floor(restaurant.total_capacity * 0.7),
+            status: "OPEN",
+          });
+          // Dinner early seating
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -453,6 +564,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
             capacity: Math.floor(restaurant.total_capacity / 2),
             status: "OPEN",
           });
+          // Dinner late seating
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -465,7 +577,12 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
           });
         });
       }
-      await supabase.from("restaurant_time_slots").insert(slots);
+      const { error: slotError } = await supabase.from("restaurant_time_slots").insert(slots);
+      if (slotError) {
+        console.error("Error creating restaurant slots:", slotError);
+      } else {
+        console.log("Created", slots.length, "restaurant time slots");
+      }
     }
   }
 
@@ -481,7 +598,13 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     portal_enabled: true,
   }));
 
-  const { data: guests } = await supabase.from("guests").insert(guestData).select();
+  const { data: guests, error: guestError } = await supabase.from("guests").insert(guestData).select();
+  
+  if (guestError) {
+    console.error("Error creating guests:", guestError);
+  } else {
+    console.log("Created", guests?.length, "demo guests");
+  }
 
   // Generate PIN for the first guest (Emma Miller - current check-in)
   const demoGuest = guests?.find((g: any) => g.room_number === "201") || guests?.[0];
@@ -496,9 +619,14 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
       portal_pin_set_at: new Date().toISOString(),
     }).eq("id", demoGuest.id);
 
+    // Extract last name from full name
+    const nameParts = demoGuest.full_name.split(" ");
+    const lastName = nameParts[nameParts.length - 1];
+
     return {
       guestName: demoGuest.full_name,
       roomNumber: demoGuest.room_number,
+      lastName: lastName,
       pin: pin,
     };
   }
@@ -506,6 +634,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
   return {
     guestName: "Demo Guest",
     roomNumber: "101",
+    lastName: "Guest",
     pin: pin,
   };
 }
