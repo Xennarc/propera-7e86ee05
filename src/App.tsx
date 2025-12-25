@@ -73,6 +73,7 @@ const PrearrivalDashboardPage = lazy(() => import("./pages/staff/PrearrivalDashb
 const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAcceptPage"));
 const StaffDirectoryPage = lazy(() => import("./pages/staff/StaffDirectoryPage"));
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
+const DemoOnboardingPage = lazy(() => import("./pages/staff/DemoOnboardingPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
@@ -217,6 +218,7 @@ const App = () => (
                   <Route path="settings/prearrival" element={<PrearrivalSettingsPage />} />
                   <Route path="settings/access" element={<AccessManagementPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
+                  <Route path="demo-onboarding" element={<DemoOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
                   <Route path="loyalty" element={<LoyaltyOverviewPage />} />
                   <Route path="loyalty/program" element={<LoyaltyProgramSettingsPage />} />
