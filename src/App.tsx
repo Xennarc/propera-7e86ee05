@@ -125,6 +125,7 @@ const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPa
 const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const BookDemoPage = lazy(() => import("./pages/BookDemoPage"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -153,6 +154,7 @@ const App = () => (
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/book-demo" element={<BookDemoPage />} />
                 
                 {/* Public resort marketing pages */}
                 <Route path="/resorts/:code" element={<ResortMarketingPage />} />
