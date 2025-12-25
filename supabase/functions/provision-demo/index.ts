@@ -1,10 +1,12 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const PRODUCTION_URL = "https://propera.cc";
 
 const DEMO_ACTIVITIES = [
   { name: "House Reef Snorkel", category: "WATERSPORT", description: "Explore our vibrant house reef", short_description: "Guided snorkel tour", duration_minutes: 90, default_max_capacity: 8, default_price_per_person: 45, guest_can_book: true, guest_cutoff_hours: 2, difficulty_level: "EASY" },
@@ -37,6 +39,10 @@ function generatePassword(): string {
   return password;
 }
 
+function generatePin(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 function formatDate(date: Date): string {
   return date.toISOString().split("T")[0];
 }
@@ -61,6 +67,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log("Starting demo provision for:", email, resort_name);
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -143,7 +151,7 @@ serve(async (req) => {
           departments,
           role,
           status: "sandbox_created",
-          lead_score: 10, // Base score for creating a demo
+          lead_score: 10,
         })
         .select()
         .single();
@@ -174,6 +182,7 @@ serve(async (req) => {
       .single();
 
     if (resortError) throw resortError;
+    console.log("Resort created:", resort.id);
 
     // Create demo tenant record
     const expiresAt = addDays(new Date(), 14);
@@ -192,6 +201,9 @@ serve(async (req) => {
     const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20) + ".demo";
 
     // Create the demo admin user
+    let userId: string;
+    let isExistingUser = false;
+
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: email.toLowerCase(),
       password: tempPassword,
@@ -200,75 +212,65 @@ serve(async (req) => {
     });
 
     if (authError) {
-      // User might already exist - try to get them
       if (authError.message.includes("already been registered")) {
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
         const existingUser = existingUsers?.users?.find((u: any) => u.email === email.toLowerCase());
         
         if (existingUser) {
+          userId = existingUser.id;
+          isExistingUser = true;
+          
           // Add resort membership for existing user
           await supabaseAdmin.from("resort_memberships").insert({
             user_id: existingUser.id,
             resort_id: resort.id,
             resort_role: "RESORT_ADMIN",
           });
-
-          // Seed demo data
-          await seedDemoData(supabaseAdmin, resort.id, departments || []);
-
-          // Log event
-          await supabaseAdmin.from("lead_events").insert({
-            lead_id: leadId,
-            event_type: "demo_created",
-            meta: { resort_id: resort.id, existing_user: true },
-          });
-
-          return new Response(JSON.stringify({
-            success: true,
-            tenant_id: resort.id,
-            resort_code: resortCode,
-            existing_user: true,
-            message: "Demo created! Log in with your existing account.",
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+        } else {
+          throw authError;
         }
+      } else {
+        throw authError;
       }
-      throw authError;
+    } else {
+      userId = authUser.user.id;
+      
+      // Create profile
+      await supabaseAdmin.from("profiles").upsert({
+        id: userId,
+        username,
+        full_name: "Demo Admin",
+        global_role: "STANDARD",
+      });
+
+      // Create resort membership
+      await supabaseAdmin.from("resort_memberships").insert({
+        user_id: userId,
+        resort_id: resort.id,
+        resort_role: "RESORT_ADMIN",
+      });
     }
 
-    // Create profile
-    await supabaseAdmin.from("profiles").upsert({
-      id: authUser.user.id,
-      username,
-      full_name: "Demo Admin",
-      global_role: "STANDARD",
-    });
+    console.log("Admin user setup complete:", userId);
 
-    // Create resort membership
-    await supabaseAdmin.from("resort_memberships").insert({
-      user_id: authUser.user.id,
-      resort_id: resort.id,
-      resort_role: "RESORT_ADMIN",
-    });
-
-    // Seed demo data
-    await seedDemoData(supabaseAdmin, resort.id, departments || []);
+    // Seed demo data and get a guest with PIN for demo
+    const demoGuestInfo = await seedDemoData(supabaseAdmin, resort.id, departments || [], resortCode);
+    console.log("Demo data seeded, guest info:", demoGuestInfo);
 
     // Log event
     await supabaseAdmin.from("lead_events").insert({
       lead_id: leadId,
       event_type: "demo_created",
-      meta: { resort_id: resort.id, user_id: authUser.user.id },
+      meta: { resort_id: resort.id, user_id: userId },
     });
 
-    // Send welcome email
+    // Send welcome email with both staff and guest logins
     let emailSent = false;
     try {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (resendApiKey) {
-        const appUrl = Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app") || "https://propera.app";
-        const signInLink = `${appUrl}/auth?email=${encodeURIComponent(email)}`;
+        const staffLoginUrl = `${PRODUCTION_URL}/auth?email=${encodeURIComponent(email)}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/guest/${resortCode.toLowerCase()}`;
 
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -277,32 +279,74 @@ serve(async (req) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "Propera <noreply@propera.app>",
+            from: "Propera <noreply@propera.cc>",
             to: [email],
             subject: `🎉 Your ${resort_name} demo is ready!`,
             html: `
-              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-                <h1 style="color: #0f172a; margin-bottom: 24px;">Welcome to Propera!</h1>
-                <p style="color: #475569; font-size: 16px; line-height: 1.6;">
-                  Your demo resort <strong>${resort_name}</strong> is ready to explore.
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
+                <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resort_name}</strong> is ready to explore.</p>
+              </div>
+
+              <!-- Staff Login Section -->
+              <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px; display: flex; align-items: center;">
+                  👤 Staff Console Login
+                </h2>
+                <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">
+                  Manage activities, sessions, guests, and view bookings.
                 </p>
-                <div style="background: #f1f5f9; border-radius: 8px; padding: 20px; margin: 24px 0;">
-                  <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">Your login credentials:</p>
-                  <p style="margin: 0; font-size: 16px;"><strong>Email:</strong> ${email}</p>
-                  <p style="margin: 8px 0 0; font-size: 16px;"><strong>Password:</strong> ${tempPassword}</p>
+                <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${email}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${isExistingUser ? "(use your existing password)" : tempPassword}</code></p>
                 </div>
-                <a href="${signInLink}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; margin: 16px 0;">
-                  Sign In to Your Demo
+                <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                  Open Staff Console →
                 </a>
-                <p style="color: #64748b; font-size: 14px; margin-top: 32px;">
-                  Your demo expires in 14 days. Upgrade anytime to keep your data!
+              </div>
+
+              <!-- Guest Login Section -->
+              <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
+                <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">
+                  🏝️ Guest Portal Login
+                </h2>
+                <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">
+                  Experience booking from the guest's perspective.
+                </p>
+                <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
+                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${demoGuestInfo.guestName}</p>
+                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${demoGuestInfo.roomNumber}</p>
+                  <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${demoGuestInfo.pin}</code></p>
+                </div>
+                <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                  Open Guest Portal →
+                </a>
+              </div>
+
+              <!-- Footer -->
+              <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+                <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">
+                  Your demo expires in <strong>14 days</strong>. Upgrade anytime to keep your data!
+                </p>
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                  Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a>
                 </p>
               </div>
-            `,
+            </div>
+          `,
           }),
         });
 
-        emailSent = emailRes.ok;
+        if (emailRes.ok) {
+          emailSent = true;
+          console.log("Welcome email sent successfully");
+        } else {
+          const errorData = await emailRes.text();
+          console.error("Resend email error:", errorData);
+        }
+      } else {
+        console.log("RESEND_API_KEY not configured, skipping email");
       }
     } catch (emailError) {
       console.error("Email send error:", emailError);
@@ -313,7 +357,15 @@ serve(async (req) => {
       tenant_id: resort.id,
       resort_code: resortCode,
       email,
-      temp_password: tempPassword,
+      temp_password: isExistingUser ? null : tempPassword,
+      existing_user: isExistingUser,
+      guest_login: {
+        guest_name: demoGuestInfo.guestName,
+        room_number: demoGuestInfo.roomNumber,
+        pin: demoGuestInfo.pin,
+        portal_url: `${PRODUCTION_URL}/guest/${resortCode.toLowerCase()}`,
+      },
+      staff_login_url: `${PRODUCTION_URL}/auth`,
       email_sent: emailSent,
       expires_at: expiresAt.toISOString(),
     }), {
@@ -329,7 +381,7 @@ serve(async (req) => {
   }
 });
 
-async function seedDemoData(supabase: any, resortId: string, departments: string[]) {
+async function seedDemoData(supabase: any, resortId: string, departments: string[], resortCode: string): Promise<{ guestName: string; roomNumber: string; pin: string }> {
   const today = new Date();
 
   // Create activities
@@ -429,5 +481,39 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     portal_enabled: true,
   }));
 
-  await supabase.from("guests").insert(guestData);
+  const { data: guests } = await supabase.from("guests").insert(guestData).select();
+
+  // Generate PIN for the first guest (Emma Miller - current check-in)
+  const demoGuest = guests?.find((g: any) => g.room_number === "201") || guests?.[0];
+  const pin = generatePin();
+  
+  if (demoGuest) {
+    // Hash the PIN and update the guest
+    const pinHash = await hashPin(pin);
+    await supabase.from("guests").update({
+      portal_pin_hash: pinHash,
+      portal_pin_last4: pin,
+      portal_pin_set_at: new Date().toISOString(),
+    }).eq("id", demoGuest.id);
+
+    return {
+      guestName: demoGuest.full_name,
+      roomNumber: demoGuest.room_number,
+      pin: pin,
+    };
+  }
+
+  return {
+    guestName: "Demo Guest",
+    roomNumber: "101",
+    pin: pin,
+  };
+}
+
+async function hashPin(pin: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
