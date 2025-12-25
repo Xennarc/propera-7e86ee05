@@ -753,6 +753,72 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_rate_limits: {
+        Row: {
+          attempts: number
+          created_at: string
+          email_domain: string
+          id: string
+          last_attempt_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          email_domain: string
+          id?: string
+          last_attempt_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          email_domain?: string
+          id?: string
+          last_attempt_at?: string
+        }
+        Relationships: []
+      }
+      demo_tenants: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_converted: boolean
+          lead_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_converted?: boolean
+          lead_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_converted?: boolean
+          lead_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_tenants_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demo_tenants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           category: string
@@ -1091,6 +1157,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          meta: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id: string
+          meta?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          meta?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          country: string | null
+          created_at: string
+          current_system: string | null
+          departments: string[] | null
+          email: string
+          id: string
+          lead_score: number
+          primary_pain: string | null
+          resort_name: string
+          role: string | null
+          rooms_range: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          timeline: string | null
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          current_system?: string | null
+          departments?: string[] | null
+          email: string
+          id?: string
+          lead_score?: number
+          primary_pain?: string | null
+          resort_name: string
+          role?: string | null
+          rooms_range?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          timeline?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          current_system?: string | null
+          departments?: string[] | null
+          email?: string
+          id?: string
+          lead_score?: number
+          primary_pain?: string | null
+          resort_name?: string
+          role?: string | null
+          rooms_range?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          timeline?: string | null
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       loyalty_earn_rules: {
         Row: {
@@ -1591,6 +1743,38 @@ export type Database = {
           {
             foreignKeyName: "notifications_resort_id_fkey"
             columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          step_key: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          step_key: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          step_key?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_progress_tenant_id_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "resorts"
             referencedColumns: ["id"]
@@ -3772,6 +3956,14 @@ export type Database = {
       global_role: "SUPER_ADMIN" | "STANDARD"
       guest_request_source: "ACTIVITY" | "RESTAURANT"
       guest_request_status: "OPEN" | "IN_PROGRESS" | "COMPLETED"
+      lead_status:
+        | "new"
+        | "sandbox_created"
+        | "live_demo_booked"
+        | "trial_active"
+        | "paid"
+        | "converted"
+        | "lost"
       loyalty_earn_source:
         | "activity_booking"
         | "dining_booking"
@@ -3967,6 +4159,15 @@ export const Constants = {
       global_role: ["SUPER_ADMIN", "STANDARD"],
       guest_request_source: ["ACTIVITY", "RESTAURANT"],
       guest_request_status: ["OPEN", "IN_PROGRESS", "COMPLETED"],
+      lead_status: [
+        "new",
+        "sandbox_created",
+        "live_demo_booked",
+        "trial_active",
+        "paid",
+        "converted",
+        "lost",
+      ],
       loyalty_earn_source: [
         "activity_booking",
         "dining_booking",
