@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
-import { LogIn } from 'lucide-react';
 
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
@@ -145,20 +144,19 @@ export default function PricingPage() {
             <ProperaMark size={40} className="text-primary" />
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </Link>
-          <div className="flex items-center gap-2 md:gap-3">
-            <Button asChild variant="ghost" size="sm" className="hidden sm:flex rounded-full px-4 font-medium">
-              <Link to="/">Home</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="hidden sm:flex rounded-full px-4 font-medium">
-              <Link to="/about">About</Link>
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-1">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
+                <Link to="/">Home</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
+                <Link to="/about">About</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-primary">
+                <Link to="/pricing">Pricing</Link>
+              </Button>
+            </div>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button asChild size="sm" className="rounded-full px-5 font-semibold shadow-md">
-              <Link to="/guest/login">
-                <LogIn className="h-4 w-4 mr-2" />
-                Guest Login
-              </Link>
-            </Button>
           </div>
         </nav>
       </header>
