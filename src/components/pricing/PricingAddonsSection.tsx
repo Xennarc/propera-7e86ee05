@@ -19,9 +19,9 @@ interface PricingAddonsSectionProps {
 }
 
 const ADDON_CONFIG: Record<string, { icon: typeof Package; vibe: string }> = {
-  'Integrations Pack': { 
-    icon: Package, 
-    vibe: 'Connect your existing systems seamlessly.' 
+  'Loyalty Program Suite': { 
+    icon: Sparkles, 
+    vibe: 'Build lasting guest relationships.' 
   },
   'Analytics Plus': { 
     icon: BarChart2, 
