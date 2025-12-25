@@ -167,7 +167,7 @@ serve(async (req) => {
         currency: "USD",
         status: "ACTIVE",
         is_demo: true,
-        subscription_tier: "STARTER",
+        subscription_tier: "ESSENTIAL",
         onboarding_status: "NOT_STARTED",
       })
       .select()
