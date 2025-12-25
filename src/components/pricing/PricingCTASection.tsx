@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageCircle } from 'lucide-react';
@@ -33,10 +34,10 @@ export function PricingCTASection() {
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
             <Button asChild size="lg" className="rounded-full font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all h-12 px-8">
-              <a href="mailto:hello@propera.cc?subject=Demo Request">
+              <Link to="/book-demo">
                 Book a demo
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="rounded-full font-semibold h-12 px-8">
               <a href="mailto:hello@propera.cc?subject=Sales Inquiry">

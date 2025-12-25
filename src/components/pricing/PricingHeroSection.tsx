@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ChevronDown } from 'lucide-react';
@@ -45,10 +46,10 @@ export function PricingHeroSection() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-4">
               <Button asChild size="lg" className="rounded-full font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all h-12 px-8">
-                <a href="mailto:hello@propera.cc?subject=Demo Request">
+                <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
               <Button 
                 variant="outline" 

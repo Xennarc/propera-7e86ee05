@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Crown, Sparkles, TrendingUp, Users, Building2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -69,10 +70,10 @@ export function PricingEliteSpotlight() {
                 size="lg"
                 className="rounded-full bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-xl shadow-violet-500/30 h-14 px-8 text-base font-semibold"
               >
-                <a href="mailto:hello@propera.cc?subject=Elite Plan Demo">
+                <Link to="/book-demo">
                   Book an Elite demo
                   <ArrowRight className="ml-2 h-5 w-5" />
-                </a>
+                </Link>
               </Button>
             </motion.div>
             

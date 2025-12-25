@@ -98,7 +98,7 @@ export default function LandingPage() {
               </Link>
             </Button>
             <Button asChild size="sm" className="rounded-full px-5 font-semibold">
-              <Link to="/auth">
+              <Link to="/book-demo">
                 Book a demo
               </Link>
             </Button>
@@ -145,7 +145,7 @@ export default function LandingPage() {
                   </Link>
                 </Button>
                 <Button asChild size="lg" className="w-full rounded-xl">
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/book-demo" onClick={() => setMobileMenuOpen(false)}>
                     Book a demo
                   </Link>
                 </Button>

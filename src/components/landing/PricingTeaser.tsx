@@ -34,7 +34,7 @@ export function PricingTeaser() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="rounded-xl px-8 h-12">
-              <Link to="/auth">
+              <Link to="/book-demo">
                 Book a demo
               </Link>
             </Button>

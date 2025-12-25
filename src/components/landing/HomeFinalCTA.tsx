@@ -39,7 +39,7 @@ export function HomeFinalCTA() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Button asChild size="lg" className="text-base px-8 h-14 rounded-xl shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all group">
-              <Link to="/auth">
+              <Link to="/book-demo">
                 Book a demo
                 <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Link>
