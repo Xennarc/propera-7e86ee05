@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,45 +16,46 @@ interface DemoWizardProps {
 }
 
 const DEPARTMENTS = [
-  { id: 'diving', label: 'Diving & Snorkeling' },
+  { id: 'dive', label: 'Dive' },
   { id: 'watersports', label: 'Watersports' },
-  { id: 'spa', label: 'Spa & Wellness' },
-  { id: 'excursions', label: 'Excursions & Tours' },
-  { id: 'restaurants', label: 'Restaurants & Bars' },
-  { id: 'fitness', label: 'Fitness & Recreation' },
-  { id: 'kids', label: 'Kids Club' },
+  { id: 'spa', label: 'Spa' },
+  { id: 'excursions', label: 'Excursions' },
+  { id: 'dining', label: 'Dining' },
 ];
 
 const ROOM_RANGES = [
-  { value: '1-50', label: '1-50 rooms' },
-  { value: '51-100', label: '51-100 rooms' },
-  { value: '101-200', label: '101-200 rooms' },
-  { value: '201-500', label: '201-500 rooms' },
-  { value: '500+', label: '500+ rooms' },
+  { value: '1-50', label: '1–50 rooms' },
+  { value: '51-100', label: '51–100 rooms' },
+  { value: '101-200', label: '101–200 rooms' },
+  { value: '200+', label: '200+ rooms' },
 ];
 
-const COUNTRIES = [
-  { value: 'maldives', label: 'Maldives', timezone: 'Indian/Maldives' },
-  { value: 'thailand', label: 'Thailand', timezone: 'Asia/Bangkok' },
-  { value: 'indonesia', label: 'Indonesia', timezone: 'Asia/Jakarta' },
-  { value: 'philippines', label: 'Philippines', timezone: 'Asia/Manila' },
-  { value: 'mexico', label: 'Mexico', timezone: 'America/Cancun' },
-  { value: 'caribbean', label: 'Caribbean', timezone: 'America/Puerto_Rico' },
-  { value: 'uae', label: 'UAE', timezone: 'Asia/Dubai' },
-  { value: 'mauritius', label: 'Mauritius', timezone: 'Indian/Mauritius' },
-  { value: 'seychelles', label: 'Seychelles', timezone: 'Indian/Mahe' },
-  { value: 'other', label: 'Other', timezone: 'UTC' },
+const TIMEZONES = [
+  { value: 'Indian/Maldives', label: 'Maldives (UTC+5)' },
+  { value: 'Asia/Bangkok', label: 'Thailand (UTC+7)' },
+  { value: 'Asia/Jakarta', label: 'Indonesia (UTC+7)' },
+  { value: 'Asia/Manila', label: 'Philippines (UTC+8)' },
+  { value: 'America/Cancun', label: 'Mexico/Caribbean (UTC-5)' },
+  { value: 'Asia/Dubai', label: 'UAE (UTC+4)' },
+  { value: 'Indian/Mauritius', label: 'Mauritius (UTC+4)' },
+  { value: 'Indian/Mahe', label: 'Seychelles (UTC+4)' },
+  { value: 'UTC', label: 'Other (UTC)' },
 ];
 
 export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [step, setStep] = useState<'form' | 'creating' | 'success'>('form');
+  const [step, setStep] = useState<'form' | 'creating' | 'success' | 'existing' | 'rate_limited'>('form');
+  const [demoData, setDemoData] = useState<{
+    email: string;
+    temp_password?: string;
+    tenant_id?: string;
+  } | null>(null);
   
   const [formData, setFormData] = useState({
     email: '',
     resortName: '',
-    country: '',
+    timezone: '',
     roomsRange: '',
     departments: [] as string[],
   });
@@ -72,7 +73,7 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
     return (
       formData.email.includes('@') &&
       formData.resortName.length >= 2 &&
-      formData.country &&
+      formData.timezone &&
       formData.roomsRange &&
       formData.departments.length > 0
     );
@@ -86,15 +87,12 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
     setStep('creating');
 
     try {
-      const countryData = COUNTRIES.find(c => c.value === formData.country);
-      
       const { data, error } = await supabase.functions.invoke('provision-demo', {
         body: {
-          email: formData.email,
-          resortName: formData.resortName,
-          country: formData.country,
-          timezone: countryData?.timezone || 'UTC',
-          roomsRange: formData.roomsRange,
+          email: formData.email.trim().toLowerCase(),
+          resort_name: formData.resortName.trim(),
+          timezone: formData.timezone,
+          rooms_range: formData.roomsRange,
           departments: formData.departments,
         }
       });
@@ -102,19 +100,19 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
       if (error) throw error;
 
       if (data?.success) {
-        setStep('success');
-        toast.success('Your demo resort is ready!');
-        
-        // Auto-redirect after 2 seconds
-        setTimeout(() => {
-          onOpenChange(false);
-          // Navigate to auth page with magic link or credentials
-          if (data.loginUrl) {
-            window.location.href = data.loginUrl;
-          } else {
-            navigate('/staff/auth');
-          }
-        }, 2000);
+        if (data.existing) {
+          setDemoData({ email: formData.email, tenant_id: data.tenant_id });
+          setStep('existing');
+        } else {
+          setDemoData({
+            email: data.email || formData.email,
+            temp_password: data.temp_password,
+            tenant_id: data.tenant_id,
+          });
+          setStep('success');
+        }
+      } else if (data?.error?.includes('Rate limit')) {
+        setStep('rate_limited');
       } else {
         throw new Error(data?.error || 'Failed to create demo');
       }
@@ -130,8 +128,18 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
   const handleClose = () => {
     if (!isSubmitting) {
       setStep('form');
+      setDemoData(null);
       onOpenChange(false);
     }
+  };
+
+  const goToStaffConsole = () => {
+    handleClose();
+    navigate(`/staff/auth?email=${encodeURIComponent(demoData?.email || formData.email)}`);
+  };
+
+  const openGuestPortal = () => {
+    window.open('/guest', '_blank');
   };
 
   return (
@@ -140,96 +148,97 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
         {step === 'form' && (
           <>
             <DialogHeader>
-              <DialogTitle className="text-2xl">Start Your Free Demo</DialogTitle>
+              <DialogTitle className="text-2xl">Create your demo workspace</DialogTitle>
               <DialogDescription>
-                Tell us about your resort and we'll create a personalized demo in under a minute.
+                We'll generate a demo resort with realistic data so you can explore instantly.
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-              <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Work email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@resort.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  autoComplete="off"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">We'll send your login link here.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="resortName">Resort name</Label>
+                <Input
+                  id="resortName"
+                  placeholder="Your resort name"
+                  value={formData.resortName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, resortName: e.target.value }))}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Work Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@resort.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
+                  <Label>Timezone</Label>
+                  <Select 
+                    value={formData.timezone} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONES.map(tz => (
+                        <SelectItem key={tz.value} value={tz.value}>
+                          {tz.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="resortName">Resort Name</Label>
-                  <Input
-                    id="resortName"
-                    placeholder="Paradise Island Resort"
-                    value={formData.resortName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, resortName: e.target.value }))}
-                    required
-                  />
+                  <Label>Resort size</Label>
+                  <Select 
+                    value={formData.roomsRange} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, roomsRange: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROOM_RANGES.map(range => (
+                        <SelectItem key={range.value} value={range.value}>
+                          {range.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Country</Label>
-                    <Select 
-                      value={formData.country} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, country: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRIES.map(country => (
-                          <SelectItem key={country.value} value={country.value}>
-                            {country.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Resort Size</Label>
-                    <Select 
-                      value={formData.roomsRange} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, roomsRange: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ROOM_RANGES.map(range => (
-                          <SelectItem key={range.value} value={range.value}>
-                            {range.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Departments to include</Label>
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    {DEPARTMENTS.map(dept => (
-                      <div key={dept.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={dept.id}
-                          checked={formData.departments.includes(dept.id)}
-                          onCheckedChange={() => handleDepartmentToggle(dept.id)}
-                        />
-                        <label
-                          htmlFor={dept.id}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {dept.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+              <div className="space-y-2">
+                <Label>Departments — Select what you want to test</Label>
+                <div className="flex flex-wrap gap-3 pt-1">
+                  {DEPARTMENTS.map(dept => (
+                    <div key={dept.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={dept.id}
+                        checked={formData.departments.includes(dept.id)}
+                        onCheckedChange={() => handleDepartmentToggle(dept.id)}
+                      />
+                      <label
+                        htmlFor={dept.id}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {dept.label}
+                      </label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -239,45 +248,157 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
                 size="lg"
                 disabled={!isFormValid() || isSubmitting}
               >
-                Create My Demo Resort
+                Create Demo Workspace
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
 
               <p className="text-xs text-center text-muted-foreground">
-                No credit card required. 14-day full access.
+                No spam. No selling your data. This is just to generate access and save your progress.
               </p>
             </form>
           </>
         )}
 
         {step === 'creating' && (
-          <div className="py-12 text-center">
+          <div className="py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <Loader2 className="h-8 w-8 text-primary animate-spin" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              Creating your demo resort...
+              Preparing your demo resort…
             </h3>
-            <p className="text-muted-foreground">
-              Setting up activities, guests, and bookings
+            <p className="text-muted-foreground mb-2">
+              Seeding activities, sessions, guests, and bookings.
+            </p>
+            <p className="text-sm text-muted-foreground/70 italic">
+              Making it feel like a real Tuesday at a busy resort.
             </p>
           </div>
         )}
 
-        {step === 'success' && (
-          <div className="py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="h-8 w-8 text-green-500" />
+        {step === 'success' && demoData && (
+          <div className="py-8">
+            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="h-8 w-8 text-success" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              Your demo is ready!
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              Redirecting you to your new resort...
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="text-2xl">Your demo is ready.</DialogTitle>
+              <DialogDescription>
+                Open the staff console, then try a booking in the guest portal.
+              </DialogDescription>
+            </DialogHeader>
+
+            {demoData.temp_password && (
+              <div className="bg-muted/50 rounded-lg p-4 mb-6 space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Email:</span>
+                  <span className="font-medium">{demoData.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground ml-6">Password:</span>
+                  <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
+                    {demoData.temp_password}
+                  </code>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <Button 
+                size="lg" 
+                className="w-full rounded-full font-semibold"
+                onClick={goToStaffConsole}
+              >
+                Open Staff Console
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full rounded-full font-semibold"
+                onClick={openGuestPortal}
+              >
+                Open Guest Portal
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground mt-6">
+              Your demo stays active for 14 days. Upgrade anytime to go live.
             </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-primary">
-              <Sparkles className="h-4 w-4" />
-              <span>Check your email for login details</span>
+          </div>
+        )}
+
+        {step === 'existing' && (
+          <div className="py-8">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="h-8 w-8 text-primary" />
+            </div>
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="text-2xl">Looks like you already have a demo workspace.</DialogTitle>
+              <DialogDescription>
+                Open it below, or resend the access link.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <Button 
+                size="lg" 
+                className="w-full rounded-full font-semibold"
+                onClick={goToStaffConsole}
+              >
+                Open Demo
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full rounded-full font-semibold"
+                onClick={() => toast.success('Access link resent to your email')}
+              >
+                Resend Link
+                <RotateCw className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'rate_limited' && (
+          <div className="py-8">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
+              <RotateCw className="h-8 w-8 text-destructive" />
+            </div>
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="text-2xl">We couldn't create a new demo right now.</DialogTitle>
+              <DialogDescription>
+                Try again in a bit, or book a walkthrough if you need urgent access.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full rounded-full font-semibold"
+                onClick={() => {
+                  handleClose();
+                  // Trigger qualifier dialog
+                  setTimeout(() => {
+                    document.querySelector<HTMLButtonElement>('[data-trigger-qualifier]')?.click();
+                  }, 100);
+                }}
+              >
+                Book a Walkthrough
+              </Button>
+              <Button 
+                size="lg" 
+                variant="ghost"
+                className="w-full"
+                onClick={handleClose}
+              >
+                Back
+              </Button>
             </div>
           </div>
         )}
