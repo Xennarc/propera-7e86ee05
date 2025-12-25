@@ -27,7 +27,9 @@ interface DemoResponse {
     last_name: string;
     pin: string;
     portal_url: string;
-  };
+  } | null;
+  email_sent?: boolean;
+  email_error?: string;
 }
 
 const DEPARTMENTS = [
@@ -117,8 +119,14 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
             tenant_id: data.tenant_id,
             resort_code: data.resort_code,
             staff_login_url: data.staff_login_url,
+            guest_login: data.guest_login || null,
+            email_sent: data.email_sent,
+            email_error: data.email_error,
           });
           setStep('existing');
+          if (data.email_sent) {
+            toast.success('Access link sent to your email');
+          }
         } else {
           setDemoData({
             email: data.email || formData.email,
@@ -126,9 +134,16 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
             tenant_id: data.tenant_id,
             resort_code: data.resort_code,
             staff_login_url: data.staff_login_url,
-            guest_login: data.guest_login,
+            guest_login: data.guest_login || null,
+            email_sent: data.email_sent,
+            email_error: data.email_error,
           });
           setStep('success');
+          if (data.email_sent) {
+            toast.success('Login details sent to your email');
+          } else if (data.email_error) {
+            console.error('Email send error:', data.email_error);
+          }
         }
       } else if (data?.error?.includes('Rate limit')) {
         setStep('rate_limited');
@@ -393,23 +408,59 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               </Button>
             </div>
 
-            <p className="text-xs text-center text-muted-foreground mt-6">
-              Your demo stays active for 14 days. Upgrade anytime to go live.
-            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-6">
+              {demoData.email_sent ? (
+                <>
+                  <Mail className="h-4 w-4 text-success" />
+                  <span>Login details sent to {formData.email}</span>
+                </>
+              ) : (
+                <span>Your demo stays active for 14 days. Upgrade anytime to go live.</span>
+              )}
+            </div>
           </div>
         )}
 
-        {step === 'existing' && (
+        {step === 'existing' && demoData && (
           <div className="py-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <Sparkles className="h-8 w-8 text-primary" />
             </div>
             <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">Looks like you already have a demo workspace.</DialogTitle>
+              <DialogTitle className="text-2xl">You already have a demo workspace!</DialogTitle>
               <DialogDescription>
-                Open it below, or resend the access link.
+                {demoData.email_sent 
+                  ? 'We just sent login details to your email.' 
+                  : 'Open it below to continue exploring.'}
               </DialogDescription>
             </DialogHeader>
+
+            {/* Show guest credentials if available */}
+            {demoData.guest_login && (
+              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-4 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <DoorOpen className="h-4 w-4 text-success" />
+                  <span>Guest Portal</span>
+                </div>
+                <div className="space-y-1.5 pl-6">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Guest:</span>
+                    <span className="font-medium">{demoData.guest_login.guest_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Room:</span>
+                    <span className="font-medium">{demoData.guest_login.room_number}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Key className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">PIN:</span>
+                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm tracking-wider">
+                      {demoData.guest_login.pin}
+                    </code>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3">
               <Button 
@@ -417,19 +468,28 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
                 className="w-full rounded-full font-semibold"
                 onClick={goToStaffConsole}
               >
-                Open Demo
+                Open Staff Console
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="w-full rounded-full font-semibold"
-                onClick={() => toast.success('Access link resent to your email')}
-              >
-                Resend Link
-                <RotateCw className="ml-2 h-4 w-4" />
-              </Button>
+              {demoData.guest_login && (
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="w-full rounded-full font-semibold"
+                  onClick={openGuestPortal}
+                >
+                  Open Guest Portal
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              )}
             </div>
+
+            {demoData.email_sent && (
+              <p className="text-xs text-center text-muted-foreground mt-6 flex items-center justify-center gap-1">
+                <Mail className="h-3 w-3" />
+                Login details sent to {formData.email}
+              </p>
+            )}
           </div>
         )}
 
