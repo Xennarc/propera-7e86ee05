@@ -56,13 +56,199 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
-function getBaseUrl(req: Request): string {
-  // Use origin header if available, fallback to production URL
-  const origin = req.headers.get("origin");
-  if (origin && (origin.includes("localhost") || origin.includes("lovableproject.com"))) {
-    return origin;
+// Email sending helper - always uses production URLs
+async function sendDemoEmail(params: {
+  to: string;
+  resortName: string;
+  resortCode: string;
+  staffIdentifier: string;
+  tempPassword: string;
+  guestInfo: { guestName: string; roomNumber: string; lastName: string; pin: string };
+  isReminder?: boolean;
+}): Promise<{ sent: boolean; error: string }> {
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.log("RESEND_API_KEY not configured");
+    return { sent: false, error: "RESEND_API_KEY not configured" };
   }
-  return PRODUCTION_URL;
+
+  const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(params.staffIdentifier)}`;
+  const guestLoginUrl = `${PRODUCTION_URL}/resort/${params.resortCode}/guest/login?roomNumber=${encodeURIComponent(params.guestInfo.roomNumber)}&lastName=${encodeURIComponent(params.guestInfo.lastName)}`;
+
+  const subject = params.isReminder 
+    ? `🔑 Fresh login credentials for your ${params.resortName} demo`
+    : `🎉 Your ${params.resortName} demo is ready!`;
+
+  const introText = params.isReminder
+    ? `Here are your fresh login credentials for <strong>${params.resortName}</strong>.`
+    : `Your demo resort <strong>${params.resortName}</strong> is ready to explore.`;
+
+  try {
+    console.log("Sending demo email to:", params.to);
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Propera <noreply@propera.cc>",
+        to: [params.to],
+        subject,
+        html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
+            <p style="color: #64748b; margin: 0; font-size: 16px;">${introText}</p>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console Login</h2>
+            <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings.</p>
+            <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+              <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${params.staffIdentifier}</p>
+              <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${params.tempPassword}</code></p>
+            </div>
+            <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
+            <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal Login</h2>
+            <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Experience booking from the guest's perspective.</p>
+            <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
+              <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${params.guestInfo.guestName}</p>
+              <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${params.guestInfo.roomNumber}</p>
+              <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${params.guestInfo.pin}</code></p>
+            </div>
+            <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
+          </div>
+
+          <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">Your demo expires in <strong>14 days</strong>. Upgrade anytime to keep your data!</p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a></p>
+          </div>
+        </div>
+      `,
+      }),
+    });
+
+    const responseText = await emailRes.text();
+    console.log("Resend response:", emailRes.status, responseText);
+
+    if (emailRes.ok) {
+      return { sent: true, error: "" };
+    } else {
+      return { sent: false, error: responseText };
+    }
+  } catch (err: any) {
+    console.error("Email send error:", err);
+    return { sent: false, error: err?.message || "Unknown email error" };
+  }
+}
+
+// Rotate credentials for an existing demo
+async function rotateCredentials(
+  supabaseAdmin: any,
+  resortId: string,
+  resortCode: string,
+  originalEmail: string
+): Promise<{
+  staffIdentifier: string;
+  tempPassword: string;
+  guestInfo: { guestName: string; roomNumber: string; lastName: string; pin: string };
+}> {
+  const tempPassword = generatePassword();
+  
+  // Create a new staff user with unique plus-addressed email
+  const timestamp = Date.now().toString(36);
+  const emailParts = originalEmail.split("@");
+  const newDemoEmail = `${emailParts[0]}+${resortCode.toLowerCase()}-${timestamp}@${emailParts[1]}`;
+  const username = emailParts[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 15) + ".demo" + timestamp.slice(-3);
+
+  console.log("Creating new staff user for credential rotation:", newDemoEmail);
+
+  const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: newDemoEmail,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { full_name: "Demo Admin", must_reset_password: false },
+  });
+
+  if (authError) {
+    console.error("Failed to create rotated staff user:", authError);
+    throw new Error("Failed to rotate credentials");
+  }
+
+  const userId = authUser.user.id;
+
+  // Create profile
+  await supabaseAdmin.from("profiles").upsert({
+    id: userId,
+    username,
+    full_name: "Demo Admin",
+    global_role: "STANDARD",
+  });
+
+  // Create resort membership
+  await supabaseAdmin.from("resort_memberships").insert({
+    user_id: userId,
+    resort_id: resortId,
+    resort_role: "RESORT_ADMIN",
+  });
+
+  console.log("New staff user created:", userId, "identifier:", newDemoEmail);
+
+  // Rotate guest PIN - find a guest with portal enabled
+  const { data: demoGuest } = await supabaseAdmin
+    .from("guests")
+    .select("id, full_name, room_number")
+    .eq("resort_id", resortId)
+    .eq("portal_enabled", true)
+    .limit(1)
+    .single();
+
+  let guestInfo = {
+    guestName: "Demo Guest",
+    roomNumber: "101",
+    lastName: "Guest",
+    pin: "0000",
+  };
+
+  if (demoGuest) {
+    // Generate new PIN using DB function
+    const { data: pinResult, error: pinError } = await supabaseAdmin.rpc("generate_guest_pin", {
+      p_guest_id: demoGuest.id,
+    });
+
+    if (pinError) {
+      console.error("Failed to generate new PIN:", pinError);
+      // Fallback: generate manually
+      const newPin = generatePin();
+      const pinHash = await hashPin(newPin);
+      await supabaseAdmin.from("guests").update({
+        portal_pin_hash: pinHash,
+        portal_pin_last4: newPin,
+        portal_pin_set_at: new Date().toISOString(),
+      }).eq("id", demoGuest.id);
+      
+      guestInfo.pin = newPin;
+    } else if (pinResult?.success) {
+      guestInfo.pin = pinResult.pin;
+    }
+
+    const nameParts = demoGuest.full_name.split(" ");
+    guestInfo.guestName = demoGuest.full_name;
+    guestInfo.roomNumber = demoGuest.room_number;
+    guestInfo.lastName = nameParts[nameParts.length - 1];
+    
+    console.log("Guest PIN rotated for:", demoGuest.full_name);
+  }
+
+  return {
+    staffIdentifier: newDemoEmail,
+    tempPassword,
+    guestInfo,
+  };
 }
 
 serve(async (req) => {
@@ -71,19 +257,17 @@ serve(async (req) => {
   }
 
   try {
-    const { email, resort_name, country, timezone, rooms_range, departments, role } = await req.json();
+    const body = await req.json();
+    const { email, resort_name, country, timezone, rooms_range, departments, role, mode = "provision" } = body;
 
-    if (!email || !resort_name) {
-      return new Response(JSON.stringify({ success: false, error: "Email and resort name are required" }), {
+    if (!email) {
+      return new Response(JSON.stringify({ success: false, error: "Email is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Starting demo provision for:", email, resort_name, "departments:", departments);
-
-    const baseUrl = getBaseUrl(req);
-    console.log("Using base URL:", baseUrl);
+    console.log("Demo request:", { email, resort_name, mode });
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -91,7 +275,105 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Rate limiting check
+    // Handle "resend" mode - rotate credentials and resend email
+    if (mode === "resend") {
+      console.log("Resend mode - rotating credentials for:", email);
+
+      // Find existing lead
+      const { data: existingLead } = await supabaseAdmin
+        .from("leads")
+        .select("id")
+        .eq("email", email.toLowerCase())
+        .single();
+
+      if (!existingLead) {
+        return new Response(JSON.stringify({ success: false, error: "No demo found for this email" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find active demo tenant
+      const { data: existingDemo } = await supabaseAdmin
+        .from("demo_tenants")
+        .select("id, tenant_id, expires_at")
+        .eq("lead_id", existingLead.id)
+        .eq("is_converted", false)
+        .gt("expires_at", new Date().toISOString())
+        .single();
+
+      if (!existingDemo) {
+        return new Response(JSON.stringify({ success: false, error: "No active demo found. Please create a new demo." }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get resort details
+      const { data: resort } = await supabaseAdmin
+        .from("resorts")
+        .select("code, name")
+        .eq("id", existingDemo.tenant_id)
+        .single();
+
+      if (!resort) {
+        return new Response(JSON.stringify({ success: false, error: "Demo resort not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Rotate credentials
+      const rotated = await rotateCredentials(supabaseAdmin, existingDemo.tenant_id, resort.code, email);
+
+      // Build URLs
+      const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(rotated.staffIdentifier)}`;
+      const guestLoginUrl = `${PRODUCTION_URL}/resort/${resort.code}/guest/login?roomNumber=${encodeURIComponent(rotated.guestInfo.roomNumber)}&lastName=${encodeURIComponent(rotated.guestInfo.lastName)}`;
+
+      // Send email with new credentials
+      const emailResult = await sendDemoEmail({
+        to: email,
+        resortName: resort.name,
+        resortCode: resort.code,
+        staffIdentifier: rotated.staffIdentifier,
+        tempPassword: rotated.tempPassword,
+        guestInfo: rotated.guestInfo,
+        isReminder: true,
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        resend: true,
+        tenant_id: existingDemo.tenant_id,
+        resort_code: resort.code,
+        email: rotated.staffIdentifier,
+        temp_password: rotated.tempPassword,
+        staff_login_url: staffLoginUrl,
+        guest_login: {
+          guest_name: rotated.guestInfo.guestName,
+          room_number: rotated.guestInfo.roomNumber,
+          last_name: rotated.guestInfo.lastName,
+          pin: rotated.guestInfo.pin,
+          portal_url: guestLoginUrl,
+        },
+        email_sent: emailResult.sent,
+        email_error: emailResult.error || undefined,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === PROVISION MODE (default) ===
+    if (!resort_name) {
+      return new Response(JSON.stringify({ success: false, error: "Resort name is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Provision mode for:", email, resort_name, "departments:", departments);
+
+    // Rate limiting check (only for provision mode)
     const emailDomain = email.split("@")[1];
     const { data: rateLimit } = await supabaseAdmin
       .from("demo_rate_limits")
@@ -138,8 +420,9 @@ serve(async (req) => {
         .single();
 
       if (existingDemo) {
-        console.log("Found existing active demo for this email");
-        // Get the existing resort details
+        console.log("Existing demo found - rotating credentials instead of creating new");
+        
+        // Get resort details
         const { data: existingResort } = await supabaseAdmin
           .from("resorts")
           .select("code, name")
@@ -149,115 +432,41 @@ serve(async (req) => {
         const resortCode = existingResort?.code || "";
         const resortName = existingResort?.name || resort_name;
 
-        // Get the demo guest info for this resort
-        const { data: existingGuest } = await supabaseAdmin
-          .from("guests")
-          .select("full_name, room_number, portal_pin_last4")
-          .eq("resort_id", existingDemo.tenant_id)
-          .eq("portal_enabled", true)
-          .not("portal_pin_hash", "is", null)
-          .limit(1)
-          .single();
+        // Rotate credentials for existing demo
+        const rotated = await rotateCredentials(supabaseAdmin, existingDemo.tenant_id, resortCode, email);
 
-        const guestInfo = existingGuest ? {
-          guestName: existingGuest.full_name,
-          roomNumber: existingGuest.room_number,
-          lastName: existingGuest.full_name.split(" ").pop() || "",
-          pin: existingGuest.portal_pin_last4 || "",
-        } : null;
+        const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(rotated.staffIdentifier)}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(rotated.guestInfo.roomNumber)}&lastName=${encodeURIComponent(rotated.guestInfo.lastName)}`;
 
-        const staffLoginUrl = `${baseUrl}/staff/auth?username=${encodeURIComponent(email)}`;
-        const guestLoginUrl = guestInfo 
-          ? `${baseUrl}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(guestInfo.roomNumber)}&lastName=${encodeURIComponent(guestInfo.lastName)}`
-          : `${baseUrl}/resort/${resortCode}/guest/login`;
-
-        // Send email for existing demo too
-        let emailSent = false;
-        let emailError = "";
-        try {
-          const resendApiKey = Deno.env.get("RESEND_API_KEY");
-          if (resendApiKey && guestInfo) {
-            console.log("Sending reminder email for existing demo...");
-            const emailRes = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${resendApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                from: "Propera <noreply@propera.cc>",
-                to: [email],
-                subject: `Your ${resortName} demo is still active!`,
-                html: `
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
-                  <div style="text-align: center; margin-bottom: 32px;">
-                    <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome back to Propera!</h1>
-                    <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resortName}</strong> is still active and ready.</p>
-                  </div>
-
-                  <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                    <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console</h2>
-                    <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Log in with your email and the password you received.</p>
-                    <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                      Open Staff Console →
-                    </a>
-                  </div>
-
-                  ${guestInfo ? `
-                  <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
-                    <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal</h2>
-                    <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
-                      <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${guestInfo.guestName}</p>
-                      <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${guestInfo.roomNumber}</p>
-                      <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${guestInfo.pin}</code></p>
-                    </div>
-                    <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                      Open Guest Portal →
-                    </a>
-                  </div>
-                  ` : ""}
-
-                  <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-                    <p style="color: #64748b; font-size: 13px; margin: 0;">
-                      Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a>
-                    </p>
-                  </div>
-                </div>
-              `,
-              }),
-            });
-
-            if (emailRes.ok) {
-              emailSent = true;
-              console.log("Reminder email sent successfully");
-            } else {
-              emailError = await emailRes.text();
-              console.error("Resend email error:", emailError);
-            }
-          } else {
-            console.log("RESEND_API_KEY not configured or no guest info, skipping email");
-          }
-        } catch (err: any) {
-          emailError = err?.message || "Unknown email error";
-          console.error("Email send error:", err);
-        }
+        // Send email with rotated credentials
+        const emailResult = await sendDemoEmail({
+          to: email,
+          resortName: resortName,
+          resortCode: resortCode,
+          staffIdentifier: rotated.staffIdentifier,
+          tempPassword: rotated.tempPassword,
+          guestInfo: rotated.guestInfo,
+          isReminder: true,
+        });
 
         return new Response(JSON.stringify({
           success: true,
           existing: true,
           tenant_id: existingDemo.tenant_id,
           resort_code: resortCode,
+          email: rotated.staffIdentifier,
+          temp_password: rotated.tempPassword,
           staff_login_url: staffLoginUrl,
-          guest_login: guestInfo ? {
-            guest_name: guestInfo.guestName,
-            room_number: guestInfo.roomNumber,
-            last_name: guestInfo.lastName,
-            pin: guestInfo.pin,
+          guest_login: {
+            guest_name: rotated.guestInfo.guestName,
+            room_number: rotated.guestInfo.roomNumber,
+            last_name: rotated.guestInfo.lastName,
+            pin: rotated.guestInfo.pin,
             portal_url: guestLoginUrl,
-          } : null,
-          email_sent: emailSent,
-          email_error: emailError || undefined,
-          message: "You already have an active demo",
+          },
+          email_sent: emailResult.sent,
+          email_error: emailResult.error || undefined,
+          message: "You already have an active demo - fresh credentials sent!",
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -420,8 +629,8 @@ serve(async (req) => {
     console.log("Demo data seeded, guest info:", demoGuestInfo);
 
     // Build URLs
-    const staffLoginUrl = `${baseUrl}/staff/auth?username=${encodeURIComponent(staffIdentifier)}`;
-    const guestLoginUrl = `${baseUrl}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(demoGuestInfo.roomNumber)}&lastName=${encodeURIComponent(demoGuestInfo.lastName)}`;
+    const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(staffIdentifier)}`;
+    const guestLoginUrl = `${PRODUCTION_URL}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(demoGuestInfo.roomNumber)}&lastName=${encodeURIComponent(demoGuestInfo.lastName)}`;
 
     // Log event
     await supabaseAdmin.from("lead_events").insert({
@@ -430,84 +639,16 @@ serve(async (req) => {
       meta: { resort_id: resort.id, user_id: userId },
     });
 
-    // Send welcome email with both staff and guest logins
-    let emailSent = false;
-    let emailError = "";
-    console.log("Attempting to send welcome email to:", email);
-    
-    try {
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      console.log("RESEND_API_KEY configured:", !!resendApiKey);
-      
-      if (resendApiKey) {
-        const emailPayload = {
-          from: "Propera <noreply@propera.cc>",
-          to: [email],
-          subject: `🎉 Your ${resort_name} demo is ready!`,
-          html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
-            <div style="text-align: center; margin-bottom: 32px;">
-              <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
-              <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resort_name}</strong> is ready to explore.</p>
-            </div>
-
-            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-              <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console Login</h2>
-              <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings.</p>
-              <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${staffIdentifier}</p>
-                <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
-              </div>
-              <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
-            </div>
-
-            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
-              <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal Login</h2>
-              <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Experience booking from the guest's perspective.</p>
-              <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
-                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${demoGuestInfo.guestName}</p>
-                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${demoGuestInfo.roomNumber}</p>
-                <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${demoGuestInfo.pin}</code></p>
-              </div>
-              <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
-            </div>
-
-            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-              <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">Your demo expires in <strong>14 days</strong>. Upgrade anytime to keep your data!</p>
-              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a></p>
-            </div>
-          </div>
-        `,
-        };
-        
-        console.log("Sending email via Resend to:", email);
-        const emailRes = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(emailPayload),
-        });
-
-        const responseText = await emailRes.text();
-        console.log("Resend response status:", emailRes.status, "body:", responseText);
-        
-        if (emailRes.ok) {
-          emailSent = true;
-          console.log("Welcome email sent successfully");
-        } else {
-          emailError = responseText;
-          console.error("Resend email error:", responseText);
-        }
-      } else {
-        emailError = "RESEND_API_KEY not configured";
-        console.log("RESEND_API_KEY not configured, skipping email");
-      }
-    } catch (err: any) {
-      emailError = err?.message || "Unknown email error";
-      console.error("Email send error:", err);
-    }
+    // Send welcome email
+    const emailResult = await sendDemoEmail({
+      to: email,
+      resortName: resort_name,
+      resortCode: resortCode,
+      staffIdentifier,
+      tempPassword,
+      guestInfo: demoGuestInfo,
+      isReminder: false,
+    });
 
     console.log("Demo provisioning complete, returning response");
     
@@ -525,8 +666,8 @@ serve(async (req) => {
         portal_url: guestLoginUrl,
       },
       staff_login_url: staffLoginUrl,
-      email_sent: emailSent,
-      email_error: emailError || undefined,
+      email_sent: emailResult.sent,
+      email_error: emailResult.error || undefined,
       expires_at: expiresAt.toISOString(),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -545,7 +686,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
   const today = new Date();
 
   // Department mapping: frontend values -> activity categories
-  // Frontend: dive, watersports, spa, excursions, dining
   const deptMap: Record<string, string[]> = {
     dive: ["DIVE"],
     watersports: ["WATERSPORT"],
@@ -554,14 +694,12 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
   };
 
   // Filter activities based on selected departments
-  // If no departments or empty, seed all activities
   const activitiesToSeed = departments.length === 0 
     ? DEMO_ACTIVITIES 
     : DEMO_ACTIVITIES.filter((a) => {
         return departments.some((dept) => deptMap[dept]?.includes(a.category));
       });
 
-  // Always seed at least some activities if the filter results in empty
   const finalActivities = activitiesToSeed.length > 0 ? activitiesToSeed : DEMO_ACTIVITIES.slice(0, 3);
 
   console.log("Seeding activities:", finalActivities.map(a => a.name));
@@ -581,7 +719,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     for (let day = 0; day <= 10; day++) {
       const sessionDate = formatDate(addDays(today, day));
       activities.forEach((activity: any) => {
-        // Morning session
         sessions.push({
           resort_id: resortId,
           activity_id: activity.id,
@@ -591,7 +728,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
           capacity: activity.default_max_capacity,
           status: "SCHEDULED",
         });
-        // Afternoon session on even days
         if (day % 2 === 0) {
           sessions.push({
             resort_id: resortId,
@@ -632,7 +768,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
       for (let day = 0; day <= 10; day++) {
         const slotDate = formatDate(addDays(today, day));
         restaurants.forEach((restaurant: any) => {
-          // Breakfast
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -643,7 +778,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
             capacity: restaurant.total_capacity,
             status: "OPEN",
           });
-          // Lunch
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -654,7 +788,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
             capacity: Math.floor(restaurant.total_capacity * 0.7),
             status: "OPEN",
           });
-          // Dinner early seating
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -665,7 +798,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
             capacity: Math.floor(restaurant.total_capacity / 2),
             status: "OPEN",
           });
-          // Dinner late seating
           slots.push({
             resort_id: resortId,
             restaurant_id: restaurant.id,
@@ -712,7 +844,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
   const pin = generatePin();
   
   if (demoGuest) {
-    // Hash the PIN and update the guest
     const pinHash = await hashPin(pin);
     await supabase.from("guests").update({
       portal_pin_hash: pinHash,
@@ -720,7 +851,6 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
       portal_pin_set_at: new Date().toISOString(),
     }).eq("id", demoGuest.id);
 
-    // Extract last name from full name
     const nameParts = demoGuest.full_name.split(" ");
     const lastName = nameParts[nameParts.length - 1];
 

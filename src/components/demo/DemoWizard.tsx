@@ -62,6 +62,7 @@ const TIMEZONES = [
 export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [step, setStep] = useState<'form' | 'creating' | 'success' | 'existing' | 'rate_limited'>('form');
   const [demoData, setDemoData] = useState<DemoResponse | null>(null);
   
@@ -107,42 +108,33 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
           timezone: formData.timezone,
           rooms_range: formData.roomsRange,
           departments: formData.departments,
+          mode: 'provision',
         }
       });
 
       if (error) throw error;
 
       if (data?.success) {
+        const responseData: DemoResponse = {
+          email: data.email || formData.email,
+          temp_password: data.temp_password,
+          tenant_id: data.tenant_id,
+          resort_code: data.resort_code,
+          staff_login_url: data.staff_login_url,
+          guest_login: data.guest_login || null,
+          email_sent: data.email_sent,
+          email_error: data.email_error,
+        };
+        
+        setDemoData(responseData);
+        
         if (data.existing) {
-          setDemoData({ 
-            email: formData.email, 
-            tenant_id: data.tenant_id,
-            resort_code: data.resort_code,
-            staff_login_url: data.staff_login_url,
-            guest_login: data.guest_login || null,
-            email_sent: data.email_sent,
-            email_error: data.email_error,
-          });
           setStep('existing');
-          if (data.email_sent) {
-            toast.success('Access link sent to your email');
-          }
+          toast.success('Fresh credentials sent to your email');
         } else {
-          setDemoData({
-            email: data.email || formData.email,
-            temp_password: data.temp_password,
-            tenant_id: data.tenant_id,
-            resort_code: data.resort_code,
-            staff_login_url: data.staff_login_url,
-            guest_login: data.guest_login || null,
-            email_sent: data.email_sent,
-            email_error: data.email_error,
-          });
           setStep('success');
           if (data.email_sent) {
             toast.success('Login details sent to your email');
-          } else if (data.email_error) {
-            console.error('Email send error:', data.email_error);
           }
         }
       } else if (data?.error?.includes('Rate limit')) {
@@ -159,8 +151,50 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
     }
   };
 
+  const handleResendCredentials = async () => {
+    if (isResending) return;
+    
+    setIsResending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('provision-demo', {
+        body: {
+          email: formData.email.trim().toLowerCase() || demoData?.email,
+          mode: 'resend',
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        // Update state with new credentials
+        setDemoData(prev => ({
+          ...prev,
+          email: data.email,
+          temp_password: data.temp_password,
+          staff_login_url: data.staff_login_url,
+          guest_login: data.guest_login || null,
+          email_sent: data.email_sent,
+          email_error: data.email_error,
+        }));
+        
+        if (data.email_sent) {
+          toast.success('Fresh login credentials sent to your email');
+        } else {
+          toast.success('New credentials generated');
+        }
+      } else {
+        throw new Error(data?.error || 'Failed to resend credentials');
+      }
+    } catch (error: any) {
+      console.error('Resend error:', error);
+      toast.error(error.message || 'Failed to resend credentials');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleClose = () => {
-    if (!isSubmitting) {
+    if (!isSubmitting && !isResending) {
       setStep('form');
       setDemoData(null);
       onOpenChange(false);
@@ -169,9 +203,7 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
 
   const goToStaffConsole = () => {
     handleClose();
-    // Use the URL from the response, or construct it from resort code
     if (demoData?.staff_login_url) {
-      // Extract path from full URL and navigate
       try {
         const url = new URL(demoData.staff_login_url);
         navigate(url.pathname + url.search);
@@ -348,7 +380,7 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               <div className="space-y-1.5 pl-6">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium">{demoData.email}</span>
+                  <span className="font-medium text-xs break-all">{demoData.email}</span>
                 </div>
                 {demoData.temp_password && (
                   <div className="flex items-center gap-2 text-sm">
@@ -408,36 +440,71 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               </Button>
             </div>
 
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-6">
+            <div className="flex flex-col items-center gap-3 mt-6">
               {demoData.email_sent ? (
-                <>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4 text-success" />
                   <span>Login details sent to {formData.email}</span>
-                </>
+                </div>
               ) : (
-                <span>Your demo stays active for 14 days. Upgrade anytime to go live.</span>
+                <span className="text-sm text-muted-foreground">Your demo stays active for 14 days. Upgrade anytime to go live.</span>
               )}
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResendCredentials}
+                disabled={isResending}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {isResending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCw className="h-4 w-4 mr-2" />
+                )}
+                Resend login email
+              </Button>
             </div>
           </div>
         )}
 
         {step === 'existing' && demoData && (
-          <div className="py-8">
+          <div className="py-6">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <Sparkles className="h-8 w-8 text-primary" />
             </div>
             <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">You already have a demo workspace!</DialogTitle>
+              <DialogTitle className="text-2xl">Welcome back!</DialogTitle>
               <DialogDescription>
-                {demoData.email_sent 
-                  ? 'We just sent login details to your email.' 
-                  : 'Open it below to continue exploring.'}
+                Your demo workspace is still active. We've generated fresh credentials for you.
               </DialogDescription>
             </DialogHeader>
 
-            {/* Show guest credentials if available */}
+            {/* Staff Login Credentials */}
+            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <User className="h-4 w-4 text-primary" />
+                <span>Staff Console</span>
+              </div>
+              <div className="space-y-1.5 pl-6">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Email:</span>
+                  <span className="font-medium text-xs break-all">{demoData.email}</span>
+                </div>
+                {demoData.temp_password && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Password:</span>
+                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
+                      {demoData.temp_password}
+                    </code>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Guest Login Credentials */}
             {demoData.guest_login && (
-              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-4 space-y-3">
+              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-6 space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <DoorOpen className="h-4 w-4 text-success" />
                   <span>Guest Portal</span>
@@ -471,62 +538,70 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
                 Open Staff Console
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
-              {demoData.guest_login && (
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="w-full rounded-full font-semibold"
-                  onClick={openGuestPortal}
-                >
-                  Open Guest Portal
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </Button>
-              )}
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full rounded-full font-semibold"
+                onClick={openGuestPortal}
+              >
+                Open Guest Portal
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
             </div>
 
-            {demoData.email_sent && (
-              <p className="text-xs text-center text-muted-foreground mt-6 flex items-center justify-center gap-1">
-                <Mail className="h-3 w-3" />
-                Login details sent to {formData.email}
-              </p>
-            )}
+            <div className="flex flex-col items-center gap-3 mt-6">
+              {demoData.email_sent && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="h-4 w-4 text-success" />
+                  <span>Credentials sent to your email</span>
+                </div>
+              )}
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResendCredentials}
+                disabled={isResending}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {isResending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RotateCw className="h-4 w-4 mr-2" />
+                )}
+                Generate new credentials
+              </Button>
+            </div>
           </div>
         )}
 
         {step === 'rate_limited' && (
           <div className="py-8">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-6">
-              <RotateCw className="h-8 w-8 text-destructive" />
+            <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-6">
+              <RotateCw className="h-8 w-8 text-warning" />
             </div>
             <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">We couldn't create a new demo right now.</DialogTitle>
+              <DialogTitle className="text-2xl">Too many requests</DialogTitle>
               <DialogDescription>
-                Try again in a bit, or book a walkthrough if you need urgent access.
+                We limit demo creations to protect our service. Please try again in a few hours, or contact us for immediate access.
               </DialogDescription>
             </DialogHeader>
-
             <div className="space-y-3">
               <Button 
                 size="lg" 
-                variant="outline"
                 className="w-full rounded-full font-semibold"
-                onClick={() => {
-                  handleClose();
-                  // Trigger qualifier dialog
-                  setTimeout(() => {
-                    document.querySelector<HTMLButtonElement>('[data-trigger-qualifier]')?.click();
-                  }, 100);
-                }}
+                onClick={() => window.open('mailto:hello@propera.cc?subject=Demo access request', '_blank')}
               >
-                Book a Walkthrough
+                <Mail className="mr-2 h-4 w-4" />
+                Contact Us
               </Button>
               <Button 
                 size="lg" 
-                variant="ghost"
-                className="w-full"
+                variant="outline"
+                className="w-full rounded-full"
                 onClick={handleClose}
               >
-                Back
+                Close
               </Button>
             </div>
           </div>
