@@ -138,21 +138,125 @@ serve(async (req) => {
         .single();
 
       if (existingDemo) {
-        // Get the existing resort code
+        console.log("Found existing active demo for this email");
+        // Get the existing resort details
         const { data: existingResort } = await supabaseAdmin
           .from("resorts")
-          .select("code")
+          .select("code, name")
           .eq("id", existingDemo.tenant_id)
           .single();
 
         const resortCode = existingResort?.code || "";
-        
+        const resortName = existingResort?.name || resort_name;
+
+        // Get the demo guest info for this resort
+        const { data: existingGuest } = await supabaseAdmin
+          .from("guests")
+          .select("full_name, room_number, portal_pin_last4")
+          .eq("resort_id", existingDemo.tenant_id)
+          .eq("portal_enabled", true)
+          .not("portal_pin_hash", "is", null)
+          .limit(1)
+          .single();
+
+        const guestInfo = existingGuest ? {
+          guestName: existingGuest.full_name,
+          roomNumber: existingGuest.room_number,
+          lastName: existingGuest.full_name.split(" ").pop() || "",
+          pin: existingGuest.portal_pin_last4 || "",
+        } : null;
+
+        const staffLoginUrl = `${baseUrl}/staff/auth?username=${encodeURIComponent(email)}`;
+        const guestLoginUrl = guestInfo 
+          ? `${baseUrl}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(guestInfo.roomNumber)}&lastName=${encodeURIComponent(guestInfo.lastName)}`
+          : `${baseUrl}/resort/${resortCode}/guest/login`;
+
+        // Send email for existing demo too
+        let emailSent = false;
+        let emailError = "";
+        try {
+          const resendApiKey = Deno.env.get("RESEND_API_KEY");
+          if (resendApiKey && guestInfo) {
+            console.log("Sending reminder email for existing demo...");
+            const emailRes = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${resendApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                from: "Propera <noreply@propera.cc>",
+                to: [email],
+                subject: `Your ${resortName} demo is still active!`,
+                html: `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
+                  <div style="text-align: center; margin-bottom: 32px;">
+                    <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome back to Propera!</h1>
+                    <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resortName}</strong> is still active and ready.</p>
+                  </div>
+
+                  <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console</h2>
+                    <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Log in with your email and the password you received.</p>
+                    <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                      Open Staff Console →
+                    </a>
+                  </div>
+
+                  ${guestInfo ? `
+                  <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
+                    <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal</h2>
+                    <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
+                      <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${guestInfo.guestName}</p>
+                      <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${guestInfo.roomNumber}</p>
+                      <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${guestInfo.pin}</code></p>
+                    </div>
+                    <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
+                      Open Guest Portal →
+                    </a>
+                  </div>
+                  ` : ""}
+
+                  <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+                    <p style="color: #64748b; font-size: 13px; margin: 0;">
+                      Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a>
+                    </p>
+                  </div>
+                </div>
+              `,
+              }),
+            });
+
+            if (emailRes.ok) {
+              emailSent = true;
+              console.log("Reminder email sent successfully");
+            } else {
+              emailError = await emailRes.text();
+              console.error("Resend email error:", emailError);
+            }
+          } else {
+            console.log("RESEND_API_KEY not configured or no guest info, skipping email");
+          }
+        } catch (err: any) {
+          emailError = err?.message || "Unknown email error";
+          console.error("Email send error:", err);
+        }
+
         return new Response(JSON.stringify({
           success: true,
           existing: true,
           tenant_id: existingDemo.tenant_id,
           resort_code: resortCode,
-          staff_login_url: `${baseUrl}/staff/auth?username=${encodeURIComponent(email)}`,
+          staff_login_url: staffLoginUrl,
+          guest_login: guestInfo ? {
+            guest_name: guestInfo.guestName,
+            room_number: guestInfo.roomNumber,
+            last_name: guestInfo.lastName,
+            pin: guestInfo.pin,
+            portal_url: guestLoginUrl,
+          } : null,
+          email_sent: emailSent,
+          email_error: emailError || undefined,
           message: "You already have an active demo",
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -328,89 +432,85 @@ serve(async (req) => {
 
     // Send welcome email with both staff and guest logins
     let emailSent = false;
+    let emailError = "";
+    console.log("Attempting to send welcome email to:", email);
+    
     try {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
+      console.log("RESEND_API_KEY configured:", !!resendApiKey);
+      
       if (resendApiKey) {
+        const emailPayload = {
+          from: "Propera <noreply@propera.cc>",
+          to: [email],
+          subject: `🎉 Your ${resort_name} demo is ready!`,
+          html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
+            <div style="text-align: center; margin-bottom: 32px;">
+              <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
+              <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resort_name}</strong> is ready to explore.</p>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+              <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console Login</h2>
+              <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings.</p>
+              <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
+                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${staffIdentifier}</p>
+                <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
+              </div>
+              <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
+              <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal Login</h2>
+              <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Experience booking from the guest's perspective.</p>
+              <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
+                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${demoGuestInfo.guestName}</p>
+                <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${demoGuestInfo.roomNumber}</p>
+                <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${demoGuestInfo.pin}</code></p>
+              </div>
+              <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
+            </div>
+
+            <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+              <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">Your demo expires in <strong>14 days</strong>. Upgrade anytime to keep your data!</p>
+              <p style="color: #94a3b8; font-size: 12px; margin: 0;">Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a></p>
+            </div>
+          </div>
+        `,
+        };
+        
+        console.log("Sending email via Resend to:", email);
         const emailRes = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${resendApiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            from: "Propera <noreply@propera.cc>",
-            to: [email], // Send to original email, not plus-addressed
-            subject: `🎉 Your ${resort_name} demo is ready!`,
-            html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
-              <div style="text-align: center; margin-bottom: 32px;">
-                <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
-                <p style="color: #64748b; margin: 0; font-size: 16px;">Your demo resort <strong>${resort_name}</strong> is ready to explore.</p>
-              </div>
-
-              <!-- Staff Login Section -->
-              <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px; display: flex; align-items: center;">
-                  👤 Staff Console Login
-                </h2>
-                <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">
-                  Manage activities, sessions, guests, and view bookings.
-                </p>
-                <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${staffIdentifier}</p>
-                  <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${tempPassword}</code></p>
-                </div>
-                <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                  Open Staff Console →
-                </a>
-              </div>
-
-              <!-- Guest Login Section -->
-              <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
-                <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">
-                  🏝️ Guest Portal Login
-                </h2>
-                <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">
-                  Experience booking from the guest's perspective.
-                </p>
-                <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
-                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${demoGuestInfo.guestName}</p>
-                  <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${demoGuestInfo.roomNumber}</p>
-                  <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${demoGuestInfo.pin}</code></p>
-                </div>
-                <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">
-                  Open Guest Portal →
-                </a>
-              </div>
-
-              <!-- Footer -->
-              <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-                <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">
-                  Your demo expires in <strong>14 days</strong>. Upgrade anytime to keep your data!
-                </p>
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                  Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a>
-                </p>
-              </div>
-            </div>
-          `,
-          }),
+          body: JSON.stringify(emailPayload),
         });
 
+        const responseText = await emailRes.text();
+        console.log("Resend response status:", emailRes.status, "body:", responseText);
+        
         if (emailRes.ok) {
           emailSent = true;
           console.log("Welcome email sent successfully");
         } else {
-          const errorData = await emailRes.text();
-          console.error("Resend email error:", errorData);
+          emailError = responseText;
+          console.error("Resend email error:", responseText);
         }
       } else {
+        emailError = "RESEND_API_KEY not configured";
         console.log("RESEND_API_KEY not configured, skipping email");
       }
-    } catch (emailError) {
-      console.error("Email send error:", emailError);
+    } catch (err: any) {
+      emailError = err?.message || "Unknown email error";
+      console.error("Email send error:", err);
     }
 
+    console.log("Demo provisioning complete, returning response");
+    
     return new Response(JSON.stringify({
       success: true,
       tenant_id: resort.id,
@@ -426,6 +526,7 @@ serve(async (req) => {
       },
       staff_login_url: staffLoginUrl,
       email_sent: emailSent,
+      email_error: emailError || undefined,
       expires_at: expiresAt.toISOString(),
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
