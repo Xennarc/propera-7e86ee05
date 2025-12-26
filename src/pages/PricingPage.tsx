@@ -83,7 +83,7 @@ const PLANS = [
 ];
 
 const ADDONS = [
-  { name: 'Loyalty Program Suite', price: '$299 / month', description: 'Guest rewards, tier management, and return visit tracking.' },
+  { name: 'Loyalty Program Suite', price: '$199 / month', description: 'Guest rewards, tier management, and return visit tracking.' },
   { name: 'Analytics Plus', price: '$199 / month', description: 'Executive dashboards & deeper insights.' },
   { name: 'Premium Support', price: '$199 / month', description: 'Priority channels & extended coverage.' },
   { name: 'Managed Content', price: 'from $150 / month', description: 'We maintain your activity catalog & seasonal updates.' },
