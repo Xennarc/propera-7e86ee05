@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
-import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { ProperaMark, ProperaMarkAnimated } from '@/components/icons/ProperaLogo';
+import { Separator } from '@/components/ui/separator';
 import { 
   Accordion,
   AccordionContent,
@@ -22,10 +23,14 @@ import {
   RefreshCw,
   Sparkles,
   ArrowRight,
-  Zap
+  Zap,
+  Rocket,
+  Shield,
+  Waves
 } from 'lucide-react';
 import { DemoWizard } from '@/components/demo/DemoWizard';
 import { LiveDemoQualifier } from '@/components/demo/LiveDemoQualifier';
+import { cn } from '@/lib/utils';
 
 const TRUST_CHIPS = [
   'White-label guest portal',
@@ -60,12 +65,32 @@ const DEMO_FEATURES = [
     title: 'A calmer daily operation',
     description: 'Less messaging. Fewer mistakes. More time for the guest experience.',
   },
+  {
+    icon: <Shield className="h-6 w-6" />,
+    title: 'Enterprise-grade security',
+    description: 'Role-based access, audit trails, and data protection built in from day one.',
+  },
 ];
 
 const STEPS = [
-  { number: '1', title: 'Create your demo workspace', description: 'We set up a sample resort with real workflows.' },
-  { number: '2', title: 'Follow the guided checklist', description: 'Reach the "first guest booking" moment fast.' },
-  { number: '3', title: 'Go live when ready', description: 'Upgrade, brand it, invite staff, and launch.' },
+  { 
+    number: '1', 
+    title: 'Create your demo workspace', 
+    description: 'We set up a sample resort with real workflows.',
+    icon: <Rocket className="h-5 w-5" />
+  },
+  { 
+    number: '2', 
+    title: 'Follow the guided checklist', 
+    description: 'Reach the "first guest booking" moment fast.',
+    icon: <CheckCircle2 className="h-5 w-5" />
+  },
+  { 
+    number: '3', 
+    title: 'Go live when ready', 
+    description: 'Upgrade, brand it, invite staff, and launch.',
+    icon: <Sparkles className="h-5 w-5" />
+  },
 ];
 
 const FAQS = [
@@ -110,9 +135,25 @@ const BOOK_DEMO_SCHEMA = {
 export default function BookDemoPage() {
   const [showDemoWizard, setShowDemoWizard] = useState(false);
   const [showLiveQualifier, setShowLiveQualifier] = useState(false);
+  const [selectedPath, setSelectedPath] = useState<'instant' | 'walkthrough'>('instant');
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-navy-900 relative overflow-hidden">
+      {/* Animated background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-[120px] animate-pulse-soft" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-lagoon-500/5 rounded-full blur-[100px] animate-pulse-soft" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-teal-400/3 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '2s' }} />
+        {/* Subtle grid overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+          }}
+        />
+      </div>
+
       <SEOHead
         title="Book a Propera Demo | Resort Bookings, Scheduling & Guest Portal"
         description="See how Propera streamlines resort activities, spa, excursions and dining—live availability, guest self-service, and real-time operations. Try instantly or book a walkthrough."
@@ -122,170 +163,255 @@ export default function BookDemoPage() {
       />
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-navy-900/60 backdrop-blur-xl border-b border-teal-500/10">
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <ProperaMark size={40} className="text-primary" />
+          <Link to="/" className="flex items-center gap-3 group">
+            <ProperaMark size={40} className="text-primary transition-transform duration-300 group-hover:scale-105" />
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </Link>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-1">
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
                 <Link to="/">Home</Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
                 <Link to="/about">About</Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
                 <Link to="/pricing">Pricing</Link>
               </Button>
               <span className="text-sm text-primary font-medium px-4">Demo</span>
             </div>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button asChild variant="ghost" size="sm" className="rounded-full font-medium">
+            <Button asChild variant="ghost" size="sm" className="rounded-full font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
               <Link to="/staff/auth">Sign in</Link>
             </Button>
           </div>
         </nav>
       </header>
 
-      <main className="pt-24">
+      <main className="pt-24 relative z-10">
         {/* Hero Section */}
-        <section className="py-16 md:py-24">
+        <section className="py-16 md:py-24 lg:py-32">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <Badge variant="outline" className="mb-6 text-primary border-primary/30">
-                Propera Demo
-              </Badge>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight">
-                Let guests book. Let staff breathe.
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mb-8">
-                Propera is a modern guest booking and operations hub for island resorts — activities, spa, excursions, and dining — with real-time availability and a clean guest portal.
-              </p>
+            {/* Glass Hero Panel */}
+            <div className="relative max-w-4xl mx-auto">
+              {/* Glow effect behind panel */}
+              <div className="absolute inset-0 bg-gradient-to-b from-teal-500/10 via-teal-400/5 to-transparent blur-3xl rounded-3xl" />
+              
+              <div className="relative bg-navy-800/40 backdrop-blur-2xl rounded-3xl border border-teal-500/10 p-8 md:p-12 lg:p-16 shadow-elevated">
+                {/* Animated Propera Mark as decorative element */}
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                  <div className="bg-navy-800/80 backdrop-blur-xl rounded-2xl p-3 border border-teal-500/20 shadow-lg">
+                    <ProperaMarkAnimated size={48} className="text-primary" />
+                  </div>
+                </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-                <Button 
-                  size="lg" 
-                  className="rounded-full font-semibold px-8 h-12"
-                  onClick={() => setShowDemoWizard(true)}
-                  data-trigger-demo
-                >
-                  Try Propera Now (10 min)
-                  <Play className="ml-2 h-4 w-4" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="rounded-full font-semibold px-8 h-12"
-                  onClick={() => setShowLiveQualifier(true)}
-                  data-trigger-qualifier
-                >
-                  Book a Live Walkthrough
-                  <Calendar className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-
-              <p className="text-sm text-muted-foreground mb-10">
-                No pressure. No long forms. Your demo workspace is created instantly.
-              </p>
-
-              {/* Trust chips */}
-              <div className="flex flex-wrap justify-center gap-3">
-                {TRUST_CHIPS.map((chip) => (
-                  <Badge key={chip} variant="secondary" className="py-1.5 px-3 text-sm font-medium">
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                    {chip}
+                <div className="text-center mt-6">
+                  <Badge variant="outline" className="mb-6 text-teal-400 border-teal-500/30 bg-teal-500/10 px-4 py-1.5">
+                    <Sparkles className="h-3.5 w-3.5 mr-2" />
+                    Propera Demo
                   </Badge>
-                ))}
+                  
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight leading-tight">
+                    Let guests book.
+                    <br />
+                    <span className="bg-gradient-to-r from-teal-400 via-teal-300 to-lagoon-400 bg-clip-text text-transparent">
+                      Let staff breathe.
+                    </span>
+                  </h1>
+                  
+                  <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+                    Propera is a modern guest booking and operations hub for island resorts — activities, spa, excursions, and dining — with real-time availability and a clean guest portal.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                    <Button 
+                      size="xl" 
+                      className="rounded-2xl font-semibold px-8 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                      onClick={() => setShowDemoWizard(true)}
+                      data-trigger-demo
+                    >
+                      Try Propera Now (10 min)
+                      <Play className="ml-2 h-5 w-5" />
+                    </Button>
+                    <Button 
+                      size="xl" 
+                      variant="outline"
+                      className="rounded-2xl font-semibold px-8 border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
+                      onClick={() => setShowLiveQualifier(true)}
+                      data-trigger-qualifier
+                    >
+                      Book a Live Walkthrough
+                      <Calendar className="ml-2 h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground/80 mb-10">
+                    No pressure. No long forms. Your demo workspace is created instantly.
+                  </p>
+
+                  {/* Trust chips */}
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {TRUST_CHIPS.map((chip) => (
+                      <Badge 
+                        key={chip} 
+                        variant="secondary" 
+                        className="py-2 px-4 text-sm font-medium bg-navy-700/50 border border-navy-600/50 text-foreground/90 hover:bg-navy-700/70 transition-colors"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-teal-400" />
+                        {chip}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         {/* Two Paths Section */}
-        <section className="py-16 bg-muted/30">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
+            {/* Segmented Toggle */}
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex bg-navy-800/60 backdrop-blur-xl rounded-2xl p-1.5 border border-navy-600/50">
+                <button
+                  onClick={() => setSelectedPath('instant')}
+                  className={cn(
+                    "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
+                    selectedPath === 'instant' 
+                      ? "bg-teal-500 text-navy-950 shadow-lg" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Zap className="h-4 w-4 inline mr-2" />
+                  Instant Demo
+                </button>
+                <button
+                  onClick={() => setSelectedPath('walkthrough')}
+                  className={cn(
+                    "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
+                    selectedPath === 'walkthrough' 
+                      ? "bg-teal-500 text-navy-950 shadow-lg" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Calendar className="h-4 w-4 inline mr-2" />
+                  Live Walkthrough
+                </button>
+              </div>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
               {/* Card A - Self-Serve Demo */}
-              <Card className="relative overflow-hidden border-2 border-primary/20 bg-primary/5">
+              <Card 
+                className={cn(
+                  "relative overflow-hidden bg-navy-800/40 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
+                  selectedPath === 'instant' 
+                    ? "border-teal-500/50 shadow-[0_0_40px_-10px_rgba(45,212,191,0.3)]" 
+                    : "border-navy-600/30 hover:border-navy-500/50"
+                )}
+              >
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-primary text-primary-foreground">Recommended</Badge>
+                  <Badge className="bg-gradient-to-r from-teal-500 to-teal-400 text-navy-950 font-semibold px-3 py-1">
+                    <Rocket className="h-3 w-3 mr-1.5" />
+                    Fastest
+                  </Badge>
                 </div>
-                <CardHeader className="pt-12">
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                    <Zap className="h-7 w-7 text-primary" />
+                <CardHeader className="pt-14 pb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-teal-400/10 border border-teal-500/20 flex items-center justify-center mb-5">
+                    <Zap className="h-8 w-8 text-teal-400" />
                   </div>
-                  <CardTitle className="text-2xl">Instant demo workspace</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-foreground">Instant demo workspace</CardTitle>
+                  <CardDescription className="text-base text-muted-foreground/90 mt-2">
                     Spin up a guided demo resort with realistic sample data. Explore the staff console and guest portal in minutes — no calls required.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <CardContent className="space-y-6 pb-8">
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      </div>
                       <span>Preloaded activities, sessions, dining slots</span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      </div>
                       <span>Guided checklist to your first guest booking</span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      </div>
                       <span>Upgrade to go live anytime</span>
                     </li>
                   </ul>
                   <Button 
                     size="lg" 
-                    className="w-full rounded-full font-semibold"
+                    className="w-full rounded-2xl font-semibold bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300"
                     onClick={() => setShowDemoWizard(true)}
                   >
                     Create My Demo Workspace
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="text-xs text-center text-muted-foreground">
+                  <p className="text-xs text-center text-muted-foreground/70">
                     Takes ~60 seconds to start. Uses your email only to create access.
                   </p>
                 </CardContent>
               </Card>
 
               {/* Card B - Live Walkthrough */}
-              <Card className="border border-border">
-                <CardHeader className="pt-12">
-                  <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                    <Calendar className="h-7 w-7 text-muted-foreground" />
+              <Card 
+                className={cn(
+                  "relative overflow-hidden bg-navy-800/40 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
+                  selectedPath === 'walkthrough' 
+                    ? "border-teal-500/50 shadow-[0_0_40px_-10px_rgba(45,212,191,0.3)]" 
+                    : "border-navy-600/30 hover:border-navy-500/50"
+                )}
+              >
+                <CardHeader className="pt-14 pb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-navy-700/50 border border-navy-600/50 flex items-center justify-center mb-5">
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <CardTitle className="text-2xl">Live walkthrough (for teams)</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-foreground">Live walkthrough (for teams)</CardTitle>
+                  <CardDescription className="text-base text-muted-foreground/90 mt-2">
                     Best if you're comparing vendors, need stakeholder buy-in, or want a tailored rollout plan.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <ul className="space-y-2">
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <CardContent className="space-y-6 pb-8">
+                  <ul className="space-y-3">
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                       <span>Focused on your departments & flows</span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                       <span>Implementation plan and timeline</span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <li className="flex items-start gap-3 text-sm text-foreground/90">
+                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                       <span>Q&A with real scenarios</span>
                     </li>
                   </ul>
                   <Button 
                     size="lg" 
                     variant="outline"
-                    className="w-full rounded-full font-semibold"
+                    className="w-full rounded-2xl font-semibold border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
                     onClick={() => setShowLiveQualifier(true)}
                   >
                     Book a Walkthrough
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <p className="text-xs text-center text-muted-foreground">
+                  <p className="text-xs text-center text-muted-foreground/70">
                     We'll ask a few quick questions first so the call is actually useful.
                   </p>
                 </CardContent>
@@ -295,21 +421,26 @@ export default function BookDemoPage() {
         </section>
 
         {/* What you'll see Section */}
-        <section className="py-20">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4">What the demo covers</h2>
-            <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
-              Everything you need to see how Propera works in practice.
-            </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="text-center mb-14">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What the demo covers</h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Everything you need to see how Propera works in practice.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
               {DEMO_FEATURES.map((feature, idx) => (
-                <Card key={idx} className="bg-background border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                <Card 
+                  key={idx} 
+                  className="bg-navy-800/40 backdrop-blur-xl border-navy-600/30 rounded-2xl hover:border-navy-500/50 transition-all duration-300 hover:translate-y-[-2px] group"
+                >
+                  <CardContent className="pt-7 pb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500/15 to-teal-400/5 border border-teal-500/20 text-teal-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-300">
                       {feature.icon}
                     </div>
-                    <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                    <h3 className="font-semibold text-lg mb-2 text-foreground">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -318,50 +449,74 @@ export default function BookDemoPage() {
         </section>
 
         {/* Social Proof Band */}
-        <section className="py-12 bg-muted/30 border-y border-border/50">
-          <div className="container mx-auto px-4 text-center max-w-3xl">
-            <p className="text-lg font-medium text-foreground mb-2">
-              Built for island resorts and fast-moving teams.
-            </p>
-            <p className="text-muted-foreground">
-              Designed to replace spreadsheets, WhatsApp chaos, and "who booked what?" phone calls.
-            </p>
+        <section className="py-14 relative">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto bg-navy-800/40 backdrop-blur-xl rounded-3xl border border-navy-600/30 p-8 md:p-10 text-center">
+              <div className="flex justify-center mb-5">
+                <Waves className="h-8 w-8 text-teal-400/60" />
+              </div>
+              <p className="text-xl md:text-2xl font-medium text-foreground mb-3">
+                Built for island resorts and fast-moving teams.
+              </p>
+              <p className="text-muted-foreground text-lg">
+                Designed to replace spreadsheets, WhatsApp chaos, and "who booked what?" phone calls.
+              </p>
+            </div>
           </div>
         </section>
 
         {/* How it Works Section */}
-        <section className="py-20">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-12">How it works</h2>
-            <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              {STEPS.map((step) => (
-                <div key={step.number} className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-4">
-                    {step.number}
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-14">How it works</h2>
+            <div className="max-w-4xl mx-auto relative">
+              {/* Connecting line */}
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent hidden md:block" />
+              
+              <div className="grid md:grid-cols-3 gap-6">
+                {STEPS.map((step, idx) => (
+                  <div key={step.number} className="relative">
+                    <div className="bg-navy-800/40 backdrop-blur-xl rounded-2xl border border-navy-600/30 p-6 text-center hover:border-navy-500/50 transition-all duration-300 hover:translate-y-[-2px]">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-400 text-navy-950 font-bold text-xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                        {step.number}
+                      </div>
+                      <h3 className="font-semibold text-lg mb-2 text-foreground">{step.title}</h3>
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                    </div>
+                    {/* Arrow connector for mobile */}
+                    {idx < STEPS.length - 1 && (
+                      <div className="flex justify-center py-3 md:hidden">
+                        <ArrowRight className="h-5 w-5 text-teal-500/50 rotate-90" />
+                      </div>
+                    )}
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
         {/* FAQ Section */}
-        <section className="py-20 bg-muted/30">
+        <section className="py-20 relative">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-4">Questions, answered</h2>
-            <p className="text-muted-foreground text-center mb-10">
-              Everything you need to know before trying Propera.
-            </p>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Questions, answered</h2>
+              <p className="text-muted-foreground text-lg">
+                Everything you need to know before trying Propera.
+              </p>
+            </div>
             <div className="max-w-3xl mx-auto">
-              <Accordion type="single" collapsible className="space-y-4">
+              <Accordion type="single" collapsible className="space-y-3">
                 {FAQS.map((faq, idx) => (
-                  <AccordionItem key={idx} value={`faq-${idx}`} className="bg-background border rounded-lg px-6">
-                    <AccordionTrigger className="text-left font-medium py-4 hover:no-underline">
+                  <AccordionItem 
+                    key={idx} 
+                    value={`faq-${idx}`} 
+                    className="bg-navy-800/40 backdrop-blur-xl border border-navy-600/30 rounded-2xl px-6 data-[state=open]:border-navy-500/50 transition-all duration-200"
+                  >
+                    <AccordionTrigger className="text-left font-medium py-5 hover:no-underline text-foreground">
                       {faq.question}
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground pb-4">
+                    <AccordionContent className="text-muted-foreground pb-5 leading-relaxed">
                       {faq.answer}
                     </AccordionContent>
                   </AccordionItem>
@@ -372,57 +527,65 @@ export default function BookDemoPage() {
         </section>
 
         {/* Footer CTA */}
-        <section className="py-20">
-          <div className="container mx-auto px-4 text-center max-w-3xl">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              See it once. Feel the difference.
-            </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              Try the instant demo now — or book a walkthrough if you want a tailored rollout plan.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-              <Button 
-                size="lg" 
-                className="rounded-full font-semibold px-8 h-12"
-                onClick={() => setShowDemoWizard(true)}
-              >
-                Try Propera Now (10 min)
-                <Play className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="rounded-full font-semibold px-8 h-12"
-                onClick={() => setShowLiveQualifier(true)}
-              >
-                Book a Live Walkthrough
-                <Calendar className="ml-2 h-4 w-4" />
-              </Button>
+        <section className="py-20 relative">
+          <div className="container mx-auto px-4">
+            <div className="relative max-w-4xl mx-auto">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-teal-400/5 to-lagoon-500/10 blur-3xl rounded-3xl" />
+              
+              <div className="relative bg-navy-800/50 backdrop-blur-2xl rounded-3xl border border-teal-500/20 p-10 md:p-14 text-center shadow-elevated">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  See it once. Feel the difference.
+                </h2>
+                <p className="text-lg text-muted-foreground mb-10 max-w-2xl mx-auto">
+                  Try the instant demo now — or book a walkthrough if you want a tailored rollout plan.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                  <Button 
+                    size="xl" 
+                    className="rounded-2xl font-semibold px-8 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                    onClick={() => setShowDemoWizard(true)}
+                  >
+                    Try Propera Now (10 min)
+                    <Play className="ml-2 h-5 w-5" />
+                  </Button>
+                  <Button 
+                    size="xl" 
+                    variant="outline"
+                    className="rounded-2xl font-semibold px-8 border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
+                    onClick={() => setShowLiveQualifier(true)}
+                  >
+                    Book a Live Walkthrough
+                    <Calendar className="ml-2 h-5 w-5" />
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground/80">
+                  You'll spend less time explaining and more time delivering the experience.
+                </p>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground">
-              You'll spend less time explaining and more time delivering the experience.
-            </p>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="py-10 bg-card border-t border-border/50">
+      <footer className="py-12 bg-navy-950/50 backdrop-blur-xl border-t border-navy-700/50 relative z-10">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <Link to="/" className="flex items-center gap-3">
-              <ProperaMark size={36} className="text-primary" />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <Link to="/" className="flex items-center gap-3 group">
+              <ProperaMark size={36} className="text-primary transition-transform duration-300 group-hover:scale-105" />
               <div className="flex flex-col">
                 <span className="font-bold text-foreground">Propera</span>
                 <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
               </div>
             </Link>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
-              <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
-              <Link to="/staff/auth" className="hover:text-primary transition-colors">Staff Login</Link>
-              <span>© {new Date().getFullYear()} Propera</span>
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+              <Link to="/" className="hover:text-teal-400 transition-colors">Home</Link>
+              <Link to="/about" className="hover:text-teal-400 transition-colors">About</Link>
+              <Link to="/pricing" className="hover:text-teal-400 transition-colors">Pricing</Link>
+              <Link to="/staff/auth" className="hover:text-teal-400 transition-colors">Staff Login</Link>
+              <Separator orientation="vertical" className="h-4 bg-navy-600 hidden sm:block" />
+              <span className="text-muted-foreground/60">© {new Date().getFullYear()} Propera</span>
             </div>
           </div>
         </div>
