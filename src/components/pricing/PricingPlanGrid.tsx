@@ -134,72 +134,14 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     </p>
                     
                     {/* Price */}
-                    <div className="mb-5 pb-5 border-b border-border/50">
+                    <div className="mb-5">
                       <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                       {plan.priceUnit && (
                         <span className="text-sm text-muted-foreground ml-2">{plan.priceUnit}</span>
                       )}
                     </div>
-
-                    {/* Pro highlights */}
-                    {isProfessional && (
-                      <div className="mb-5 p-4 rounded-xl bg-primary/5 border border-primary/20">
-                        <p className="text-xs font-semibold text-foreground mb-2">Why teams choose this</p>
-                        <ul className="space-y-1.5">
-                          {PRO_HIGHLIGHTS.map((highlight, i) => (
-                            <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Check className="h-3 w-3 text-primary flex-shrink-0" />
-                              {highlight}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                     
-                    {/* Features list */}
-                    <div className="mb-5">
-                      <p className="text-xs font-semibold text-foreground mb-3">What you get</p>
-                      <ul className="space-y-2.5">
-                        {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
-                          <li 
-                            key={i} 
-                            className="flex items-start gap-2.5 text-sm"
-                          >
-                            <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                              isElite ? 'bg-violet-500/15' : 
-                              isProfessional ? 'bg-primary/15' : 'bg-muted'
-                            }`}>
-                              <Check className={`h-3 w-3 ${
-                                isElite ? 'text-violet-500' : 
-                                isProfessional ? 'text-primary' : 'text-muted-foreground'
-                              }`} />
-                            </div>
-                            <span className="text-foreground">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    
-                    {/* Expand/collapse */}
-                    {plan.features.length > 5 && (
-                      <button
-                        onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-                        className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 transition-colors"
-                      >
-                        {isExpanded ? 'Show less' : `+${plan.features.length - 5} more`}
-                      </button>
-                    )}
-                    
-                    {/* Usage info */}
-                    {(plan.usage || plan.overage) && (
-                      <div className="mb-5 p-3 rounded-lg bg-muted/40 border border-border/30">
-                        <p className="text-xs font-medium text-foreground mb-1">Included usage</p>
-                        {plan.usage && <p className="text-xs text-muted-foreground">{plan.usage}</p>}
-                        {plan.overage && <p className="text-xs text-muted-foreground mt-1">{plan.overage}</p>}
-                      </div>
-                    )}
-                    
-                    {/* CTA */}
+                    {/* CTA - right after price */}
                     <Button 
                       asChild 
                       className={`w-full rounded-xl font-semibold h-11 transition-all duration-200 ${
@@ -217,7 +159,68 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       </a>
                     </Button>
                     
-                    <p className="text-xs text-muted-foreground text-center mt-4">{config.ctaHelper}</p>
+                    <p className="text-xs text-muted-foreground text-center mt-3 mb-6">{config.ctaHelper}</p>
+                    
+                    {/* Separator */}
+                    <div className="border-t border-border/50 pt-5">
+                      {/* Pro highlights */}
+                      {isProfessional && (
+                        <div className="mb-5 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                          <p className="text-xs font-semibold text-foreground mb-2">Why teams choose this</p>
+                          <ul className="space-y-1.5">
+                            {PRO_HIGHLIGHTS.map((highlight, i) => (
+                              <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                                {highlight}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Features list */}
+                      <div className="mb-5">
+                        <p className="text-xs font-semibold text-foreground mb-3">What you get</p>
+                        <ul className="space-y-2.5">
+                          {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
+                            <li 
+                              key={i} 
+                              className="flex items-start gap-2.5 text-sm"
+                            >
+                              <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                isElite ? 'bg-violet-500/15' : 
+                                isProfessional ? 'bg-primary/15' : 'bg-muted'
+                              }`}>
+                                <Check className={`h-3 w-3 ${
+                                  isElite ? 'text-violet-500' : 
+                                  isProfessional ? 'text-primary' : 'text-muted-foreground'
+                                }`} />
+                              </div>
+                              <span className="text-foreground">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Expand/collapse */}
+                      {plan.features.length > 5 && (
+                        <button
+                          onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 transition-colors"
+                        >
+                          {isExpanded ? 'Show less' : `+${plan.features.length - 5} more`}
+                        </button>
+                      )}
+                      
+                      {/* Usage info */}
+                      {(plan.usage || plan.overage) && (
+                        <div className="p-3 rounded-lg bg-muted/40 border border-border/30">
+                          <p className="text-xs font-medium text-foreground mb-1">Included usage</p>
+                          {plan.usage && <p className="text-xs text-muted-foreground">{plan.usage}</p>}
+                          {plan.overage && <p className="text-xs text-muted-foreground mt-1">{plan.overage}</p>}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
