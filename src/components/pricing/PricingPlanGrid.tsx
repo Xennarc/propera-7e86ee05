@@ -153,7 +153,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       }`}
                       variant={isProfessional ? 'default' : isElite ? 'default' : 'secondary'}
                     >
-                      <a href={`mailto:hello@propera.cc?subject=${plan.name} Plan Inquiry`}>
+                      <a href={`mailto:hello@propera.io?subject=${plan.name} Plan Inquiry`}>
                         {plan.cta || 'Talk to us'}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </a>

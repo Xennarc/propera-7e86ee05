@@ -40,7 +40,7 @@ export function PricingCTASection() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="rounded-full font-semibold h-12 px-8">
-              <a href="mailto:hello@propera.cc?subject=Sales Inquiry">
+              <a href="mailto:hello@propera.io?subject=Sales Inquiry">
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Contact sales
               </a>

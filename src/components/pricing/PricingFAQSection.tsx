@@ -80,7 +80,7 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
               Tell us your resort size and departments — we'll recommend the best fit.
             </p>
             <Button asChild size="sm" className="rounded-full">
-              <a href="mailto:hello@propera.cc?subject=Help me choose a plan">
+              <a href="mailto:hello@propera.io?subject=Help me choose a plan">
                 Book a demo
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
