@@ -197,7 +197,7 @@ export default function LandingPage() {
               <h4 className="font-semibold text-foreground mb-4">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
-                <li><a href="mailto:hello@propera.cc" className="hover:text-foreground transition-colors">Contact</a></li>
+                <li><a href="mailto:hello@propera.io" className="hover:text-foreground transition-colors">Contact</a></li>
               </ul>
             </div>
             

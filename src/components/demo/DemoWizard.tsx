@@ -590,7 +590,7 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               <Button 
                 size="lg" 
                 className="w-full rounded-full font-semibold"
-                onClick={() => window.open('mailto:hello@propera.cc?subject=Demo access request', '_blank')}
+                onClick={() => window.open('mailto:hello@propera.io?subject=Demo access request', '_blank')}
               >
                 <Mail className="mr-2 h-4 w-4" />
                 Contact Us
