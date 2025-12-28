@@ -1223,6 +1223,152 @@
       0 10px 20px -5px rgb(0 0 0 / 0.08);
   }
   
+  /* ================================
+     PERFORMANCE ANIMATION UTILITIES
+     ================================ */
+
+  /* Scroll reveal - single class, JS just adds 'revealed' */
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    will-change: opacity, transform;
+  }
+
+  .reveal-on-scroll.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Section-level reveal for containers */
+  .section-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .section-reveal.section-revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Stagger delays for children inside revealed sections */
+  .section-revealed .stagger-1 { transition-delay: 0.05s; }
+  .section-revealed .stagger-2 { transition-delay: 0.1s; }
+  .section-revealed .stagger-3 { transition-delay: 0.15s; }
+  .section-revealed .stagger-4 { transition-delay: 0.2s; }
+  .section-revealed .stagger-5 { transition-delay: 0.25s; }
+  .section-revealed .stagger-6 { transition-delay: 0.3s; }
+  .section-revealed .stagger-7 { transition-delay: 0.35s; }
+
+  /* CSS-only hover animations - GPU accelerated */
+  .hover-lift-card {
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    will-change: transform;
+  }
+  .hover-lift-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px hsl(var(--primary) / 0.15);
+  }
+
+  .hover-scale-icon {
+    transition: transform 0.2s ease-out;
+  }
+  .hover-scale-icon:hover {
+    transform: scale(1.1);
+  }
+
+  /* Group hover reveal for preview items - pure CSS */
+  .preview-reveal {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.25s ease-out, max-height 0.3s ease-out;
+  }
+
+  .group:hover .preview-reveal {
+    opacity: 1;
+    max-height: 200px;
+  }
+
+  /* Preview item stagger on hover */
+  .group:hover .preview-item-1 { transition-delay: 0.05s; }
+  .group:hover .preview-item-2 { transition-delay: 0.1s; }
+  .group:hover .preview-item-3 { transition-delay: 0.15s; }
+
+  /* Icon orb hover effect - CSS only */
+  .icon-orb-hover {
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+  }
+  .group:hover .icon-orb-hover {
+    transform: scale(1.05) rotate(3deg);
+    box-shadow: 0 8px 24px -4px hsl(var(--primary) / 0.3);
+  }
+
+  /* Learn more hint fade - CSS only */
+  .learn-more-hint {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  }
+  .group:hover .learn-more-hint {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Chip stagger animation - pure CSS */
+  .chip-stagger {
+    opacity: 0;
+    transform: scale(0.9);
+    animation: chipReveal 0.4s ease-out forwards;
+  }
+  .chip-stagger:nth-child(1) { animation-delay: 0.1s; }
+  .chip-stagger:nth-child(2) { animation-delay: 0.15s; }
+  .chip-stagger:nth-child(3) { animation-delay: 0.2s; }
+  .chip-stagger:nth-child(4) { animation-delay: 0.25s; }
+  .chip-stagger:nth-child(5) { animation-delay: 0.3s; }
+
+  @keyframes chipReveal {
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Chart bar grow animation - CSS only */
+  .chart-bar-grow {
+    transform-origin: bottom;
+    transform: scaleY(0);
+    animation: barGrow 0.5s ease-out forwards;
+  }
+  .chart-bar-grow:nth-child(1) { animation-delay: 0.1s; }
+  .chart-bar-grow:nth-child(2) { animation-delay: 0.15s; }
+  .chart-bar-grow:nth-child(3) { animation-delay: 0.2s; }
+  .chart-bar-grow:nth-child(4) { animation-delay: 0.25s; }
+  .chart-bar-grow:nth-child(5) { animation-delay: 0.3s; }
+  .chart-bar-grow:nth-child(6) { animation-delay: 0.35s; }
+  .chart-bar-grow:nth-child(7) { animation-delay: 0.4s; }
+
+  @keyframes barGrow {
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* Floating chip - static with subtle entrance */
+  .floating-chip-static {
+    animation: floatIn 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+
+  @keyframes floatIn {
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   /* === Mobile Performance Optimizations === */
   
   /* GPU-accelerated scrolling containers */
@@ -1262,22 +1408,21 @@
     .will-animate,
     .animate-pulse,
     .animate-spin,
-    .animate-gentle-float,
-    .floating-chip-gpu {
+    .section-reveal,
+    .reveal-on-scroll,
+    .chip-stagger,
+    .chart-bar-grow,
+    .floating-chip-static {
       animation: none !important;
       transition: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
-  }
-  
-  /* GPU-optimized floating chip */
-  .floating-chip-gpu {
-    will-change: transform;
-    animation: gentle-float 4s ease-in-out infinite;
-  }
-  
-  @keyframes gentle-float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+    
+    .section-reveal {
+      opacity: 1;
+      transform: none;
+    }
   }
   
   /* Passive touch events hint */
