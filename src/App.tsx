@@ -99,6 +99,10 @@ const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyPro
 const LoyaltyTiersPage = lazy(() => import("./pages/loyalty/LoyaltyTiersPage"));
 const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMemberDetailPage"));
 
+// Vendor pages
+const VendorsPage = lazy(() => import("./pages/vendors/VendorsPage"));
+const VendorAttentionPage = lazy(() => import("./pages/vendors/VendorAttentionPage"));
+
 // Lazy loaded pages - Guest
 const GuestLogin = lazy(() => import("./pages/guest/GuestLogin"));
 const GuestFindResort = lazy(() => import("./pages/guest/GuestFindResort"));
@@ -224,6 +228,8 @@ const App = () => (
                   <Route path="loyalty/program" element={<LoyaltyProgramSettingsPage />} />
                   <Route path="loyalty/tiers" element={<LoyaltyTiersPage />} />
                   <Route path="loyalty/members/:id" element={<LoyaltyMemberDetailPage />} />
+                  <Route path="vendors" element={<VendorsPage />} />
+                  <Route path="vendors/attention" element={<VendorAttentionPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
