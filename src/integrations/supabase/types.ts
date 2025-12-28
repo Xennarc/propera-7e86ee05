@@ -81,11 +81,13 @@ export type Database = {
           max_pax_per_booking: number
           min_capacity: number | null
           name: string
+          provider_type: Database["public"]["Enums"]["provider_type"]
           requires_approval: boolean
           resort_id: string
           short_description: string | null
           suitable_for_non_swimmers: boolean
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           age_min?: number | null
@@ -115,11 +117,13 @@ export type Database = {
           max_pax_per_booking?: number
           min_capacity?: number | null
           name: string
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           requires_approval?: boolean
           resort_id: string
           short_description?: string | null
           suitable_for_non_swimmers?: boolean
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           age_min?: number | null
@@ -149,11 +153,13 @@ export type Database = {
           max_pax_per_booking?: number
           min_capacity?: number | null
           name?: string
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           requires_approval?: boolean
           resort_id?: string
           short_description?: string | null
           suitable_for_non_swimmers?: boolean
           updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -161,6 +167,13 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activities_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -178,7 +191,10 @@ export type Database = {
           notes: string | null
           num_adults: number
           num_children: number
+          payout_status: Database["public"]["Enums"]["payout_status"]
           price_per_person: number
+          provider_type: Database["public"]["Enums"]["provider_type"]
+          resort_commission_amount: number | null
           resort_id: string
           room_number: string
           session_id: string
@@ -186,6 +202,13 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at: string
+          vendor_amount: number | null
+          vendor_id: string | null
+          vendor_last_notified_at: string | null
+          vendor_rate_used: number | null
+          vendor_status:
+            | Database["public"]["Enums"]["vendor_booking_status"]
+            | null
         }
         Insert: {
           booking_source?:
@@ -199,7 +222,10 @@ export type Database = {
           notes?: string | null
           num_adults?: number
           num_children?: number
+          payout_status?: Database["public"]["Enums"]["payout_status"]
           price_per_person?: number
+          provider_type?: Database["public"]["Enums"]["provider_type"]
+          resort_commission_amount?: number | null
           resort_id: string
           room_number: string
           session_id: string
@@ -207,6 +233,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          vendor_amount?: number | null
+          vendor_id?: string | null
+          vendor_last_notified_at?: string | null
+          vendor_rate_used?: number | null
+          vendor_status?:
+            | Database["public"]["Enums"]["vendor_booking_status"]
+            | null
         }
         Update: {
           booking_source?:
@@ -220,7 +253,10 @@ export type Database = {
           notes?: string | null
           num_adults?: number
           num_children?: number
+          payout_status?: Database["public"]["Enums"]["payout_status"]
           price_per_person?: number
+          provider_type?: Database["public"]["Enums"]["provider_type"]
+          resort_commission_amount?: number | null
           resort_id?: string
           room_number?: string
           session_id?: string
@@ -228,6 +264,13 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          vendor_amount?: number | null
+          vendor_id?: string | null
+          vendor_last_notified_at?: string | null
+          vendor_rate_used?: number | null
+          vendor_status?:
+            | Database["public"]["Enums"]["vendor_booking_status"]
+            | null
         }
         Relationships: [
           {
@@ -249,6 +292,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_bookings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -438,11 +488,13 @@ export type Database = {
           id: string
           lead_staff_id: string | null
           notes: string | null
+          provider_type: Database["public"]["Enums"]["provider_type"]
           resort_id: string
           resource_id: string | null
           start_time: string
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           activity_id: string
@@ -453,11 +505,13 @@ export type Database = {
           id?: string
           lead_staff_id?: string | null
           notes?: string | null
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           resort_id: string
           resource_id?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           activity_id?: string
@@ -468,11 +522,13 @@ export type Database = {
           id?: string
           lead_staff_id?: string | null
           notes?: string | null
+          provider_type?: Database["public"]["Enums"]["provider_type"]
           resort_id?: string
           resource_id?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -494,6 +550,13 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_sessions_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -2224,6 +2287,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_type: Database["public"]["Enums"]["account_type"]
           created_at: string
           department: string | null
           full_name: string | null
@@ -2235,8 +2299,11 @@ export type Database = {
           temp_password_expires_at: string | null
           updated_at: string
           username: string | null
+          vendor_id: string | null
+          vendor_role: Database["public"]["Enums"]["vendor_role"] | null
         }
         Insert: {
+          account_type?: Database["public"]["Enums"]["account_type"]
           created_at?: string
           department?: string | null
           full_name?: string | null
@@ -2248,8 +2315,11 @@ export type Database = {
           temp_password_expires_at?: string | null
           updated_at?: string
           username?: string | null
+          vendor_id?: string | null
+          vendor_role?: Database["public"]["Enums"]["vendor_role"] | null
         }
         Update: {
+          account_type?: Database["public"]["Enums"]["account_type"]
           created_at?: string
           department?: string | null
           full_name?: string | null
@@ -2261,6 +2331,8 @@ export type Database = {
           temp_password_expires_at?: string | null
           updated_at?: string
           username?: string | null
+          vendor_id?: string | null
+          vendor_role?: Database["public"]["Enums"]["vendor_role"] | null
         }
         Relationships: [
           {
@@ -2268,6 +2340,13 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -3458,6 +3537,151 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_booking_requests: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          message: string
+          resort_id: string
+          status: Database["public"]["Enums"]["vendor_request_status"]
+          type: Database["public"]["Enums"]["vendor_request_type"]
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          message: string
+          resort_id: string
+          status?: Database["public"]["Enums"]["vendor_request_status"]
+          type: Database["public"]["Enums"]["vendor_request_type"]
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resort_id?: string
+          status?: Database["public"]["Enums"]["vendor_request_status"]
+          type?: Database["public"]["Enums"]["vendor_request_type"]
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_booking_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_booking_requests_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_booking_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_resorts: {
+        Row: {
+          ack_sla_minutes: number | null
+          commission_rate_override: number | null
+          created_at: string
+          id: string
+          operational_notes: string | null
+          resort_id: string
+          status: Database["public"]["Enums"]["vendor_resort_status"]
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          ack_sla_minutes?: number | null
+          commission_rate_override?: number | null
+          created_at?: string
+          id?: string
+          operational_notes?: string | null
+          resort_id: string
+          status?: Database["public"]["Enums"]["vendor_resort_status"]
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          ack_sla_minutes?: number | null
+          commission_rate_override?: number | null
+          created_at?: string
+          id?: string
+          operational_notes?: string | null
+          resort_id?: string
+          status?: Database["public"]["Enums"]["vendor_resort_status"]
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_resorts_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_resorts_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          contact_name: string | null
+          created_at: string
+          default_commission_rate: number | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_name?: string | null
+          created_at?: string
+          default_commission_rate?: number | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_name?: string | null
+          created_at?: string
+          default_commission_rate?: number | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -3616,6 +3840,27 @@ export type Database = {
         Returns: {
           permission_key: string
           source: string
+        }[]
+      }
+      get_vendor_bookings: {
+        Args: { p_date_from?: string; p_date_to?: string; p_vendor_id: string }
+        Returns: {
+          activity_name: string
+          booking_id: string
+          created_at: string
+          end_time: string
+          guest_name: string
+          notes: string
+          num_adults: number
+          num_children: number
+          resort_id: string
+          resort_name: string
+          room_number: string
+          session_date: string
+          session_id: string
+          start_time: string
+          total_amount: number
+          vendor_status: Database["public"]["Enums"]["vendor_booking_status"]
         }[]
       }
       guest_add_party_member: {
@@ -3833,6 +4078,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_vendor_for_booking: {
+        Args: { p_booking_id: string; p_user_id: string }
+        Returns: boolean
+      }
       log_access_change: {
         Args: {
           p_action_key: string
@@ -3930,8 +4179,17 @@ export type Database = {
         Args: { p_last_name?: string; p_token: string }
         Returns: Json
       }
+      vendor_update_booking_status: {
+        Args: {
+          p_booking_id: string
+          p_decline_reason?: string
+          p_new_status: Database["public"]["Enums"]["vendor_booking_status"]
+        }
+        Returns: Json
+      }
     }
     Enums: {
+      account_type: "staff" | "guest" | "vendor"
       activity_category: "DIVE" | "EXCURSION" | "WATERSPORT" | "SPA" | "OTHER"
       app_role:
         | "ADMIN"
@@ -3985,10 +4243,12 @@ export type Database = {
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
+      payout_status: "UNBATCHED" | "BATCHED" | "PAID"
       permission_effect: "grant" | "revoke"
       prearrival_link_status: "active" | "expired" | "revoked" | "completed"
       prearrival_status: "not_started" | "partial" | "completed"
       prearrival_verification_mode: "none" | "light" | "otp"
+      provider_type: "IN_HOUSE" | "VENDOR"
       recommendation_response: "YES" | "NO" | "MAYBE"
       recurrence_frequency: "DAILY" | "WEEKLY"
       resort_role:
@@ -4005,6 +4265,16 @@ export type Database = {
       subscription_tier: "ESSENTIAL" | "PROFESSIONAL" | "ELITE"
       travel_party_link_status: "pending" | "linked"
       travel_party_member_type: "adult" | "child"
+      vendor_booking_status:
+        | "PENDING_ACK"
+        | "ACKED"
+        | "DECLINED"
+        | "COMPLETED"
+        | "NO_SHOW"
+      vendor_request_status: "open" | "resolved"
+      vendor_request_type: "REQUEST_CHANGE" | "NOTE"
+      vendor_resort_status: "approved" | "suspended"
+      vendor_role: "vendor_admin" | "vendor_staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4132,6 +4402,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_type: ["staff", "guest", "vendor"],
       activity_category: ["DIVE", "EXCURSION", "WATERSPORT", "SPA", "OTHER"],
       app_role: [
         "ADMIN",
@@ -4191,10 +4462,12 @@ export const Constants = {
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
+      payout_status: ["UNBATCHED", "BATCHED", "PAID"],
       permission_effect: ["grant", "revoke"],
       prearrival_link_status: ["active", "expired", "revoked", "completed"],
       prearrival_status: ["not_started", "partial", "completed"],
       prearrival_verification_mode: ["none", "light", "otp"],
+      provider_type: ["IN_HOUSE", "VENDOR"],
       recommendation_response: ["YES", "NO", "MAYBE"],
       recurrence_frequency: ["DAILY", "WEEKLY"],
       resort_role: [
@@ -4212,6 +4485,17 @@ export const Constants = {
       subscription_tier: ["ESSENTIAL", "PROFESSIONAL", "ELITE"],
       travel_party_link_status: ["pending", "linked"],
       travel_party_member_type: ["adult", "child"],
+      vendor_booking_status: [
+        "PENDING_ACK",
+        "ACKED",
+        "DECLINED",
+        "COMPLETED",
+        "NO_SHOW",
+      ],
+      vendor_request_status: ["open", "resolved"],
+      vendor_request_type: ["REQUEST_CHANGE", "NOTE"],
+      vendor_resort_status: ["approved", "suspended"],
+      vendor_role: ["vendor_admin", "vendor_staff"],
     },
   },
 } as const
