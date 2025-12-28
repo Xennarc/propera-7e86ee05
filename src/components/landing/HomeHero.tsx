@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Smartphone, Monitor, Sparkles, Zap, Users } from 'lucide-react';
+import { ArrowRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { memo } from 'react';
 import { useAnimationPreference } from '@/hooks/useReducedMotion';
-
-// Premium glass frame product preview with floating animation
-const ProductPreview = memo(function ProductPreview({ shouldAnimate }: { shouldAnimate: boolean }) {
+import { InteractiveProductShowcase } from '@/components/illustrations/InteractiveProductShowcase';
   return (
     <div className="relative">
       {/* Floating decorative status chips */}
@@ -135,8 +132,6 @@ const ProductPreview = memo(function ProductPreview({ shouldAnimate }: { shouldA
       </motion.div>
     </div>
   );
-});
-
 const valueChips = [
   'Unlimited staff',
   'Multi-resort ready',
@@ -222,9 +217,9 @@ export function HomeHero() {
             </div>
           </motion.div>
 
-          {/* Right: Product Preview */}
+          {/* Right: Interactive Product Showcase */}
           <div className="relative lg:pl-8" style={{ minHeight: '400px' }}>
-            <ProductPreview shouldAnimate={shouldAnimate} />
+            <InteractiveProductShowcase />
           </div>
         </div>
       </div>
