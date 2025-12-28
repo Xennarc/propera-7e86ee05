@@ -103,53 +103,27 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     ? 'border-primary/30 ring-2 ring-primary/15'
                     : 'border-border/40 hover:border-primary/20'
                 }`}>
-                  {/* Badge ribbon - glassy style with animation */}
+                  {/* Badge ribbon - static for performance */}
                   {isProfessional && (
-                    <motion.div 
-                      className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5"
-                      animate={isHovered && shouldAnimate ? { 
-                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
-                      } : {}}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      style={{ backgroundSize: '200% 100%' }}
-                    >
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5">
                       <span className="flex items-center justify-center gap-1.5">
-                        <motion.div
-                          animate={shouldAnimate ? { rotate: [0, 10, -10, 0] } : {}}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        >
-                          <Crown className="h-3.5 w-3.5" />
-                        </motion.div>
+                        <Crown className="h-3.5 w-3.5" />
                         Most Popular
                       </span>
-                    </motion.div>
+                    </div>
                   )}
                   {isElite && (
-                    <motion.div 
-                      className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm"
-                    >
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm">
                       <span className="flex items-center justify-center gap-1.5">
-                        <motion.div
-                          animate={shouldAnimate ? { scale: [1, 1.2, 1] } : {}}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          <Sparkles className="h-3.5 w-3.5" />
-                        </motion.div>
+                        <Sparkles className="h-3.5 w-3.5" />
                         Premium
                       </span>
-                    </motion.div>
+                    </div>
                   )}
                   
-                  {/* Popular plan glow with animation */}
+                  {/* Popular plan glow - static */}
                   {isProfessional && (
-                    <motion.div 
-                      className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none"
-                      animate={shouldAnimate ? { 
-                        scale: [1, 1.2, 1],
-                        opacity: [0.2, 0.3, 0.2]
-                      } : {}}
-                      transition={{ duration: 3, repeat: Infinity }}
-                    />
+                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
                   )}
                   
                   <CardContent className={`p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>

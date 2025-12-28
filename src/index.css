@@ -1211,10 +1211,23 @@
   @media (prefers-reduced-motion: reduce) {
     .will-animate,
     .animate-pulse,
-    .animate-spin {
+    .animate-spin,
+    .animate-gentle-float,
+    .floating-chip-gpu {
       animation: none !important;
       transition: none !important;
     }
+  }
+  
+  /* GPU-optimized floating chip */
+  .floating-chip-gpu {
+    will-change: transform;
+    animation: gentle-float 4s ease-in-out infinite;
+  }
+  
+  @keyframes gentle-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
   }
   
   /* Passive touch events hint */
