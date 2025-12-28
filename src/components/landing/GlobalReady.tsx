@@ -1,20 +1,14 @@
 import { motion } from 'framer-motion';
 import { Globe } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { useAnimationPreference } from '@/hooks/useReducedMotion';
 
-const regionChips = [
-  'Island resorts',
-  'City resorts',
-  'Mountain retreats',
-];
+const regionChips = ['Island resorts', 'City resorts', 'Mountain retreats'];
 
 export function GlobalReady() {
   const { shouldAnimate } = useAnimationPreference();
 
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
-      {/* Decorative background */}
+    <section className="py-24 bg-background relative overflow-hidden atlas-texture">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-400/5 rounded-full blur-[80px] pointer-events-none" />
 
@@ -23,16 +17,13 @@ export function GlobalReady() {
           initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="max-w-3xl mx-auto text-center"
+          className="max-w-3xl mx-auto text-center globe-wireframe-bg"
         >
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-teal-400/10 flex items-center justify-center text-primary mx-auto mb-8 shadow-lg shadow-primary/10">
             <Globe className="h-8 w-8" />
           </div>
 
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Built for resorts worldwide.
-          </h2>
-          
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Built for resorts worldwide.</h2>
           <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
             From boutique hideaways to multi-property groups — Propera keeps the experience consistent.
           </p>
@@ -46,9 +37,7 @@ export function GlobalReady() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2 + i * 0.1 }}
               >
-                <Badge variant="outline" className="px-4 py-2 text-sm font-medium border-border/50 bg-card/50">
-                  {chip}
-                </Badge>
+                <span className="glass-pill">{chip}</span>
               </motion.div>
             ))}
           </div>
