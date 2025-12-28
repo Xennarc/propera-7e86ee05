@@ -76,15 +76,7 @@ const StepCard = memo(function StepCard({
           {step.number}
         </div>
         
-        {/* Pulse ring on hover */}
-        {isHovered && shouldAnimate && (
-          <motion.div
-            initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ scale: 1.5, opacity: 0 }}
-            transition={{ duration: 0.8, repeat: Infinity }}
-            className="absolute inset-0 rounded-2xl border-2 border-primary"
-          />
-        )}
+        {/* Removed infinite pulse ring - only show subtle scale on hover */}
       </div>
 
       <h3 className="text-lg font-semibold text-foreground mb-2">{step.title}</h3>
@@ -117,28 +109,11 @@ const StepCard = memo(function StepCard({
         </div>
       </motion.div>
 
-      {/* Connector line with animated dot */}
+      {/* Connector line - static, no traveling dot */}
       {!isLast && (
         <div className="hidden md:block absolute top-8 left-[calc(50%+48px)] w-[calc(100%-96px)] h-px">
           <div className="w-full h-full bg-gradient-to-r from-primary/40 via-teal-400/30 to-primary/40" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/40" />
-          
-          {/* Animated traveling dot */}
-          {shouldAnimate && (
-            <motion.div
-              className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-lg shadow-primary/50"
-              animate={{
-                left: ['0%', '100%'],
-                opacity: [0, 1, 1, 0],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: index * 0.5,
-                ease: 'linear',
-              }}
-            />
-          )}
         </div>
       )}
     </motion.div>

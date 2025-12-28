@@ -154,31 +154,24 @@ const ModuleCard = memo(function ModuleCard({
   );
 });
 
-// Floating UI fragments that appear around the section
-function FloatingFragments({ shouldAnimate }: { shouldAnimate: boolean }) {
-  if (!shouldAnimate) return null;
-  
+// Floating UI fragments - static positioning, no infinite animation
+function FloatingFragments() {
   const fragments = [
-    { icon: Calendar, label: 'Today: 8 sessions', position: 'top-20 -left-4', delay: 0 },
-    { icon: Users, label: '24 guests', position: 'top-1/3 -right-8', delay: 0.5 },
-    { icon: Bell, label: '3 new requests', position: 'bottom-1/4 -left-6', delay: 1 },
+    { icon: Calendar, label: 'Today: 8 sessions', position: 'top-20 -left-4' },
+    { icon: Users, label: '24 guests', position: 'top-1/3 -right-8' },
+    { icon: Bell, label: '3 new requests', position: 'bottom-1/4 -left-6' },
   ];
 
   return (
     <>
-      {fragments.map((fragment, i) => (
-        <motion.div
+      {fragments.map((fragment) => (
+        <div
           key={fragment.label}
-          initial={{ opacity: 0, scale: 0.8 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 + fragment.delay }}
-          className={`absolute ${fragment.position} hidden xl:flex items-center gap-2 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm border border-border/40 shadow-lg animate-gentle-float z-10`}
-          style={{ animationDelay: `${fragment.delay}s` }}
+          className={`absolute ${fragment.position} hidden xl:flex items-center gap-2 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm border border-border/40 shadow-lg z-10`}
         >
           <fragment.icon className="h-3.5 w-3.5 text-primary" />
           <span className="text-[10px] font-medium text-foreground">{fragment.label}</span>
-        </motion.div>
+        </div>
       ))}
     </>
   );
@@ -196,7 +189,7 @@ export function PlatformModules() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-lagoon-500/4 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container relative mx-auto px-4 z-10">
-        <FloatingFragments shouldAnimate={shouldAnimate} />
+        <FloatingFragments />
         
         <motion.div
           initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
