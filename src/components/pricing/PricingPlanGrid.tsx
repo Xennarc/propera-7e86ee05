@@ -1,8 +1,10 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useAnimationPreference } from '@/hooks/useReducedMotion';
+import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
 
 interface Plan {
   id: string;
@@ -65,7 +67,8 @@ const PRO_HIGHLIGHTS = [
 
 export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
-  const reducedMotion = useReducedMotion();
+  const [hoveredPlan, setHoveredPlan] = useState<string | null>(null);
+  const { shouldAnimate } = useAnimationPreference();
 
   return (
     <section id="plans" className="py-16 md:py-20 bg-muted/20 relative overflow-hidden scroll-mt-24">
@@ -78,17 +81,20 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
             const config = PLAN_CONFIG[plan.id] || PLAN_CONFIG.essential;
             const Icon = config.icon;
             const isExpanded = expandedPlan === plan.id;
+            const isHovered = hoveredPlan === plan.id;
             const isProfessional = plan.id === 'professional';
             const isElite = plan.id === 'enterprise';
             
             return (
               <motion.div
                 key={plan.id}
-                initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
+                initial={shouldAnimate ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 className={`group ${isProfessional ? 'md:-mt-4 md:mb-4' : ''}`}
+                onMouseEnter={() => setHoveredPlan(plan.id)}
+                onMouseLeave={() => setHoveredPlan(null)}
               >
                 <Card className={`lagoon-glass h-full relative overflow-hidden transition-all duration-200 hover:-translate-y-1 ${
                   isElite 
@@ -97,35 +103,64 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     ? 'border-primary/30 ring-2 ring-primary/15'
                     : 'border-border/40 hover:border-primary/20'
                 }`}>
-                  {/* Badge ribbon - glassy style */}
+                  {/* Badge ribbon - glassy style with animation */}
                   {isProfessional && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5">
+                    <motion.div 
+                      className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5"
+                      animate={isHovered && shouldAnimate ? { 
+                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+                      } : {}}
+                      transition={{ duration: 3, repeat: Infinity }}
+                      style={{ backgroundSize: '200% 100%' }}
+                    >
                       <span className="flex items-center justify-center gap-1.5">
-                        <Crown className="h-3.5 w-3.5" />
+                        <motion.div
+                          animate={shouldAnimate ? { rotate: [0, 10, -10, 0] } : {}}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        >
+                          <Crown className="h-3.5 w-3.5" />
+                        </motion.div>
                         Most Popular
                       </span>
-                    </div>
+                    </motion.div>
                   )}
                   {isElite && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm">
+                    <motion.div 
+                      className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm"
+                    >
                       <span className="flex items-center justify-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5" />
+                        <motion.div
+                          animate={shouldAnimate ? { scale: [1, 1.2, 1] } : {}}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                        </motion.div>
                         Premium
                       </span>
-                    </div>
+                    </motion.div>
                   )}
                   
-                  {/* Popular plan glow */}
+                  {/* Popular plan glow with animation */}
                   {isProfessional && (
-                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
+                    <motion.div 
+                      className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none"
+                      animate={shouldAnimate ? { 
+                        scale: [1, 1.2, 1],
+                        opacity: [0.2, 0.3, 0.2]
+                      } : {}}
+                      transition={{ duration: 3, repeat: Infinity }}
+                    />
                   )}
                   
                   <CardContent className={`p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>
-                    {/* Icon + name */}
+                    {/* Icon + name with animated icon */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`icon-orb-gradient h-12 w-12`}>
-                        <Icon className={`h-6 w-6 text-${config.accent}`} />
-                      </div>
+                      <AnimatedFeatureIcon
+                        icon={Icon}
+                        size="md"
+                        variant="orb"
+                        delay={index * 0.1}
+                      />
                       <div>
                         <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
                       </div>
@@ -141,13 +176,19 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       <span className="font-medium">Recommended for:</span> {config.recommendedFor}
                     </p>
                     
-                    {/* Price */}
-                    <div className="mb-5">
+                    {/* Price with entrance animation */}
+                    <motion.div 
+                      className="mb-5"
+                      initial={shouldAnimate ? { opacity: 0, x: -10 } : { opacity: 1, x: 0 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.2 + index * 0.1 }}
+                    >
                       <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                       {plan.priceUnit && (
                         <span className="text-sm text-muted-foreground ml-2">{plan.priceUnit}</span>
                       )}
-                    </div>
+                    </motion.div>
                     
                     {/* CTA - right after price */}
                     <Button 
@@ -177,35 +218,54 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                           <p className="text-xs font-semibold text-foreground mb-2">Why teams choose this</p>
                           <ul className="space-y-1.5">
                             {PRO_HIGHLIGHTS.map((highlight, i) => (
-                              <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                              <motion.li 
+                                key={i} 
+                                className="flex items-center gap-2 text-xs text-muted-foreground"
+                                initial={shouldAnimate ? { opacity: 0, x: -5 } : { opacity: 1, x: 0 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: 0.3 + i * 0.1 }}
+                              >
+                                <motion.div
+                                  animate={isHovered && shouldAnimate ? { scale: [1, 1.2, 1] } : {}}
+                                  transition={{ delay: i * 0.1 }}
+                                >
+                                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                                </motion.div>
                                 {highlight}
-                              </li>
+                              </motion.li>
                             ))}
                           </ul>
                         </div>
                       )}
                       
-                      {/* Features list */}
+                      {/* Features list with staggered animation */}
                       <div className="mb-5">
                         <p className="text-xs font-semibold text-foreground mb-3">What you get</p>
                         <ul className="space-y-2.5">
                           {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
-                            <li 
+                            <motion.li 
                               key={i} 
                               className="flex items-start gap-2.5 text-sm"
+                              initial={shouldAnimate ? { opacity: 0 } : { opacity: 1 }}
+                              whileInView={{ opacity: 1 }}
+                              viewport={{ once: true }}
+                              transition={{ delay: i * 0.05 }}
                             >
-                              <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                isElite ? 'bg-violet-500/10' : 
-                                isProfessional ? 'bg-primary/10' : 'bg-muted/60'
-                              }`}>
+                              <motion.div 
+                                className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                                  isElite ? 'bg-violet-500/10' : 
+                                  isProfessional ? 'bg-primary/10' : 'bg-muted/60'
+                                }`}
+                                whileHover={shouldAnimate ? { scale: 1.2 } : undefined}
+                              >
                                 <Check className={`h-3 w-3 ${
                                   isElite ? 'text-violet-500' : 
                                   isProfessional ? 'text-primary' : 'text-muted-foreground'
                                 }`} />
-                              </div>
+                              </motion.div>
                               <span className="text-foreground">{feature}</span>
-                            </li>
+                            </motion.li>
                           ))}
                         </ul>
                       </div>
