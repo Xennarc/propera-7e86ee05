@@ -137,7 +137,7 @@ export default function PricingPage() {
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, PRICING_PAGE_SCHEMA]}
       />
 
-      {/* Header */}
+      {/* Header - matches home page */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
@@ -145,16 +145,10 @@ export default function PricingPage() {
             <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
           </Link>
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-1">
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
-                <Link to="/">Home</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium">
-                <Link to="/about">About</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-primary">
-                <Link to="/pricing">Pricing</Link>
-              </Button>
+            <div className="hidden md:flex items-center gap-8">
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
+              <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
+              <Link to="/pricing" className="text-sm text-primary font-medium">Pricing</Link>
             </div>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
           </div>
@@ -171,10 +165,10 @@ export default function PricingPage() {
         <PricingCTASection />
       </main>
 
-      {/* Footer */}
-      <footer className="py-10 bg-card border-t border-border/50">
+      {/* Footer - premium style */}
+      <footer className="footer-premium py-14">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-3">
               <ProperaMark size={36} className="text-primary" />
               <div className="flex flex-col">
@@ -182,10 +176,10 @@ export default function PricingPage() {
                 <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
               </div>
             </Link>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
-              <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
+            <div className="flex items-center gap-8 text-sm text-muted-foreground">
+              <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+              <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
               <span>© {new Date().getFullYear()} Propera</span>
             </div>
           </div>

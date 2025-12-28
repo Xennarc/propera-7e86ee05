@@ -22,6 +22,9 @@ const TRUST_CARDS = [
 export function PricingTrustSection() {
   return (
     <section className="py-16 md:py-20 bg-muted/20 relative overflow-hidden">
+      {/* TideGlow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/4 rounded-full blur-[120px] pointer-events-none" />
+      
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -42,9 +45,9 @@ export function PricingTrustSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="bg-card rounded-2xl border border-border/50 p-6 text-center hover:shadow-lg hover:border-primary/20 transition-all duration-300"
+              className="value-card-premium text-center"
             >
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <div className="icon-orb-gradient mx-auto mb-4">
                 <card.icon className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-foreground mb-2">{card.title}</h3>
