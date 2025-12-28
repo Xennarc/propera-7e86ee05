@@ -33,7 +33,7 @@ export function FloatingUIChip({
       whileInView={{ opacity: 1, scale: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay, duration: 0.4 }}
-      className={`${shouldAnimate ? 'animate-gentle-float' : ''} ${className}`}
+      className={`floating-chip-gpu ${className}`}
       style={{ animationDelay: `${delay}s` }}
     >
       <div className={`
@@ -48,7 +48,7 @@ export function FloatingUIChip({
           {subtext && <span className="text-[10px] text-muted-foreground">{subtext}</span>}
         </div>
         {variant === 'success' && (
-          <span className="w-2 h-2 rounded-full bg-success animate-pulse ml-1" />
+          <span className="w-2 h-2 rounded-full bg-success ml-1" />
         )}
       </div>
     </motion.div>

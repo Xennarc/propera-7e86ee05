@@ -37,7 +37,7 @@ export function PricingHeroSection() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [notificationVisible, setNotificationVisible] = useState(false);
 
-  // Auto-cycle tabs and show notifications
+  // Auto-cycle tabs and show notifications (slower interval for performance)
   useEffect(() => {
     if (!shouldAnimate) return;
     
@@ -46,9 +46,9 @@ export function PricingHeroSection() {
         const currentIndex = previewTabs.findIndex(t => t.id === prev);
         return previewTabs[(currentIndex + 1) % previewTabs.length].id;
       });
-    }, 4000);
+    }, 6000); // Increased from 4s to 6s for less CPU usage
 
-    const notifTimeout = setTimeout(() => setNotificationVisible(true), 2000);
+    const notifTimeout = setTimeout(() => setNotificationVisible(true), 2500);
 
     return () => {
       clearInterval(tabInterval);
@@ -69,13 +69,8 @@ export function PricingHeroSection() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
-          {/* Left - Copy */}
-          <motion.div
-            initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-center lg:text-left"
-          >
+          {/* Left - Copy - instant load, no delay */}
+          <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-[1.1] tracking-tight">
               Pricing, made simple.
             </h1>
@@ -106,37 +101,26 @@ export function PricingHeroSection() {
               See how it looks with your resort's branding.
             </p>
 
-            {/* Value chips with stagger animation */}
+            {/* Value chips - static for instant load */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-8">
-              {VALUE_CHIPS.map((chip, i) => (
-                <motion.span 
-                  key={chip}
-                  initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                  className="glass-pill text-xs"
-                >
+              {VALUE_CHIPS.map((chip) => (
+                <span key={chip} className="glass-pill text-xs">
                   {chip}
-                </motion.span>
+                </span>
               ))}
             </div>
-          </motion.div>
+          </div>
 
           {/* Right - Interactive Product Preview */}
-          <motion.div
-            initial={shouldAnimate ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative hidden lg:block"
-          >
-            {/* Floating status chips */}
+          <div className="relative hidden lg:block">
+            {/* Floating status chips - repositioned to not overlap, pointer-events-none */}
             <FloatingUIChip
               icon={Smartphone}
               text="Guest just booked"
               subtext="Sunset Cruise"
               variant="primary"
               delay={0.8}
-              className="absolute -top-4 -right-4 z-20"
+              className="absolute -top-8 right-12 z-10 pointer-events-none"
             />
 
             <AnimatePresence>
@@ -146,7 +130,7 @@ export function PricingHeroSection() {
                   text="3 guests arriving"
                   variant="success"
                   delay={0}
-                  className="absolute top-1/3 -left-6 z-20"
+                  className="absolute bottom-8 -left-8 z-10 pointer-events-none"
                 />
               )}
             </AnimatePresence>
@@ -178,7 +162,6 @@ export function PricingHeroSection() {
                   <div className="flex-1" />
                   <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2 w-2">
-                      <span className={`${shouldAnimate ? 'animate-ping' : ''} absolute inline-flex h-full w-full rounded-full bg-success opacity-75`} />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
                     </span>
                     <span className="text-[10px] text-success">Live</span>
@@ -295,7 +278,7 @@ export function PricingHeroSection() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
