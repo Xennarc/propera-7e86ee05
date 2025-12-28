@@ -126,7 +126,7 @@ export function HowItWorks() {
 
   return (
     <section className="py-24 bg-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/2 dark:via-primary/5 to-transparent" />
 
       <div className="container relative mx-auto px-4">
         <motion.div

@@ -68,40 +68,40 @@
     --orchid-300: 280 60% 85%;
 
     /* === Core Palette - Light Mode === */
-    --background: 220 20% 97%;
-    --foreground: 220 30% 10%;
+    --background: 220 20% 98%;
+    --foreground: 220 35% 12%;
 
     /* Cards & Surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 220 30% 10%;
+    --card-foreground: 220 35% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 30% 10%;
+    --popover-foreground: 220 35% 12%;
 
     /* === Primary: Muted Teal === */
-    --primary: var(--teal-500);
+    --primary: var(--teal-600);
     --primary-foreground: 0 0% 100%;
 
     /* === Secondary: Warm Sand Beige === */
-    --secondary: var(--sand-400);
-    --secondary-foreground: 220 30% 15%;
+    --secondary: var(--sand-300);
+    --secondary-foreground: 220 35% 15%;
 
     /* === Muted Surfaces === */
     --muted: 220 15% 94%;
-    --muted-foreground: 220 15% 45%;
+    --muted-foreground: 220 20% 40%;
 
     /* === Accent: Sand Beige Highlight === */
     --accent: var(--sand-200);
-    --accent-foreground: 38 50% 25%;
+    --accent-foreground: 38 55% 22%;
 
     /* Destructive */
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 55%;
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & Input */
-    --border: 220 15% 88%;
-    --input: 220 15% 88%;
-    --ring: var(--teal-400);
+    --border: 220 15% 85%;
+    --input: 220 15% 85%;
+    --ring: var(--teal-500);
 
     /* Radius */
     --radius: 0.75rem;
@@ -117,72 +117,72 @@
     --sidebar-ring: var(--teal-400);
 
     /* === Status Colors === */
-    --success: 160 84% 39%;
+    --success: 160 70% 35%;
     --success-foreground: 0 0% 100%;
-    --warning: var(--sunset-500);
-    --warning-foreground: 45 100% 15%;
-    --info: var(--lagoon-500);
+    --warning: var(--sunset-600);
+    --warning-foreground: 45 100% 10%;
+    --info: var(--lagoon-600);
     --info-foreground: 0 0% 100%;
 
     /* === Category Colors (Light Mode) === */
-    --category-dive: var(--lagoon-500);
-    --category-watersport: var(--teal-500);
-    --category-excursion: var(--sunset-500);
-    --category-spa: var(--orchid-500);
-    --category-dining: var(--sand-500);
-    --category-bar: var(--coral-500);
-    --category-fitness: 160 70% 42%;
-    --category-kids: var(--teal-300);
-    --category-snorkeling: var(--lagoon-400);
-    --category-transfer: 220 15% 50%;
-    --category-other: 220 15% 50%;
+    --category-dive: var(--lagoon-600);
+    --category-watersport: var(--teal-600);
+    --category-excursion: var(--sunset-600);
+    --category-spa: var(--orchid-600);
+    --category-dining: var(--sand-600);
+    --category-bar: var(--coral-600);
+    --category-fitness: 160 70% 38%;
+    --category-kids: var(--teal-500);
+    --category-snorkeling: var(--lagoon-500);
+    --category-transfer: 220 20% 45%;
+    --category-other: 220 20% 45%;
 
     /* === Chart Palette === */
-    --chart-1: var(--teal-500);
-    --chart-2: var(--sand-500);
-    --chart-3: var(--lagoon-500);
-    --chart-4: var(--coral-500);
-    --chart-5: var(--orchid-500);
-    --chart-6: var(--sunset-500);
+    --chart-1: var(--teal-600);
+    --chart-2: var(--sand-600);
+    --chart-3: var(--lagoon-600);
+    --chart-4: var(--coral-600);
+    --chart-5: var(--orchid-600);
+    --chart-6: var(--sunset-600);
 
     /* === Premium Gradients === */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--teal-500)) 0%, hsl(var(--teal-400)) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--teal-600)) 0%, hsl(var(--teal-500)) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(var(--sand-400)) 0%, hsl(var(--sand-300)) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(220 20% 97%) 0%, hsl(220 15% 95%) 100%);
-    --gradient-coral: linear-gradient(135deg, hsl(var(--coral-500)) 0%, hsl(var(--coral-400)) 100%);
-    --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
-    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-500)) 0%, hsl(var(--sunset-400)) 100%);
-    --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-500)) 0%, hsl(var(--orchid-400)) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(220 20% 98%) 0%, hsl(220 15% 96%) 100%);
+    --gradient-coral: linear-gradient(135deg, hsl(var(--coral-600)) 0%, hsl(var(--coral-500)) 100%);
+    --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-600)) 0%, hsl(var(--lagoon-500)) 100%);
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-600)) 0%, hsl(var(--sunset-500)) 100%);
+    --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-600)) 0%, hsl(var(--orchid-500)) 100%);
   }
 
   .dark {
     /* === Dark Theme - Deep Navy Night === */
     --background: var(--navy-900);
-    --foreground: 220 15% 95%;
+    --foreground: 220 20% 92%;
 
     --card: var(--navy-800);
-    --card-foreground: 220 15% 95%;
+    --card-foreground: 220 20% 92%;
 
     --popover: var(--navy-800);
-    --popover-foreground: 220 15% 95%;
+    --popover-foreground: 220 20% 92%;
 
-    /* === Primary: Muted Teal === */
+    /* === Primary: Brighter Teal for Dark Mode === */
     --primary: var(--teal-400);
     --primary-foreground: var(--navy-950);
 
     /* === Secondary: Sand Beige on Dark === */
-    --secondary: 38 30% 18%;
-    --secondary-foreground: var(--sand-400);
+    --secondary: 38 25% 20%;
+    --secondary-foreground: var(--sand-300);
 
     /* === Muted Surfaces === */
     --muted: var(--navy-700);
-    --muted-foreground: 220 15% 60%;
+    --muted-foreground: 220 18% 65%;
 
     /* === Accent === */
-    --accent: 38 25% 15%;
-    --accent-foreground: var(--sand-400);
+    --accent: 38 25% 18%;
+    --accent-foreground: var(--sand-300);
 
-    --destructive: 0 72% 50%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
     --border: var(--navy-600);
@@ -191,34 +191,34 @@
 
     /* === Sidebar - Deeper Navy === */
     --sidebar-background: var(--navy-950);
-    --sidebar-foreground: 220 15% 95%;
+    --sidebar-foreground: 220 20% 92%;
     --sidebar-primary: var(--teal-400);
     --sidebar-primary-foreground: var(--navy-950);
     --sidebar-accent: var(--navy-800);
-    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-accent-foreground: 220 20% 92%;
     --sidebar-border: var(--navy-700);
     --sidebar-ring: var(--teal-400);
 
     /* === Status Colors === */
-    --success: 160 84% 39%;
+    --success: 160 75% 45%;
     --success-foreground: 160 90% 10%;
-    --warning: var(--sunset-500);
+    --warning: var(--sunset-400);
     --warning-foreground: 45 100% 10%;
-    --info: var(--lagoon-500);
+    --info: var(--lagoon-400);
     --info-foreground: 217 90% 10%;
 
-    /* === Category Colors (Dark Mode - slightly brighter) === */
+    /* === Category Colors (Dark Mode - brighter for readability) === */
     --category-dive: var(--lagoon-400);
     --category-watersport: var(--teal-400);
     --category-excursion: var(--sunset-400);
     --category-spa: var(--orchid-400);
     --category-dining: var(--sand-400);
     --category-bar: var(--coral-400);
-    --category-fitness: 160 70% 50%;
+    --category-fitness: 160 65% 50%;
     --category-kids: var(--teal-300);
     --category-snorkeling: var(--lagoon-300);
-    --category-transfer: 220 15% 60%;
-    --category-other: 220 15% 60%;
+    --category-transfer: 220 18% 65%;
+    --category-other: 220 18% 65%;
 
     /* === Chart Palette (Dark Mode) === */
     --chart-1: var(--teal-400);
@@ -230,7 +230,7 @@
 
     /* === Premium Gradients === */
     --gradient-primary: linear-gradient(135deg, hsl(var(--teal-500)) 0%, hsl(var(--teal-400)) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(38 30% 25%) 0%, hsl(38 35% 35%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(38 28% 25%) 0%, hsl(38 32% 35%) 100%);
     --gradient-surface: linear-gradient(180deg, hsl(var(--navy-900)) 0%, hsl(var(--navy-800)) 100%);
     --gradient-coral: linear-gradient(135deg, hsl(var(--coral-500)) 0%, hsl(var(--coral-400)) 100%);
     --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-500)) 0%, hsl(var(--lagoon-400)) 100%);
@@ -595,11 +595,19 @@
 
   /* === Lagoon Glass Surfaces === */
   .lagoon-glass {
-    @apply relative bg-card/60 backdrop-blur-xl border border-border/30;
+    @apply relative bg-card/80 backdrop-blur-xl border border-border/40;
     box-shadow: 
       0 0 0 1px hsl(var(--primary) / 0.05) inset,
-      0 8px 32px -8px hsl(var(--primary) / 0.08),
-      0 4px 16px -4px rgb(0 0 0 / 0.1);
+      0 8px 32px -8px hsl(var(--primary) / 0.06),
+      0 4px 16px -4px rgb(0 0 0 / 0.08);
+  }
+
+  .dark .lagoon-glass {
+    @apply bg-card/60 border-border/30;
+    box-shadow: 
+      0 0 0 1px hsl(var(--primary) / 0.08) inset,
+      0 8px 32px -8px hsl(var(--primary) / 0.1),
+      0 4px 16px -4px rgb(0 0 0 / 0.15);
   }
 
   .lagoon-glass::before {
@@ -612,19 +620,27 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      hsl(var(--primary) / 0.3) 20%,
-      hsl(var(--teal-300) / 0.4) 50%,
-      hsl(var(--primary) / 0.3) 80%,
+      hsl(var(--primary) / 0.25) 20%,
+      hsl(var(--teal-400) / 0.35) 50%,
+      hsl(var(--primary) / 0.25) 80%,
       transparent 100%
     );
   }
 
   .lagoon-glass-subtle {
-    @apply relative bg-card/40 backdrop-blur-lg border border-border/20;
+    @apply relative bg-card/60 backdrop-blur-lg border border-border/30;
     box-shadow: 
       0 0 0 1px hsl(var(--primary) / 0.03) inset,
-      0 4px 16px -4px hsl(var(--primary) / 0.05),
-      0 2px 8px -2px rgb(0 0 0 / 0.06);
+      0 4px 16px -4px hsl(var(--primary) / 0.04),
+      0 2px 8px -2px rgb(0 0 0 / 0.05);
+  }
+
+  .dark .lagoon-glass-subtle {
+    @apply bg-card/40 border-border/20;
+    box-shadow: 
+      0 0 0 1px hsl(var(--primary) / 0.05) inset,
+      0 4px 16px -4px hsl(var(--primary) / 0.08),
+      0 2px 8px -2px rgb(0 0 0 / 0.1);
   }
 
   /* === Atlas Lines Texture === */
@@ -646,16 +662,16 @@
   /* === Premium Hero Background === */
   .hero-premium-bg {
     background: 
-      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--primary) / 0.12) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 40% at 80% 20%, hsl(var(--lagoon-500) / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse 50% 60% at 60% 80%, hsl(var(--teal-400) / 0.06) 0%, transparent 50%),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--navy-900)) 100%);
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--teal-500) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, hsl(var(--lagoon-500) / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 60% at 60% 80%, hsl(var(--teal-400) / 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 18% 96%) 100%);
   }
 
   .dark .hero-premium-bg {
     background: 
-      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--primary) / 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 40% at 80% 20%, hsl(var(--lagoon-500) / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 50% at 20% 40%, hsl(var(--primary) / 0.18) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 80% 20%, hsl(var(--lagoon-500) / 0.12) 0%, transparent 50%),
       radial-gradient(ellipse 50% 60% at 60% 80%, hsl(var(--teal-400) / 0.08) 0%, transparent 50%),
       linear-gradient(180deg, hsl(var(--navy-900)) 0%, hsl(var(--navy-950)) 100%);
   }
@@ -725,9 +741,14 @@
 
   /* === Premium Value Card === */
   .value-card-premium {
-    @apply relative bg-card/80 rounded-2xl border border-border/40 p-8;
+    @apply relative bg-card rounded-2xl border border-border/50 p-8;
     @apply transition-all duration-200;
-    box-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.08);
+    box-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.06);
+  }
+
+  .dark .value-card-premium {
+    @apply bg-card/80;
+    box-shadow: 0 4px 16px -4px rgb(0 0 0 / 0.2);
   }
 
   .value-card-premium::before {
@@ -739,7 +760,7 @@
     background: linear-gradient(
       135deg,
       transparent 0%,
-      hsl(var(--primary) / 0.1) 50%,
+      hsl(var(--primary) / 0.15) 50%,
       transparent 100%
     );
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -753,8 +774,14 @@
   .value-card-premium:hover {
     @apply -translate-y-1;
     box-shadow: 
-      0 8px 24px -8px hsl(var(--primary) / 0.15),
-      0 4px 12px -2px rgb(0 0 0 / 0.1);
+      0 8px 24px -8px hsl(var(--primary) / 0.12),
+      0 4px 12px -2px rgb(0 0 0 / 0.08);
+  }
+
+  .dark .value-card-premium:hover {
+    box-shadow: 
+      0 8px 24px -8px hsl(var(--primary) / 0.2),
+      0 4px 12px -2px rgb(0 0 0 / 0.15);
   }
 
   .value-card-premium:hover::before {
@@ -764,16 +791,21 @@
   /* === Gradient Orb Icon Container === */
   .icon-orb-gradient {
     @apply w-14 h-14 rounded-2xl flex items-center justify-center;
-    background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--teal-400) / 0.1) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--teal-400) / 0.08) 100%);
     box-shadow: 
-      0 0 0 1px hsl(var(--primary) / 0.1) inset,
-      0 4px 12px -4px hsl(var(--primary) / 0.1);
+      0 0 0 1px hsl(var(--primary) / 0.08) inset,
+      0 4px 12px -4px hsl(var(--primary) / 0.08);
     transition: all 0.2s;
+  }
+
+  .dark .icon-orb-gradient {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--teal-400) / 0.12) 100%);
   }
 
   .value-card-premium:hover .icon-orb-gradient {
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--teal-400)) 100%);
-    box-shadow: 0 4px 16px -4px hsl(var(--primary) / 0.3);
+    box-shadow: 0 4px 16px -4px hsl(var(--primary) / 0.35);
+    @apply text-primary-foreground;
   }
 
   /* === Module Card Premium === */
@@ -828,19 +860,33 @@
 
   /* === Glass Pills === */
   .glass-pill {
-    @apply inline-flex items-center px-5 py-2.5 rounded-full text-sm font-medium;
-    @apply bg-card/60 backdrop-blur-lg border border-border/30;
+    @apply inline-flex items-center px-5 py-2.5 rounded-full text-sm font-medium text-foreground;
+    @apply bg-card/80 backdrop-blur-lg border border-border/40;
     @apply transition-all duration-200;
     box-shadow: 
-      0 0 0 1px hsl(var(--primary) / 0.05) inset,
-      0 2px 8px -2px rgb(0 0 0 / 0.08);
+      0 0 0 1px hsl(var(--primary) / 0.04) inset,
+      0 2px 8px -2px rgb(0 0 0 / 0.06);
+  }
+
+  .dark .glass-pill {
+    @apply bg-card/60 border-border/30;
+    box-shadow: 
+      0 0 0 1px hsl(var(--primary) / 0.08) inset,
+      0 2px 8px -2px rgb(0 0 0 / 0.15);
   }
 
   .glass-pill:hover {
-    @apply bg-card/80 border-primary/20;
+    @apply bg-card border-primary/25;
     box-shadow: 
       0 0 0 1px hsl(var(--primary) / 0.1) inset,
-      0 4px 12px -2px hsl(var(--primary) / 0.1);
+      0 4px 12px -2px hsl(var(--primary) / 0.08);
+  }
+
+  .dark .glass-pill:hover {
+    @apply bg-card/80 border-primary/20;
+    box-shadow: 
+      0 0 0 1px hsl(var(--primary) / 0.12) inset,
+      0 4px 12px -2px hsl(var(--primary) / 0.12);
   }
 
   /* === CTA Spotlight === */
@@ -890,8 +936,12 @@
 
   /* === Ghost Button Premium === */
   .btn-ghost-premium {
-    @apply relative bg-card/20 backdrop-blur-sm border border-border/50;
+    @apply relative bg-card/40 backdrop-blur-sm border border-border/60 text-foreground;
     @apply transition-all duration-200;
+  }
+
+  .dark .btn-ghost-premium {
+    @apply bg-card/30 border-border/50;
   }
 
   .btn-ghost-premium::before {

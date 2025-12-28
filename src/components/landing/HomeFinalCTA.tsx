@@ -15,8 +15,8 @@ export function HomeFinalCTA() {
       <RibbonDivider className="mb-0" variant="accent" />
       
       <div className="py-24 cta-spotlight atlas-texture">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-teal-400/8" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/12 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 dark:from-primary/10 via-background to-teal-400/5 dark:to-teal-400/10" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/8 dark:bg-primary/15 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="container relative mx-auto px-4 z-10">
           <motion.div

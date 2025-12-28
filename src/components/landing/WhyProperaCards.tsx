@@ -114,11 +114,11 @@ export function WhyProperaCards() {
 
   return (
     <section className="py-24 bg-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/2 dark:via-primary/5 to-transparent" />
       
-      {/* Static decorative elements - no infinite animations */}
-      <div className="absolute top-20 left-[15%] w-20 h-20 rounded-full bg-primary/5 blur-xl pointer-events-none" />
-      <div className="absolute bottom-20 right-[20%] w-32 h-32 rounded-full bg-teal-400/5 blur-xl pointer-events-none" />
+      {/* Static decorative elements - adjusted for both modes */}
+      <div className="absolute top-20 left-[15%] w-20 h-20 rounded-full bg-primary/3 dark:bg-primary/8 blur-xl pointer-events-none" />
+      <div className="absolute bottom-20 right-[20%] w-32 h-32 rounded-full bg-teal-400/3 dark:bg-teal-400/8 blur-xl pointer-events-none" />
 
       <div className="container relative mx-auto px-4">
         <motion.div

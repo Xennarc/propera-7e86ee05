@@ -9,10 +9,10 @@ export function PricingTeaser() {
 
   return (
     <section className="py-24 bg-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/3 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/2 dark:via-primary/5 to-transparent" />
       
       {/* Subtle lagoon glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-primary/3 dark:bg-primary/8 rounded-full blur-[80px] pointer-events-none" />
 
       <div className="container relative mx-auto px-4">
         <motion.div

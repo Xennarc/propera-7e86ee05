@@ -19,13 +19,13 @@ export function HomeHero() {
 
   return (
     <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden hero-premium-bg grain-overlay atlas-texture">
-      {/* Lagoon glow spotlights */}
-      <div className="absolute top-1/4 right-0 w-[600px] md:w-[900px] h-[600px] md:h-[900px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] md:w-[700px] h-[400px] md:h-[700px] bg-teal-400/12 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-lagoon-500/8 rounded-full blur-[100px] pointer-events-none" />
+      {/* Lagoon glow spotlights - adjusted for both modes */}
+      <div className="absolute top-1/4 right-0 w-[600px] md:w-[900px] h-[600px] md:h-[900px] bg-primary/8 dark:bg-primary/12 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] md:w-[700px] h-[400px] md:h-[700px] bg-teal-400/8 dark:bg-teal-400/15 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-lagoon-500/5 dark:bg-lagoon-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Soft radial glow behind headline */}
-      <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-primary/12 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-primary/8 dark:bg-primary/15 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
