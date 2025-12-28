@@ -41,7 +41,7 @@ const PLAN_CONFIG: Record<string, {
   },
   professional: { 
     icon: Monitor, 
-    gradient: 'from-primary/10 to-primary/5',
+    gradient: 'from-primary/15 to-primary/5',
     accent: 'primary',
     tagline: 'The full Propera experience — balanced, complete, and effortless.',
     recommendedFor: 'Day-to-day operations across departments.',
@@ -49,7 +49,7 @@ const PLAN_CONFIG: Record<string, {
   },
   enterprise: { 
     icon: BarChart3, 
-    gradient: 'from-violet-500/10 to-violet-500/5',
+    gradient: 'from-violet-500/15 to-violet-500/5',
     accent: 'violet-500',
     tagline: 'Built for scale — with the finish of a luxury product.',
     recommendedFor: 'High-volume resorts and multi-property groups.',
@@ -69,6 +69,9 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
 
   return (
     <section id="plans" className="py-16 md:py-20 bg-muted/20 relative overflow-hidden scroll-mt-24">
+      {/* TideGlow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
+      
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
@@ -87,16 +90,16 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                 transition={{ delay: index * 0.1 }}
                 className={`group ${isProfessional ? 'md:-mt-4 md:mb-4' : ''}`}
               >
-                <Card className={`h-full relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
+                <Card className={`lagoon-glass h-full relative overflow-hidden transition-all duration-200 hover:-translate-y-1 ${
                   isElite 
-                    ? 'border-violet-500/30 bg-gradient-to-b from-card to-violet-500/5' 
+                    ? 'border-violet-500/20 ring-1 ring-violet-500/10' 
                     : isProfessional
-                    ? 'border-primary/40 ring-2 ring-primary/20 shadow-lg bg-gradient-to-b from-card to-primary/5'
-                    : 'border-border/50 hover:border-primary/30'
+                    ? 'border-primary/30 ring-2 ring-primary/15'
+                    : 'border-border/40 hover:border-primary/20'
                 }`}>
-                  {/* Badge ribbon */}
+                  {/* Badge ribbon - glassy style */}
                   {isProfessional && (
-                    <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-xs font-semibold text-center py-2">
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5">
                       <span className="flex items-center justify-center gap-1.5">
                         <Crown className="h-3.5 w-3.5" />
                         Most Popular
@@ -104,7 +107,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     </div>
                   )}
                   {isElite && (
-                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-600 to-purple-600 text-primary-foreground text-xs font-semibold text-center py-2">
+                    <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm">
                       <span className="flex items-center justify-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5" />
                         Premium
@@ -112,10 +115,15 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     </div>
                   )}
                   
-                  <CardContent className={`p-6 ${(isProfessional || isElite) ? 'pt-12' : ''}`}>
+                  {/* Popular plan glow */}
+                  {isProfessional && (
+                    <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
+                  )}
+                  
+                  <CardContent className={`p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>
                     {/* Icon + name */}
                     <div className="flex items-center gap-3 mb-3">
-                      <div className={`h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${config.gradient}`}>
+                      <div className={`icon-orb-gradient h-12 w-12`}>
                         <Icon className={`h-6 w-6 text-${config.accent}`} />
                       </div>
                       <div>
@@ -146,10 +154,10 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       asChild 
                       className={`w-full rounded-xl font-semibold h-11 transition-all duration-200 ${
                         isElite 
-                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-primary-foreground shadow-md' 
+                          ? 'bg-gradient-to-r from-violet-500/90 to-purple-500/90 hover:from-violet-600 hover:to-purple-600 text-primary-foreground shadow-lg shadow-violet-500/20' 
                           : isProfessional
-                          ? 'shadow-md'
-                          : ''
+                          ? 'btn-cta-premium text-primary-foreground'
+                          : 'bg-card hover:bg-muted border border-border/50'
                       }`}
                       variant={isProfessional ? 'default' : isElite ? 'default' : 'secondary'}
                     >
@@ -162,10 +170,10 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                     <p className="text-xs text-muted-foreground text-center mt-3 mb-6">{config.ctaHelper}</p>
                     
                     {/* Separator */}
-                    <div className="border-t border-border/50 pt-5">
+                    <div className="border-t border-border/30 pt-5">
                       {/* Pro highlights */}
                       {isProfessional && (
-                        <div className="mb-5 p-4 rounded-xl bg-primary/5 border border-primary/20">
+                        <div className="mb-5 p-4 rounded-xl bg-primary/5 border border-primary/15">
                           <p className="text-xs font-semibold text-foreground mb-2">Why teams choose this</p>
                           <ul className="space-y-1.5">
                             {PRO_HIGHLIGHTS.map((highlight, i) => (
@@ -188,8 +196,8 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                               className="flex items-start gap-2.5 text-sm"
                             >
                               <div className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                                isElite ? 'bg-violet-500/15' : 
-                                isProfessional ? 'bg-primary/15' : 'bg-muted'
+                                isElite ? 'bg-violet-500/10' : 
+                                isProfessional ? 'bg-primary/10' : 'bg-muted/60'
                               }`}>
                                 <Check className={`h-3 w-3 ${
                                   isElite ? 'text-violet-500' : 
@@ -214,7 +222,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       
                       {/* Usage info */}
                       {(plan.usage || plan.overage) && (
-                        <div className="p-3 rounded-lg bg-muted/40 border border-border/30">
+                        <div className="p-3 rounded-lg bg-muted/30 border border-border/20">
                           <p className="text-xs font-medium text-foreground mb-1">Included usage</p>
                           {plan.usage && <p className="text-xs text-muted-foreground">{plan.usage}</p>}
                           {plan.overage && <p className="text-xs text-muted-foreground mt-1">{plan.overage}</p>}

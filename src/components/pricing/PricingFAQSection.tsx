@@ -20,7 +20,7 @@ interface PricingFAQSectionProps {
 export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
   return (
     <section className="py-16 md:py-20 bg-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/3 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-transparent" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
@@ -55,7 +55,7 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
               >
                 <AccordionItem 
                   value={`faq-${index}`}
-                  className="bg-background/80 backdrop-blur-sm rounded-xl border border-border/50 px-5 overflow-hidden transition-all duration-200 hover:border-primary/30 data-[state=open]:border-primary/30"
+                  className="lagoon-glass-subtle rounded-xl px-5 overflow-hidden transition-all duration-200 hover:border-primary/20 data-[state=open]:border-primary/30 data-[state=open]:bg-card/80"
                 >
                   <AccordionTrigger className="text-left font-medium text-foreground hover:no-underline py-4 text-sm [&[data-state=open]>svg]:rotate-180">
                     <span className="pr-4">{faq.question}</span>
@@ -73,13 +73,13 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="mt-10 p-6 rounded-2xl bg-muted/30 border border-border/50 text-center"
+            className="mt-10 lagoon-glass p-6 rounded-2xl text-center"
           >
             <h3 className="font-semibold text-foreground mb-2">Not sure which plan fits?</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Tell us your resort size and departments — we'll recommend the best fit.
             </p>
-            <Button asChild size="sm" className="rounded-full">
+            <Button asChild size="sm" className="btn-cta-premium rounded-full text-primary-foreground">
               <a href="mailto:hello@propera.io?subject=Help me choose a plan">
                 Book a demo
                 <ArrowRight className="ml-2 h-4 w-4" />

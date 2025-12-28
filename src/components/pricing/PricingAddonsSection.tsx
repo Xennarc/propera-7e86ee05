@@ -19,34 +19,18 @@ interface PricingAddonsSectionProps {
 }
 
 const ADDON_CONFIG: Record<string, { icon: typeof Package; vibe: string }> = {
-  'Loyalty Program Suite': { 
-    icon: Sparkles, 
-    vibe: 'Build lasting guest relationships.' 
-  },
-  'Analytics Plus': { 
-    icon: BarChart2, 
-    vibe: 'Deeper visibility for data-driven teams.' 
-  },
-  'Premium Support': { 
-    icon: Headphones, 
-    vibe: 'Faster answers when you need them.' 
-  },
-  'Managed Content': { 
-    icon: FileEdit, 
-    vibe: 'A finishing touch for teams that want more polish.' 
-  },
+  'Loyalty Program Suite': { icon: Sparkles, vibe: 'Build lasting guest relationships.' },
+  'Analytics Plus': { icon: BarChart2, vibe: 'Deeper visibility for data-driven teams.' },
+  'Premium Support': { icon: Headphones, vibe: 'Faster answers when you need them.' },
+  'Managed Content': { icon: FileEdit, vibe: 'A finishing touch for teams that want more polish.' },
 };
 
-const ONBOARDING_STEPS = [
-  'Resort setup',
-  'Catalog & branding',
-  'Training & launch check',
-];
+const ONBOARDING_STEPS = ['Resort setup', 'Catalog & branding', 'Training & launch check'];
 
 export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectionProps) {
   return (
     <section className="py-16 md:py-20 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/3 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-transparent" />
       
       <div className="container mx-auto px-4 relative z-10">
         {/* Enhancements */}
@@ -79,9 +63,9 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-card rounded-xl border border-border/50 p-5 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+                className="module-card-premium"
               >
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                <div className="icon-orb-gradient h-10 w-10 mb-3">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{addon.name}</h3>
@@ -100,7 +84,7 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
           viewport={{ once: true }}
           className="max-w-3xl mx-auto"
         >
-          <div className="bg-card rounded-2xl border border-border/50 p-8">
+          <div className="lagoon-glass rounded-2xl p-8">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="text-center md:text-left">
                 <h3 className="text-xl font-bold text-foreground mb-2">White-glove onboarding</h3>
