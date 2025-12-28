@@ -27,7 +27,7 @@ export function InteractiveProductShowcase() {
   const [activeTab, setActiveTab] = useState('guest');
   const [typingIndex, setTypingIndex] = useState(0);
 
-  // Auto-cycle through tabs
+  // Auto-cycle through tabs - slower for performance
   useEffect(() => {
     if (!shouldAnimate) return;
     const interval = setInterval(() => {
@@ -35,7 +35,7 @@ export function InteractiveProductShowcase() {
         const currentIndex = tabs.findIndex(t => t.id === prev);
         return tabs[(currentIndex + 1) % tabs.length].id;
       });
-    }, 4000);
+    }, 6000); // Increased from 4s to 6s
     return () => clearInterval(interval);
   }, [shouldAnimate]);
 
@@ -54,14 +54,14 @@ export function InteractiveProductShowcase() {
 
   return (
     <div className="relative">
-      {/* Floating status chips */}
+      {/* Floating status chips - repositioned to not overlap, pointer-events-none */}
       <FloatingUIChip 
         icon={Bell}
         text="New booking" 
         subtext="Just now"
         variant="primary"
         delay={0.8}
-        className="absolute -top-4 -right-6 z-20 hidden lg:block"
+        className="absolute -top-8 right-4 z-10 pointer-events-none hidden lg:block"
       />
       
       <FloatingUIChip 
@@ -69,16 +69,11 @@ export function InteractiveProductShowcase() {
         text="5 guests arriving" 
         variant="success"
         delay={1.2}
-        className="absolute top-1/3 -left-8 z-20 hidden lg:block"
+        className="absolute bottom-8 -left-10 z-10 pointer-events-none hidden lg:block"
       />
 
-      {/* Main showcase frame */}
-      <motion.div
-        initial={shouldAnimate ? { opacity: 0, scale: 0.95, y: 20 } : { opacity: 1, scale: 1, y: 0 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className={`preview-frame-premium ${shouldAnimate ? 'animate-gentle-float' : ''}`}
-      >
+      {/* Main showcase frame - instant load */}
+      <div className="preview-frame-premium">
         {/* Tab bar */}
         <div className="flex items-center gap-1 px-4 py-3 border-b border-border/30 bg-muted/30">
           {tabs.map((tab) => (
@@ -100,7 +95,6 @@ export function InteractiveProductShowcase() {
           <div className="flex-1" />
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
-              <span className={`${shouldAnimate ? 'animate-ping' : ''} absolute inline-flex h-full w-full rounded-full bg-success opacity-75`} />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
             </span>
             <span className="text-[10px] text-success">Live</span>
@@ -244,15 +238,15 @@ export function InteractiveProductShowcase() {
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Bottom floating chip */}
+      {/* Bottom floating chip - repositioned */}
       <FloatingUIChip 
         icon={ChefHat}
         text="Dinner reservation" 
         subtext="Table for 4 at 7pm"
         delay={1.5}
-        className="absolute -bottom-6 -right-4 hidden md:block"
+        className="absolute -bottom-8 right-8 z-10 pointer-events-none hidden md:block"
       />
     </div>
   );

@@ -2,8 +2,6 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
 import { InteractiveProductShowcase } from '@/components/illustrations/InteractiveProductShowcase';
 
 const valueChips = [
@@ -14,8 +12,6 @@ const valueChips = [
 ];
 
 export function HomeHero() {
-  const { shouldAnimate } = useAnimationPreference();
-
   const scrollToProduct = () => {
     const el = document.getElementById('platform-overview');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
@@ -33,16 +29,11 @@ export function HomeHero() {
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left: Copy */}
-          <motion.div
-            initial={shouldAnimate ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-xl relative z-10"
-          >
+          {/* Left: Copy - instant load for fast FCP */}
+          <div className="max-w-xl relative z-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-[1.1] tracking-tight">
               Resort operations.{' '}
-              <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-shimmer">
+              <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
                 Beautifully organized.
               </span>
             </h1>
@@ -74,22 +65,15 @@ export function HomeHero() {
               </Button>
             </div>
 
-            {/* Value Chips */}
+            {/* Value Chips - static for instant load */}
             <div className="flex flex-wrap gap-2">
-              {valueChips.map((chip, i) => (
-                <motion.div
-                  key={chip}
-                  initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                >
-                  <Badge variant="secondary" className="px-3 py-1.5 text-xs font-medium bg-card/60 backdrop-blur-sm border border-border/30 hover:bg-card/80 transition-colors">
-                    {chip}
-                  </Badge>
-                </motion.div>
+              {valueChips.map((chip) => (
+                <Badge key={chip} variant="secondary" className="px-3 py-1.5 text-xs font-medium bg-card/60 backdrop-blur-sm border border-border/30 hover:bg-card/80 transition-colors">
+                  {chip}
+                </Badge>
               ))}
             </div>
-          </motion.div>
+          </div>
 
           {/* Right: Interactive Product Showcase */}
           <div className="relative lg:pl-8" style={{ minHeight: '400px' }}>
