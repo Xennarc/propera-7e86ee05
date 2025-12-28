@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { HelpCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 interface FAQ {
   question: string;
@@ -18,42 +18,32 @@ interface PricingFAQSectionProps {
 }
 
 export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
+  const { ref, revealed } = useScrollReveal();
+
   return (
     <section className="py-16 md:py-20 bg-card relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-transparent" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-10"
+        <div
+          ref={ref}
+          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            <HelpCircle className="h-4 w-4" />
-            Questions
+          <div className="text-center mb-10 stagger-1">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <HelpCircle className="h-4 w-4" />
+              Questions
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+              Common questions
+            </h2>
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            Common questions
-          </h2>
-        </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-2xl mx-auto"
-        >
-          <Accordion type="single" collapsible className="space-y-3">
-            {faqs.map((faq, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-              >
+          <div className="max-w-2xl mx-auto stagger-2">
+            <Accordion type="single" collapsible className="space-y-3">
+              {faqs.map((faq, index) => (
                 <AccordionItem 
+                  key={index}
                   value={`faq-${index}`}
                   className="lagoon-glass-subtle rounded-xl px-5 overflow-hidden transition-all duration-200 hover:border-primary/20 data-[state=open]:border-primary/30 data-[state=open]:bg-card/80"
                 >
@@ -64,29 +54,24 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
                     {faq.answer}
                   </AccordionContent>
                 </AccordionItem>
-              </motion.div>
-            ))}
-          </Accordion>
-          
-          {/* Help box */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="mt-10 lagoon-glass p-6 rounded-2xl text-center"
-          >
-            <h3 className="font-semibold text-foreground mb-2">Not sure which plan fits?</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Tell us your resort size and departments — we'll recommend the best fit.
-            </p>
-            <Button asChild size="sm" className="btn-cta-premium rounded-full text-primary-foreground">
-              <a href="mailto:hello@propera.io?subject=Help me choose a plan">
-                Book a demo
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-            </Button>
-          </motion.div>
-        </motion.div>
+              ))}
+            </Accordion>
+            
+            {/* Help box */}
+            <div className="mt-10 lagoon-glass p-6 rounded-2xl text-center stagger-3">
+              <h3 className="font-semibold text-foreground mb-2">Not sure which plan fits?</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Tell us your resort size and departments — we'll recommend the best fit.
+              </p>
+              <Button asChild size="sm" className="btn-cta-premium rounded-full text-primary-foreground">
+                <a href="mailto:hello@propera.io?subject=Help me choose a plan">
+                  Book a demo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

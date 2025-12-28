@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, Calendar, Users, BarChart3, Smartphone, Check } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ const VALUE_CHIPS = [
   'White-label capable',
 ];
 
-// Animated preview content
+// Preview content
 const previewTabs = [
   { id: 'dashboard', icon: BarChart3, label: 'Dashboard' },
   { id: 'bookings', icon: Calendar, label: 'Bookings' },
@@ -37,7 +36,7 @@ export function PricingHeroSection() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [notificationVisible, setNotificationVisible] = useState(false);
 
-  // Auto-cycle tabs and show notifications (slower interval for performance)
+  // Auto-cycle tabs (slower interval for performance)
   useEffect(() => {
     if (!shouldAnimate) return;
     
@@ -46,7 +45,7 @@ export function PricingHeroSection() {
         const currentIndex = previewTabs.findIndex(t => t.id === prev);
         return previewTabs[(currentIndex + 1) % previewTabs.length].id;
       });
-    }, 6000); // Increased from 4s to 6s for less CPU usage
+    }, 6000);
 
     const notifTimeout = setTimeout(() => setNotificationVisible(true), 2500);
 
@@ -69,7 +68,7 @@ export function PricingHeroSection() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
-          {/* Left - Copy - instant load, no delay */}
+          {/* Left - Copy */}
           <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-[1.1] tracking-tight">
               Pricing, made simple.
@@ -101,7 +100,7 @@ export function PricingHeroSection() {
               See how it looks with your resort's branding.
             </p>
 
-            {/* Value chips - static for instant load */}
+            {/* Value chips - static */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-8">
               {VALUE_CHIPS.map((chip) => (
                 <span key={chip} className="glass-pill text-xs">
@@ -113,7 +112,7 @@ export function PricingHeroSection() {
 
           {/* Right - Interactive Product Preview */}
           <div className="relative hidden lg:block">
-            {/* Floating status chips - repositioned to not overlap, pointer-events-none */}
+            {/* Floating status chips */}
             <FloatingUIChip
               icon={Smartphone}
               text="Guest just booked"
@@ -123,24 +122,22 @@ export function PricingHeroSection() {
               className="absolute -top-8 right-12 z-10 pointer-events-none"
             />
 
-            <AnimatePresence>
-              {notificationVisible && (
-                <FloatingUIChip
-                  icon={Users}
-                  text="3 guests arriving"
-                  variant="success"
-                  delay={0}
-                  className="absolute bottom-8 -left-8 z-10 pointer-events-none"
-                />
-              )}
-            </AnimatePresence>
+            {notificationVisible && (
+              <FloatingUIChip
+                icon={Users}
+                text="3 guests arriving"
+                variant="success"
+                delay={0}
+                className="absolute bottom-8 -left-8 z-10 pointer-events-none"
+              />
+            )}
 
             <div className="relative">
               {/* Glow behind */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/15 to-teal-400/8 rounded-3xl blur-2xl scale-105" />
               
               {/* Preview card */}
-              <div className={`preview-frame-premium ${shouldAnimate ? 'animate-gentle-float' : ''}`}>
+              <div className="preview-frame-premium">
                 {/* Tab bar */}
                 <div className="flex items-center gap-1 px-4 py-3 border-b border-border/30 bg-muted/30">
                   {previewTabs.map((tab) => (
@@ -168,113 +165,90 @@ export function PricingHeroSection() {
                   </div>
                 </div>
                 
-                {/* Content area */}
-                <div className="p-6">
-                  <AnimatePresence mode="wait">
-                    {activeTab === 'dashboard' && (
-                      <motion.div
-                        key="dashboard"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-4"
+                {/* Content area with CSS transitions */}
+                <div className="p-6 relative min-h-[200px]">
+                  {/* Dashboard tab */}
+                  <div className={`space-y-4 transition-all duration-300 ${
+                    activeTab === 'dashboard' 
+                      ? 'opacity-100 transform translate-x-0' 
+                      : 'opacity-0 transform translate-x-8 absolute inset-6 pointer-events-none'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-teal-400/10 flex items-center justify-center">
+                          <span className="text-lg">🏝️</span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-foreground text-sm">Paradise Resort</div>
+                          <div className="text-xs text-muted-foreground">Today's overview</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      {dashboardStats.map((stat, i) => (
+                        <div
+                          key={stat.label}
+                          className={`lagoon-glass-subtle rounded-xl p-3 text-center stagger-${i + 1}`}
+                        >
+                          <div className="text-lg font-bold text-foreground">{stat.value}</div>
+                          <div className="text-xs text-muted-foreground">{stat.label}</div>
+                          <span className="text-[10px] text-success">{stat.change}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bookings tab */}
+                  <div className={`space-y-3 transition-all duration-300 ${
+                    activeTab === 'bookings' 
+                      ? 'opacity-100 transform translate-x-0' 
+                      : 'opacity-0 transform translate-x-8 absolute inset-6 pointer-events-none'
+                  }`}>
+                    <div className="text-sm font-medium text-foreground mb-3">Today's Bookings</div>
+                    {bookingItems.map((booking, i) => (
+                      <div
+                        key={booking.name}
+                        className={`flex items-center justify-between p-3 bg-background/60 rounded-lg border border-border/20 stagger-${i + 1}`}
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/20 to-teal-400/10 flex items-center justify-center">
-                              <span className="text-lg">🏝️</span>
-                            </div>
-                            <div>
-                              <div className="font-semibold text-foreground text-sm">Paradise Resort</div>
-                              <div className="text-xs text-muted-foreground">Today's overview</div>
-                            </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Check className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{booking.name}</p>
+                            <p className="text-xs text-muted-foreground">{booking.time}</p>
                           </div>
                         </div>
-                        
-                        <div className="grid grid-cols-3 gap-3">
-                          {dashboardStats.map((stat, i) => (
-                            <motion.div
-                              key={stat.label}
-                              initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="lagoon-glass-subtle rounded-xl p-3 text-center"
-                            >
-                              <div className="text-lg font-bold text-foreground">{stat.value}</div>
-                              <div className="text-xs text-muted-foreground">{stat.label}</div>
-                              <span className="text-[10px] text-success">{stat.change}</span>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
+                        <span className="text-xs text-muted-foreground">{booking.guests} guests</span>
+                      </div>
+                    ))}
+                  </div>
 
-                    {activeTab === 'bookings' && (
-                      <motion.div
-                        key="bookings"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-3"
-                      >
-                        <div className="text-sm font-medium text-foreground mb-3">Today's Bookings</div>
-                        {bookingItems.map((booking, i) => (
-                          <motion.div
-                            key={booking.name}
-                            initial={shouldAnimate ? { opacity: 0, x: -10 } : { opacity: 1, x: 0 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                            className="flex items-center justify-between p-3 bg-background/60 rounded-lg border border-border/20"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                <Check className="h-4 w-4 text-primary" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{booking.name}</p>
-                                <p className="text-xs text-muted-foreground">{booking.time}</p>
-                              </div>
-                            </div>
-                            <span className="text-xs text-muted-foreground">{booking.guests} guests</span>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    )}
-
-                    {activeTab === 'guests' && (
-                      <motion.div
-                        key="guests"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-4"
-                      >
-                        <div className="text-sm font-medium text-foreground mb-3">Guest Activity</div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {[
-                            { label: 'Checked in', value: '42' },
-                            { label: 'Arriving', value: '12' },
-                            { label: 'Active bookings', value: '28' },
-                            { label: 'VIP guests', value: '5' },
-                          ].map((stat, i) => (
-                            <motion.div
-                              key={stat.label}
-                              initial={shouldAnimate ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="bg-background/60 rounded-lg p-3 border border-border/20"
-                            >
-                              <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                              <p className="text-xs text-muted-foreground">{stat.label}</p>
-                            </motion.div>
-                          ))}
+                  {/* Guests tab */}
+                  <div className={`space-y-4 transition-all duration-300 ${
+                    activeTab === 'guests' 
+                      ? 'opacity-100 transform translate-x-0' 
+                      : 'opacity-0 transform translate-x-8 absolute inset-6 pointer-events-none'
+                  }`}>
+                    <div className="text-sm font-medium text-foreground mb-3">Guest Activity</div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { label: 'Checked in', value: '42' },
+                        { label: 'Arriving', value: '12' },
+                        { label: 'Active bookings', value: '28' },
+                        { label: 'VIP guests', value: '5' },
+                      ].map((stat, i) => (
+                        <div
+                          key={stat.label}
+                          className={`bg-background/60 rounded-lg p-3 border border-border/20 stagger-${i + 1}`}
+                        >
+                          <p className="text-lg font-bold text-foreground">{stat.value}</p>
+                          <p className="text-xs text-muted-foreground">{stat.label}</p>
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
