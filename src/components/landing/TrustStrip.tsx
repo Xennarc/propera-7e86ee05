@@ -13,13 +13,17 @@ export function TrustStrip() {
   const { shouldAnimate } = useAnimationPreference();
 
   return (
-    <section className="py-12 bg-background border-y border-border/30">
+    <section className="py-14 bg-background relative overflow-hidden">
+      {/* Subtle top edge highlight */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+      
       <div className="container mx-auto px-4">
         <motion.div
           initial={shouldAnimate ? { opacity: 0 } : { opacity: 1 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="flex flex-wrap justify-center gap-x-8 gap-y-4"
+          className="flex flex-wrap justify-center gap-x-10 gap-y-4"
         >
           {trustPoints.map((point, i) => (
             <motion.div
@@ -28,10 +32,12 @@ export function TrustStrip() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-2 text-sm text-muted-foreground"
+              className="flex items-center gap-2.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span>{point}</span>
+              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <span className="font-medium">{point}</span>
             </motion.div>
           ))}
         </motion.div>
@@ -41,7 +47,7 @@ export function TrustStrip() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="text-center text-xs text-muted-foreground/60 mt-4"
+          className="text-center text-xs text-muted-foreground/50 mt-6"
         >
           Previews shown are illustrative.
         </motion.p>

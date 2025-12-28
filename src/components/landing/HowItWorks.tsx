@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Settings, Smartphone, Users } from 'lucide-react';
 import { memo } from 'react';
 import { useAnimationPreference } from '@/hooks/useReducedMotion';
+import { RibbonDivider } from './RibbonDivider';
 
 const steps = [
   {
@@ -41,25 +42,26 @@ const StepCard = memo(function StepCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.15 }}
-      className="relative flex flex-col items-center text-center"
+      className="relative flex flex-col items-center text-center group"
     >
-      {/* Number badge */}
+      {/* Number badge with gradient orb */}
       <div className="relative mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+        <div className="icon-orb-gradient w-16 h-16 text-primary">
           <step.icon className="h-7 w-7" />
         </div>
-        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-primary to-teal-400 text-primary-foreground flex items-center justify-center text-sm font-bold shadow-lg shadow-primary/30">
           {step.number}
         </div>
       </div>
 
       <h3 className="text-lg font-semibold text-foreground mb-2">{step.title}</h3>
-      <p className="text-muted-foreground text-sm max-w-xs">{step.description}</p>
+      <p className="text-muted-foreground text-sm max-w-xs leading-relaxed">{step.description}</p>
 
-      {/* Connector line (hidden on mobile, visible on desktop) */}
+      {/* Connector line with ribbon accent */}
       {!isLast && (
         <div className="hidden md:block absolute top-8 left-[calc(50%+48px)] w-[calc(100%-96px)] h-px">
-          <div className="w-full h-full bg-gradient-to-r from-primary/30 via-primary/20 to-primary/30" />
+          <div className="w-full h-full bg-gradient-to-r from-primary/40 via-teal-400/30 to-primary/40" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/40" />
         </div>
       )}
     </motion.div>
@@ -97,6 +99,8 @@ export function HowItWorks() {
           ))}
         </div>
       </div>
+      
+      <RibbonDivider className="absolute bottom-0 left-0 right-0" variant="subtle" />
     </section>
   );
 }
