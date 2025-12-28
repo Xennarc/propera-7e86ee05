@@ -1,12 +1,11 @@
-import { motion } from 'framer-motion';
 import { Globe } from 'lucide-react';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { GuestJourneyFlow } from '@/components/illustrations/GuestJourneyFlow';
 
 const regionChips = ['Island resorts', 'City resorts', 'Mountain retreats', 'Boutique hotels', 'Beach clubs'];
 
 export function GlobalReady() {
-  const { shouldAnimate } = useAnimationPreference();
+  const { ref, revealed } = useScrollReveal();
 
   return (
     <section className="py-24 bg-background relative overflow-hidden atlas-texture">
@@ -27,51 +26,44 @@ export function GlobalReady() {
       </div>
 
       <div className="container relative mx-auto px-4">
-        <motion.div
-          initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-3xl mx-auto text-center mb-12"
+        <div
+          ref={ref}
+          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-teal-400/10 flex items-center justify-center text-primary mx-auto mb-8 shadow-lg shadow-primary/10">
-            <Globe className="h-8 w-8" />
+          <div className="max-w-3xl mx-auto text-center mb-12 stagger-1">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-teal-400/10 flex items-center justify-center text-primary mx-auto mb-8 shadow-lg shadow-primary/10">
+              <Globe className="h-8 w-8" />
+            </div>
+
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Built for resorts worldwide.</h2>
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              From boutique hideaways to multi-property groups — Propera keeps the experience consistent.
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-3 mb-16">
+              {regionChips.map((chip) => (
+                <span
+                  key={chip}
+                  className="glass-pill chip-stagger"
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Built for resorts worldwide.</h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            From boutique hideaways to multi-property groups — Propera keeps the experience consistent.
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-3 mb-16">
-            {regionChips.map((chip, i) => (
-              <motion.div
-                key={chip}
-                initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.2 + i * 0.1 }}
-              >
-                <span className="glass-pill">{chip}</span>
-              </motion.div>
-            ))}
+          {/* Guest Journey Flow */}
+          <div className="max-w-5xl mx-auto stagger-3">
+            <div className="text-center mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-2">The guest journey, seamlessly connected</h3>
+              <p className="text-sm text-muted-foreground">Every touchpoint, from booking to departure</p>
+            </div>
+            <GuestJourneyFlow />
           </div>
-        </motion.div>
-
-        {/* Guest Journey Flow Animation */}
-        <motion.div
-          initial={shouldAnimate ? { opacity: 0, y: 30 } : { opacity: 1, y: 0 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="max-w-5xl mx-auto"
-        >
-          <div className="text-center mb-8">
-            <h3 className="text-xl font-semibold text-foreground mb-2">The guest journey, seamlessly connected</h3>
-            <p className="text-sm text-muted-foreground">Every touchpoint, from booking to departure</p>
-          </div>
-          <GuestJourneyFlow />
-        </motion.div>
+        </div>
       </div>
     </section>
   );
 }
+
+export default GlobalReady;

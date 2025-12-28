@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Smartphone, 
   Activity, 
@@ -11,8 +10,8 @@ import {
   Users,
   Bell
 } from 'lucide-react';
-import { memo, useState } from 'react';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
+import { memo } from 'react';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const modules = [
   { 
@@ -77,42 +76,28 @@ const categoryColors: Record<string, { bg: string; text: string; border: string 
 
 const ModuleCard = memo(function ModuleCard({
   module,
-  index,
-  shouldAnimate,
-  isHovered,
-  onHover,
+  staggerIndex,
 }: {
   module: typeof modules[0];
-  index: number;
-  shouldAnimate: boolean;
-  isHovered: boolean;
-  onHover: (index: number | null) => void;
+  staggerIndex: number;
 }) {
   const isSpotlight = module.spotlight;
   const colors = categoryColors[module.category];
   
   return (
-    <motion.div
-      initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.05 }}
-      className={`module-card-premium cursor-pointer group ${isSpotlight ? 'lg:col-span-1 ring-1 ring-primary/10' : ''}`}
-      onMouseEnter={() => onHover(index)}
-      onMouseLeave={() => onHover(null)}
+    <div
+      className={`module-card-premium cursor-pointer group hover-lift-card stagger-${staggerIndex} ${isSpotlight ? 'lg:col-span-1 ring-1 ring-primary/10' : ''}`}
     >
       <div className="relative flex items-start gap-4">
-        <motion.div 
-          className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+        <div 
+          className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 icon-orb-hover ${
             isSpotlight 
               ? 'bg-gradient-to-br from-primary/15 to-teal-400/10 group-hover:from-primary/25 group-hover:to-teal-400/20' 
               : 'bg-muted/50 group-hover:bg-primary/10'
           }`}
-          animate={isHovered && shouldAnimate ? { rotate: [0, -5, 5, 0] } : {}}
-          transition={{ duration: 0.4 }}
         >
           <module.icon className={`h-5 w-5 transition-colors ${isSpotlight ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
-        </motion.div>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold text-foreground">{module.title}</h3>
@@ -122,39 +107,28 @@ const ModuleCard = memo(function ModuleCard({
           </div>
           <p className="text-sm text-muted-foreground">{module.description}</p>
           
-          {/* Preview items on hover */}
-          <AnimatePresence>
-            {isHovered && module.preview && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mt-3 overflow-hidden"
-              >
-                <div className="flex flex-wrap gap-1.5">
-                  {module.preview.map((item, i) => (
-                    <motion.span
-                      key={item}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="text-[10px] px-2 py-1 rounded-full bg-background/80 border border-border/40 text-muted-foreground"
-                    >
-                      {item}
-                    </motion.span>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Preview items with CSS hover reveal */}
+          {module.preview && (
+            <div className="preview-reveal mt-3">
+              <div className="flex flex-wrap gap-1.5">
+                {module.preview.map((item, i) => (
+                  <span
+                    key={item}
+                    className={`text-[10px] px-2 py-1 rounded-full bg-background/80 border border-border/40 text-muted-foreground preview-item-${i + 1}`}
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });
 
-// Floating UI fragments - static positioning, no infinite animation
+// Floating UI fragments - static
 function FloatingFragments() {
   const fragments = [
     { icon: Calendar, label: 'Today: 8 sessions', position: 'top-20 -left-4' },
@@ -178,8 +152,7 @@ function FloatingFragments() {
 }
 
 export function PlatformModules() {
-  const { shouldAnimate } = useAnimationPreference();
-  const [hoveredModule, setHoveredModule] = useState<number | null>(null);
+  const { ref, revealed } = useScrollReveal();
 
   return (
     <section id="platform-overview" className="py-24 bg-background relative overflow-hidden">
@@ -191,29 +164,28 @@ export function PlatformModules() {
       <div className="container relative mx-auto px-4 z-10">
         <FloatingFragments />
         
-        <motion.div
-          initial={shouldAnimate ? { opacity: 0, y: 20 } : { opacity: 1, y: 0 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
+        <div
+          ref={ref}
+          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Everything in one place.</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Pick what you need today. Grow into more later.</p>
-        </motion.div>
+          <div className="text-center mb-16 stagger-1">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Everything in one place.</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Pick what you need today. Grow into more later.</p>
+          </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
-          {modules.map((module, index) => (
-            <ModuleCard 
-              key={module.title} 
-              module={module} 
-              index={index} 
-              shouldAnimate={shouldAnimate}
-              isHovered={hoveredModule === index}
-              onHover={setHoveredModule}
-            />
-          ))}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
+            {modules.map((module, index) => (
+              <ModuleCard 
+                key={module.title} 
+                module={module} 
+                staggerIndex={Math.min(index + 2, 7)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
+export default PlatformModules;
