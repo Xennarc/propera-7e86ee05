@@ -3,18 +3,27 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
-import { LogIn, Menu, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 
-// New landing page sections
+// Eagerly load above-fold components
 import { HomeHero } from '@/components/landing/HomeHero';
 import { WhyProperaCards } from '@/components/landing/WhyProperaCards';
-import { PlatformModules } from '@/components/landing/PlatformModules';
-import { HowItWorks } from '@/components/landing/HowItWorks';
-import { GlobalReady } from '@/components/landing/GlobalReady';
 import { PricingTeaser } from '@/components/landing/PricingTeaser';
 import { TrustStrip } from '@/components/landing/TrustStrip';
 import { HomeFinalCTA } from '@/components/landing/HomeFinalCTA';
+
+// Lazy load below-fold heavy sections
+const PlatformModules = lazy(() => import('@/components/landing/PlatformModules'));
+const HowItWorks = lazy(() => import('@/components/landing/HowItWorks'));
+const GlobalReady = lazy(() => import('@/components/landing/GlobalReady'));
+
+// Simple loading fallback
+const SectionFallback = () => (
+  <div className="py-24 flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+  </div>
+);
 
 // Landing page structured data
 const LANDING_PAGE_SCHEMA = {
@@ -159,9 +168,18 @@ export default function LandingPage() {
       <main>
         <HomeHero />
         <WhyProperaCards />
-        <PlatformModules />
-        <HowItWorks />
-        <GlobalReady />
+        
+        {/* Lazy loaded sections */}
+        <Suspense fallback={<SectionFallback />}>
+          <PlatformModules />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <HowItWorks />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <GlobalReady />
+        </Suspense>
+        
         <PricingTeaser />
         <TrustStrip />
         <HomeFinalCTA />

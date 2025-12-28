@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useAnimationPreference } from '@/hooks/useReducedMotion';
 import { Smartphone, Monitor, BarChart3, Calendar, Users, Bell, Check, ChefHat } from 'lucide-react';
@@ -25,7 +24,6 @@ const staffTasks = [
 export function InteractiveProductShowcase() {
   const { shouldAnimate } = useAnimationPreference();
   const [activeTab, setActiveTab] = useState('guest');
-  const [typingIndex, setTypingIndex] = useState(0);
 
   // Auto-cycle through tabs - slower for performance
   useEffect(() => {
@@ -35,26 +33,13 @@ export function InteractiveProductShowcase() {
         const currentIndex = tabs.findIndex(t => t.id === prev);
         return tabs[(currentIndex + 1) % tabs.length].id;
       });
-    }, 6000); // Increased from 4s to 6s
+    }, 6000);
     return () => clearInterval(interval);
   }, [shouldAnimate]);
 
-  // Typing animation for guest bookings
-  useEffect(() => {
-    if (!shouldAnimate || activeTab !== 'guest') return;
-    setTypingIndex(0);
-    const interval = setInterval(() => {
-      setTypingIndex(prev => {
-        if (prev >= guestBookings.length) return prev;
-        return prev + 1;
-      });
-    }, 300);
-    return () => clearInterval(interval);
-  }, [activeTab, shouldAnimate]);
-
   return (
     <div className="relative">
-      {/* Floating status chips - repositioned to not overlap, pointer-events-none */}
+      {/* Floating status chips - static entrance */}
       <FloatingUIChip 
         icon={Bell}
         text="New booking" 
@@ -72,7 +57,7 @@ export function InteractiveProductShowcase() {
         className="absolute bottom-8 -left-10 z-10 pointer-events-none hidden lg:block"
       />
 
-      {/* Main showcase frame - instant load */}
+      {/* Main showcase frame */}
       <div className="preview-frame-premium">
         {/* Tab bar */}
         <div className="flex items-center gap-1 px-4 py-3 border-b border-border/30 bg-muted/30">
@@ -101,146 +86,124 @@ export function InteractiveProductShowcase() {
           </div>
         </div>
 
-        {/* Content area */}
-        <div className="p-4 min-h-[280px]">
-          <AnimatePresence mode="wait">
-            {activeTab === 'guest' && (
-              <motion.div
-                key="guest"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3"
+        {/* Content area with CSS transitions */}
+        <div className="p-4 min-h-[280px] relative">
+          {/* Guest Tab */}
+          <div 
+            className={`space-y-3 transition-all duration-300 ${
+              activeTab === 'guest' 
+                ? 'opacity-100 transform translate-x-0' 
+                : 'opacity-0 transform translate-x-8 absolute inset-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Smartphone className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">My Bookings</span>
+            </div>
+            {guestBookings.map((booking, i) => (
+              <div
+                key={booking.name}
+                className={`flex items-center justify-between p-3 bg-background/60 rounded-lg border border-border/20 hover:border-primary/30 transition-all hover:shadow-sm stagger-${i + 1}`}
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <Smartphone className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">My Bookings</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${booking.status === 'confirmed' ? 'bg-success/10' : 'bg-sunset-100'}`}>
+                    {booking.status === 'confirmed' ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Calendar className="h-4 w-4 text-sunset-500" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{booking.name}</p>
+                    <p className="text-xs text-muted-foreground">{booking.time}</p>
+                  </div>
                 </div>
-                {guestBookings.map((booking, i) => (
-                  <motion.div
-                    key={booking.name}
-                    initial={shouldAnimate ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
-                    animate={{ 
-                      opacity: shouldAnimate ? (i < typingIndex ? 1 : 0.3) : 1, 
-                      x: 0 
-                    }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-center justify-between p-3 bg-background/60 rounded-lg border border-border/20 hover:border-primary/30 transition-all hover:shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${booking.status === 'confirmed' ? 'bg-success/10' : 'bg-sunset-100'}`}>
-                        {booking.status === 'confirmed' ? (
-                          <Check className="h-4 w-4 text-success" />
-                        ) : (
-                          <Calendar className="h-4 w-4 text-sunset-500" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{booking.name}</p>
-                        <p className="text-xs text-muted-foreground">{booking.time}</p>
-                      </div>
-                    </div>
-                    <span className={`text-xs font-medium ${booking.status === 'confirmed' ? 'text-success' : 'text-sunset-500'}`}>
-                      {booking.status}
-                    </span>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
+                <span className={`text-xs font-medium ${booking.status === 'confirmed' ? 'text-success' : 'text-sunset-500'}`}>
+                  {booking.status}
+                </span>
+              </div>
+            ))}
+          </div>
 
-            {activeTab === 'staff' && (
-              <motion.div
-                key="staff"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3"
+          {/* Staff Tab */}
+          <div 
+            className={`space-y-3 transition-all duration-300 ${
+              activeTab === 'staff' 
+                ? 'opacity-100 transform translate-x-0' 
+                : 'opacity-0 transform translate-x-8 absolute inset-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Today's Tasks</span>
+            </div>
+            {staffTasks.map((task, i) => (
+              <div
+                key={task.task}
+                className={`flex items-center justify-between p-3 rounded-lg border transition-all stagger-${i + 1} ${
+                  task.done 
+                    ? 'bg-success/5 border-success/20' 
+                    : 'bg-background/60 border-border/20 hover:border-primary/30'
+                }`}
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <Monitor className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Today's Tasks</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    task.done ? 'border-success bg-success' : 'border-muted-foreground'
+                  }`}>
+                    {task.done && <Check className="h-3 w-3 text-primary-foreground" />}
+                  </div>
+                  <span className={`text-sm ${task.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                    {task.task}
+                  </span>
                 </div>
-                {staffTasks.map((task, i) => (
-                  <motion.div
-                    key={task.task}
-                    initial={shouldAnimate ? { opacity: 0, y: 10 } : { opacity: 1, y: 0 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.15 }}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                      task.done 
-                        ? 'bg-success/5 border-success/20' 
-                        : 'bg-background/60 border-border/20 hover:border-primary/30'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        task.done ? 'border-success bg-success' : 'border-muted-foreground'
-                      }`}>
-                        {task.done && <Check className="h-3 w-3 text-primary-foreground" />}
-                      </div>
-                      <span className={`text-sm ${task.done ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                        {task.task}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{task.time}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
+                <span className="text-xs text-muted-foreground">{task.time}</span>
+              </div>
+            ))}
+          </div>
 
-            {activeTab === 'analytics' && (
-              <motion.div
-                key="analytics"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-4"
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Today's Overview</span>
+          {/* Analytics Tab */}
+          <div 
+            className={`space-y-4 transition-all duration-300 ${
+              activeTab === 'analytics' 
+                ? 'opacity-100 transform translate-x-0' 
+                : 'opacity-0 transform translate-x-8 absolute inset-4 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Today's Overview</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Bookings', value: '24', trend: '+12%' },
+                { label: 'Revenue', value: '$4.2k', trend: '+8%' },
+                { label: 'Guests', value: '156', trend: '+5%' },
+              ].map((stat, i) => (
+                <div
+                  key={stat.label}
+                  className={`bg-background/60 rounded-lg p-3 border border-border/20 text-center stagger-${i + 1}`}
+                >
+                  <p className="text-lg font-bold text-foreground">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground mb-1">{stat.label}</p>
+                  <span className="text-[10px] text-success font-medium">{stat.trend}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Bookings', value: '24', trend: '+12%' },
-                    { label: 'Revenue', value: '$4.2k', trend: '+8%' },
-                    { label: 'Guests', value: '156', trend: '+5%' },
-                  ].map((stat, i) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={shouldAnimate ? { opacity: 0, scale: 0.9 } : { opacity: 1, scale: 1 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.1 }}
-                      className="bg-background/60 rounded-lg p-3 border border-border/20 text-center"
-                    >
-                      <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                      <p className="text-[10px] text-muted-foreground mb-1">{stat.label}</p>
-                      <span className="text-[10px] text-success font-medium">{stat.trend}</span>
-                    </motion.div>
-                  ))}
-                </div>
-                {/* Mini chart visualization */}
-                <div className="h-20 bg-background/40 rounded-lg border border-border/20 flex items-end justify-around px-4 py-2">
-                  {[40, 65, 45, 80, 55, 70, 90].map((height, i) => (
-                    <motion.div
-                      key={i}
-                      initial={shouldAnimate ? { height: 0 } : { height: `${height}%` }}
-                      animate={{ height: `${height}%` }}
-                      transition={{ delay: 0.3 + i * 0.05, duration: 0.4 }}
-                      className="w-4 bg-gradient-to-t from-primary to-teal-400 rounded-t-sm"
-                    />
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ))}
+            </div>
+            {/* Mini chart visualization with CSS animation */}
+            <div className="h-20 bg-background/40 rounded-lg border border-border/20 flex items-end justify-around px-4 py-2">
+              {[40, 65, 45, 80, 55, 70, 90].map((height, i) => (
+                <div
+                  key={i}
+                  className="w-4 bg-gradient-to-t from-primary to-teal-400 rounded-t-sm chart-bar-grow"
+                  style={{ height: `${height}%` }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom floating chip - repositioned */}
+      {/* Bottom floating chip */}
       <FloatingUIChip 
         icon={ChefHat}
         text="Dinner reservation" 

@@ -1,5 +1,3 @@
-import { motion } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
 import { LucideIcon } from 'lucide-react';
 
 interface FloatingUIChipProps {
@@ -19,8 +17,6 @@ export function FloatingUIChip({
   delay = 0,
   className = ''
 }: FloatingUIChipProps) {
-  const { shouldAnimate } = useAnimationPreference();
-
   const variantStyles = {
     default: 'bg-card/90 border-border/40',
     success: 'bg-success/10 border-success/30',
@@ -28,12 +24,8 @@ export function FloatingUIChip({
   };
 
   return (
-    <motion.div
-      initial={shouldAnimate ? { opacity: 0, scale: 0.9, y: 10 } : { opacity: 1, scale: 1, y: 0 }}
-      whileInView={{ opacity: 1, scale: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay, duration: 0.4 }}
-      className={`floating-chip-gpu ${className}`}
+    <div
+      className={`floating-chip-static ${className}`}
       style={{ animationDelay: `${delay}s` }}
     >
       <div className={`
@@ -51,6 +43,6 @@ export function FloatingUIChip({
           <span className="w-2 h-2 rounded-full bg-success ml-1" />
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
