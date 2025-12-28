@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 import { RibbonDivider } from '@/components/landing/RibbonDivider';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const REASSURANCE_CHIPS = [
   'Unlimited staff included',
@@ -11,7 +11,7 @@ const REASSURANCE_CHIPS = [
 ];
 
 export function PricingCTASection() {
-  const reducedMotion = useReducedMotion();
+  const { ref, revealed } = useScrollReveal();
 
   return (
     <section className="relative overflow-hidden">
@@ -23,20 +23,18 @@ export function PricingCTASection() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
 
         <div className="container relative mx-auto px-4 z-10">
-          <motion.div
-            initial={reducedMotion ? {} : { opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="max-w-2xl mx-auto text-center"
+          <div
+            ref={ref}
+            className={`section-reveal max-w-2xl mx-auto text-center ${revealed ? 'section-revealed' : ''}`}
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight stagger-1">
               Ready to see Propera with your resort?
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-lg text-muted-foreground mb-8 leading-relaxed stagger-2">
               A calmer operation. A better guest journey. A system your team enjoys using.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 stagger-3">
               <Button asChild size="lg" className="btn-cta-premium rounded-xl font-semibold h-12 px-8 text-primary-foreground group">
                 <Link to="/book-demo">
                   Book a demo
@@ -52,7 +50,7 @@ export function PricingCTASection() {
             </div>
 
             {/* Reassurance chips */}
-            <div className="flex flex-wrap items-center justify-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-4 stagger-4">
               {REASSURANCE_CHIPS.map((chip) => (
                 <span 
                   key={chip}
@@ -63,7 +61,7 @@ export function PricingCTASection() {
                 </span>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
