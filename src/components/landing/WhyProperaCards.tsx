@@ -36,13 +36,10 @@ const ValueCard = memo(function ValueCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className="group relative bg-card rounded-2xl border border-border/50 p-8 hover:border-primary/30 transition-all duration-300 motion-safe:hover:-translate-y-1 will-change-transform"
+      className="value-card-premium"
     >
-      {/* Subtle glow on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
-      
       <div className="relative">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+        <div className="icon-orb-gradient text-primary mb-6">
           <card.icon className="h-7 w-7" />
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>

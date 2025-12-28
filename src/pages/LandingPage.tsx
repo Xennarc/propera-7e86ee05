@@ -167,55 +167,51 @@ export default function LandingPage() {
         <HomeFinalCTA />
       </main>
 
-      {/* Footer - Clean and minimal */}
-      <footer className="py-12 bg-card border-t border-border/50">
+      {/* Footer - Premium */}
+      <footer className="footer-premium py-14">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            {/* Brand */}
+          <div className="grid md:grid-cols-4 gap-10 mb-10">
             <div className="md:col-span-1">
               <div className="flex items-center gap-3 mb-4">
                 <ProperaMark size={36} className="text-primary" />
-                <span className="font-bold text-foreground">Propera</span>
+                <span className="font-bold text-foreground text-lg">Propera</span>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Resort operations, beautifully organized.
               </p>
             </div>
             
-            {/* Product */}
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold text-foreground mb-5">Product</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li><a href="#platform-overview" className="hover:text-foreground transition-colors">Features</a></li>
                 <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><Link to="/guest/login" className="hover:text-foreground transition-colors">Guest Portal</Link></li>
               </ul>
             </div>
             
-            {/* Company */}
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold text-foreground mb-5">Company</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
                 <li><a href="mailto:hello@propera.io" className="hover:text-foreground transition-colors">Contact</a></li>
               </ul>
             </div>
             
-            {/* Get Started */}
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Get Started</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
+              <h4 className="font-semibold text-foreground mb-5">Get Started</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
                 <li><Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link></li>
                 <li><Link to="/guest/find" className="hover:text-foreground transition-colors">Find Your Resort</Link></li>
               </ul>
             </div>
           </div>
           
-          <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="pt-8 border-t border-border/30 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} Propera. All rights reserved.
             </p>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-8 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
               <a href="#" className="hover:text-foreground transition-colors">Terms</a>
             </div>
