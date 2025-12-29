@@ -15,9 +15,10 @@ export function PricingComparisonMatrix() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-16 md:py-20 bg-background relative overflow-hidden">
-      {/* TideGlow */}
-      <div className="absolute top-0 left-1/3 w-[500px] h-[400px] bg-primary/4 rounded-full blur-[120px] pointer-events-none" />
+    <section className="py-16 md:py-20 bg-gradient-to-br from-background via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
+      {/* Enhanced TideGlow for light mode */}
+      <div className="absolute top-0 left-1/3 w-[500px] h-[400px] bg-primary/10 dark:bg-primary/4 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div
