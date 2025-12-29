@@ -9,10 +9,11 @@ export function AboutFinalCTA() {
 
   return (
     <section className="py-24 md:py-32 relative overflow-hidden">
-      {/* Rich gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-teal-400/10" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Rich gradient background - enhanced for light mode */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-background to-teal-400/15 dark:from-primary/10 dark:via-background dark:to-teal-400/10" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/20 dark:bg-primary/15 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-teal-400/15 dark:bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-[300px] h-[300px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

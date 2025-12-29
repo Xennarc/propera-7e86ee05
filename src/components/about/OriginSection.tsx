@@ -6,9 +6,14 @@ export function OriginSection() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section id="product-story" className="py-24 md:py-32 bg-card relative overflow-hidden">
+    <section id="product-story" className="py-24 md:py-32 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+      {/* Enhanced gradient overlays for light mode */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      </div>
       {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.02]">
+      <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.02]">
         <div className="absolute inset-0" style={{
           backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)',
           backgroundSize: '32px 32px'

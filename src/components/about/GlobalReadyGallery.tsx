@@ -15,8 +15,11 @@ export function GlobalReadyGallery() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-card/30 to-transparent pointer-events-none" />
+    <section className="py-24 md:py-32 bg-gradient-to-br from-teal-400/5 via-background to-primary/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-card/50 dark:from-card/30 to-transparent pointer-events-none" />
+      {/* Enhanced glows */}
+      <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

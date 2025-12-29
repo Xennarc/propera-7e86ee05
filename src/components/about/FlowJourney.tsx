@@ -37,8 +37,10 @@ export function FlowJourney() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-background relative overflow-hidden">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+    <section className="py-24 md:py-32 bg-gradient-to-br from-background via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
+      {/* Enhanced glows for light mode */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/12 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

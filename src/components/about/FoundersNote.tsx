@@ -6,9 +6,10 @@ export function FoundersNote() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-card relative overflow-hidden">
-      {/* Soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+    <section className="py-24 md:py-32 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+      {/* Enhanced glows for light mode */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/12 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

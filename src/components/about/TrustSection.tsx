@@ -24,8 +24,9 @@ export function TrustSection() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-card relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/3 rounded-full blur-[200px] pointer-events-none" />
+    <section className="py-24 md:py-32 bg-gradient-to-b from-card via-card to-teal-400/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 dark:bg-primary/3 rounded-full blur-[200px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[150px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
