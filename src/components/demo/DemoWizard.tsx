@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,30 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw, Key, User, DoorOpen } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw, Key, User, DoorOpen, Database, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CredentialRow } from './CredentialRow';
+import { TimezoneSelect } from './TimezoneSelect';
+import { useDemoWorkspace, DemoCredentials } from '@/hooks/useDemoWorkspace';
 
 interface DemoWizardProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface DemoResponse {
-  email: string;
-  temp_password?: string;
-  tenant_id?: string;
-  resort_code?: string;
-  staff_login_url?: string;
-  guest_login?: {
-    guest_name: string;
-    room_number: string;
-    last_name: string;
-    pin: string;
-    portal_url: string;
-  } | null;
-  email_sent?: boolean;
-  email_error?: string;
+  resumeMode?: boolean;
 }
 
 const DEPARTMENTS = [
@@ -47,24 +34,22 @@ const ROOM_RANGES = [
   { value: '200+', label: '200+ rooms' },
 ];
 
-const TIMEZONES = [
-  { value: 'Indian/Maldives', label: 'Maldives (UTC+5)' },
-  { value: 'Asia/Bangkok', label: 'Thailand (UTC+7)' },
-  { value: 'Asia/Jakarta', label: 'Indonesia (UTC+7)' },
-  { value: 'Asia/Manila', label: 'Philippines (UTC+8)' },
-  { value: 'America/Cancun', label: 'Mexico/Caribbean (UTC-5)' },
-  { value: 'Asia/Dubai', label: 'UAE (UTC+4)' },
-  { value: 'Indian/Mauritius', label: 'Mauritius (UTC+4)' },
-  { value: 'Indian/Mahe', label: 'Seychelles (UTC+4)' },
-  { value: 'UTC', label: 'Other (UTC)' },
-];
-
-export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
+export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizardProps) {
   const navigate = useNavigate();
+  const {
+    savedEmail,
+    workspace,
+    saveWorkspace,
+    clearWorkspace,
+    regenerateCredentials,
+    reseedData,
+  } = useDemoWorkspace();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResending, setIsResending] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isReseeding, setIsReseeding] = useState(false);
   const [step, setStep] = useState<'form' | 'creating' | 'success' | 'existing' | 'rate_limited'>('form');
-  const [demoData, setDemoData] = useState<DemoResponse | null>(null);
+  const [demoData, setDemoData] = useState<DemoCredentials | null>(null);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -73,6 +58,20 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
     roomsRange: '',
     departments: [] as string[],
   });
+
+  // Auto-populate form with saved email if resuming
+  useEffect(() => {
+    if (resumeMode && savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+    }
+  }, [resumeMode, savedEmail]);
+
+  // If resuming with existing workspace, fetch fresh credentials
+  useEffect(() => {
+    if (resumeMode && open && savedEmail) {
+      handleResumeDemo();
+    }
+  }, [resumeMode, open, savedEmail]);
 
   const handleDepartmentToggle = (deptId: string) => {
     setFormData(prev => ({
@@ -115,22 +114,29 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
       if (error) throw error;
 
       if (data?.success) {
-        const responseData: DemoResponse = {
+        // Save workspace ID
+        if (data.workspace_id) {
+          saveWorkspace(data.workspace_id, data.email || formData.email);
+        }
+
+        const responseData: DemoCredentials = {
           email: data.email || formData.email,
           temp_password: data.temp_password,
           tenant_id: data.tenant_id,
           resort_code: data.resort_code,
           staff_login_url: data.staff_login_url,
+          staff_token_url: data.staff_token_url,
           guest_login: data.guest_login || null,
           email_sent: data.email_sent,
           email_error: data.email_error,
+          workspace_id: data.workspace_id,
         };
         
         setDemoData(responseData);
         
         if (data.existing) {
           setStep('existing');
-          toast.success('Fresh credentials sent to your email');
+          toast.success('Fresh credentials generated');
         } else {
           setStep('success');
           if (data.email_sent) {
@@ -151,14 +157,16 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
     }
   };
 
-  const handleResendCredentials = async () => {
-    if (isResending) return;
-    
-    setIsResending(true);
+  const handleResumeDemo = async () => {
+    if (!savedEmail) return;
+
+    setIsSubmitting(true);
+    setStep('creating');
+
     try {
       const { data, error } = await supabase.functions.invoke('provision-demo', {
         body: {
-          email: formData.email.trim().toLowerCase() || demoData?.email,
+          email: savedEmail.trim().toLowerCase(),
           mode: 'resend',
         }
       });
@@ -166,57 +174,107 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
       if (error) throw error;
 
       if (data?.success) {
-        // Update state with new credentials
-        setDemoData(prev => ({
-          ...prev,
+        const responseData: DemoCredentials = {
           email: data.email,
           temp_password: data.temp_password,
+          tenant_id: data.tenant_id,
+          resort_code: data.resort_code,
           staff_login_url: data.staff_login_url,
+          staff_token_url: data.staff_token_url,
           guest_login: data.guest_login || null,
           email_sent: data.email_sent,
-          email_error: data.email_error,
-        }));
+          workspace_id: data.workspace_id,
+        };
         
-        if (data.email_sent) {
-          toast.success('Fresh login credentials sent to your email');
-        } else {
-          toast.success('New credentials generated');
-        }
+        setDemoData(responseData);
+        setStep('existing');
       } else {
-        throw new Error(data?.error || 'Failed to resend credentials');
+        throw new Error(data?.error || 'Failed to resume demo');
       }
     } catch (error: any) {
-      console.error('Resend error:', error);
-      toast.error(error.message || 'Failed to resend credentials');
+      console.error('Resume error:', error);
+      toast.error(error.message || 'Failed to resume demo');
+      setStep('form');
     } finally {
-      setIsResending(false);
+      setIsSubmitting(false);
     }
   };
 
+  const handleRegenerateCredentials = async () => {
+    if (isRegenerating) return;
+    
+    setIsRegenerating(true);
+    try {
+      const creds = await regenerateCredentials();
+      if (creds) {
+        setDemoData(creds);
+        toast.success('New credentials generated');
+      }
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
+  const handleReseedData = async () => {
+    if (isReseeding) return;
+    
+    setIsReseeding(true);
+    try {
+      const success = await reseedData();
+      if (success) {
+        toast.success('Demo data refreshed');
+      } else {
+        toast.error('Failed to refresh data');
+      }
+    } finally {
+      setIsReseeding(false);
+    }
+  };
+
+  const handleStartFresh = () => {
+    clearWorkspace();
+    setDemoData(null);
+    setStep('form');
+    setFormData({
+      email: '',
+      resortName: '',
+      timezone: '',
+      roomsRange: '',
+      departments: [],
+    });
+  };
+
   const handleClose = () => {
-    if (!isSubmitting && !isResending) {
-      setStep('form');
-      setDemoData(null);
+    if (!isSubmitting && !isRegenerating && !isReseeding) {
+      // Don't reset state on close - allow resume
       onOpenChange(false);
     }
   };
 
   const goToStaffConsole = () => {
-    handleClose();
-    if (demoData?.staff_login_url) {
+    // Use token URL if available for auto-login
+    if (demoData?.staff_token_url) {
+      window.open(demoData.staff_token_url, '_blank');
+    } else if (demoData?.staff_login_url) {
       try {
         const url = new URL(demoData.staff_login_url);
+        handleClose();
         navigate(url.pathname + url.search);
       } catch {
+        handleClose();
         navigate(`/staff/auth?username=${encodeURIComponent(demoData?.email || formData.email)}`);
       }
     } else {
+      handleClose();
       navigate(`/staff/auth?username=${encodeURIComponent(demoData?.email || formData.email)}`);
     }
   };
 
   const openGuestPortal = () => {
-    if (demoData?.guest_login?.portal_url) {
+    // Use token URL if available for auto-login
+    if (demoData?.guest_login?.token_url) {
+      window.open(demoData.guest_login.token_url, '_blank');
+    } else if (demoData?.guest_login?.portal_url) {
       window.open(demoData.guest_login.portal_url, '_blank');
     } else if (demoData?.resort_code) {
       window.open(`/resort/${demoData.resort_code}/guest/login`, '_blank');
@@ -224,6 +282,139 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
       window.open('/guest', '_blank');
     }
   };
+
+  const renderCredentialsSection = (isExisting: boolean) => (
+    <div className="py-6">
+      <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
+        {isExisting ? (
+          <Sparkles className="h-8 w-8 text-primary" />
+        ) : (
+          <CheckCircle2 className="h-8 w-8 text-success" />
+        )}
+      </div>
+      <DialogHeader className="text-center mb-6">
+        <DialogTitle className="text-2xl">
+          {isExisting ? 'Welcome back!' : 'Your demo is ready!'}
+        </DialogTitle>
+        <DialogDescription>
+          {isExisting 
+            ? 'Your demo workspace is still active. Use the buttons below to enter.'
+            : 'Open the staff console, then try a booking in the guest portal.'}
+        </DialogDescription>
+      </DialogHeader>
+
+      {/* Staff Login Credentials */}
+      <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <User className="h-4 w-4 text-primary" />
+          <span>Staff Console</span>
+        </div>
+        <div className="space-y-2 pl-6">
+          <CredentialRow label="Email" value={demoData?.email || ''} />
+          {demoData?.temp_password && (
+            <CredentialRow 
+              label="Password" 
+              value={demoData.temp_password} 
+              isSensitive 
+              monospace 
+            />
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground pl-6">
+          Tip: Use the one-click button below to avoid typing.
+        </p>
+      </div>
+
+      {/* Guest Login Credentials */}
+      {demoData?.guest_login && (
+        <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-6 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <DoorOpen className="h-4 w-4 text-success" />
+            <span>Guest Portal</span>
+          </div>
+          <div className="space-y-2 pl-6">
+            <CredentialRow label="Guest" value={demoData.guest_login.guest_name} />
+            <CredentialRow label="Room" value={demoData.guest_login.room_number} monospace />
+            <CredentialRow label="Last Name" value={demoData.guest_login.last_name} />
+            <CredentialRow 
+              label="PIN" 
+              value={demoData.guest_login.pin} 
+              isSensitive 
+              monospace 
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <Button 
+          size="lg" 
+          className="w-full rounded-full font-semibold"
+          onClick={goToStaffConsole}
+        >
+          Open Staff Console
+          <ExternalLink className="ml-2 h-4 w-4" />
+        </Button>
+        <Button 
+          size="lg" 
+          variant="outline"
+          className="w-full rounded-full font-semibold"
+          onClick={openGuestPortal}
+        >
+          Open Guest Portal
+          <ExternalLink className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Recovery Actions */}
+      <div className="flex flex-wrap justify-center gap-2 mt-6 pt-4 border-t border-border/50">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRegenerateCredentials}
+          disabled={isRegenerating}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {isRegenerating ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Key className="h-4 w-4 mr-2" />
+          )}
+          New Credentials
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReseedData}
+          disabled={isReseeding}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {isReseeding ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Database className="h-4 w-4 mr-2" />
+          )}
+          Refresh Data
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleStartFresh}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <RotateCw className="h-4 w-4 mr-2" />
+          Start Fresh
+        </Button>
+      </div>
+
+      {demoData?.email_sent && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-4">
+          <Mail className="h-4 w-4 text-success" />
+          <span>Credentials also sent to {demoData.email}</span>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -267,21 +458,11 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Timezone</Label>
-                  <Select 
-                    value={formData.timezone} 
+                  <TimezoneSelect
+                    value={formData.timezone}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, timezone: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIMEZONES.map(tz => (
-                        <SelectItem key={tz.value} value={tz.value}>
-                          {tz.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    autoDetect
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -348,237 +529,29 @@ export function DemoWizard({ open, onOpenChange }: DemoWizardProps) {
               <Loader2 className="h-8 w-8 text-primary animate-spin" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">
-              Preparing your demo resort…
+              {resumeMode ? 'Loading your demo…' : 'Preparing your demo resort…'}
             </h3>
             <p className="text-muted-foreground mb-2">
-              Seeding activities, sessions, guests, and bookings.
+              {resumeMode 
+                ? 'Generating fresh credentials for you.'
+                : 'Seeding activities, sessions, guests, and bookings.'}
             </p>
-            <p className="text-sm text-muted-foreground/70 italic">
-              Making it feel like a real Tuesday at a busy resort.
-            </p>
-          </div>
-        )}
-
-        {step === 'success' && demoData && (
-          <div className="py-6">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="h-8 w-8 text-success" />
-            </div>
-            <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">Your demo is ready!</DialogTitle>
-              <DialogDescription>
-                Open the staff console, then try a booking in the guest portal.
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Staff Login Credentials */}
-            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <User className="h-4 w-4 text-primary" />
-                <span>Staff Console</span>
-              </div>
-              <div className="space-y-1.5 pl-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium text-xs break-all">{demoData.email}</span>
-                </div>
-                {demoData.temp_password && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Password:</span>
-                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
-                      {demoData.temp_password}
-                    </code>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Guest Login Credentials */}
-            {demoData.guest_login && (
-              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-6 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <DoorOpen className="h-4 w-4 text-success" />
-                  <span>Guest Portal</span>
-                </div>
-                <div className="space-y-1.5 pl-6">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Guest:</span>
-                    <span className="font-medium">{demoData.guest_login.guest_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Room:</span>
-                    <span className="font-medium">{demoData.guest_login.room_number}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Key className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">PIN:</span>
-                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm tracking-wider">
-                      {demoData.guest_login.pin}
-                    </code>
-                  </div>
-                </div>
-              </div>
+            {!resumeMode && (
+              <p className="text-sm text-muted-foreground/70 italic">
+                Making it feel like a real Tuesday at a busy resort.
+              </p>
             )}
-
-            <div className="space-y-3">
-              <Button 
-                size="lg" 
-                className="w-full rounded-full font-semibold"
-                onClick={goToStaffConsole}
-              >
-                Open Staff Console
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="w-full rounded-full font-semibold"
-                onClick={openGuestPortal}
-              >
-                Open Guest Portal
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex flex-col items-center gap-3 mt-6">
-              {demoData.email_sent ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4 text-success" />
-                  <span>Login details sent to {formData.email}</span>
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">Your demo stays active for 14 days. Upgrade anytime to go live.</span>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResendCredentials}
-                disabled={isResending}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {isResending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RotateCw className="h-4 w-4 mr-2" />
-                )}
-                Resend login email
-              </Button>
-            </div>
           </div>
         )}
 
-        {step === 'existing' && demoData && (
-          <div className="py-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="h-8 w-8 text-primary" />
-            </div>
-            <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl">Welcome back!</DialogTitle>
-              <DialogDescription>
-                Your demo workspace is still active. We've generated fresh credentials for you.
-              </DialogDescription>
-            </DialogHeader>
+        {step === 'success' && demoData && renderCredentialsSection(false)}
 
-            {/* Staff Login Credentials */}
-            <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <User className="h-4 w-4 text-primary" />
-                <span>Staff Console</span>
-              </div>
-              <div className="space-y-1.5 pl-6">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium text-xs break-all">{demoData.email}</span>
-                </div>
-                {demoData.temp_password && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Password:</span>
-                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm">
-                      {demoData.temp_password}
-                    </code>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Guest Login Credentials */}
-            {demoData.guest_login && (
-              <div className="bg-success/5 border border-success/20 rounded-lg p-4 mb-6 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <DoorOpen className="h-4 w-4 text-success" />
-                  <span>Guest Portal</span>
-                </div>
-                <div className="space-y-1.5 pl-6">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Guest:</span>
-                    <span className="font-medium">{demoData.guest_login.guest_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Room:</span>
-                    <span className="font-medium">{demoData.guest_login.room_number}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Key className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">PIN:</span>
-                    <code className="font-mono bg-background px-2 py-0.5 rounded border text-sm tracking-wider">
-                      {demoData.guest_login.pin}
-                    </code>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <Button 
-                size="lg" 
-                className="w-full rounded-full font-semibold"
-                onClick={goToStaffConsole}
-              >
-                Open Staff Console
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="w-full rounded-full font-semibold"
-                onClick={openGuestPortal}
-              >
-                Open Guest Portal
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex flex-col items-center gap-3 mt-6">
-              {demoData.email_sent && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-4 w-4 text-success" />
-                  <span>Credentials sent to your email</span>
-                </div>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResendCredentials}
-                disabled={isResending}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                {isResending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RotateCw className="h-4 w-4 mr-2" />
-                )}
-                Generate new credentials
-              </Button>
-            </div>
-          </div>
-        )}
+        {step === 'existing' && demoData && renderCredentialsSection(true)}
 
         {step === 'rate_limited' && (
           <div className="py-8">
             <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto mb-6">
-              <RotateCw className="h-8 w-8 text-warning" />
+              <AlertTriangle className="h-8 w-8 text-warning" />
             </div>
             <DialogHeader className="text-center mb-6">
               <DialogTitle className="text-2xl">Too many requests</DialogTitle>

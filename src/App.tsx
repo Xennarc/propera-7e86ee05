@@ -74,6 +74,7 @@ const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAccept
 const StaffDirectoryPage = lazy(() => import("./pages/staff/StaffDirectoryPage"));
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
 const DemoOnboardingPage = lazy(() => import("./pages/staff/DemoOnboardingPage"));
+const DemoAutoLoginPage = lazy(() => import("./pages/staff/DemoAutoLoginPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
@@ -125,6 +126,7 @@ const PrearrivalLandingPage = lazy(() => import("./pages/prearrival/PrearrivalLa
 const PrearrivalCheckinWizard = lazy(() => import("./pages/prearrival/PrearrivalCheckinWizard"));
 const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPage"));
+const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
 
 // Lazy loaded pages - Public
 const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
@@ -234,6 +236,10 @@ const App = () => (
                 
                 {/* Staff invitation acceptance (public) */}
                 <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
+                
+                {/* Demo auto-login routes */}
+                <Route path="/staff/demo-login" element={<DemoAutoLoginPage />} />
+                <Route path="/guest/demo-login" element={<DemoGuestAutoLoginPage />} />
                 
                 {/* Legacy staff routes - redirect to new /staff prefix */}
                 <Route path="/auth" element={<Navigate to="/staff/auth" replace />} />
