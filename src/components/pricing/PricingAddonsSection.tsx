@@ -31,8 +31,10 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-16 md:py-20 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-transparent" />
+    <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 dark:from-primary/4 via-transparent to-transparent" />
+      {/* Enhanced glows for light mode */}
+      <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div

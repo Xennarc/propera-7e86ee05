@@ -21,8 +21,10 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-16 md:py-20 bg-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/4 via-transparent to-transparent" />
+    <section className="py-16 md:py-20 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 dark:from-primary/4 via-transparent to-transparent" />
+      {/* Enhanced glows for light mode */}
+      <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div

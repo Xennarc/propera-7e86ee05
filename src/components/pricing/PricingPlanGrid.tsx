@@ -69,9 +69,10 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section id="plans" className="py-16 md:py-20 bg-muted/20 relative overflow-hidden scroll-mt-24">
-      {/* TideGlow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
+    <section id="plans" className="py-16 md:py-20 bg-gradient-to-b from-muted/30 via-muted/20 to-primary/5 dark:from-muted/20 dark:via-muted/20 dark:to-muted/20 relative overflow-hidden scroll-mt-24">
+      {/* Enhanced TideGlow for light mode */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div

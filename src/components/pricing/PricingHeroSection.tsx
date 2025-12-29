@@ -61,10 +61,10 @@ export function PricingHeroSection() {
 
   return (
     <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-28 pb-16 hero-premium-bg grain-overlay">
-      {/* TideGlow spotlights */}
-      <div className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-teal-400/6 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-lagoon-500/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Enhanced TideGlow spotlights for light mode */}
+      <div className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-primary/15 dark:bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-teal-400/12 dark:bg-teal-400/6 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-lagoon-500/10 dark:bg-lagoon-500/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">

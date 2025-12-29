@@ -18,9 +18,10 @@ export function PricingCTASection() {
       <RibbonDivider variant="accent" />
       
       <div className="py-20 md:py-28 cta-spotlight atlas-texture">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-teal-400/6" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
+        {/* Enhanced background for light mode */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/12 dark:from-primary/8 via-background to-teal-400/12 dark:to-teal-400/6" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 dark:bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-teal-400/12 dark:bg-teal-400/8 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="container relative mx-auto px-4 z-10">
           <div
