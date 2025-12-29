@@ -9,20 +9,20 @@ const corsHeaders = {
 const PRODUCTION_URL = "https://propera.cc";
 
 const DEMO_ACTIVITIES = [
-  { name: "House Reef Snorkel", category: "WATERSPORT", description: "Explore our vibrant house reef", short_description: "Guided snorkel tour", duration_minutes: 90, default_max_capacity: 8, default_price_per_person: 45, guest_can_book: true, guest_cutoff_hours: 2, difficulty_level: "EASY" },
+  { name: "House Reef Snorkel", category: "WATERSPORT", description: "Explore our vibrant house reef", short_description: "Guided snorkel tour", duration_minutes: 90, default_max_capacity: 8, default_price_per_person: 45, guest_can_book: true, guest_cutoff_hours: 2, requires_approval: false, difficulty_level: "EASY" },
   { name: "Intro Dive", category: "DIVE", description: "Perfect for beginners", short_description: "Beginner dive experience", duration_minutes: 180, default_max_capacity: 4, default_price_per_person: 150, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "EASY" },
-  { name: "Sunset Dolphin Cruise", category: "EXCURSION", description: "Watch dolphins at sunset", short_description: "Evening dolphin trip", duration_minutes: 120, default_max_capacity: 12, default_price_per_person: 85, guest_can_book: true, guest_cutoff_hours: 4, difficulty_level: "EASY" },
-  { name: "Kayak Adventure", category: "WATERSPORT", description: "Explore the lagoon by kayak", short_description: "Self-guided kayak tour", duration_minutes: 60, default_max_capacity: 10, default_price_per_person: 35, guest_can_book: true, guest_cutoff_hours: 1, difficulty_level: "EASY" },
-  { name: "Sunrise Yoga", category: "SPA", description: "Start your day with beachfront yoga", short_description: "Morning yoga session", duration_minutes: 60, default_max_capacity: 15, default_price_per_person: 25, guest_can_book: true, guest_cutoff_hours: 2, difficulty_level: "EASY" },
-  { name: "Night Fishing", category: "EXCURSION", description: "Traditional Maldivian fishing experience", short_description: "Evening fishing trip", duration_minutes: 180, default_max_capacity: 8, default_price_per_person: 95, guest_can_book: true, guest_cutoff_hours: 6, difficulty_level: "EASY" },
-  { name: "Deep Tissue Massage", category: "SPA", description: "Relaxing full body massage", short_description: "60-min massage", duration_minutes: 60, default_max_capacity: 2, default_price_per_person: 120, guest_can_book: true, guest_cutoff_hours: 4, difficulty_level: "EASY" },
+  { name: "Sunset Dolphin Cruise", category: "EXCURSION", description: "Watch dolphins at sunset", short_description: "Evening dolphin trip", duration_minutes: 120, default_max_capacity: 12, default_price_per_person: 85, guest_can_book: true, guest_cutoff_hours: 4, requires_approval: false, difficulty_level: "EASY" },
+  { name: "Kayak Adventure", category: "WATERSPORT", description: "Explore the lagoon by kayak", short_description: "Self-guided kayak tour", duration_minutes: 60, default_max_capacity: 10, default_price_per_person: 35, guest_can_book: true, guest_cutoff_hours: 1, requires_approval: false, difficulty_level: "EASY" },
+  { name: "Sunrise Yoga", category: "SPA", description: "Start your day with beachfront yoga", short_description: "Morning yoga session", duration_minutes: 60, default_max_capacity: 15, default_price_per_person: 25, guest_can_book: true, guest_cutoff_hours: 2, requires_approval: false, difficulty_level: "EASY" },
+  { name: "Night Fishing", category: "EXCURSION", description: "Traditional Maldivian fishing experience", short_description: "Evening fishing trip", duration_minutes: 180, default_max_capacity: 8, default_price_per_person: 95, guest_can_book: true, guest_cutoff_hours: 6, requires_approval: false, difficulty_level: "EASY" },
+  { name: "Deep Tissue Massage", category: "SPA", description: "Relaxing full body massage", short_description: "60-min massage", duration_minutes: 60, default_max_capacity: 2, default_price_per_person: 120, guest_can_book: true, guest_cutoff_hours: 4, requires_approval: false, difficulty_level: "EASY" },
   { name: "Advanced Reef Dive", category: "DIVE", description: "For certified divers", short_description: "2-tank dive trip", duration_minutes: 240, default_max_capacity: 6, default_price_per_person: 200, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "INTERMEDIATE" },
 ];
 
 const DEMO_RESTAURANTS = [
-  { name: "Lagoon Restaurant", description: "Overwater dining with stunning views", total_capacity: 60, guest_can_book: true, guest_cutoff_minutes: 60, max_pax_per_booking: 8 },
+  { name: "Lagoon Restaurant", description: "Overwater dining with stunning views", total_capacity: 60, guest_can_book: true, guest_cutoff_minutes: 60, max_pax_per_booking: 8, requires_approval: false },
   { name: "Sunset Grill", description: "Beachfront BBQ and seafood", total_capacity: 40, guest_can_book: true, guest_cutoff_minutes: 120, max_pax_per_booking: 6, requires_approval: true },
-  { name: "The Teppanyaki", description: "Japanese cuisine with live cooking", total_capacity: 24, guest_can_book: true, guest_cutoff_minutes: 180, max_pax_per_booking: 6 },
+  { name: "The Teppanyaki", description: "Japanese cuisine with live cooking", total_capacity: 24, guest_can_book: true, guest_cutoff_minutes: 180, max_pax_per_booking: 6, requires_approval: false },
 ];
 
 // Evergreen guest data - stays are always relative to "today"
