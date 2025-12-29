@@ -13,10 +13,12 @@ export function PrinciplesSection() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-background relative overflow-hidden">
+    <section className="py-24 md:py-32 bg-gradient-to-br from-primary/5 via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
+      {/* Central glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 dark:via-primary/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/30 dark:via-primary/20 to-transparent" />
       </div>
       
       <div className="container mx-auto px-4 relative z-10">

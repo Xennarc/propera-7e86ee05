@@ -14,10 +14,12 @@ export function DesignPhilosophy() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 bg-card relative overflow-hidden">
-      {/* Gradient overlays */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
+    <section className="py-24 md:py-32 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+      {/* Enhanced gradient overlays for light mode */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/15 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-400/12 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
+      {/* Subtle pattern for texture */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '36px 36px' }} />
       
       <div className="container mx-auto px-4 relative z-10">
         <motion.div

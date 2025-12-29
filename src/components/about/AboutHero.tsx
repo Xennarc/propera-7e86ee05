@@ -13,14 +13,16 @@ export function AboutHero() {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16">
-      {/* Rich gradient mesh background */}
+      {/* Rich gradient mesh background - enhanced for light mode */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/5" />
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/8 rounded-full blur-[180px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-teal-400/8 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-teal-400/8 dark:from-background dark:via-background dark:to-primary/5" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/12 dark:bg-primary/8 rounded-full blur-[180px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-teal-400/15 dark:bg-teal-400/8 rounded-full blur-[150px] pointer-events-none" />
+        <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] bg-accent/10 dark:bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
         {/* Soft spotlight glow behind headline */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[300px] bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[300px] bg-primary/15 dark:bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+        {/* Subtle atlas texture for light mode */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '40px 40px' }} />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
