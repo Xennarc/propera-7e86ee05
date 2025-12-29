@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark, ProperaMarkAnimated } from '@/components/icons/ProperaLogo';
@@ -138,17 +137,17 @@ export default function BookDemoPage() {
   const [selectedPath, setSelectedPath] = useState<'instant' | 'walkthrough'>('instant');
 
   return (
-    <div className="min-h-screen bg-navy-900 relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated background glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-teal-500/5 rounded-full blur-[120px] animate-pulse-soft" />
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] animate-pulse-soft" />
         <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-lagoon-500/5 rounded-full blur-[100px] animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-teal-400/3 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '2s' }} />
         {/* Subtle grid overlay */}
         <div 
           className="absolute inset-0 opacity-[0.02]"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.1) 1px, transparent 1px)`,
             backgroundSize: '60px 60px',
           }}
         />
@@ -163,7 +162,7 @@ export default function BookDemoPage() {
       />
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-navy-900/60 backdrop-blur-xl border-b border-teal-500/10">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
             <ProperaMark size={40} className="text-primary transition-transform duration-300 group-hover:scale-105" />
@@ -171,19 +170,19 @@ export default function BookDemoPage() {
           </Link>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-1">
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
                 <Link to="/">Home</Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
                 <Link to="/about">About</Link>
               </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
+              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
                 <Link to="/pricing">Pricing</Link>
               </Button>
               <span className="text-sm text-primary font-medium px-4">Demo</span>
             </div>
             <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button asChild variant="ghost" size="sm" className="rounded-full font-medium text-muted-foreground hover:text-foreground hover:bg-navy-700/50">
+            <Button asChild variant="ghost" size="sm" className="rounded-full font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
               <Link to="/staff/auth">Sign in</Link>
             </Button>
           </div>
@@ -197,26 +196,26 @@ export default function BookDemoPage() {
             {/* Glass Hero Panel */}
             <div className="relative max-w-4xl mx-auto">
               {/* Glow effect behind panel */}
-              <div className="absolute inset-0 bg-gradient-to-b from-teal-500/10 via-teal-400/5 to-transparent blur-3xl rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl" />
               
-              <div className="relative bg-navy-800/40 backdrop-blur-2xl rounded-3xl border border-teal-500/10 p-8 md:p-12 lg:p-16 shadow-elevated">
+              <div className="relative bg-card/60 backdrop-blur-2xl rounded-3xl border border-border/30 p-8 md:p-12 lg:p-16 shadow-elevated">
                 {/* Animated Propera Mark as decorative element */}
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                  <div className="bg-navy-800/80 backdrop-blur-xl rounded-2xl p-3 border border-teal-500/20 shadow-lg">
+                  <div className="bg-card/80 backdrop-blur-xl rounded-2xl p-3 border border-primary/20 shadow-lg">
                     <ProperaMarkAnimated size={48} className="text-primary" />
                   </div>
                 </div>
 
                 <div className="text-center mt-6">
-                  <Badge variant="outline" className="mb-6 text-teal-400 border-teal-500/30 bg-teal-500/10 px-4 py-1.5">
+                  <span className="glass-pill mb-6 inline-flex items-center">
                     <Sparkles className="h-3.5 w-3.5 mr-2" />
                     Propera Demo
-                  </Badge>
+                  </span>
                   
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight leading-tight">
                     Let guests book.
                     <br />
-                    <span className="bg-gradient-to-r from-teal-400 via-teal-300 to-lagoon-400 bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-teal-500 via-teal-400 to-lagoon-500 bg-clip-text text-transparent">
                       Let staff breathe.
                     </span>
                   </h1>
@@ -228,7 +227,7 @@ export default function BookDemoPage() {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                     <Button 
                       size="xl" 
-                      className="rounded-2xl font-semibold px-8 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                      className="btn-cta-premium rounded-2xl font-semibold px-8"
                       onClick={() => setShowDemoWizard(true)}
                       data-trigger-demo
                     >
@@ -238,7 +237,7 @@ export default function BookDemoPage() {
                     <Button 
                       size="xl" 
                       variant="outline"
-                      className="rounded-2xl font-semibold px-8 border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
+                      className="btn-ghost-premium rounded-2xl font-semibold px-8"
                       onClick={() => setShowLiveQualifier(true)}
                       data-trigger-qualifier
                     >
@@ -254,14 +253,10 @@ export default function BookDemoPage() {
                   {/* Trust chips */}
                   <div className="flex flex-wrap justify-center gap-3">
                     {TRUST_CHIPS.map((chip) => (
-                      <Badge 
-                        key={chip} 
-                        variant="secondary" 
-                        className="py-2 px-4 text-sm font-medium bg-navy-700/50 border border-navy-600/50 text-foreground/90 hover:bg-navy-700/70 transition-colors"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-teal-400" />
+                      <span key={chip} className="glass-pill text-sm">
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-primary" />
                         {chip}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -275,13 +270,13 @@ export default function BookDemoPage() {
           <div className="container mx-auto px-4">
             {/* Segmented Toggle */}
             <div className="flex justify-center mb-10">
-              <div className="inline-flex bg-navy-800/60 backdrop-blur-xl rounded-2xl p-1.5 border border-navy-600/50">
+              <div className="inline-flex bg-card/80 backdrop-blur-xl rounded-2xl p-1.5 border border-border/50">
                 <button
                   onClick={() => setSelectedPath('instant')}
                   className={cn(
                     "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
                     selectedPath === 'instant' 
-                      ? "bg-teal-500 text-navy-950 shadow-lg" 
+                      ? "bg-primary text-primary-foreground shadow-lg" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -293,7 +288,7 @@ export default function BookDemoPage() {
                   className={cn(
                     "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
                     selectedPath === 'walkthrough' 
-                      ? "bg-teal-500 text-navy-950 shadow-lg" 
+                      ? "bg-primary text-primary-foreground shadow-lg" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
@@ -307,21 +302,21 @@ export default function BookDemoPage() {
               {/* Card A - Self-Serve Demo */}
               <Card 
                 className={cn(
-                  "relative overflow-hidden bg-navy-800/40 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
+                  "relative overflow-hidden bg-card/60 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
                   selectedPath === 'instant' 
-                    ? "border-teal-500/50 shadow-[0_0_40px_-10px_rgba(45,212,191,0.3)]" 
-                    : "border-navy-600/30 hover:border-navy-500/50"
+                    ? "border-primary/50 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.3)]" 
+                    : "border-border/30 hover:border-border/50"
                 )}
               >
                 <div className="absolute top-4 right-4">
-                  <Badge className="bg-gradient-to-r from-teal-500 to-teal-400 text-navy-950 font-semibold px-3 py-1">
+                  <span className="inline-flex items-center bg-gradient-to-r from-teal-500 to-teal-400 text-primary-foreground font-semibold px-3 py-1 rounded-full text-sm">
                     <Rocket className="h-3 w-3 mr-1.5" />
                     Fastest
-                  </Badge>
+                  </span>
                 </div>
                 <CardHeader className="pt-14 pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500/20 to-teal-400/10 border border-teal-500/20 flex items-center justify-center mb-5">
-                    <Zap className="h-8 w-8 text-teal-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/20 flex items-center justify-center mb-5">
+                    <Zap className="h-8 w-8 text-primary" />
                   </div>
                   <CardTitle className="text-2xl text-foreground">Instant demo workspace</CardTitle>
                   <CardDescription className="text-base text-muted-foreground/90 mt-2">
@@ -331,27 +326,27 @@ export default function BookDemoPage() {
                 <CardContent className="space-y-6 pb-8">
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <span>Preloaded activities, sessions, dining slots</span>
                     </li>
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <span>Guided checklist to your first guest booking</span>
                     </li>
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center mt-0.5 flex-shrink-0">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                      <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center mt-0.5 flex-shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <span>Upgrade to go live anytime</span>
                     </li>
                   </ul>
                   <Button 
                     size="lg" 
-                    className="w-full rounded-2xl font-semibold bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300"
+                    className="w-full btn-cta-premium rounded-2xl font-semibold"
                     onClick={() => setShowDemoWizard(true)}
                   >
                     Create My Demo Workspace
@@ -366,14 +361,14 @@ export default function BookDemoPage() {
               {/* Card B - Live Walkthrough */}
               <Card 
                 className={cn(
-                  "relative overflow-hidden bg-navy-800/40 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
+                  "relative overflow-hidden bg-card/60 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:translate-y-[-4px]",
                   selectedPath === 'walkthrough' 
-                    ? "border-teal-500/50 shadow-[0_0_40px_-10px_rgba(45,212,191,0.3)]" 
-                    : "border-navy-600/30 hover:border-navy-500/50"
+                    ? "border-primary/50 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.3)]" 
+                    : "border-border/30 hover:border-border/50"
                 )}
               >
                 <CardHeader className="pt-14 pb-4">
-                  <div className="w-16 h-16 rounded-2xl bg-navy-700/50 border border-navy-600/50 flex items-center justify-center mb-5">
+                  <div className="w-16 h-16 rounded-2xl bg-muted border border-border/50 flex items-center justify-center mb-5">
                     <Calendar className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <CardTitle className="text-2xl text-foreground">Live walkthrough (for teams)</CardTitle>
@@ -384,19 +379,19 @@ export default function BookDemoPage() {
                 <CardContent className="space-y-6 pb-8">
                   <ul className="space-y-3">
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center mt-0.5 flex-shrink-0">
                         <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <span>Focused on your departments & flows</span>
                     </li>
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center mt-0.5 flex-shrink-0">
                         <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <span>Implementation plan and timeline</span>
                     </li>
                     <li className="flex items-start gap-3 text-sm text-foreground/90">
-                      <div className="w-5 h-5 rounded-full bg-navy-700/50 flex items-center justify-center mt-0.5 flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center mt-0.5 flex-shrink-0">
                         <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
                       </div>
                       <span>Q&A with real scenarios</span>
@@ -405,7 +400,7 @@ export default function BookDemoPage() {
                   <Button 
                     size="lg" 
                     variant="outline"
-                    className="w-full rounded-2xl font-semibold border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
+                    className="w-full btn-ghost-premium rounded-2xl font-semibold"
                     onClick={() => setShowLiveQualifier(true)}
                   >
                     Book a Walkthrough
@@ -433,10 +428,10 @@ export default function BookDemoPage() {
               {DEMO_FEATURES.map((feature, idx) => (
                 <Card 
                   key={idx} 
-                  className="bg-navy-800/40 backdrop-blur-xl border-navy-600/30 rounded-2xl hover:border-navy-500/50 transition-all duration-300 hover:translate-y-[-2px] group"
+                  className="bg-card/60 backdrop-blur-xl border-border/30 rounded-2xl hover:border-border/50 transition-all duration-300 hover:translate-y-[-2px] group"
                 >
                   <CardContent className="pt-7 pb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500/15 to-teal-400/5 border border-teal-500/20 text-teal-400 flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/20 text-primary flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-300">
                       {feature.icon}
                     </div>
                     <h3 className="font-semibold text-lg mb-2 text-foreground">{feature.title}</h3>
@@ -451,9 +446,9 @@ export default function BookDemoPage() {
         {/* Social Proof Band */}
         <section className="py-14 relative">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto bg-navy-800/40 backdrop-blur-xl rounded-3xl border border-navy-600/30 p-8 md:p-10 text-center">
+            <div className="max-w-4xl mx-auto bg-card/60 backdrop-blur-xl rounded-3xl border border-border/30 p-8 md:p-10 text-center">
               <div className="flex justify-center mb-5">
-                <Waves className="h-8 w-8 text-teal-400/60" />
+                <Waves className="h-8 w-8 text-primary/60" />
               </div>
               <p className="text-xl md:text-2xl font-medium text-foreground mb-3">
                 Built for island resorts and fast-moving teams.
@@ -471,13 +466,13 @@ export default function BookDemoPage() {
             <h2 className="text-3xl md:text-4xl font-bold text-center text-foreground mb-14">How it works</h2>
             <div className="max-w-4xl mx-auto relative">
               {/* Connecting line */}
-              <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-500/30 to-transparent hidden md:block" />
+              <div className="absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent hidden md:block" />
               
               <div className="grid md:grid-cols-3 gap-6">
                 {STEPS.map((step, idx) => (
                   <div key={step.number} className="relative">
-                    <div className="bg-navy-800/40 backdrop-blur-xl rounded-2xl border border-navy-600/30 p-6 text-center hover:border-navy-500/50 transition-all duration-300 hover:translate-y-[-2px]">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-400 text-navy-950 font-bold text-xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                    <div className="bg-card/60 backdrop-blur-xl rounded-2xl border border-border/30 p-6 text-center hover:border-border/50 transition-all duration-300 hover:translate-y-[-2px]">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-teal-400 text-primary-foreground font-bold text-xl flex items-center justify-center mx-auto mb-5 shadow-lg">
                         {step.number}
                       </div>
                       <h3 className="font-semibold text-lg mb-2 text-foreground">{step.title}</h3>
@@ -486,7 +481,7 @@ export default function BookDemoPage() {
                     {/* Arrow connector for mobile */}
                     {idx < STEPS.length - 1 && (
                       <div className="flex justify-center py-3 md:hidden">
-                        <ArrowRight className="h-5 w-5 text-teal-500/50 rotate-90" />
+                        <ArrowRight className="h-5 w-5 text-primary/50 rotate-90" />
                       </div>
                     )}
                   </div>
@@ -511,7 +506,7 @@ export default function BookDemoPage() {
                   <AccordionItem 
                     key={idx} 
                     value={`faq-${idx}`} 
-                    className="bg-navy-800/40 backdrop-blur-xl border border-navy-600/30 rounded-2xl px-6 data-[state=open]:border-navy-500/50 transition-all duration-200"
+                    className="bg-card/60 backdrop-blur-xl border border-border/30 rounded-2xl px-6 data-[state=open]:border-primary/30 transition-all duration-200"
                   >
                     <AccordionTrigger className="text-left font-medium py-5 hover:no-underline text-foreground">
                       {faq.question}
@@ -531,9 +526,9 @@ export default function BookDemoPage() {
           <div className="container mx-auto px-4">
             <div className="relative max-w-4xl mx-auto">
               {/* Glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 via-teal-400/5 to-lagoon-500/10 blur-3xl rounded-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-lagoon-500/10 blur-3xl rounded-3xl" />
               
-              <div className="relative bg-navy-800/50 backdrop-blur-2xl rounded-3xl border border-teal-500/20 p-10 md:p-14 text-center shadow-elevated">
+              <div className="relative bg-card/60 backdrop-blur-2xl rounded-3xl border border-primary/20 p-10 md:p-14 text-center shadow-elevated">
                 <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                   See it once. Feel the difference.
                 </h2>
@@ -543,7 +538,7 @@ export default function BookDemoPage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                   <Button 
                     size="xl" 
-                    className="rounded-2xl font-semibold px-8 bg-gradient-to-r from-teal-500 to-teal-400 hover:from-teal-400 hover:to-teal-300 text-navy-950 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                    className="btn-cta-premium rounded-2xl font-semibold px-8"
                     onClick={() => setShowDemoWizard(true)}
                   >
                     Try Propera Now (10 min)
@@ -552,7 +547,7 @@ export default function BookDemoPage() {
                   <Button 
                     size="xl" 
                     variant="outline"
-                    className="rounded-2xl font-semibold px-8 border-navy-600 bg-navy-800/50 hover:bg-navy-700/50 hover:border-navy-500 text-foreground transition-all duration-300"
+                    className="btn-ghost-premium rounded-2xl font-semibold px-8"
                     onClick={() => setShowLiveQualifier(true)}
                   >
                     Book a Live Walkthrough
@@ -569,7 +564,7 @@ export default function BookDemoPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 bg-navy-950/50 backdrop-blur-xl border-t border-navy-700/50 relative z-10">
+      <footer className="py-12 bg-muted/50 backdrop-blur-xl border-t border-border/50 relative z-10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-3 group">
@@ -580,11 +575,11 @@ export default function BookDemoPage() {
               </div>
             </Link>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-teal-400 transition-colors">Home</Link>
-              <Link to="/about" className="hover:text-teal-400 transition-colors">About</Link>
-              <Link to="/pricing" className="hover:text-teal-400 transition-colors">Pricing</Link>
-              <Link to="/staff/auth" className="hover:text-teal-400 transition-colors">Staff Login</Link>
-              <Separator orientation="vertical" className="h-4 bg-navy-600 hidden sm:block" />
+              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
+              <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
+              <Link to="/staff/auth" className="hover:text-primary transition-colors">Staff Login</Link>
+              <Separator orientation="vertical" className="h-4 bg-border hidden sm:block" />
               <span className="text-muted-foreground/60">© {new Date().getFullYear()} Propera</span>
             </div>
           </div>
