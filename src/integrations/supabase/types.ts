@@ -816,6 +816,60 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_login_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          guest_id: string | null
+          id: string
+          resort_id: string | null
+          token: string
+          token_type: string
+          used_at: string | null
+          user_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          guest_id?: string | null
+          id?: string
+          resort_id?: string | null
+          token: string
+          token_type: string
+          used_at?: string | null
+          user_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          guest_id?: string | null
+          id?: string
+          resort_id?: string | null
+          token?: string
+          token_type?: string
+          used_at?: string | null
+          user_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_login_tokens_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demo_login_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "demo_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_rate_limits: {
         Row: {
           attempts: number
@@ -876,6 +930,80 @@ export type Database = {
           {
             foreignKeyName: "demo_tenants_tenant_id_fkey"
             columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_workspaces: {
+        Row: {
+          created_at: string
+          departments: Json | null
+          email: string
+          expires_at: string
+          guest_id: string | null
+          guest_last_name: string | null
+          guest_room: string | null
+          id: string
+          last_error: string | null
+          resort_code: string | null
+          resort_id: string | null
+          resort_name: string
+          rooms_range: string | null
+          seeded_at: string | null
+          staff_email: string | null
+          staff_user_id: string | null
+          status: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          departments?: Json | null
+          email: string
+          expires_at?: string
+          guest_id?: string | null
+          guest_last_name?: string | null
+          guest_room?: string | null
+          id?: string
+          last_error?: string | null
+          resort_code?: string | null
+          resort_id?: string | null
+          resort_name: string
+          rooms_range?: string | null
+          seeded_at?: string | null
+          staff_email?: string | null
+          staff_user_id?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          departments?: Json | null
+          email?: string
+          expires_at?: string
+          guest_id?: string | null
+          guest_last_name?: string | null
+          guest_room?: string | null
+          id?: string
+          last_error?: string | null
+          resort_code?: string | null
+          resort_id?: string | null
+          resort_name?: string
+          rooms_range?: string | null
+          seeded_at?: string | null
+          staff_email?: string | null
+          staff_user_id?: string | null
+          status?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_workspaces_resort_id_fkey"
+            columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
             referencedColumns: ["id"]
@@ -3808,6 +3936,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
       get_or_create_loyalty_member: {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: string
@@ -4175,6 +4304,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_demo_login_token: { Args: { p_token: string }; Returns: Json }
       validate_prearrival_link: {
         Args: { p_last_name?: string; p_token: string }
         Returns: Json

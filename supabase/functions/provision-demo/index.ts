@@ -25,13 +25,12 @@ const DEMO_RESTAURANTS = [
   { name: "The Teppanyaki", description: "Japanese cuisine with live cooking", total_capacity: 24, guest_can_book: true, guest_cutoff_minutes: 180, max_pax_per_booking: 6, requires_approval: false },
 ];
 
-// Evergreen guest data - stays are always relative to "today"
 const DEMO_GUESTS = [
   { full_name: "James Wilson", room_number: "101", nationality: "United Kingdom", daysFromNow: -2, stayLength: 7, email: "james.wilson@example.com" },
   { full_name: "Sarah Chen", room_number: "102", nationality: "Singapore", daysFromNow: -1, stayLength: 5, email: "sarah.chen@example.com" },
-  { full_name: "Emma Miller", room_number: "201", nationality: "Australia", daysFromNow: 0, stayLength: 10, email: "emma.miller@example.com" }, // Demo login guest
-  { full_name: "Hans Mueller", room_number: "202", nationality: "Germany", daysFromNow: 1, stayLength: 8, email: "hans.mueller@example.com" }, // Pre-arrival
-  { full_name: "Yuki Tanaka", room_number: "301", nationality: "Japan", daysFromNow: 2, stayLength: 6, email: "yuki.tanaka@example.com" }, // Pre-arrival
+  { full_name: "Emma Miller", room_number: "201", nationality: "Australia", daysFromNow: 0, stayLength: 10, email: "emma.miller@example.com" },
+  { full_name: "Hans Mueller", room_number: "202", nationality: "Germany", daysFromNow: 1, stayLength: 8, email: "hans.mueller@example.com" },
+  { full_name: "Yuki Tanaka", room_number: "301", nationality: "Japan", daysFromNow: 2, stayLength: 6, email: "yuki.tanaka@example.com" },
 ];
 
 const SAMPLE_BOOKING_NOTES = [
@@ -42,7 +41,7 @@ const SAMPLE_BOOKING_NOTES = [
   "Vegetarian meal preference",
   "Requested high chair for infant",
   "Would like photos during activity",
-  null, // Some bookings have no notes
+  null,
   null,
   null,
 ];
@@ -58,6 +57,15 @@ function generatePassword(): string {
 
 function generatePin(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
+}
+
+function generateToken(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  let token = "";
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return token;
 }
 
 function formatDate(date: Date): string {
@@ -78,7 +86,75 @@ async function hashPin(pin: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Email sending helper - always uses production URLs
+// Generate auto-login tokens for staff and guest
+async function generateLoginTokens(
+  supabase: any,
+  workspaceId: string,
+  resortId: string,
+  staffUserId: string,
+  guestId: string
+): Promise<{ staffToken: string; guestToken: string }> {
+  const staffToken = generateToken();
+  const guestToken = generateToken();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes
+
+  // Delete any existing tokens for this workspace
+  await supabase
+    .from("demo_login_tokens")
+    .delete()
+    .eq("workspace_id", workspaceId);
+
+  // Create new tokens
+  await supabase.from("demo_login_tokens").insert([
+    {
+      workspace_id: workspaceId,
+      token: staffToken,
+      token_type: "staff",
+      user_id: staffUserId,
+      resort_id: resortId,
+      expires_at: expiresAt,
+    },
+    {
+      workspace_id: workspaceId,
+      token: guestToken,
+      token_type: "guest",
+      guest_id: guestId,
+      resort_id: resortId,
+      expires_at: expiresAt,
+    },
+  ]);
+
+  return { staffToken, guestToken };
+}
+
+// Validate staff login by attempting sign-in
+async function validateStaffCredentials(
+  supabase: any,
+  email: string,
+  password: string
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      console.error("Credential validation failed:", error.message);
+      return { valid: false, error: error.message };
+    }
+    
+    // Sign out immediately - we just wanted to validate
+    await supabase.auth.signOut();
+    
+    return { valid: true };
+  } catch (err: any) {
+    console.error("Credential validation error:", err);
+    return { valid: false, error: err?.message || "Unknown error" };
+  }
+}
+
+// Email sending helper
 async function sendDemoEmail(params: {
   to: string;
   resortName: string;
@@ -86,6 +162,8 @@ async function sendDemoEmail(params: {
   staffIdentifier: string;
   tempPassword: string;
   guestInfo: { guestName: string; roomNumber: string; lastName: string; pin: string };
+  staffToken?: string;
+  guestToken?: string;
   isReminder?: boolean;
 }): Promise<{ sent: boolean; error: string }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -94,8 +172,13 @@ async function sendDemoEmail(params: {
     return { sent: false, error: "RESEND_API_KEY not configured" };
   }
 
-  const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(params.staffIdentifier)}`;
-  const guestLoginUrl = `${PRODUCTION_URL}/resort/${params.resortCode}/guest/login?roomNumber=${encodeURIComponent(params.guestInfo.roomNumber)}&lastName=${encodeURIComponent(params.guestInfo.lastName)}`;
+  const staffLoginUrl = params.staffToken 
+    ? `${PRODUCTION_URL}/staff/demo-login?token=${params.staffToken}`
+    : `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(params.staffIdentifier)}`;
+  
+  const guestLoginUrl = params.guestToken
+    ? `${PRODUCTION_URL}/guest/demo-login?token=${params.guestToken}`
+    : `${PRODUCTION_URL}/resort/${params.resortCode}/guest/login?roomNumber=${encodeURIComponent(params.guestInfo.roomNumber)}&lastName=${encodeURIComponent(params.guestInfo.lastName)}`;
 
   const subject = params.isReminder 
     ? `🔑 Fresh login credentials for your ${params.resortName} demo`
@@ -104,6 +187,10 @@ async function sendDemoEmail(params: {
   const introText = params.isReminder
     ? `Here are your fresh login credentials for <strong>${params.resortName}</strong>.`
     : `Your demo resort <strong>${params.resortName}</strong> is ready to explore.`;
+
+  const tokenNote = params.staffToken 
+    ? `<p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">⚡ The "Open" buttons below let you sign in instantly (expires in 15 min)</p>`
+    : '';
 
   try {
     console.log("Sending demo email to:", params.to);
@@ -122,14 +209,15 @@ async function sendDemoEmail(params: {
           <div style="text-align: center; margin-bottom: 32px;">
             <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
             <p style="color: #64748b; margin: 0; font-size: 16px;">${introText}</p>
+            ${tokenNote}
           </div>
 
           <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
             <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console Login</h2>
             <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings.</p>
             <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> ${params.staffIdentifier}</p>
-              <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${params.tempPassword}</code></p>
+              <p style="margin: 0 0 8px; font-size: 14px;"><strong>Email:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${params.staffIdentifier}</code></p>
+              <p style="margin: 0; font-size: 14px;"><strong>Password:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${params.tempPassword}</code></p>
             </div>
             <a href="${staffLoginUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
           </div>
@@ -140,7 +228,7 @@ async function sendDemoEmail(params: {
             <div style="background: #ffffff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border: 1px solid #a7f3d0;">
               <p style="margin: 0 0 8px; font-size: 14px;"><strong>Guest:</strong> ${params.guestInfo.guestName}</p>
               <p style="margin: 0 0 8px; font-size: 14px;"><strong>Room:</strong> ${params.guestInfo.roomNumber}</p>
-              <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px;">${params.guestInfo.pin}</code></p>
+              <p style="margin: 0; font-size: 14px;"><strong>PIN:</strong> <code style="background: #ecfdf5; padding: 2px 6px; border-radius: 4px; font-size: 16px; letter-spacing: 2px; font-family: monospace;">${params.guestInfo.pin}</code></p>
             </div>
             <a href="${guestLoginUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
           </div>
@@ -168,16 +256,18 @@ async function sendDemoEmail(params: {
   }
 }
 
-// Reset password for existing demo admin (no new accounts created)
+// Rotate credentials for existing demo
 async function rotateCredentials(
   supabaseAdmin: any,
+  workspaceId: string,
   resortId: string,
-  resortCode: string,
-  originalEmail: string
+  resortCode: string
 ): Promise<{
   staffIdentifier: string;
   tempPassword: string;
-  guestInfo: { guestName: string; roomNumber: string; lastName: string; pin: string };
+  staffUserId: string;
+  guestInfo: { guestId: string; guestName: string; roomNumber: string; lastName: string; pin: string };
+  validated: boolean;
 }> {
   const tempPassword = generatePassword();
   
@@ -195,7 +285,6 @@ async function rotateCredentials(
     throw new Error("No admin found for this demo resort");
   }
 
-  // Get the user's email
   const { data: { user: existingUser }, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(membership.user_id);
   
   if (getUserError || !existingUser) {
@@ -204,7 +293,6 @@ async function rotateCredentials(
 
   console.log("Resetting password for existing admin:", existingUser.email);
 
-  // Reset the password for the existing user (no new account created)
   const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(membership.user_id, {
     password: tempPassword,
   });
@@ -217,19 +305,24 @@ async function rotateCredentials(
   const staffIdentifier = existingUser.email;
   console.log("Password reset for:", staffIdentifier);
 
-  // Refresh demo data to ensure everything is current
+  // Validate credentials work
+  const validation = await validateStaffCredentials(supabaseAdmin, staffIdentifier, tempPassword);
+  console.log("Credential validation result:", validation);
+
+  // Refresh demo data
   await refreshDemoData(supabaseAdmin, resortId);
 
-  // Rotate guest PIN - find the demo login guest
+  // Rotate guest PIN
   const { data: demoGuest } = await supabaseAdmin
     .from("guests")
     .select("id, full_name, room_number")
     .eq("resort_id", resortId)
-    .eq("room_number", "201") // Emma Miller - the demo login guest
+    .eq("room_number", "201")
     .eq("portal_enabled", true)
     .single();
 
   let guestInfo = {
+    guestId: "",
     guestName: "Demo Guest",
     roomNumber: "101",
     lastName: "Guest",
@@ -237,26 +330,16 @@ async function rotateCredentials(
   };
 
   if (demoGuest) {
-    // Generate new PIN using DB function
-    const { data: pinResult, error: pinError } = await supabaseAdmin.rpc("generate_guest_pin", {
-      p_guest_id: demoGuest.id,
-    });
-
-    if (pinError) {
-      console.error("Failed to generate new PIN:", pinError);
-      // Fallback: generate manually
-      const newPin = generatePin();
-      const pinHash = await hashPin(newPin);
-      await supabaseAdmin.from("guests").update({
-        portal_pin_hash: pinHash,
-        portal_pin_last4: newPin,
-        portal_pin_set_at: new Date().toISOString(),
-      }).eq("id", demoGuest.id);
-      
-      guestInfo.pin = newPin;
-    } else if (pinResult?.success) {
-      guestInfo.pin = pinResult.pin;
-    }
+    const newPin = generatePin();
+    const pinHash = await hashPin(newPin);
+    await supabaseAdmin.from("guests").update({
+      portal_pin_hash: pinHash,
+      portal_pin_last4: newPin,
+      portal_pin_set_at: new Date().toISOString(),
+    }).eq("id", demoGuest.id);
+    
+    guestInfo.pin = newPin;
+    guestInfo.guestId = demoGuest.id;
 
     const nameParts = demoGuest.full_name.split(" ");
     guestInfo.guestName = demoGuest.full_name;
@@ -266,14 +349,24 @@ async function rotateCredentials(
     console.log("Guest PIN rotated for:", demoGuest.full_name);
   }
 
+  // Update workspace
+  await supabaseAdmin.from("demo_workspaces").update({
+    staff_email: staffIdentifier,
+    guest_id: guestInfo.guestId || null,
+    guest_room: guestInfo.roomNumber,
+    guest_last_name: guestInfo.lastName,
+  }).eq("id", workspaceId);
+
   return {
     staffIdentifier,
     tempPassword,
+    staffUserId: membership.user_id,
     guestInfo,
+    validated: validation.valid,
   };
 }
 
-// Refresh demo data to keep it evergreen (delete stale, create fresh)
+// Refresh demo data
 async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
   const today = new Date();
   const todayStr = formatDate(today);
@@ -281,7 +374,7 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
 
   console.log("Refreshing demo data for resort:", resortId);
 
-  // 1. Delete stale activity sessions (before yesterday) and their bookings
+  // Delete stale activity sessions
   const { data: staleSessions } = await supabase
     .from("activity_sessions")
     .select("id")
@@ -290,20 +383,12 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
 
   if (staleSessions?.length) {
     const staleSessionIds = staleSessions.map((s: any) => s.id);
-    // Delete bookings first
-    await supabase
-      .from("activity_bookings")
-      .delete()
-      .in("session_id", staleSessionIds);
-    // Then delete sessions
-    await supabase
-      .from("activity_sessions")
-      .delete()
-      .in("id", staleSessionIds);
+    await supabase.from("activity_bookings").delete().in("session_id", staleSessionIds);
+    await supabase.from("activity_sessions").delete().in("id", staleSessionIds);
     console.log(`Deleted ${staleSessions.length} stale sessions`);
   }
 
-  // 2. Delete stale restaurant slots (before yesterday) and their reservations
+  // Delete stale restaurant slots
   const { data: staleSlots } = await supabase
     .from("restaurant_time_slots")
     .select("id")
@@ -312,26 +397,18 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
 
   if (staleSlots?.length) {
     const staleSlotIds = staleSlots.map((s: any) => s.id);
-    // Delete reservations first
-    await supabase
-      .from("restaurant_reservations")
-      .delete()
-      .in("restaurant_slot_id", staleSlotIds);
-    // Then delete slots
-    await supabase
-      .from("restaurant_time_slots")
-      .delete()
-      .in("id", staleSlotIds);
+    await supabase.from("restaurant_reservations").delete().in("restaurant_slot_id", staleSlotIds);
+    await supabase.from("restaurant_time_slots").delete().in("id", staleSlotIds);
     console.log(`Deleted ${staleSlots.length} stale restaurant slots`);
   }
 
-  // 3. Get existing activities for this resort
+  // Get existing activities
   const { data: activities } = await supabase
     .from("activities")
     .select("id, default_max_capacity")
     .eq("resort_id", resortId);
 
-  // 4. Find the furthest date that already has sessions
+  // Find furthest date with sessions
   const { data: latestSession } = await supabase
     .from("activity_sessions")
     .select("date")
@@ -343,7 +420,6 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
   const lastExistingDate = latestSession?.date ? new Date(latestSession.date) : addDays(today, -1);
   const daysToAdd = Math.max(0, 14 - Math.ceil((lastExistingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
-  // 5. Create new sessions for upcoming days
   if (activities?.length && daysToAdd > 0) {
     const sessions: any[] = [];
     const startDay = Math.ceil((lastExistingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -380,13 +456,12 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
     }
   }
 
-  // 6. Get existing restaurants
+  // Refresh restaurant slots
   const { data: restaurants } = await supabase
     .from("restaurants")
     .select("id, total_capacity")
     .eq("resort_id", resortId);
 
-  // 7. Find the furthest date that already has slots
   const { data: latestSlot } = await supabase
     .from("restaurant_time_slots")
     .select("date")
@@ -398,7 +473,6 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
   const lastExistingSlotDate = latestSlot?.date ? new Date(latestSlot.date) : addDays(today, -1);
   const slotDaysToAdd = Math.max(0, 14 - Math.ceil((lastExistingSlotDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
-  // 8. Create new restaurant slots for upcoming days
   if (restaurants?.length && slotDaysToAdd > 0) {
     const slots: any[] = [];
     const startDay = Math.ceil((lastExistingSlotDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -406,46 +480,10 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
     for (let day = startDay; day <= startDay + slotDaysToAdd; day++) {
       const slotDate = formatDate(addDays(today, day));
       restaurants.forEach((restaurant: any) => {
-        slots.push({
-          resort_id: resortId,
-          restaurant_id: restaurant.id,
-          date: slotDate,
-          start_time: "07:00",
-          end_time: "10:00",
-          meal_period: "BREAKFAST",
-          capacity: restaurant.total_capacity,
-          status: "OPEN",
-        });
-        slots.push({
-          resort_id: resortId,
-          restaurant_id: restaurant.id,
-          date: slotDate,
-          start_time: "12:00",
-          end_time: "14:30",
-          meal_period: "LUNCH",
-          capacity: Math.floor(restaurant.total_capacity * 0.7),
-          status: "OPEN",
-        });
-        slots.push({
-          resort_id: resortId,
-          restaurant_id: restaurant.id,
-          date: slotDate,
-          start_time: "19:00",
-          end_time: "20:30",
-          meal_period: "DINNER",
-          capacity: Math.floor(restaurant.total_capacity / 2),
-          status: "OPEN",
-        });
-        slots.push({
-          resort_id: resortId,
-          restaurant_id: restaurant.id,
-          date: slotDate,
-          start_time: "20:30",
-          end_time: "22:00",
-          meal_period: "DINNER",
-          capacity: Math.floor(restaurant.total_capacity / 2),
-          status: "OPEN",
-        });
+        slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "07:00", end_time: "10:00", meal_period: "BREAKFAST", capacity: restaurant.total_capacity, status: "OPEN" });
+        slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "12:00", end_time: "14:30", meal_period: "LUNCH", capacity: Math.floor(restaurant.total_capacity * 0.7), status: "OPEN" });
+        slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "19:00", end_time: "20:30", meal_period: "DINNER", capacity: Math.floor(restaurant.total_capacity / 2), status: "OPEN" });
+        slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "20:30", end_time: "22:00", meal_period: "DINNER", capacity: Math.floor(restaurant.total_capacity / 2), status: "OPEN" });
       });
     }
     
@@ -455,7 +493,7 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
     }
   }
 
-  // 9. Update guest check-in/check-out dates to keep them current
+  // Update guest dates
   const { data: existingGuests } = await supabase
     .from("guests")
     .select("id, room_number")
@@ -463,17 +501,13 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
 
   if (existingGuests?.length) {
     for (const guest of existingGuests) {
-      // Find the matching template guest by room number
       const template = DEMO_GUESTS.find(g => g.room_number === guest.room_number);
       if (template) {
-        await supabase
-          .from("guests")
-          .update({
-            check_in_date: formatDate(addDays(today, template.daysFromNow)),
-            check_out_date: formatDate(addDays(today, template.daysFromNow + template.stayLength)),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", guest.id);
+        await supabase.from("guests").update({
+          check_in_date: formatDate(addDays(today, template.daysFromNow)),
+          check_out_date: formatDate(addDays(today, template.daysFromNow + template.stayLength)),
+          updated_at: new Date().toISOString(),
+        }).eq("id", guest.id);
       }
     }
     console.log(`Updated ${existingGuests.length} guest dates`);
@@ -489,7 +523,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { email, resort_name, country, timezone, rooms_range, departments, role, mode = "provision" } = body;
+    const { email, resort_name, timezone, rooms_range, departments, mode = "provision" } = body;
 
     if (!email) {
       return new Response(JSON.stringify({ success: false, error: "Email is required" }), {
@@ -506,11 +540,263 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Handle "resend" mode - reset password and resend email
-    if (mode === "resend") {
-      console.log("Resend mode - rotating credentials for:", email);
+    // MODE: regenerate-credentials - rotate password/PIN and generate new tokens
+    if (mode === "regenerate-credentials") {
+      console.log("Regenerate credentials mode for:", email);
 
-      // Find existing lead
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!workspace) {
+        return new Response(JSON.stringify({ success: false, error: "No active demo found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const rotated = await rotateCredentials(supabaseAdmin, workspace.id, workspace.resort_id, workspace.resort_code);
+      
+      // Generate new login tokens
+      const tokens = await generateLoginTokens(
+        supabaseAdmin,
+        workspace.id,
+        workspace.resort_id,
+        rotated.staffUserId,
+        rotated.guestInfo.guestId
+      );
+
+      const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+      const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+      // Send email
+      const emailResult = await sendDemoEmail({
+        to: email,
+        resortName: workspace.resort_name,
+        resortCode: workspace.resort_code,
+        staffIdentifier: rotated.staffIdentifier,
+        tempPassword: rotated.tempPassword,
+        guestInfo: rotated.guestInfo,
+        staffToken: tokens.staffToken,
+        guestToken: tokens.guestToken,
+        isReminder: true,
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        regenerated: true,
+        workspace_id: workspace.id,
+        resort_id: workspace.resort_id,
+        resort_code: workspace.resort_code,
+        staff_email: rotated.staffIdentifier,
+        temp_password: rotated.tempPassword,
+        staff_login_url: staffLoginUrl,
+        staff_token: tokens.staffToken,
+        guest_login: {
+          guest_name: rotated.guestInfo.guestName,
+          room_number: rotated.guestInfo.roomNumber,
+          last_name: rotated.guestInfo.lastName,
+          pin: rotated.guestInfo.pin,
+          portal_url: guestLoginUrl,
+        },
+        guest_token: tokens.guestToken,
+        credentials_validated: rotated.validated,
+        email_sent: emailResult.sent,
+        expires_at: workspace.expires_at,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // MODE: reseed - re-run data seeding
+    if (mode === "reseed") {
+      console.log("Reseed mode for:", email);
+
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!workspace) {
+        return new Response(JSON.stringify({ success: false, error: "No active demo found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await refreshDemoData(supabaseAdmin, workspace.resort_id);
+      
+      await supabaseAdmin.from("demo_workspaces").update({
+        seeded_at: new Date().toISOString(),
+      }).eq("id", workspace.id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        reseeded: true,
+        workspace_id: workspace.id,
+        resort_id: workspace.resort_id,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // MODE: generate-tokens - generate new login tokens without changing credentials
+    if (mode === "generate-tokens") {
+      console.log("Generate tokens mode for:", email);
+
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!workspace) {
+        return new Response(JSON.stringify({ success: false, error: "No active demo found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const tokens = await generateLoginTokens(
+        supabaseAdmin,
+        workspace.id,
+        workspace.resort_id,
+        workspace.staff_user_id,
+        workspace.guest_id
+      );
+
+      return new Response(JSON.stringify({
+        success: true,
+        workspace_id: workspace.id,
+        staff_token: tokens.staffToken,
+        guest_token: tokens.guestToken,
+        staff_login_url: `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`,
+        guest_login_url: `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // MODE: get-workspace - fetch existing workspace for resume
+    if (mode === "get-workspace") {
+      console.log("Get workspace mode for:", email);
+
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!workspace) {
+        return new Response(JSON.stringify({ success: false, found: false }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        found: true,
+        workspace_id: workspace.id,
+        resort_id: workspace.resort_id,
+        resort_code: workspace.resort_code,
+        resort_name: workspace.resort_name,
+        staff_email: workspace.staff_email,
+        guest_room: workspace.guest_room,
+        guest_last_name: workspace.guest_last_name,
+        expires_at: workspace.expires_at,
+        created_at: workspace.created_at,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // MODE: resend (legacy) - same as regenerate-credentials
+    if (mode === "resend") {
+      console.log("Resend mode (legacy) for:", email);
+      
+      // Check demo_workspaces first
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (workspace) {
+        // Use new flow
+        const rotated = await rotateCredentials(supabaseAdmin, workspace.id, workspace.resort_id, workspace.resort_code);
+        
+        const tokens = await generateLoginTokens(
+          supabaseAdmin,
+          workspace.id,
+          workspace.resort_id,
+          rotated.staffUserId,
+          rotated.guestInfo.guestId
+        );
+
+        const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+        const emailResult = await sendDemoEmail({
+          to: email,
+          resortName: workspace.resort_name,
+          resortCode: workspace.resort_code,
+          staffIdentifier: rotated.staffIdentifier,
+          tempPassword: rotated.tempPassword,
+          guestInfo: rotated.guestInfo,
+          staffToken: tokens.staffToken,
+          guestToken: tokens.guestToken,
+          isReminder: true,
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          existing: true,
+          workspace_id: workspace.id,
+          tenant_id: workspace.resort_id,
+          resort_code: workspace.resort_code,
+          email: rotated.staffIdentifier,
+          temp_password: rotated.tempPassword,
+          staff_login_url: staffLoginUrl,
+          staff_token: tokens.staffToken,
+          guest_login: {
+            guest_name: rotated.guestInfo.guestName,
+            room_number: rotated.guestInfo.roomNumber,
+            last_name: rotated.guestInfo.lastName,
+            pin: rotated.guestInfo.pin,
+            portal_url: guestLoginUrl,
+          },
+          guest_token: tokens.guestToken,
+          email_sent: emailResult.sent,
+          credentials_validated: rotated.validated,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fallback to old flow for legacy demos
       const { data: existingLead } = await supabaseAdmin
         .from("leads")
         .select("id")
@@ -524,7 +810,6 @@ serve(async (req) => {
         });
       }
 
-      // Find active demo tenant
       const { data: existingDemo } = await supabaseAdmin
         .from("demo_tenants")
         .select("id, tenant_id, expires_at")
@@ -540,7 +825,6 @@ serve(async (req) => {
         });
       }
 
-      // Get resort details
       const { data: resort } = await supabaseAdmin
         .from("resorts")
         .select("code, name")
@@ -554,41 +838,165 @@ serve(async (req) => {
         });
       }
 
-      // Rotate credentials (resets existing admin password, refreshes data)
-      const rotated = await rotateCredentials(supabaseAdmin, existingDemo.tenant_id, resort.code, email);
+      // Create a workspace record for this legacy demo
+      const { data: newWorkspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .insert({
+          email: email.toLowerCase(),
+          resort_name: resort.name,
+          resort_id: existingDemo.tenant_id,
+          resort_code: resort.code,
+          status: "ready",
+          expires_at: existingDemo.expires_at,
+        })
+        .select()
+        .single();
 
-      // Build URLs
-      const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(rotated.staffIdentifier)}`;
-      const guestLoginUrl = `${PRODUCTION_URL}/resort/${resort.code}/guest/login?roomNumber=${encodeURIComponent(rotated.guestInfo.roomNumber)}&lastName=${encodeURIComponent(rotated.guestInfo.lastName)}`;
+      const tempPassword = generatePassword();
+      
+      // Find and reset admin password
+      const { data: membership } = await supabaseAdmin
+        .from("resort_memberships")
+        .select("user_id")
+        .eq("resort_id", existingDemo.tenant_id)
+        .eq("resort_role", "RESORT_ADMIN")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
 
-      // Send email with new credentials
+      if (!membership) {
+        throw new Error("No admin found for this demo resort");
+      }
+
+      const { data: { user: existingUser } } = await supabaseAdmin.auth.admin.getUserById(membership.user_id);
+      
+      await supabaseAdmin.auth.admin.updateUserById(membership.user_id, { password: tempPassword });
+
+      const staffIdentifier = existingUser?.email || email;
+
+      // Validate credentials
+      const validation = await validateStaffCredentials(supabaseAdmin, staffIdentifier, tempPassword);
+
+      await refreshDemoData(supabaseAdmin, existingDemo.tenant_id);
+
+      // Get or create guest PIN
+      const { data: demoGuest } = await supabaseAdmin
+        .from("guests")
+        .select("id, full_name, room_number")
+        .eq("resort_id", existingDemo.tenant_id)
+        .eq("room_number", "201")
+        .eq("portal_enabled", true)
+        .single();
+
+      let guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
+
+      if (demoGuest) {
+        const newPin = generatePin();
+        const pinHash = await hashPin(newPin);
+        await supabaseAdmin.from("guests").update({
+          portal_pin_hash: pinHash,
+          portal_pin_last4: newPin,
+          portal_pin_set_at: new Date().toISOString(),
+        }).eq("id", demoGuest.id);
+        
+        guestInfo.pin = newPin;
+        guestInfo.guestId = demoGuest.id;
+        const nameParts = demoGuest.full_name.split(" ");
+        guestInfo.guestName = demoGuest.full_name;
+        guestInfo.roomNumber = demoGuest.room_number;
+        guestInfo.lastName = nameParts[nameParts.length - 1];
+      }
+
+      // Update workspace
+      if (newWorkspace) {
+        await supabaseAdmin.from("demo_workspaces").update({
+          staff_user_id: membership.user_id,
+          staff_email: staffIdentifier,
+          guest_id: guestInfo.guestId || null,
+          guest_room: guestInfo.roomNumber,
+          guest_last_name: guestInfo.lastName,
+        }).eq("id", newWorkspace.id);
+
+        // Generate tokens
+        const tokens = await generateLoginTokens(
+          supabaseAdmin,
+          newWorkspace.id,
+          existingDemo.tenant_id,
+          membership.user_id,
+          guestInfo.guestId
+        );
+
+        const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+        const emailResult = await sendDemoEmail({
+          to: email,
+          resortName: resort.name,
+          resortCode: resort.code,
+          staffIdentifier,
+          tempPassword,
+          guestInfo,
+          staffToken: tokens.staffToken,
+          guestToken: tokens.guestToken,
+          isReminder: true,
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          existing: true,
+          workspace_id: newWorkspace.id,
+          tenant_id: existingDemo.tenant_id,
+          resort_code: resort.code,
+          email: staffIdentifier,
+          temp_password: tempPassword,
+          staff_login_url: staffLoginUrl,
+          staff_token: tokens.staffToken,
+          guest_login: {
+            guest_name: guestInfo.guestName,
+            room_number: guestInfo.roomNumber,
+            last_name: guestInfo.lastName,
+            pin: guestInfo.pin,
+            portal_url: guestLoginUrl,
+          },
+          guest_token: tokens.guestToken,
+          email_sent: emailResult.sent,
+          credentials_validated: validation.valid,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fallback without tokens
+      const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(staffIdentifier)}`;
+      const guestLoginUrl = `${PRODUCTION_URL}/resort/${resort.code}/guest/login?roomNumber=${encodeURIComponent(guestInfo.roomNumber)}&lastName=${encodeURIComponent(guestInfo.lastName)}`;
+
       const emailResult = await sendDemoEmail({
         to: email,
         resortName: resort.name,
         resortCode: resort.code,
-        staffIdentifier: rotated.staffIdentifier,
-        tempPassword: rotated.tempPassword,
-        guestInfo: rotated.guestInfo,
+        staffIdentifier,
+        tempPassword,
+        guestInfo,
         isReminder: true,
       });
 
       return new Response(JSON.stringify({
         success: true,
-        resend: true,
+        existing: true,
         tenant_id: existingDemo.tenant_id,
         resort_code: resort.code,
-        email: rotated.staffIdentifier,
-        temp_password: rotated.tempPassword,
+        email: staffIdentifier,
+        temp_password: tempPassword,
         staff_login_url: staffLoginUrl,
         guest_login: {
-          guest_name: rotated.guestInfo.guestName,
-          room_number: rotated.guestInfo.roomNumber,
-          last_name: rotated.guestInfo.lastName,
-          pin: rotated.guestInfo.pin,
+          guest_name: guestInfo.guestName,
+          room_number: guestInfo.roomNumber,
+          last_name: guestInfo.lastName,
+          pin: guestInfo.pin,
           portal_url: guestLoginUrl,
         },
         email_sent: emailResult.sent,
-        email_error: emailResult.error || undefined,
+        credentials_validated: validation.valid,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -604,7 +1012,73 @@ serve(async (req) => {
 
     console.log("Provision mode for:", email, resort_name, "departments:", departments);
 
-    // Rate limiting check (only for provision mode)
+    // Check for existing workspace first
+    const { data: existingWorkspace } = await supabaseAdmin
+      .from("demo_workspaces")
+      .select("*")
+      .eq("email", email.toLowerCase())
+      .eq("status", "ready")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (existingWorkspace) {
+      console.log("Existing workspace found - regenerating credentials");
+      
+      const rotated = await rotateCredentials(supabaseAdmin, existingWorkspace.id, existingWorkspace.resort_id, existingWorkspace.resort_code);
+      
+      const tokens = await generateLoginTokens(
+        supabaseAdmin,
+        existingWorkspace.id,
+        existingWorkspace.resort_id,
+        rotated.staffUserId,
+        rotated.guestInfo.guestId
+      );
+
+      const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+      const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+      const emailResult = await sendDemoEmail({
+        to: email,
+        resortName: existingWorkspace.resort_name,
+        resortCode: existingWorkspace.resort_code,
+        staffIdentifier: rotated.staffIdentifier,
+        tempPassword: rotated.tempPassword,
+        guestInfo: rotated.guestInfo,
+        staffToken: tokens.staffToken,
+        guestToken: tokens.guestToken,
+        isReminder: true,
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        existing: true,
+        workspace_id: existingWorkspace.id,
+        tenant_id: existingWorkspace.resort_id,
+        resort_code: existingWorkspace.resort_code,
+        email: rotated.staffIdentifier,
+        temp_password: rotated.tempPassword,
+        staff_login_url: staffLoginUrl,
+        staff_token: tokens.staffToken,
+        guest_login: {
+          guest_name: rotated.guestInfo.guestName,
+          room_number: rotated.guestInfo.roomNumber,
+          last_name: rotated.guestInfo.lastName,
+          pin: rotated.guestInfo.pin,
+          portal_url: guestLoginUrl,
+        },
+        guest_token: tokens.guestToken,
+        email_sent: emailResult.sent,
+        credentials_validated: rotated.validated,
+        message: "You already have an active demo - fresh credentials generated!",
+        expires_at: existingWorkspace.expires_at,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Rate limiting check
     const emailDomain = email.split("@")[1];
     const { data: rateLimit } = await supabaseAdmin
       .from("demo_rate_limits")
@@ -631,194 +1105,301 @@ serve(async (req) => {
       await supabaseAdmin.from("demo_rate_limits").insert({ email_domain: emailDomain });
     }
 
-    // Check for existing lead
-    let leadId: string;
-    const { data: existingLead } = await supabaseAdmin
-      .from("leads")
-      .select("id, status")
-      .eq("email", email.toLowerCase())
-      .single();
-
-    if (existingLead) {
-      leadId = existingLead.id;
-      // Check if they already have an active demo
-      const { data: existingDemo } = await supabaseAdmin
-        .from("demo_tenants")
-        .select("id, tenant_id, expires_at")
-        .eq("lead_id", leadId)
-        .eq("is_converted", false)
-        .gt("expires_at", new Date().toISOString())
-        .single();
-
-      if (existingDemo) {
-        console.log("Existing demo found - resetting credentials instead of creating new");
-        
-        // Get resort details
-        const { data: existingResort } = await supabaseAdmin
-          .from("resorts")
-          .select("code, name")
-          .eq("id", existingDemo.tenant_id)
-          .single();
-
-        const resortCode = existingResort?.code || "";
-        const resortName = existingResort?.name || resort_name;
-
-        // Rotate credentials for existing demo (resets password, refreshes data)
-        const rotated = await rotateCredentials(supabaseAdmin, existingDemo.tenant_id, resortCode, email);
-
-        const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(rotated.staffIdentifier)}`;
-        const guestLoginUrl = `${PRODUCTION_URL}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(rotated.guestInfo.roomNumber)}&lastName=${encodeURIComponent(rotated.guestInfo.lastName)}`;
-
-        // Send email with rotated credentials
-        const emailResult = await sendDemoEmail({
-          to: email,
-          resortName: resortName,
-          resortCode: resortCode,
-          staffIdentifier: rotated.staffIdentifier,
-          tempPassword: rotated.tempPassword,
-          guestInfo: rotated.guestInfo,
-          isReminder: true,
-        });
-
-        return new Response(JSON.stringify({
-          success: true,
-          existing: true,
-          tenant_id: existingDemo.tenant_id,
-          resort_code: resortCode,
-          email: rotated.staffIdentifier,
-          temp_password: rotated.tempPassword,
-          staff_login_url: staffLoginUrl,
-          guest_login: {
-            guest_name: rotated.guestInfo.guestName,
-            room_number: rotated.guestInfo.roomNumber,
-            last_name: rotated.guestInfo.lastName,
-            pin: rotated.guestInfo.pin,
-            portal_url: guestLoginUrl,
-          },
-          email_sent: emailResult.sent,
-          email_error: emailResult.error || undefined,
-          message: "You already have an active demo - fresh credentials sent!",
-        }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Update lead with new info
-      await supabaseAdmin
-        .from("leads")
-        .update({ resort_name, country, timezone, rooms_range, departments, role, status: "sandbox_created", updated_at: new Date().toISOString() })
-        .eq("id", leadId);
-    } else {
-      // Create new lead
-      const { data: newLead, error: leadError } = await supabaseAdmin
-        .from("leads")
-        .insert({
-          email: email.toLowerCase(),
-          resort_name,
-          country,
-          timezone,
-          rooms_range,
-          departments,
-          role,
-          status: "sandbox_created",
-          lead_score: 10,
-        })
-        .select()
-        .single();
-
-      if (leadError) throw leadError;
-      leadId = newLead.id;
-    }
-
-    // Generate unique resort code
-    const baseCode = resort_name.replace(/[^a-zA-Z]/g, "").substring(0, 4).toUpperCase() || "DEMO";
-    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
-    const resortCode = `${baseCode}${randomSuffix}`;
-
-    // Create the demo resort
-    const { data: resort, error: resortError } = await supabaseAdmin
-      .from("resorts")
+    // Create workspace record first (status: creating)
+    const { data: workspace, error: workspaceError } = await supabaseAdmin
+      .from("demo_workspaces")
       .insert({
-        name: resort_name,
-        code: resortCode,
+        email: email.toLowerCase(),
+        resort_name,
         timezone: timezone || "UTC",
-        currency: "USD",
-        status: "ACTIVE",
-        is_demo: true,
-        subscription_tier: "ESSENTIAL",
-        onboarding_status: "NOT_STARTED",
+        rooms_range,
+        departments: departments || [],
+        status: "creating",
       })
       .select()
       .single();
 
-    if (resortError) throw resortError;
-    console.log("Resort created:", resort.id, "code:", resortCode);
+    if (workspaceError) {
+      throw workspaceError;
+    }
 
-    // Create demo tenant record
-    const expiresAt = addDays(new Date(), 14);
-    const { error: demoTenantError } = await supabaseAdmin
-      .from("demo_tenants")
-      .insert({
+    try {
+      // Check for existing lead
+      let leadId: string;
+      const { data: existingLead } = await supabaseAdmin
+        .from("leads")
+        .select("id, status")
+        .eq("email", email.toLowerCase())
+        .single();
+
+      if (existingLead) {
+        leadId = existingLead.id;
+        
+        // Check for existing demo tenant
+        const { data: existingDemo } = await supabaseAdmin
+          .from("demo_tenants")
+          .select("id, tenant_id, expires_at")
+          .eq("lead_id", leadId)
+          .eq("is_converted", false)
+          .gt("expires_at", new Date().toISOString())
+          .single();
+
+        if (existingDemo) {
+          console.log("Existing demo tenant found");
+          
+          const { data: existingResort } = await supabaseAdmin
+            .from("resorts")
+            .select("code, name")
+            .eq("id", existingDemo.tenant_id)
+            .single();
+
+          // Update workspace to point to existing resort
+          await supabaseAdmin.from("demo_workspaces").update({
+            resort_id: existingDemo.tenant_id,
+            resort_code: existingResort?.code,
+            resort_name: existingResort?.name || resort_name,
+            expires_at: existingDemo.expires_at,
+          }).eq("id", workspace.id);
+
+          // Find admin and rotate credentials
+          const { data: membership } = await supabaseAdmin
+            .from("resort_memberships")
+            .select("user_id")
+            .eq("resort_id", existingDemo.tenant_id)
+            .eq("resort_role", "RESORT_ADMIN")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .single();
+
+          if (!membership) {
+            throw new Error("No admin found for existing demo");
+          }
+
+          const tempPassword = generatePassword();
+          const { data: { user: existingUser } } = await supabaseAdmin.auth.admin.getUserById(membership.user_id);
+          await supabaseAdmin.auth.admin.updateUserById(membership.user_id, { password: tempPassword });
+          
+          const staffIdentifier = existingUser?.email || email;
+
+          // Validate credentials
+          const validation = await validateStaffCredentials(supabaseAdmin, staffIdentifier, tempPassword);
+
+          await refreshDemoData(supabaseAdmin, existingDemo.tenant_id);
+
+          // Get demo guest
+          const { data: demoGuest } = await supabaseAdmin
+            .from("guests")
+            .select("id, full_name, room_number")
+            .eq("resort_id", existingDemo.tenant_id)
+            .eq("room_number", "201")
+            .eq("portal_enabled", true)
+            .single();
+
+          let guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
+
+          if (demoGuest) {
+            const newPin = generatePin();
+            const pinHash = await hashPin(newPin);
+            await supabaseAdmin.from("guests").update({
+              portal_pin_hash: pinHash,
+              portal_pin_last4: newPin,
+              portal_pin_set_at: new Date().toISOString(),
+            }).eq("id", demoGuest.id);
+            
+            guestInfo.pin = newPin;
+            guestInfo.guestId = demoGuest.id;
+            const nameParts = demoGuest.full_name.split(" ");
+            guestInfo.guestName = demoGuest.full_name;
+            guestInfo.roomNumber = demoGuest.room_number;
+            guestInfo.lastName = nameParts[nameParts.length - 1];
+          }
+
+          // Update workspace
+          await supabaseAdmin.from("demo_workspaces").update({
+            staff_user_id: membership.user_id,
+            staff_email: staffIdentifier,
+            guest_id: guestInfo.guestId || null,
+            guest_room: guestInfo.roomNumber,
+            guest_last_name: guestInfo.lastName,
+            status: "ready",
+            seeded_at: new Date().toISOString(),
+          }).eq("id", workspace.id);
+
+          // Generate tokens
+          const tokens = await generateLoginTokens(
+            supabaseAdmin,
+            workspace.id,
+            existingDemo.tenant_id,
+            membership.user_id,
+            guestInfo.guestId
+          );
+
+          const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+          const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+          const emailResult = await sendDemoEmail({
+            to: email,
+            resortName: existingResort?.name || resort_name,
+            resortCode: existingResort?.code || "",
+            staffIdentifier,
+            tempPassword,
+            guestInfo,
+            staffToken: tokens.staffToken,
+            guestToken: tokens.guestToken,
+            isReminder: true,
+          });
+
+          return new Response(JSON.stringify({
+            success: true,
+            existing: true,
+            workspace_id: workspace.id,
+            tenant_id: existingDemo.tenant_id,
+            resort_code: existingResort?.code,
+            email: staffIdentifier,
+            temp_password: tempPassword,
+            staff_login_url: staffLoginUrl,
+            staff_token: tokens.staffToken,
+            guest_login: {
+              guest_name: guestInfo.guestName,
+              room_number: guestInfo.roomNumber,
+              last_name: guestInfo.lastName,
+              pin: guestInfo.pin,
+              portal_url: guestLoginUrl,
+            },
+            guest_token: tokens.guestToken,
+            email_sent: emailResult.sent,
+            credentials_validated: validation.valid,
+            message: "You already have an active demo - fresh credentials generated!",
+            expires_at: existingDemo.expires_at,
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        await supabaseAdmin
+          .from("leads")
+          .update({ resort_name, timezone, rooms_range, departments, status: "sandbox_created", updated_at: new Date().toISOString() })
+          .eq("id", leadId);
+      } else {
+        const { data: newLead, error: leadError } = await supabaseAdmin
+          .from("leads")
+          .insert({
+            email: email.toLowerCase(),
+            resort_name,
+            timezone,
+            rooms_range,
+            departments,
+            status: "sandbox_created",
+            lead_score: 10,
+          })
+          .select()
+          .single();
+
+        if (leadError) throw leadError;
+        leadId = newLead.id;
+      }
+
+      // Generate unique resort code
+      const baseCode = resort_name.replace(/[^a-zA-Z]/g, "").substring(0, 4).toUpperCase() || "DEMO";
+      const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+      const resortCode = `${baseCode}${randomSuffix}`;
+
+      // Create the demo resort
+      const { data: resort, error: resortError } = await supabaseAdmin
+        .from("resorts")
+        .insert({
+          name: resort_name,
+          code: resortCode,
+          timezone: timezone || "UTC",
+          currency: "USD",
+          status: "ACTIVE",
+          is_demo: true,
+          subscription_tier: "ESSENTIAL",
+          onboarding_status: "NOT_STARTED",
+        })
+        .select()
+        .single();
+
+      if (resortError) throw resortError;
+      console.log("Resort created:", resort.id, "code:", resortCode);
+
+      // Create demo tenant record
+      const expiresAt = addDays(new Date(), 14);
+      await supabaseAdmin.from("demo_tenants").insert({
         lead_id: leadId,
         tenant_id: resort.id,
         expires_at: expiresAt.toISOString(),
       });
 
-    if (demoTenantError) throw demoTenantError;
+      // Generate admin credentials
+      const tempPassword = generatePassword();
+      const emailParts = email.split("@");
+      const demoEmail = `${emailParts[0]}+${resortCode.toLowerCase()}@${emailParts[1]}`;
+      const username = emailParts[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20) + ".demo";
 
-    // Generate admin credentials with plus-addressing for uniqueness
-    const tempPassword = generatePassword();
-    const emailParts = email.split("@");
-    const demoEmail = `${emailParts[0]}+${resortCode.toLowerCase()}@${emailParts[1]}`;
-    const username = emailParts[0].toLowerCase().replace(/[^a-z0-9]/g, "").substring(0, 20) + ".demo";
+      let userId: string;
+      let staffIdentifier: string;
 
-    // Create the demo admin user with plus-addressed email
-    let userId: string;
-    let staffIdentifier: string;
-
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: demoEmail,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { full_name: "Demo Admin", must_reset_password: false },
-    });
-
-    if (authError) {
-      console.error("Auth user creation error:", authError);
-      // If plus-addressed email fails, try with original email
-      const { data: fallbackUser, error: fallbackError } = await supabaseAdmin.auth.admin.createUser({
-        email: email.toLowerCase(),
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: demoEmail,
         password: tempPassword,
         email_confirm: true,
         user_metadata: { full_name: "Demo Admin", must_reset_password: false },
       });
 
-      if (fallbackError) {
-        if (fallbackError.message.includes("already been registered")) {
-          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const existingUser = existingUsers?.users?.find((u: any) => u.email === email.toLowerCase());
-          
-          if (existingUser) {
-            userId = existingUser.id;
-            staffIdentifier = email;
+      if (authError) {
+        console.error("Auth user creation error:", authError);
+        const { data: fallbackUser, error: fallbackError } = await supabaseAdmin.auth.admin.createUser({
+          email: email.toLowerCase(),
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: "Demo Admin", must_reset_password: false },
+        });
+
+        if (fallbackError) {
+          if (fallbackError.message.includes("already been registered")) {
+            const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+            const existingUser = existingUsers?.users?.find((u: any) => u.email === email.toLowerCase());
             
-            // Add resort membership for existing user
-            await supabaseAdmin.from("resort_memberships").insert({
-              user_id: existingUser.id,
-              resort_id: resort.id,
-              resort_role: "RESORT_ADMIN",
-            });
+            if (existingUser) {
+              userId = existingUser.id;
+              staffIdentifier = email;
+              
+              // Reset password for existing user
+              await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password: tempPassword });
+              
+              await supabaseAdmin.from("resort_memberships").insert({
+                user_id: existingUser.id,
+                resort_id: resort.id,
+                resort_role: "RESORT_ADMIN",
+              });
+            } else {
+              throw fallbackError;
+            }
           } else {
             throw fallbackError;
           }
         } else {
-          throw fallbackError;
+          userId = fallbackUser.user.id;
+          staffIdentifier = email;
+
+          await supabaseAdmin.from("profiles").upsert({
+            id: userId,
+            username,
+            full_name: "Demo Admin",
+            global_role: "STANDARD",
+          });
+
+          await supabaseAdmin.from("resort_memberships").insert({
+            user_id: userId,
+            resort_id: resort.id,
+            resort_role: "RESORT_ADMIN",
+          });
         }
       } else {
-        userId = fallbackUser.user.id;
-        staffIdentifier = email;
+        userId = authUser.user.id;
+        staffIdentifier = demoEmail;
 
-        // Create profile
         await supabaseAdmin.from("profiles").upsert({
           id: userId,
           username,
@@ -826,83 +1407,106 @@ serve(async (req) => {
           global_role: "STANDARD",
         });
 
-        // Create resort membership
         await supabaseAdmin.from("resort_memberships").insert({
           user_id: userId,
           resort_id: resort.id,
           resort_role: "RESORT_ADMIN",
         });
       }
-    } else {
-      userId = authUser.user.id;
-      staffIdentifier = demoEmail;
 
-      // Create profile
-      await supabaseAdmin.from("profiles").upsert({
-        id: userId,
-        username,
-        full_name: "Demo Admin",
-        global_role: "STANDARD",
-      });
+      console.log("Admin user setup complete:", userId, "identifier:", staffIdentifier);
 
-      // Create resort membership
-      await supabaseAdmin.from("resort_memberships").insert({
-        user_id: userId,
+      // Validate credentials work
+      const validation = await validateStaffCredentials(supabaseAdmin, staffIdentifier, tempPassword);
+      console.log("Credential validation:", validation);
+
+      // Seed demo data
+      const demoGuestInfo = await seedDemoData(supabaseAdmin, resort.id, departments || [], resortCode);
+      console.log("Demo data seeded, guest info:", demoGuestInfo);
+
+      // Update workspace
+      await supabaseAdmin.from("demo_workspaces").update({
         resort_id: resort.id,
-        resort_role: "RESORT_ADMIN",
+        resort_code: resortCode,
+        staff_user_id: userId,
+        staff_email: staffIdentifier,
+        guest_id: demoGuestInfo.guestId || null,
+        guest_room: demoGuestInfo.roomNumber,
+        guest_last_name: demoGuestInfo.lastName,
+        status: "ready",
+        seeded_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString(),
+      }).eq("id", workspace.id);
+
+      // Generate login tokens
+      const tokens = await generateLoginTokens(
+        supabaseAdmin,
+        workspace.id,
+        resort.id,
+        userId,
+        demoGuestInfo.guestId || ""
+      );
+
+      const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
+      const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+
+      // Log event
+      await supabaseAdmin.from("lead_events").insert({
+        lead_id: leadId,
+        event_type: "demo_created",
+        meta: { resort_id: resort.id, user_id: userId, workspace_id: workspace.id },
       });
+
+      // Send welcome email
+      const emailResult = await sendDemoEmail({
+        to: email,
+        resortName: resort_name,
+        resortCode: resortCode,
+        staffIdentifier,
+        tempPassword,
+        guestInfo: demoGuestInfo,
+        staffToken: tokens.staffToken,
+        guestToken: tokens.guestToken,
+        isReminder: false,
+      });
+
+      console.log("Demo provisioning complete");
+      
+      return new Response(JSON.stringify({
+        success: true,
+        workspace_id: workspace.id,
+        tenant_id: resort.id,
+        resort_code: resortCode,
+        email: staffIdentifier,
+        temp_password: tempPassword,
+        staff_login_url: staffLoginUrl,
+        staff_token: tokens.staffToken,
+        guest_login: {
+          guest_name: demoGuestInfo.guestName,
+          room_number: demoGuestInfo.roomNumber,
+          last_name: demoGuestInfo.lastName,
+          pin: demoGuestInfo.pin,
+          portal_url: guestLoginUrl,
+        },
+        guest_token: tokens.guestToken,
+        email_sent: emailResult.sent,
+        credentials_validated: validation.valid,
+        expires_at: expiresAt.toISOString(),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } catch (provisionError: any) {
+      console.error("Provision error:", provisionError);
+      
+      // Update workspace with error
+      await supabaseAdmin.from("demo_workspaces").update({
+        status: "failed",
+        last_error: provisionError?.message || "Unknown error",
+      }).eq("id", workspace.id);
+
+      throw provisionError;
     }
-
-    console.log("Admin user setup complete:", userId, "identifier:", staffIdentifier);
-
-    // Seed demo data and get a guest with PIN for demo
-    const demoGuestInfo = await seedDemoData(supabaseAdmin, resort.id, departments || [], resortCode);
-    console.log("Demo data seeded, guest info:", demoGuestInfo);
-
-    // Build URLs
-    const staffLoginUrl = `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(staffIdentifier)}`;
-    const guestLoginUrl = `${PRODUCTION_URL}/resort/${resortCode}/guest/login?roomNumber=${encodeURIComponent(demoGuestInfo.roomNumber)}&lastName=${encodeURIComponent(demoGuestInfo.lastName)}`;
-
-    // Log event
-    await supabaseAdmin.from("lead_events").insert({
-      lead_id: leadId,
-      event_type: "demo_created",
-      meta: { resort_id: resort.id, user_id: userId },
-    });
-
-    // Send welcome email
-    const emailResult = await sendDemoEmail({
-      to: email,
-      resortName: resort_name,
-      resortCode: resortCode,
-      staffIdentifier,
-      tempPassword,
-      guestInfo: demoGuestInfo,
-      isReminder: false,
-    });
-
-    console.log("Demo provisioning complete, returning response");
-    
-    return new Response(JSON.stringify({
-      success: true,
-      tenant_id: resort.id,
-      resort_code: resortCode,
-      email: staffIdentifier,
-      temp_password: tempPassword,
-      guest_login: {
-        guest_name: demoGuestInfo.guestName,
-        room_number: demoGuestInfo.roomNumber,
-        last_name: demoGuestInfo.lastName,
-        pin: demoGuestInfo.pin,
-        portal_url: guestLoginUrl,
-      },
-      staff_login_url: staffLoginUrl,
-      email_sent: emailResult.sent,
-      email_error: emailResult.error || undefined,
-      expires_at: expiresAt.toISOString(),
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
 
   } catch (error: any) {
     console.error("Provision demo error:", error);
@@ -913,10 +1517,9 @@ serve(async (req) => {
   }
 });
 
-async function seedDemoData(supabase: any, resortId: string, departments: string[], resortCode: string): Promise<{ guestName: string; roomNumber: string; lastName: string; pin: string }> {
+async function seedDemoData(supabase: any, resortId: string, departments: string[], resortCode: string): Promise<{ guestId: string; guestName: string; roomNumber: string; lastName: string; pin: string }> {
   const today = new Date();
 
-  // Department mapping: frontend values -> activity categories
   const deptMap: Record<string, string[]> = {
     dive: ["DIVE"],
     watersports: ["WATERSPORT"],
@@ -924,12 +1527,9 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     excursions: ["EXCURSION"],
   };
 
-  // Filter activities based on selected departments
   const activitiesToSeed = departments.length === 0 
     ? DEMO_ACTIVITIES 
-    : DEMO_ACTIVITIES.filter((a) => {
-        return departments.some((dept) => deptMap[dept]?.includes(a.category));
-      });
+    : DEMO_ACTIVITIES.filter((a) => departments.some((dept) => deptMap[dept]?.includes(a.category)));
 
   const finalActivities = activitiesToSeed.length > 0 ? activitiesToSeed : DEMO_ACTIVITIES.slice(0, 3);
 
@@ -940,11 +1540,8 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     .insert(finalActivities.map((a) => ({ ...a, resort_id: resortId })))
     .select();
 
-  if (actError) {
-    console.error("Error creating activities:", actError);
-  }
+  if (actError) console.error("Error creating activities:", actError);
 
-  // Create sessions for next 14 days (evergreen window)
   let allSessions: any[] = [];
   if (activities?.length) {
     const sessions: any[] = [];
@@ -974,15 +1571,13 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
       });
     }
     const { data: createdSessions, error: sessError } = await supabase.from("activity_sessions").insert(sessions).select();
-    if (sessError) {
-      console.error("Error creating sessions:", sessError);
-    } else {
+    if (sessError) console.error("Error creating sessions:", sessError);
+    else {
       console.log("Created", sessions.length, "activity sessions");
       allSessions = createdSessions || [];
     }
   }
 
-  // Create restaurants if dining department selected or no departments specified
   const shouldSeedDining = departments.length === 0 || departments.includes("dining");
   let allSlots: any[] = [];
   
@@ -993,68 +1588,28 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
       .insert(DEMO_RESTAURANTS.map((r) => ({ ...r, resort_id: resortId })))
       .select();
 
-    if (restError) {
-      console.error("Error creating restaurants:", restError);
-    }
+    if (restError) console.error("Error creating restaurants:", restError);
 
     if (restaurants?.length) {
       const slots: any[] = [];
       for (let day = 0; day <= 14; day++) {
         const slotDate = formatDate(addDays(today, day));
         restaurants.forEach((restaurant: any) => {
-          slots.push({
-            resort_id: resortId,
-            restaurant_id: restaurant.id,
-            date: slotDate,
-            start_time: "07:00",
-            end_time: "10:00",
-            meal_period: "BREAKFAST",
-            capacity: restaurant.total_capacity,
-            status: "OPEN",
-          });
-          slots.push({
-            resort_id: resortId,
-            restaurant_id: restaurant.id,
-            date: slotDate,
-            start_time: "12:00",
-            end_time: "14:30",
-            meal_period: "LUNCH",
-            capacity: Math.floor(restaurant.total_capacity * 0.7),
-            status: "OPEN",
-          });
-          slots.push({
-            resort_id: resortId,
-            restaurant_id: restaurant.id,
-            date: slotDate,
-            start_time: "19:00",
-            end_time: "20:30",
-            meal_period: "DINNER",
-            capacity: Math.floor(restaurant.total_capacity / 2),
-            status: "OPEN",
-          });
-          slots.push({
-            resort_id: resortId,
-            restaurant_id: restaurant.id,
-            date: slotDate,
-            start_time: "20:30",
-            end_time: "22:00",
-            meal_period: "DINNER",
-            capacity: Math.floor(restaurant.total_capacity / 2),
-            status: "OPEN",
-          });
+          slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "07:00", end_time: "10:00", meal_period: "BREAKFAST", capacity: restaurant.total_capacity, status: "OPEN" });
+          slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "12:00", end_time: "14:30", meal_period: "LUNCH", capacity: Math.floor(restaurant.total_capacity * 0.7), status: "OPEN" });
+          slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "19:00", end_time: "20:30", meal_period: "DINNER", capacity: Math.floor(restaurant.total_capacity / 2), status: "OPEN" });
+          slots.push({ resort_id: resortId, restaurant_id: restaurant.id, date: slotDate, start_time: "20:30", end_time: "22:00", meal_period: "DINNER", capacity: Math.floor(restaurant.total_capacity / 2), status: "OPEN" });
         });
       }
       const { data: createdSlots, error: slotError } = await supabase.from("restaurant_time_slots").insert(slots).select();
-      if (slotError) {
-        console.error("Error creating restaurant slots:", slotError);
-      } else {
+      if (slotError) console.error("Error creating restaurant slots:", slotError);
+      else {
         console.log("Created", slots.length, "restaurant time slots");
         allSlots = createdSlots || [];
       }
     }
   }
 
-  // Create demo guests with evergreen dates
   const guestData = DEMO_GUESTS.map((g) => ({
     resort_id: resortId,
     full_name: g.full_name,
@@ -1068,13 +1623,9 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
 
   const { data: guests, error: guestError } = await supabase.from("guests").insert(guestData).select();
   
-  if (guestError) {
-    console.error("Error creating guests:", guestError);
-  } else {
-    console.log("Created", guests?.length, "demo guests");
-  }
+  if (guestError) console.error("Error creating guests:", guestError);
+  else console.log("Created", guests?.length, "demo guests");
 
-  // Generate PIN for the demo login guest (Emma Miller in room 201)
   const demoGuest = guests?.find((g: any) => g.room_number === "201") || guests?.[0];
   const pin = generatePin();
   
@@ -1092,12 +1643,9 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     const bookingStatuses = ["CONFIRMED", "CONFIRMED", "CONFIRMED", "COMPLETED", "CANCELLED"];
     const activityBookings: any[] = [];
     
-    // Get sessions for today and tomorrow for sample bookings
     const todayStr = formatDate(today);
-    const tomorrowStr = formatDate(addDays(today, 1));
     const futureSessions = allSessions.filter((s: any) => s.date >= todayStr);
     
-    // Create 6-8 sample bookings
     for (let i = 0; i < Math.min(8, futureSessions.length, guests.length * 2); i++) {
       const session = futureSessions[i % futureSessions.length];
       const guest = guests[i % guests.length];
@@ -1121,32 +1669,20 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
 
     if (activityBookings.length) {
       const { error: bookingError } = await supabase.from("activity_bookings").insert(activityBookings);
-      if (bookingError) {
-        console.error("Error creating activity bookings:", bookingError);
-      } else {
-        console.log("Created", activityBookings.length, "sample activity bookings");
-      }
+      if (bookingError) console.error("Error creating activity bookings:", bookingError);
+      else console.log("Created", activityBookings.length, "sample activity bookings");
     }
   }
 
   // Create sample restaurant reservations
   if (guests?.length && allSlots?.length) {
     const reservationStatuses = ["CONFIRMED", "CONFIRMED", "CONFIRMED", "COMPLETED", "CANCELLED"];
-    const specialRequests = [
-      "Anniversary dinner - please arrange flowers",
-      "Window table if possible",
-      "High chair needed for infant",
-      "Birthday celebration, cake requested",
-      "Vegetarian menu required",
-      null,
-      null,
-    ];
+    const specialRequests = ["Anniversary dinner - please arrange flowers", "Window table if possible", "High chair needed for infant", "Birthday celebration, cake requested", "Vegetarian menu required", null, null];
     const reservations: any[] = [];
     
     const todayStr = formatDate(today);
     const futureSlots = allSlots.filter((s: any) => s.date >= todayStr);
     
-    // Create 5-7 sample reservations
     for (let i = 0; i < Math.min(7, futureSlots.length, guests.length * 2); i++) {
       const slot = futureSlots[i % futureSlots.length];
       const guest = guests[i % guests.length];
@@ -1168,11 +1704,8 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
 
     if (reservations.length) {
       const { error: resError } = await supabase.from("restaurant_reservations").insert(reservations);
-      if (resError) {
-        console.error("Error creating restaurant reservations:", resError);
-      } else {
-        console.log("Created", reservations.length, "sample restaurant reservations");
-      }
+      if (resError) console.error("Error creating restaurant reservations:", resError);
+      else console.log("Created", reservations.length, "sample restaurant reservations");
     }
   }
 
@@ -1181,6 +1714,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     const lastName = nameParts[nameParts.length - 1];
 
     return {
+      guestId: demoGuest.id,
       guestName: demoGuest.full_name,
       roomNumber: demoGuest.room_number,
       lastName: lastName,
@@ -1189,6 +1723,7 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
   }
 
   return {
+    guestId: "",
     guestName: "Demo Guest",
     roomNumber: "101",
     lastName: "Guest",
