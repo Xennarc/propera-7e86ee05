@@ -113,47 +113,42 @@ export default function PrearrivalLandingPage() {
       }
 
       try {
-        // First, check if the link exists and is valid
-        const { data: linkData, error: linkError } = await supabase
-          .from('prearrival_tokens')
-          .select(`
-            id, token, status, expires_at, completed_at, revoked_at,
-            guest_id, resort_id,
-            resorts (name, login_logo_url, login_primary_color)
-          `)
-          .eq('token', token)
-          .maybeSingle();
+        // Use secure RPC function for token validation instead of direct table query
+        const { data: result, error: rpcError } = await supabase
+          .rpc('validate_prearrival_token', { p_token: token });
 
-        if (linkError || !linkData) {
-          setError('This link is no longer available. Please contact the resort for assistance.');
+        const validationResult = result as { success: boolean; error?: string; token?: { resort_id: string } } | null;
+
+        if (rpcError || !validationResult?.success) {
+          const errorCode = validationResult?.error || 'UNKNOWN_ERROR';
+          const errorMessages: Record<string, string> = {
+            'TOKEN_NOT_FOUND': 'This link is no longer available. Please contact the resort for assistance.',
+            'TOKEN_REVOKED': 'This link has been revoked. Please contact the resort for a new one.',
+            'TOKEN_EXPIRED': 'This link has expired. Please contact your resort for a new one.',
+            'GUEST_NOT_FOUND': 'Guest not found. Please contact the resort for assistance.',
+          };
+          setError(errorMessages[errorCode] || 'Something went wrong. Please try again.');
           setValidating(false);
           return;
         }
 
-        // Set resort branding immediately for fast load
-        const resort = linkData.resorts as any;
-        if (resort) {
-          setResortBranding({
-            name: resort.name,
-            logo_url: resort.login_logo_url,
-            primary_color: resort.login_primary_color,
-          });
+        // Token is valid - now fetch resort branding via public RPC
+        const resortId = validationResult.token?.resort_id;
+        if (resortId) {
+          const { data: brandingData } = await supabase
+            .rpc('get_resort_by_id', { p_resort_id: resortId });
+          
+          const branding = brandingData as { name?: string; login_logo_url?: string; login_primary_color?: string } | null;
+          if (branding) {
+            setResortBranding({
+              name: branding.name || '',
+              logo_url: branding.login_logo_url || null,
+              primary_color: branding.login_primary_color || null,
+            });
+          }
         }
 
-        // Check if expired or revoked
-        if (linkData.revoked_at || new Date(linkData.expires_at) < new Date()) {
-          setError('This link has expired. Please contact your resort for a new one.');
-          setValidating(false);
-          return;
-        }
-
-        // Update last_opened_at
-        await supabase
-          .from('prearrival_tokens')
-          .update({ last_opened_at: new Date().toISOString() })
-          .eq('id', linkData.id);
-
-        // Validate directly without verification
+        // Validate directly without additional verification (RPC already validated)
         await performValidation(token);
       } catch (err) {
         console.error('Validation error:', err);

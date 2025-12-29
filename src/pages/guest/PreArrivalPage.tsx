@@ -120,20 +120,35 @@ export default function PreArrivalPage() {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('prearrival_tokens')
-          .select('*')
-          .eq('token', token)
-          .gt('expires_at', new Date().toISOString())
-          .single();
+        // Use secure RPC function instead of direct table query
+        const { data: result, error: rpcError } = await supabase
+          .rpc('validate_prearrival_token', { p_token: token });
 
-        if (fetchError || !data) {
-          setError('This link is no longer available. It may have expired or is invalid. Please contact the resort if you need assistance.');
+        const validationResult = result as { success: boolean; error?: string; token?: { id: string; resort_id: string; guest_id: string; expires_at: string } } | null;
+
+        if (rpcError || !validationResult?.success) {
+          const errorCode = validationResult?.error || 'UNKNOWN_ERROR';
+          const errorMessages: Record<string, string> = {
+            'TOKEN_NOT_FOUND': 'This link is no longer available. It may have expired or is invalid. Please contact the resort if you need assistance.',
+            'TOKEN_REVOKED': 'This link has been revoked. Please contact the resort for a new one.',
+            'TOKEN_EXPIRED': 'This link has expired. Please contact the resort for a new one.',
+            'GUEST_NOT_FOUND': 'Guest not found. Please contact the resort for assistance.',
+          };
+          setError(errorMessages[errorCode] || 'Something went wrong. Please try again or contact the resort.');
           setValidating(false);
           return;
         }
 
-        setTokenData(data as TokenData);
+        // Extract token data from RPC response
+        const tokenInfo = validationResult.token;
+        if (tokenInfo) {
+          setTokenData({
+            id: tokenInfo.id,
+            resort_id: tokenInfo.resort_id,
+            guest_id: tokenInfo.guest_id,
+            expires_at: tokenInfo.expires_at,
+          } as TokenData);
+        }
         setValidating(false);
       } catch (err) {
         setError('Something went wrong. Please try again or contact the resort.');

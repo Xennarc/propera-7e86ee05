@@ -4179,6 +4179,7 @@ export type Database = {
         Args: { p_last_name?: string; p_token: string }
         Returns: Json
       }
+      validate_prearrival_token: { Args: { p_token: string }; Returns: Json }
       vendor_update_booking_status: {
         Args: {
           p_booking_id: string
