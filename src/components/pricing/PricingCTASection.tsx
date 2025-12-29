@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, MessageCircle } from 'lucide-react';
-import { RibbonDivider } from '@/components/landing/RibbonDivider';
+
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const REASSURANCE_CHIPS = [
@@ -15,8 +15,6 @@ export function PricingCTASection() {
 
   return (
     <section className="relative overflow-hidden">
-      <RibbonDivider variant="accent" />
-      
       <div className="py-20 md:py-28 cta-spotlight atlas-texture">
         {/* Enhanced background for light mode */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/12 dark:from-primary/8 via-background to-teal-400/12 dark:to-teal-400/6" />

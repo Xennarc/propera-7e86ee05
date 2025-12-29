@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, QrCode, HelpCircle, Search } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { WaveDivider } from '@/components/icons/ProperaIcons';
+
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 
@@ -31,8 +31,8 @@ export default function GuestLogin() {
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
       </div>
 
-      {/* Hero section with wave */}
-      <header className="relative pt-16 pb-32 hero-pattern overflow-hidden">
+      {/* Hero section */}
+      <header className="relative pt-16 pb-16 hero-pattern overflow-hidden">
         {/* Decorative blobs */}
         <div className="absolute top-10 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" aria-hidden="true" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full blur-[60px] pointer-events-none" aria-hidden="true" />
@@ -44,15 +44,10 @@ export default function GuestLogin() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Guest Portal</h1>
           <p className="text-muted-foreground">Access your resort experience</p>
         </div>
-
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 right-0" aria-hidden="true">
-          <WaveDivider variant="bold" />
-        </div>
       </header>
 
-      {/* Content overlapping wave */}
-      <main className="flex-1 flex items-start justify-center px-4 -mt-20 relative z-10">
+      {/* Main content */}
+      <main className="flex-1 flex items-start justify-center px-4 pt-8 relative z-10">
         <div className="w-full max-w-md space-y-6">
           {/* Main info card */}
           <Card className="shadow-elevated border-border/40">

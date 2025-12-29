@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Search, ArrowLeft, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { IconPropera, WaveDivider } from '@/components/icons/ProperaIcons';
+import { IconPropera } from '@/components/icons/ProperaIcons';
 import { SEOHead } from '@/components/seo/SEOHead';
 
 type SearchResult = 
@@ -119,8 +119,8 @@ export default function GuestFindResort() {
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
       </div>
 
-      {/* Hero section with wave */}
-      <div className="relative pt-16 pb-32 hero-pattern overflow-hidden">
+      {/* Hero section */}
+      <div className="relative pt-16 pb-16 hero-pattern overflow-hidden">
         {/* Decorative blobs */}
         <div className="absolute top-10 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent/20 rounded-full blur-[60px] pointer-events-none" />
@@ -132,15 +132,10 @@ export default function GuestFindResort() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Find Your Resort</h1>
           <p className="text-muted-foreground">We'll help you locate your guest portal</p>
         </div>
-
-        {/* Wave divider */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <WaveDivider variant="bold" />
-        </div>
       </div>
 
-      {/* Content overlapping wave */}
-      <div className="flex-1 flex items-start justify-center px-4 -mt-20 relative z-10">
+      {/* Main content */}
+      <div className="flex-1 flex items-start justify-center px-4 pt-8 relative z-10">
         <div className="w-full max-w-md">
           <Card className="shadow-elevated border-border/40">
             <CardHeader className="pb-4 pt-8">
