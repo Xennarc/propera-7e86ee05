@@ -1,7 +1,7 @@
 import { Settings, Smartphone, Users, Play } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { RibbonDivider } from './RibbonDivider';
+
 import { DeviceMockup } from '@/components/illustrations/DeviceMockup';
 
 const steps = [
@@ -176,7 +176,6 @@ export function HowItWorks() {
         </div>
       </div>
       
-      <RibbonDivider className="absolute bottom-0 left-0 right-0" variant="subtle" />
     </section>
   );
 }

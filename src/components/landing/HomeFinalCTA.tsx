@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { RibbonDivider } from './RibbonDivider';
+
 
 const reassurancePoints = ['Unlimited staff included', 'Multi-resort ready', 'Elegant by design'];
 
@@ -11,8 +11,6 @@ export function HomeFinalCTA() {
 
   return (
     <section className="relative overflow-hidden">
-      <RibbonDivider className="mb-0" variant="accent" />
-      
       <div className="py-24 cta-spotlight atlas-texture">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 dark:from-primary/10 via-background to-teal-400/10 dark:to-teal-400/10" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 dark:bg-primary/15 rounded-full blur-[120px] pointer-events-none" />
