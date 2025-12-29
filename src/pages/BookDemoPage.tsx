@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { DemoWizard } from '@/components/demo/DemoWizard';
 import { LiveDemoQualifier } from '@/components/demo/LiveDemoQualifier';
+import { ResumeDemoBanner } from '@/components/demo/ResumeDemoBanner';
+import { useDemoWorkspace } from '@/hooks/useDemoWorkspace';
 import { cn } from '@/lib/utils';
 
 const TRUST_CHIPS = [
@@ -135,6 +137,24 @@ export default function BookDemoPage() {
   const [showDemoWizard, setShowDemoWizard] = useState(false);
   const [showLiveQualifier, setShowLiveQualifier] = useState(false);
   const [selectedPath, setSelectedPath] = useState<'instant' | 'walkthrough'>('instant');
+  const [resumeMode, setResumeMode] = useState(false);
+  
+  const { hasExistingWorkspace, savedEmail, workspace, clearWorkspace, isLoading } = useDemoWorkspace();
+
+  const handleResume = () => {
+    setResumeMode(true);
+    setShowDemoWizard(true);
+  };
+
+  const handleStartFresh = () => {
+    clearWorkspace();
+    setResumeMode(false);
+  };
+
+  const handleOpenWizard = () => {
+    setResumeMode(false);
+    setShowDemoWizard(true);
+  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -190,10 +210,21 @@ export default function BookDemoPage() {
       </header>
 
       <main className="pt-24 relative z-10">
+        {/* Resume Demo Banner */}
+        {hasExistingWorkspace && (
+          <div className="container mx-auto px-4 mb-6">
+            <ResumeDemoBanner
+              resortName={workspace?.resort_name}
+              email={savedEmail || undefined}
+              onResume={handleResume}
+              onStartFresh={handleStartFresh}
+              isLoading={isLoading}
+            />
+          </div>
+        )}
+
         {/* Hero Section */}
         <section className="py-16 md:py-24 lg:py-32">
-          <div className="container mx-auto px-4">
-            {/* Glass Hero Panel */}
             <div className="relative max-w-4xl mx-auto">
               {/* Glow effect behind panel */}
               <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl" />
@@ -228,7 +259,7 @@ export default function BookDemoPage() {
                     <Button 
                       size="xl" 
                       className="btn-cta-premium rounded-2xl font-semibold px-8"
-                      onClick={() => setShowDemoWizard(true)}
+                      onClick={handleOpenWizard}
                       data-trigger-demo
                     >
                       Try Propera Now (10 min)
