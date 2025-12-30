@@ -225,6 +225,7 @@ export default function BookDemoPage() {
 
         {/* Hero Section */}
         <section className="py-16 md:py-24 lg:py-32">
+          <div className="container mx-auto px-4">
             <div className="relative max-w-4xl mx-auto">
               {/* Glow effect behind panel */}
               <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl" />
