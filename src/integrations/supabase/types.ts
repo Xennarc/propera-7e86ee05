@@ -708,6 +708,56 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          effective_user_id: string | null
+          entity: string
+          entity_id: string | null
+          id: string
+          metadata: Json | null
+          resort_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          effective_user_id?: string | null
+          entity: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+          resort_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          effective_user_id?: string | null
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+          resort_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_attendees: {
         Row: {
           activity_booking_id: string | null
@@ -4224,6 +4274,20 @@ export type Database = {
         Args: { p_action: string; p_metadata?: Json; p_resort_id?: string }
         Returns: string
       }
+      log_audit: {
+        Args: {
+          p_action: string
+          p_actor_user_id?: string
+          p_after?: Json
+          p_before?: Json
+          p_effective_user_id?: string
+          p_entity: string
+          p_entity_id?: string
+          p_metadata?: Json
+          p_resort_id?: string
+        }
+        Returns: string
+      }
       log_platform_activity: {
         Args: {
           p_event_type: string
@@ -4257,6 +4321,15 @@ export type Database = {
         }
         Returns: string
       }
+      log_view_as_session: {
+        Args: {
+          p_action?: string
+          p_target_resort_id: string
+          p_target_user_id: string
+        }
+        Returns: string
+      }
+      now_in_resort_tz: { Args: { p_resort_id: string }; Returns: string }
       regenerate_prearrival_link: {
         Args: { p_guest_id: string }
         Returns: Json
@@ -4272,6 +4345,10 @@ export type Database = {
       remove_user_role: {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
+      }
+      resort_tz_to_utc: {
+        Args: { p_local_timestamp: string; p_resort_id: string }
+        Returns: string
       }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
       set_permission_override: {
@@ -4303,6 +4380,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: boolean
+      }
+      utc_to_resort_tz: {
+        Args: { p_resort_id: string; p_timestamp: string }
+        Returns: string
       }
       validate_demo_login_token: { Args: { p_token: string }; Returns: Json }
       validate_prearrival_link: {
