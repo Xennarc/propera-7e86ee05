@@ -1316,6 +1316,57 @@ export type Database = {
           },
         ]
       }
+      guest_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          guest_id: string
+          id: string
+          ip_address: string | null
+          last_used_at: string | null
+          resort_id: string
+          token_hash: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          guest_id: string
+          id?: string
+          ip_address?: string | null
+          last_used_at?: string | null
+          resort_id: string
+          token_hash: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          guest_id?: string
+          id?: string
+          ip_address?: string | null
+          last_used_at?: string | null
+          resort_id?: string
+          token_hash?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_sessions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_sessions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           booking_reference: string | null
@@ -3987,6 +4038,13 @@ export type Database = {
         Returns: Json
       }
       get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
+      get_guest_session: {
+        Args: never
+        Returns: {
+          guest_id: string
+          resort_id: string
+        }[]
+      }
       get_or_create_loyalty_member: {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: string
@@ -4052,6 +4110,7 @@ export type Database = {
         }
         Returns: Json
       }
+      guest_can_access_guest: { Args: { _guest_id: string }; Returns: boolean }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
@@ -4130,6 +4189,10 @@ export type Database = {
       guest_get_unread_notification_count: {
         Args: { p_guest_id: string }
         Returns: number
+      }
+      guest_in_resort: {
+        Args: { _guest_id: string; _resort_id: string }
+        Returns: boolean
       }
       guest_link_room_to_party: {
         Args: {
@@ -4256,6 +4319,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_guest_session: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_for_booking: {
         Args: { p_booking_id: string; p_user_id: string }
@@ -4359,6 +4423,18 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      staff_can_write_resort: {
+        Args: {
+          _resort_id: string
+          _roles: Database["public"]["Enums"]["resort_role"][]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      staff_has_resort_access: {
+        Args: { _resort_id: string; _user_id: string }
+        Returns: boolean
       }
       staff_lookup_by_identifier: {
         Args: { p_identifier: string }
