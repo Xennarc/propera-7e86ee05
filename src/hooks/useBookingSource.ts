@@ -1,14 +1,18 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
 import { BookingSource } from '@/types/database';
 
 export function useBookingSource(): BookingSource {
-  const { roles, profile } = useAuth();
+  const { profile, getResortRole } = useAuth();
+  const { currentResort } = useResort();
   
-  // Determine source based on user's department/role
-  if (roles.includes('ACTIVITIES') || profile?.department === 'DIVE') {
+  const resortRole = currentResort ? getResortRole(currentResort.id) : null;
+  
+  // Determine source based on resort role or department
+  if (resortRole === 'ACTIVITIES' || profile?.department === 'DIVE') {
     return 'STAFF_DIVE';
   }
-  if (roles.includes('FNB') || profile?.department === 'FNB') {
+  if (resortRole === 'FNB' || profile?.department === 'FNB') {
     return 'STAFF_FNB';
   }
   

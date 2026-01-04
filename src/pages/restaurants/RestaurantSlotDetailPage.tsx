@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
 import { RestaurantTimeSlot, Restaurant, Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +42,8 @@ export default function RestaurantSlotDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasAnyRole } = useAuth();
+  const { hasResortRole, isSuperAdmin } = useAuth();
+  const { currentResort } = useResort();
 
   const [slot, setSlot] = useState<SlotWithRestaurant | null>(null);
   const [reservations, setReservations] = useState<ReservationWithGuest[]>([]);
@@ -50,7 +52,7 @@ export default function RestaurantSlotDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
 
-  const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'FNB']);
+  const canEdit = isSuperAdmin() || (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'FRONT_OFFICE', 'FNB']));
 
   // Enable real-time sync for this slot
   useStaffDiningSlotSync(id);

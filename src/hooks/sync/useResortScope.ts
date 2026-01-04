@@ -1,6 +1,7 @@
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { ResortRole } from '@/types/database';
 
 export interface ResortScope {
   /** Current resort ID - undefined if not in a resort context */
@@ -19,8 +20,8 @@ export interface ResortScope {
   resort: ReturnType<typeof useResort>['currentResort'];
   /** Whether this is a staff context */
   isStaff: boolean;
-  /** Staff roles */
-  roles: ReturnType<typeof useAuth>['roles'];
+  /** Resort role from membership */
+  resortRole: ResortRole | null;
 }
 
 /**
@@ -32,7 +33,7 @@ export interface ResortScope {
 export function useResortScope(): ResortScope {
   const resortContext = useResort();
   const guestAuth = useGuestAuth();
-  const { user, roles, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, getResortRole } = useAuth();
   
   const isSuperAdmin = profile?.global_role === 'SUPER_ADMIN';
   
@@ -47,7 +48,7 @@ export function useResortScope(): ResortScope {
       isSuperAdmin: false,
       resort: null,
       isStaff: false,
-      roles: [],
+      resortRole: null,
     };
   }
   
@@ -62,7 +63,7 @@ export function useResortScope(): ResortScope {
       isSuperAdmin,
       resort: resortContext.currentResort,
       isStaff: !!user,
-      roles,
+      resortRole: getResortRole(resortContext.currentResort.id),
     };
   }
   
@@ -76,7 +77,7 @@ export function useResortScope(): ResortScope {
     isSuperAdmin,
     resort: null,
     isStaff: !!user,
-    roles,
+    resortRole: null,
   };
 }
 

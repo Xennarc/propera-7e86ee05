@@ -3248,6 +3248,7 @@ export type Database = {
           description: string | null
           id: string
           is_system_role: boolean
+          key: string
           name: string
           resort_id: string | null
           updated_at: string
@@ -3257,6 +3258,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_system_role?: boolean
+          key: string
           name: string
           resort_id?: string | null
           updated_at?: string
@@ -3266,6 +3268,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_system_role?: boolean
+          key?: string
           name?: string
           resort_id?: string | null
           updated_at?: string
@@ -4188,6 +4191,10 @@ export type Database = {
       }
       get_resort_by_id: { Args: { p_resort_id: string }; Returns: Json }
       get_resort_public_info: { Args: { p_resort_code: string }; Returns: Json }
+      get_role_id_for_resort_role: {
+        Args: { p_resort_role: string }
+        Returns: string
+      }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -4210,6 +4217,15 @@ export type Database = {
         Returns: {
           permission_key: string
           source: string
+        }[]
+      }
+      get_user_resort_info: {
+        Args: { p_resort_id: string; p_user_id: string }
+        Returns: {
+          is_super_admin: boolean
+          resort_role: string
+          role_id: string
+          role_name: string
         }[]
       }
       get_vendor_bookings: {
@@ -4548,6 +4564,13 @@ export type Database = {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
       }
+      resolve_permissions: {
+        Args: { p_resort_id: string; p_user_id: string }
+        Returns: {
+          permission_key: string
+          source: string
+        }[]
+      }
       resort_tz_to_utc: {
         Args: { p_local_timestamp: string; p_resort_id: string }
         Returns: string
@@ -4587,6 +4610,22 @@ export type Database = {
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
         Returns: Json
+      }
+      user_has_all_permissions: {
+        Args: {
+          p_permission_keys: string[]
+          p_resort_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      user_has_any_permission: {
+        Args: {
+          p_permission_keys: string[]
+          p_resort_id: string
+          p_user_id: string
+        }
+        Returns: boolean
       }
       user_has_permission: {
         Args: {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResort } from '@/contexts/ResortContext';
 import { ActivitySession, ActivityBooking, Activity, Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +50,8 @@ export default function ActivitySessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasAnyRole } = useAuth();
+  const { hasResortRole, isSuperAdmin } = useAuth();
+  const { currentResort } = useResort();
 
   // All hooks must be called unconditionally at the top
   const [session, setSession] = useState<SessionWithDetails | null>(null);
@@ -60,8 +62,8 @@ export default function ActivitySessionDetailPage() {
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | null>(null);
 
-  const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']);
-  const isReadOnly = hasAnyRole(['MANAGER']) && !hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']);
+  const canEdit = isSuperAdmin() || (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']));
+  const isReadOnly = currentResort && hasResortRole(currentResort.id, ['MANAGER']) && !canEdit;
   
   const isValidId = id && isValidUUID(id);
 

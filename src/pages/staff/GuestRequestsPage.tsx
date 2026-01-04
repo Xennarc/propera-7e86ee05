@@ -40,7 +40,7 @@ type StatusFilter = 'ALL' | RequestStatus;
 
 export default function GuestRequestsPage() {
   const { currentResort } = useResort();
-  const { hasAnyRole } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   
   // Enable real-time sync for requests
@@ -58,9 +58,10 @@ export default function GuestRequestsPage() {
   } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  // Check permissions
-  const canManageActivities = hasAnyRole(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES']);
-  const canManageRestaurants = hasAnyRole(['ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB']);
+  // Check permissions using hasResortRole instead of legacy hasAnyRole
+  const { hasResortRole } = useAuth();
+  const canManageActivities = isSuperAdmin() || (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES']));
+  const canManageRestaurants = isSuperAdmin() || (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB']));
 
   // Fetch centralized guest requests
   const { data: guestRequests, isLoading: loadingRequests } = useQuery({

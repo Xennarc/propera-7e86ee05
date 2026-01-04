@@ -47,7 +47,7 @@ interface SessionTemplatesListProps {
 
 export function SessionTemplatesList({ onApplyTemplate }: SessionTemplatesListProps) {
   const { currentResort } = useResort();
-  const { hasAnyRole } = useAuth();
+  const { hasResortRole, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   
   const [templates, setTemplates] = useState<SessionTemplate[]>([]);
@@ -58,7 +58,7 @@ export function SessionTemplatesList({ onApplyTemplate }: SessionTemplatesListPr
   const [editTemplate, setEditTemplate] = useState<SessionTemplate | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const canEdit = hasAnyRole(['ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']);
+  const canEdit = isSuperAdmin() || (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']));
 
   useEffect(() => {
     if (currentResort?.id) {

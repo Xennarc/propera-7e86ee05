@@ -1,14 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { AppRole, Profile, GlobalRole, ResortRole, ResortMembership } from '@/types/database';
+import { Profile, GlobalRole, ResortRole, ResortMembership } from '@/types/database';
 import { getBaseUrl } from '@/lib/url-utils';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  roles: AppRole[];
   globalRole: GlobalRole;
   memberships: ResortMembership[];
   loading: boolean;
@@ -16,8 +15,6 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  hasRole: (role: AppRole) => boolean;
-  hasAnyRole: (roles: AppRole[]) => boolean;
   isSuperAdmin: () => boolean;
   hasResortRole: (resortId: string, roles: ResortRole[]) => boolean;
   getResortRole: (resortId: string) => ResortRole | null;
@@ -30,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [roles, setRoles] = useState<AppRole[]>([]);
   const [globalRole, setGlobalRole] = useState<GlobalRole>('STANDARD');
   const [memberships, setMemberships] = useState<ResortMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string) => {
     setUserDataLoading(true);
     try {
-      // Fetch profile with global_role
+      // Fetch profile with global_role (single source of truth for super admin)
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -51,17 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setGlobalRole((profileData.global_role as GlobalRole) || 'STANDARD');
       }
 
-      // Fetch legacy roles (for backwards compatibility)
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId);
-
-      if (rolesData) {
-        setRoles(rolesData.map(r => r.role as AppRole));
-      }
-
-      // Fetch resort memberships
+      // Fetch resort memberships (single source of truth for resort roles)
       const { data: membershipsData } = await supabase
         .from('resort_memberships')
         .select(`
@@ -92,7 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
-          setRoles([]);
           setGlobalRole('STANDARD');
           setMemberships([]);
         }
@@ -143,15 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
-    setRoles([]);
     setGlobalRole('STANDARD');
     setMemberships([]);
   };
-
-  const hasRole = (role: AppRole) => roles.includes(role);
-  
-  const hasAnyRole = (checkRoles: AppRole[]) => 
-    checkRoles.some(role => roles.includes(role));
 
   const isSuperAdmin = () => globalRole === 'SUPER_ADMIN';
 
@@ -178,7 +157,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         session,
         profile,
-        roles,
         globalRole,
         memberships,
         loading,
@@ -186,8 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
-        hasRole,
-        hasAnyRole,
         isSuperAdmin,
         hasResortRole,
         getResortRole,

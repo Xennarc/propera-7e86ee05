@@ -1,6 +1,5 @@
 // Application types for Propera
 
-export type AppRole = 'ADMIN' | 'MANAGER' | 'FRONT_OFFICE' | 'ACTIVITIES' | 'FNB';
 export type GlobalRole = 'SUPER_ADMIN' | 'STANDARD';
 export type ResortRole = 'RESORT_ADMIN' | 'MANAGER' | 'FRONT_OFFICE' | 'ACTIVITIES' | 'FNB' | 'RESERVATIONS';
 export type ActivityCategory = 'DIVE' | 'EXCURSION' | 'WATERSPORT' | 'SPA' | 'OTHER';
@@ -76,13 +75,6 @@ export interface Profile {
   global_role: GlobalRole;
   created_at: string;
   updated_at: string;
-}
-
-export interface UserRole {
-  id: string;
-  user_id: string;
-  role: AppRole;
-  created_at: string;
 }
 
 export interface ResortMembership {
