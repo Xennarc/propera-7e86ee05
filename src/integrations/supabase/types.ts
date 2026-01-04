@@ -1066,6 +1066,56 @@ export type Database = {
           },
         ]
       }
+      event_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          processed_at: string | null
+          resort_id: string
+          status: Database["public"]["Enums"]["outbox_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          event_type: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload: Json
+          processed_at?: string | null
+          resort_id: string
+          status?: Database["public"]["Enums"]["outbox_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          payload?: Json
+          processed_at?: string | null
+          resort_id?: string
+          status?: Database["public"]["Enums"]["outbox_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_outbox_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           category: string
@@ -3990,6 +4040,28 @@ export type Database = {
         Args: { p_resort_id: string; p_username: string }
         Returns: Json
       }
+      claim_outbox_events: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          event_type: string
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          payload: Json
+          processed_at: string | null
+          resort_id: string
+          status: Database["public"]["Enums"]["outbox_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "event_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       complete_prearrival_checkin: {
         Args: {
           p_esignature_name?: string
@@ -4084,6 +4156,10 @@ export type Database = {
           p_type: string
         }
         Returns: number
+      }
+      enqueue_event: {
+        Args: { p_event_type: string; p_payload: Json; p_resort_id: string }
+        Returns: string
       }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
@@ -4450,6 +4526,11 @@ export type Database = {
         }
         Returns: string
       }
+      mark_outbox_done: { Args: { p_event_id: string }; Returns: undefined }
+      mark_outbox_failed: {
+        Args: { p_error: string; p_event_id: string; p_max_attempts?: number }
+        Returns: undefined
+      }
       now_in_resort_tz: { Args: { p_resort_id: string }; Returns: string }
       regenerate_prearrival_link: {
         Args: { p_guest_id: string }
@@ -4471,6 +4552,7 @@ export type Database = {
         Args: { p_local_timestamp: string; p_resort_id: string }
         Returns: string
       }
+      retry_failed_events: { Args: { p_event_ids: string[] }; Returns: number }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
       set_permission_override: {
         Args: {
@@ -4588,6 +4670,7 @@ export type Database = {
       meal_period: "BREAKFAST" | "LUNCH" | "DINNER" | "EVENT"
       notification_audience: "STAFF" | "GUEST"
       notification_channel: "IN_APP" | "EMAIL" | "WHATSAPP"
+      outbox_status: "PENDING" | "PROCESSING" | "DONE" | "FAILED"
       payout_status: "UNBATCHED" | "BATCHED" | "PAID"
       permission_effect: "grant" | "revoke"
       prearrival_link_status: "active" | "expired" | "revoked" | "completed"
@@ -4807,6 +4890,7 @@ export const Constants = {
       meal_period: ["BREAKFAST", "LUNCH", "DINNER", "EVENT"],
       notification_audience: ["STAFF", "GUEST"],
       notification_channel: ["IN_APP", "EMAIL", "WHATSAPP"],
+      outbox_status: ["PENDING", "PROCESSING", "DONE", "FAILED"],
       payout_status: ["UNBATCHED", "BATCHED", "PAID"],
       permission_effect: ["grant", "revoke"],
       prearrival_link_status: ["active", "expired", "revoked", "completed"],

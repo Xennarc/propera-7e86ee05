@@ -23,6 +23,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
+import OutboxMonitor from '@/components/superadmin/OutboxMonitor';
 import {
   Select,
   SelectContent,
@@ -333,6 +334,9 @@ export default function HealthMonitoringPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Notification Outbox Monitor */}
+      <OutboxMonitor />
 
       {/* Resort Diagnostics */}
       <Card>
