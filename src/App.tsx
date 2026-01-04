@@ -103,6 +103,11 @@ const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMember
 // Vendor pages
 const VendorsPage = lazy(() => import("./pages/vendors/VendorsPage"));
 const VendorAttentionPage = lazy(() => import("./pages/vendors/VendorAttentionPage"));
+const VendorDetailPage = lazy(() => import("./pages/vendors/VendorDetailPage"));
+
+// Vendor portal pages
+const VendorLogin = lazy(() => import("./pages/vendor/VendorLogin"));
+const VendorBookings = lazy(() => import("./pages/vendor/VendorBookings"));
 
 // Lazy loaded pages - Guest
 const GuestLogin = lazy(() => import("./pages/guest/GuestLogin"));
@@ -232,6 +237,7 @@ const App = () => (
                   <Route path="loyalty/members/:id" element={<LoyaltyMemberDetailPage />} />
                   <Route path="vendors" element={<VendorsPage />} />
                   <Route path="vendors/attention" element={<VendorAttentionPage />} />
+                  <Route path="vendors/:vendorId" element={<VendorDetailPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
@@ -240,6 +246,10 @@ const App = () => (
                 {/* Demo auto-login routes */}
                 <Route path="/staff/demo-login" element={<DemoAutoLoginPage />} />
                 <Route path="/guest/demo-login" element={<DemoGuestAutoLoginPage />} />
+                
+                {/* Vendor portal routes */}
+                <Route path="/vendor/login" element={<VendorLogin />} />
+                <Route path="/vendor/bookings" element={<VendorBookings />} />
                 
                 {/* Legacy staff routes - redirect to new /staff prefix */}
                 <Route path="/auth" element={<Navigate to="/staff/auth" replace />} />
