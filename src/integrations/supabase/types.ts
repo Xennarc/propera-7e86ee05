@@ -4228,27 +4228,53 @@ export type Database = {
           role_name: string
         }[]
       }
-      get_vendor_bookings: {
-        Args: { p_date_from?: string; p_date_to?: string; p_vendor_id: string }
-        Returns: {
-          activity_name: string
-          booking_id: string
-          created_at: string
-          end_time: string
-          guest_name: string
-          notes: string
-          num_adults: number
-          num_children: number
-          resort_id: string
-          resort_name: string
-          room_number: string
-          session_date: string
-          session_id: string
-          start_time: string
-          total_amount: number
-          vendor_status: Database["public"]["Enums"]["vendor_booking_status"]
-        }[]
-      }
+      get_vendor_bookings:
+        | {
+            Args: {
+              p_date_from?: string
+              p_date_to?: string
+              p_vendor_id: string
+            }
+            Returns: {
+              activity_name: string
+              booking_id: string
+              created_at: string
+              end_time: string
+              guest_name: string
+              notes: string
+              num_adults: number
+              num_children: number
+              resort_id: string
+              resort_name: string
+              room_number: string
+              session_date: string
+              session_id: string
+              start_time: string
+              total_amount: number
+              vendor_status: Database["public"]["Enums"]["vendor_booking_status"]
+            }[]
+          }
+        | {
+            Args: { p_status_filter?: string; p_vendor_id: string }
+            Returns: {
+              activity_name: string
+              booking_id: string
+              created_at: string
+              end_time: string
+              guest_name: string
+              notes: string
+              num_adults: number
+              num_children: number
+              resort_id: string
+              resort_name: string
+              room_number: string
+              session_date: string
+              session_id: string
+              start_time: string
+              total_amount: number
+              vendor_status: Database["public"]["Enums"]["vendor_booking_status"]
+            }[]
+          }
       guest_add_party_member: {
         Args: {
           p_birth_year?: number

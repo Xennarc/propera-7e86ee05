@@ -18,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Link } from 'react-router-dom';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Plus, MoreHorizontal, Building2, Link2, Mail, Phone, Percent, Search, Users } from 'lucide-react';
 import { VendorDialog } from './VendorDialog';
@@ -153,9 +154,9 @@ export default function VendorsPage() {
               </TableRow>
             ) : (
               filteredVendors.map((vendor) => (
-                <TableRow key={vendor.id}>
+                <TableRow key={vendor.id} className="cursor-pointer hover:bg-muted/50">
                   <TableCell>
-                    <div className="flex items-center gap-3">
+                    <Link to={`/staff/vendors/${vendor.id}`} className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <Building2 className="h-5 w-5 text-primary" />
                       </div>
@@ -165,7 +166,7 @@ export default function VendorsPage() {
                           <div className="text-sm text-muted-foreground">{vendor.contact_name}</div>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-1">
