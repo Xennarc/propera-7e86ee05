@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { RestaurantTimeSlot, Restaurant, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
-import { validateRestaurantReservation } from '@/lib/booking-validation';
+import { createRestaurantReservation } from '@/lib/booking-service';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
 import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import {
@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { NumericInput } from '@/components/ui/numeric-input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +22,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { GuestSearchDialog } from '@/components/bookings/GuestSearchDialog';
 import { format, parseISO } from 'date-fns';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 interface RestaurantReservationDialogProps {
   open: boolean;
@@ -77,62 +76,59 @@ export function RestaurantReservationDialog({
 
     setLoading(true);
 
-    // Use centralized validation
-    const validationResult = await validateRestaurantReservation({
+    // Use centralized BookingService
+    const result = await createRestaurantReservation({
       resortId: currentResort.id,
-      guestId: currentGuest.id,
       slotId: slot.id,
+      guestId: currentGuest.id,
+      roomNumber: currentGuest.room_number,
       numAdults: formData.num_adults,
       numChildren: formData.num_children,
+      specialRequests: formData.special_requests || undefined,
       source: bookingSource,
+      createdByUserId: user?.id,
     });
 
-    if (!validationResult.ok) {
-      const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
-      setValidationError(validationResult.details || errorMessage);
+    if (!result.success) {
+      const errorMessage = result.errorCode 
+        ? getBookingErrorMessage(result.errorCode, 'staff')
+        : result.error || 'Failed to create reservation';
+      setValidationError(errorMessage);
       setLoading(false);
       return;
     }
 
-    const { data, error } = await supabase
-      .from('restaurant_reservations')
-      .insert({
-        resort_id: currentResort.id,
-        restaurant_slot_id: slot.id,
-        guest_id: currentGuest.id,
-        room_number: currentGuest.room_number,
-        status: 'CONFIRMED',
-        source: bookingSource,
-        num_adults: formData.num_adults,
-        num_children: formData.num_children,
-        special_requests: formData.special_requests || null,
-        created_by_user_id: user?.id || null,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      setValidationError(error.message);
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      // Award loyalty points (fire and forget)
-      if (data?.id && currentGuest) {
-        const totalPax = formData.num_adults + formData.num_children;
-        const pointsToAward = totalPax * 25; // 25 points per person
-        awardLoyaltyPoints(
-          currentGuest.id,
-          currentResort.id,
-          'dining_booking',
-          pointsToAward,
-          data.id,
-          'restaurant_reservation',
-          `Restaurant: ${slot.restaurant?.name || 'Restaurant'}`
-        ).catch(console.error);
-      }
-      toast({ title: 'Success', description: 'Reservation created successfully' });
+    // Handle duplicate detection
+    if (result.alreadyExists) {
+      toast({ 
+        title: 'Existing Reservation Found', 
+        description: 'This guest already has an active reservation for this time slot.',
+        variant: 'default',
+      });
       onSuccess();
       onOpenChange(false);
+      setLoading(false);
+      return;
     }
+
+    // Award loyalty points (fire and forget)
+    if (result.reservationId && currentGuest) {
+      const totalPax = formData.num_adults + formData.num_children;
+      const pointsToAward = totalPax * 25; // 25 points per person
+      awardLoyaltyPoints(
+        currentGuest.id,
+        currentResort.id,
+        'dining_booking',
+        pointsToAward,
+        result.reservationId,
+        'restaurant_reservation',
+        `Restaurant: ${slot.restaurant?.name || 'Restaurant'}`
+      ).catch(console.error);
+    }
+
+    toast({ title: 'Success', description: 'Reservation created successfully' });
+    onSuccess();
+    onOpenChange(false);
     setLoading(false);
   };
 
@@ -219,11 +215,16 @@ export function RestaurantReservationDialog({
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading || !currentGuest}>
-                {loading ? 'Creating...' : 'Create Reservation'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : 'Create Reservation'}
               </Button>
             </div>
           </form>
