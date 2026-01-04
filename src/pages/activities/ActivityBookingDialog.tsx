@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { ActivitySession, Activity, Guest } from '@/types/database';
 import { useBookingSource } from '@/hooks/useBookingSource';
-import { validateActivityBooking } from '@/lib/booking-validation';
+import { createActivityBooking } from '@/lib/booking-service';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
 import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import {
@@ -22,7 +22,7 @@ import { NumberStepper } from '@/components/ui/number-stepper';
 import { useToast } from '@/hooks/use-toast';
 import { GuestSearchDialog } from '@/components/bookings/GuestSearchDialog';
 import { format, parseISO } from 'date-fns';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 interface ActivityBookingDialogProps {
   open: boolean;
@@ -128,69 +128,59 @@ export function ActivityBookingDialog({
 
     setLoading(true);
 
-    // Use centralized validation
-    const validationResult = await validateActivityBooking({
+    // Use centralized BookingService
+    const result = await createActivityBooking({
       resortId: currentResort.id,
-      guestId: currentGuest.id,
       sessionId: currentSession.id,
+      guestId: currentGuest.id,
+      roomNumber: currentGuest.room_number,
       numAdults: formData.num_adults,
       numChildren: formData.num_children,
+      notes: formData.notes || undefined,
       source: bookingSource,
+      createdByUserId: user?.id,
     });
 
-    if (!validationResult.ok) {
-      const errorMessage = getBookingErrorMessage(validationResult.errorCode!, 'staff');
-      setValidationError(validationResult.details || errorMessage);
+    if (!result.success) {
+      const errorMessage = result.errorCode 
+        ? getBookingErrorMessage(result.errorCode, 'staff')
+        : result.error || 'Failed to create booking';
+      setValidationError(errorMessage);
       setLoading(false);
       return;
     }
 
-    // Calculate total
-    const pricePerPerson = currentSession.activity?.default_price_per_person || 0;
-    const totalPax = formData.num_adults + formData.num_children;
-    const totalAmount = totalPax * pricePerPerson;
-
-    const { data, error } = await supabase
-      .from('activity_bookings')
-      .insert({
-        resort_id: currentResort.id,
-        session_id: currentSession.id,
-        guest_id: currentGuest.id,
-        room_number: currentGuest.room_number,
-        status: 'CONFIRMED',
-        source: bookingSource,
-        num_adults: formData.num_adults,
-        num_children: formData.num_children,
-        price_per_person: pricePerPerson,
-        discount_amount: 0,
-        total_amount: totalAmount,
-        notes: formData.notes || null,
-        created_by_user_id: user?.id || null,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      setValidationError(error.message);
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      // Award loyalty points (fire and forget)
-      if (data?.id && currentGuest) {
-        const pointsToAward = totalPax * 50; // 50 points per person
-        awardLoyaltyPoints(
-          currentGuest.id,
-          currentResort.id,
-          'activity_booking',
-          pointsToAward,
-          data.id,
-          'activity_booking',
-          `Activity: ${currentSession.activity?.name || 'Activity'}`
-        ).catch(console.error);
-      }
-      toast({ title: 'Success', description: 'Booking created successfully' });
+    // Handle duplicate detection
+    if (result.alreadyExists) {
+      toast({ 
+        title: 'Existing Booking Found', 
+        description: 'This guest already has an active booking for this session.',
+        variant: 'default',
+      });
       onSuccess();
       onOpenChange(false);
+      setLoading(false);
+      return;
     }
+
+    // Award loyalty points (fire and forget)
+    if (result.bookingId && currentGuest) {
+      const totalPax = formData.num_adults + formData.num_children;
+      const pointsToAward = totalPax * 50; // 50 points per person
+      awardLoyaltyPoints(
+        currentGuest.id,
+        currentResort.id,
+        'activity_booking',
+        pointsToAward,
+        result.bookingId,
+        'activity_booking',
+        `Activity: ${currentSession.activity?.name || 'Activity'}`
+      ).catch(console.error);
+    }
+
+    toast({ title: 'Success', description: 'Booking created successfully' });
+    onSuccess();
+    onOpenChange(false);
     setLoading(false);
   };
 
@@ -345,14 +335,19 @@ export function ActivityBookingDialog({
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 disabled={loading || !currentGuest || !currentSession}
               >
-                {loading ? 'Creating...' : 'Create Booking'}
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : 'Create Booking'}
               </Button>
             </div>
           </form>

@@ -32,6 +32,8 @@ export type BookingErrorCode =
   | 'CANCEL_CUTOFF_PAST'
   | 'CANCEL_DISABLED'
   | 'BOOKING_NOT_CANCELLABLE'
+  | 'DUPLICATE_BOOKING'
+  | 'CONCURRENT_MODIFICATION'
   | 'UNKNOWN_ERROR';
 
 interface ErrorMessage {
@@ -107,6 +109,14 @@ const ERROR_MESSAGES: Record<BookingErrorCode, ErrorMessage> = {
   BOOKING_NOT_CANCELLABLE: {
     staff: 'This booking cannot be cancelled in its current status.',
     guest: 'This booking cannot be cancelled. Please contact reception for assistance.',
+  },
+  DUPLICATE_BOOKING: {
+    staff: 'This guest already has an active booking for this session/slot.',
+    guest: 'You already have a booking for this time. Check "My Bookings" to view it.',
+  },
+  CONCURRENT_MODIFICATION: {
+    staff: 'This booking was modified by another user. Please refresh and try again.',
+    guest: 'Your booking was updated elsewhere. Please refresh the page.',
   },
   UNKNOWN_ERROR: {
     staff: 'An unexpected error occurred. Please try again.',

@@ -209,6 +209,7 @@ export type Database = {
           vendor_status:
             | Database["public"]["Enums"]["vendor_booking_status"]
             | null
+          version: number
         }
         Insert: {
           booking_source?:
@@ -240,6 +241,7 @@ export type Database = {
           vendor_status?:
             | Database["public"]["Enums"]["vendor_booking_status"]
             | null
+          version?: number
         }
         Update: {
           booking_source?:
@@ -271,6 +273,7 @@ export type Database = {
           vendor_status?:
             | Database["public"]["Enums"]["vendor_booking_status"]
             | null
+          version?: number
         }
         Relationships: [
           {
@@ -495,6 +498,7 @@ export type Database = {
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
           vendor_id: string | null
+          version: number
         }
         Insert: {
           activity_id: string
@@ -512,6 +516,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
           vendor_id?: string | null
+          version?: number
         }
         Update: {
           activity_id?: string
@@ -529,6 +534,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
           vendor_id?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -2959,6 +2965,7 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at: string
+          version: number
         }
         Insert: {
           booking_source?:
@@ -2978,6 +2985,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          version?: number
         }
         Update: {
           booking_source?:
@@ -2997,6 +3005,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -3035,6 +3044,7 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["slot_status"]
           updated_at: string
+          version: number
         }
         Insert: {
           capacity?: number
@@ -3048,6 +3058,7 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["slot_status"]
           updated_at?: string
+          version?: number
         }
         Update: {
           capacity?: number
@@ -3061,6 +3072,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["slot_status"]
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -3949,6 +3961,22 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_activity_booking_safe: {
+        Args: {
+          p_booking_id: string
+          p_cancelled_by_user_id?: string
+          p_expected_version?: number
+        }
+        Returns: Json
+      }
+      cancel_restaurant_reservation_safe: {
+        Args: {
+          p_cancelled_by_user_id?: string
+          p_expected_version?: number
+          p_reservation_id: string
+        }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -3967,6 +3995,21 @@ export type Database = {
           p_esignature_name?: string
           p_policy_acknowledged?: boolean
           p_token: string
+        }
+        Returns: Json
+      }
+      create_activity_booking_idempotent: {
+        Args: {
+          p_created_by_user_id?: string
+          p_guest_id: string
+          p_idempotency_key?: string
+          p_notes?: string
+          p_num_adults: number
+          p_num_children: number
+          p_resort_id: string
+          p_room_number: string
+          p_session_id: string
+          p_source?: string
         }
         Returns: Json
       }
@@ -3992,6 +4035,20 @@ export type Database = {
           p_type: string
         }
         Returns: string
+      }
+      create_restaurant_reservation_idempotent: {
+        Args: {
+          p_created_by_user_id?: string
+          p_guest_id: string
+          p_num_adults: number
+          p_num_children: number
+          p_resort_id: string
+          p_room_number: string
+          p_slot_id: string
+          p_source?: string
+          p_special_requests?: string
+        }
+        Returns: Json
       }
       create_staff_account: {
         Args: {
