@@ -692,6 +692,154 @@ serve(async (req) => {
       });
     }
 
+    // MODE: consume-guest-token - validate and consume a guest auto-login token
+    if (mode === "consume-guest-token") {
+      const { token } = body;
+      console.log("Consume guest token mode");
+
+      if (!token) {
+        return new Response(JSON.stringify({ success: false, error: "Token is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find and validate the token
+      const { data: tokenRecord, error: tokenError } = await supabaseAdmin
+        .from("demo_login_tokens")
+        .select("*, guests(*), resorts!demo_login_tokens_resort_id_fkey(*)")
+        .eq("token", token)
+        .eq("token_type", "guest")
+        .single();
+
+      if (tokenError || !tokenRecord) {
+        console.error("Token lookup failed:", tokenError);
+        return new Response(JSON.stringify({ success: false, error: "Token not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (tokenRecord.used_at) {
+        return new Response(JSON.stringify({ success: false, error: "Token already used" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (new Date(tokenRecord.expires_at) < new Date()) {
+        return new Response(JSON.stringify({ success: false, error: "Token expired" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Mark token as used
+      await supabaseAdmin
+        .from("demo_login_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("id", tokenRecord.id);
+
+      const guest = tokenRecord.guests;
+      const resort = tokenRecord.resorts;
+
+      return new Response(JSON.stringify({
+        success: true,
+        guest_id: tokenRecord.guest_id,
+        full_name: guest?.full_name,
+        room_number: guest?.room_number,
+        check_in_date: guest?.check_in_date,
+        check_out_date: guest?.check_out_date,
+        resort_id: tokenRecord.resort_id,
+        resort_name: resort?.name,
+        resort_code: resort?.code,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // MODE: consume-staff-token - validate and consume a staff auto-login token
+    if (mode === "consume-staff-token") {
+      const { token } = body;
+      console.log("Consume staff token mode");
+
+      if (!token) {
+        return new Response(JSON.stringify({ success: false, error: "Token is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find and validate the token
+      const { data: tokenRecord, error: tokenError } = await supabaseAdmin
+        .from("demo_login_tokens")
+        .select("*, demo_workspaces(*)")
+        .eq("token", token)
+        .eq("token_type", "staff")
+        .single();
+
+      if (tokenError || !tokenRecord) {
+        console.error("Token lookup failed:", tokenError);
+        return new Response(JSON.stringify({ success: false, error: "Token not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (tokenRecord.used_at) {
+        return new Response(JSON.stringify({ success: false, error: "Token already used" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (new Date(tokenRecord.expires_at) < new Date()) {
+        return new Response(JSON.stringify({ success: false, error: "Token expired" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // For staff, we need to generate a fresh password and update the user
+      const workspace = tokenRecord.demo_workspaces;
+      
+      if (!workspace || !workspace.staff_user_id) {
+        return new Response(JSON.stringify({ success: false, error: "Staff user not found for this token" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Generate new temp password and update auth user
+      const tempPassword = generatePassword();
+      
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(workspace.staff_user_id, {
+        password: tempPassword,
+      });
+
+      if (updateError) {
+        console.error("Failed to update staff password:", updateError);
+        return new Response(JSON.stringify({ success: false, error: "Failed to prepare login" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Mark token as used
+      await supabaseAdmin
+        .from("demo_login_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("id", tokenRecord.id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        email: workspace.staff_email,
+        password: tempPassword,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // MODE: get-workspace - fetch existing workspace for resume
     if (mode === "get-workspace") {
       console.log("Get workspace mode for:", email);
