@@ -25,17 +25,19 @@ function LegacyRedirect({ to }: { to: string }) {
   return <Navigate to={targetPath + location.search} replace />;
 }
 
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ResortProvider } from "@/contexts/ResortContext";
-import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
-import { AppLayout } from "@/components/layout/AppLayout";
-import { StaffShell } from "@/components/staff/StaffShell";
-import { GuestLayout } from "@/components/guest/GuestLayout";
+// Lazy load context providers and layouts for code-splitting
+const AuthProvider = lazy(() => import("@/contexts/AuthContext").then(m => ({ default: m.AuthProvider })));
+const ResortProvider = lazy(() => import("@/contexts/ResortContext").then(m => ({ default: m.ResortProvider })));
+const GuestAuthProvider = lazy(() => import("@/contexts/GuestAuthContext").then(m => ({ default: m.GuestAuthProvider })));
+const StaffShell = lazy(() => import("@/components/staff/StaffShell").then(m => ({ default: m.StaffShell })));
+const GuestLayout = lazy(() => import("@/components/guest/GuestLayout").then(m => ({ default: m.GuestLayout })));
 
-// Critical pages loaded eagerly (landing, auth, layouts)
+// Critical pages loaded eagerly (landing only)
 import LandingPage from "./pages/LandingPage";
-import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+
+// Auth page lazy loaded
+const Auth = lazy(() => import("./pages/Auth"));
 
 // Lazy loaded pages - Staff
 const Dashboard = lazy(() => import("./pages/Dashboard"));
