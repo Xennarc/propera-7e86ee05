@@ -298,7 +298,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
         </DialogTitle>
         <DialogDescription>
           {isExisting 
-            ? 'Your demo workspace is still active. Use the buttons below to enter.'
+            ? 'Fresh credentials have been generated. Use the new password and PIN below to log in.'
             : 'Open the staff console, then try a booking in the guest portal.'}
         </DialogDescription>
       </DialogHeader>
