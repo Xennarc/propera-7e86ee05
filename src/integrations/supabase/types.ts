@@ -4391,6 +4391,15 @@ export type Database = {
             Args: {
               p_last_name: string
               p_pin_hash: string
+              p_resort_code: string
+              p_room_number: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_last_name: string
+              p_pin_hash: string
               p_resort_id: string
               p_room_number: string
             }
