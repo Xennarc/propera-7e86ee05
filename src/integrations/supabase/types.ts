@@ -4386,51 +4386,25 @@ export type Database = {
         Args: { p_guest_id: string; p_notification_id: string }
         Returns: boolean
       }
-      guest_portal_login:
-        | {
-            Args: {
-              p_last_name: string
-              p_pin_hash: string
-              p_resort_code: string
-              p_room_number: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_last_name: string
-              p_pin_hash: string
-              p_resort_id: string
-              p_room_number: string
-            }
-            Returns: {
-              check_in_date: string
-              check_out_date: string
-              full_name: string
-              guest_id: string
-              resort_id: string
-              room_number: string
-            }[]
-          }
-        | {
-            Args: {
-              p_last_name: string
-              p_pin: string
-              p_resort_id: string
-              p_room_number: string
-            }
-            Returns: {
-              check_in_date: string
-              check_out_date: string
-              full_name: string
-              guest_id: string
-              resort_code: string
-              resort_id: string
-              resort_logo_url: string
-              resort_name: string
-              room_number: string
-            }[]
-          }
+      guest_portal_login: {
+        Args: {
+          p_last_name: string
+          p_pin_hash: string
+          p_resort_id: string
+          p_room_number: string
+        }
+        Returns: {
+          check_in_date: string
+          check_out_date: string
+          full_name: string
+          guest_id: string
+          resort_code: string
+          resort_id: string
+          resort_logo_url: string
+          resort_name: string
+          room_number: string
+        }[]
+      }
       guest_remove_party_member: {
         Args: { p_lead_guest_id: string; p_member_id: string }
         Returns: Json
