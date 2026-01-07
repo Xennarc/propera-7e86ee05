@@ -1002,6 +1002,7 @@ export type Database = {
           guest_last_name: string | null
           guest_room: string | null
           id: string
+          last_email_sent_at: string | null
           last_error: string | null
           resort_code: string | null
           resort_id: string | null
@@ -1023,6 +1024,7 @@ export type Database = {
           guest_last_name?: string | null
           guest_room?: string | null
           id?: string
+          last_email_sent_at?: string | null
           last_error?: string | null
           resort_code?: string | null
           resort_id?: string | null
@@ -1044,6 +1046,7 @@ export type Database = {
           guest_last_name?: string | null
           guest_room?: string | null
           id?: string
+          last_email_sent_at?: string | null
           last_error?: string | null
           resort_code?: string | null
           resort_id?: string | null

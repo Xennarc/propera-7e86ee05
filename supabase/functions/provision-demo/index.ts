@@ -166,6 +166,8 @@ async function sendDemoEmail(params: {
   staffToken?: string;
   guestToken?: string;
   isReminder?: boolean;
+  workspaceId?: string;
+  supabaseAdmin?: any;
 }): Promise<{ sent: boolean; error: string }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
@@ -247,6 +249,12 @@ async function sendDemoEmail(params: {
     console.log("Resend response:", emailRes.status, responseText);
 
     if (emailRes.ok) {
+      // Update last_email_sent_at if workspaceId provided
+      if (params.workspaceId && params.supabaseAdmin) {
+        await params.supabaseAdmin.from("demo_workspaces").update({
+          last_email_sent_at: new Date().toISOString(),
+        }).eq("id", params.workspaceId);
+      }
       return { sent: true, error: "" };
     } else {
       return { sent: false, error: responseText };
@@ -255,6 +263,23 @@ async function sendDemoEmail(params: {
     console.error("Email send error:", err);
     return { sent: false, error: err?.message || "Unknown email error" };
   }
+}
+
+// Resend cooldown check (60 seconds)
+const RESEND_COOLDOWN_SECONDS = 60;
+
+function canResendEmail(lastEmailSentAt: string | null): { allowed: boolean; waitSeconds: number } {
+  if (!lastEmailSentAt) return { allowed: true, waitSeconds: 0 };
+  
+  const lastSent = new Date(lastEmailSentAt).getTime();
+  const now = Date.now();
+  const elapsedSeconds = (now - lastSent) / 1000;
+  
+  if (elapsedSeconds >= RESEND_COOLDOWN_SECONDS) {
+    return { allowed: true, waitSeconds: 0 };
+  }
+  
+  return { allowed: false, waitSeconds: Math.ceil(RESEND_COOLDOWN_SECONDS - elapsedSeconds) };
 }
 
 // Rotate credentials for existing demo
@@ -693,6 +718,109 @@ serve(async (req) => {
       });
     }
 
+    // MODE: request-fresh-link - for expired tokens, generate new tokens and resend email
+    // This allows users to request a new link without re-entering the form
+    if (mode === "request-fresh-link") {
+      const { token, token_type } = body;
+      console.log("Request fresh link mode for token type:", token_type);
+
+      // First, try to find the workspace from the token
+      let workspaceId: string | null = null;
+      
+      if (token) {
+        const { data: tokenRecord } = await supabaseAdmin
+          .from("demo_login_tokens")
+          .select("workspace_id")
+          .eq("token", token)
+          .single();
+        
+        if (tokenRecord) {
+          workspaceId = tokenRecord.workspace_id;
+        }
+      }
+
+      if (!workspaceId) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Could not identify demo workspace. Please use the Book Demo form to start fresh.",
+          redirect_to_form: true 
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch the workspace
+      const { data: workspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("id", workspaceId)
+        .eq("status", "ready")
+        .gt("expires_at", new Date().toISOString())
+        .single();
+
+      if (!workspace) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Demo has expired. Please create a new demo.",
+          redirect_to_form: true 
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check resend cooldown
+      const cooldownCheck = canResendEmail(workspace.last_email_sent_at);
+      if (!cooldownCheck.allowed) {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `Please wait ${cooldownCheck.waitSeconds} seconds before requesting another email.`,
+          cooldown_seconds: cooldownCheck.waitSeconds 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Rotate credentials and generate new tokens
+      const rotated = await rotateCredentials(supabaseAdmin, workspace.id, workspace.resort_id, workspace.resort_code);
+      
+      const tokens = await generateLoginTokens(
+        supabaseAdmin,
+        workspace.id,
+        workspace.resort_id,
+        rotated.staffUserId,
+        rotated.guestInfo.guestId
+      );
+
+      // Send email
+      const emailResult = await sendDemoEmail({
+        to: workspace.email,
+        resortName: workspace.resort_name,
+        resortCode: workspace.resort_code,
+        staffIdentifier: rotated.staffIdentifier,
+        tempPassword: rotated.tempPassword,
+        guestInfo: rotated.guestInfo,
+        staffToken: tokens.staffToken,
+        guestToken: tokens.guestToken,
+        isReminder: true,
+        workspaceId: workspace.id,
+        supabaseAdmin,
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        email_sent: emailResult.sent,
+        email_sent_to: workspace.email,
+        message: emailResult.sent 
+          ? `Fresh login link sent to ${workspace.email}` 
+          : "Failed to send email - please try again",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // MODE: consume-guest-token - validate and consume a guest auto-login token
     // Allows re-use within TTL to handle email client link prefetching
     if (mode === "consume-guest-token") {
@@ -726,7 +854,13 @@ serve(async (req) => {
       // Check expiry (this is the hard limit)
       if (new Date(tokenRecord.expires_at) < new Date()) {
         console.log(`Token expired (prefix ${tokenPrefix}), expired at: ${tokenRecord.expires_at}`);
-        return new Response(JSON.stringify({ success: false, error: "Token expired - please generate a new demo link" }), {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Token expired - please generate a new demo link",
+          expired: true,
+          can_request_fresh_link: true,
+          token: token, // Include token for request-fresh-link mode
+        }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -796,7 +930,13 @@ serve(async (req) => {
       // Check expiry (this is the hard limit)
       if (new Date(tokenRecord.expires_at) < new Date()) {
         console.log(`Token expired (prefix ${tokenPrefix}), expired at: ${tokenRecord.expires_at}`);
-        return new Response(JSON.stringify({ success: false, error: "Token expired - please generate a new demo link" }), {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: "Token expired - please generate a new demo link",
+          expired: true,
+          can_request_fresh_link: true,
+          token: token, // Include token for request-fresh-link mode
+        }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw, Key, User, DoorOpen, Database, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle2, Sparkles, ExternalLink, Mail, RotateCw, Key, User, DoorOpen, Database, AlertTriangle, Inbox, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CredentialRow } from './CredentialRow';
 import { TimezoneSelect } from './TimezoneSelect';
 import { useDemoWorkspace, DemoCredentials } from '@/hooks/useDemoWorkspace';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface DemoWizardProps {
   open: boolean;
@@ -48,8 +49,10 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isReseeding, setIsReseeding] = useState(false);
-  const [step, setStep] = useState<'form' | 'creating' | 'success' | 'existing' | 'rate_limited'>('form');
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [step, setStep] = useState<'form' | 'creating' | 'email_sent' | 'success' | 'existing' | 'rate_limited'>('form');
   const [demoData, setDemoData] = useState<DemoCredentials | null>(null);
+  const [showCredentials, setShowCredentials] = useState(false);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -138,9 +141,10 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
           setStep('existing');
           toast.success('Fresh credentials generated');
         } else {
-          setStep('success');
+          // Always show email-sent step first for new demos
+          setStep('email_sent');
           if (data.email_sent) {
-            toast.success('Login details sent to your email');
+            toast.success('Check your email for login details');
           }
         }
       } else if (data?.error?.includes('Rate limit')) {
@@ -235,6 +239,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
     clearWorkspace();
     setDemoData(null);
     setStep('form');
+    setShowCredentials(false);
     setFormData({
       email: '',
       resortName: '',
@@ -242,6 +247,44 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
       roomsRange: '',
       departments: [],
     });
+  };
+
+  const handleResendEmail = async () => {
+    if (isResendingEmail || !demoData?.email) return;
+    
+    setIsResendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('provision-demo', {
+        body: {
+          email: demoData.email.trim().toLowerCase(),
+          mode: 'resend',
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Fresh login link sent to your email!');
+        // Update demo data with new credentials
+        setDemoData(prev => prev ? {
+          ...prev,
+          temp_password: data.temp_password,
+          staff_token_url: data.staff_token_url,
+          guest_login: data.guest_login || prev.guest_login,
+          email_sent: data.email_sent,
+        } : null);
+      } else {
+        throw new Error(data?.error || 'Failed to resend email');
+      }
+    } catch (error: any) {
+      if (error.message?.includes('wait')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to resend email. Please try again.');
+      }
+    } finally {
+      setIsResendingEmail(false);
+    }
   };
 
   const handleClose = () => {
@@ -541,6 +584,79 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
                 Making it feel like a real Tuesday at a busy resort.
               </p>
             )}
+          </div>
+        )}
+
+        {step === 'email_sent' && demoData && (
+          <div className="py-6">
+            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
+              <Inbox className="h-8 w-8 text-success" />
+            </div>
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="text-2xl">Check your email!</DialogTitle>
+              <DialogDescription>
+                We've sent login links to <strong className="text-foreground">{demoData.email}</strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="bg-muted/50 rounded-lg p-4 mb-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                Click the links in your email to instantly access your demo.
+                <br />
+                <span className="text-xs">Links expire in 15 minutes.</span>
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="w-full rounded-full font-semibold"
+                onClick={handleResendEmail}
+                disabled={isResendingEmail}
+              >
+                {isResendingEmail ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Resend Email
+              </Button>
+            </div>
+
+            {/* Didn't get it? Help panel */}
+            <Collapsible className="mt-6">
+              <CollapsibleTrigger className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full">
+                <HelpCircle className="h-4 w-4" />
+                Didn't get the email?
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="bg-muted/30 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
+                  <p>• Check your spam/junk folder</p>
+                  <p>• Add <span className="font-mono text-xs">noreply@propera.cc</span> to your contacts</p>
+                  <p>• Make sure you entered the correct email</p>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="p-0 h-auto text-primary"
+                    onClick={handleStartFresh}
+                  >
+                    Use a different email →
+                  </Button>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Secondary: Show credentials option */}
+            <Collapsible open={showCredentials} onOpenChange={setShowCredentials} className="mt-4 pt-4 border-t border-border/50">
+              <CollapsibleTrigger className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground w-full">
+                <Key className="h-4 w-4" />
+                {showCredentials ? 'Hide login credentials' : 'Can\'t access email? View credentials'}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                {renderCredentialsSection(false)}
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
 
