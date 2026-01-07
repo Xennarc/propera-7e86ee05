@@ -71,12 +71,18 @@ export default function DemoGuestAutoLoginPage() {
           checkOutDate: data.check_out_date,
           resortId: data.resort_id,
           resortName: data.resort_name,
+          resortCode: data.resort_code,
         };
         
         localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
 
-        // Redirect to guest home (will trigger context re-read)
-        window.location.href = '/guest';
+        // Redirect to resort-scoped guest portal
+        const resortCode = data.resort_code;
+        if (resortCode) {
+          window.location.href = `/resort/${resortCode}/guest`;
+        } else {
+          window.location.href = '/guest';
+        }
       } catch (err: any) {
         console.error('Auto-login failed:', err);
         setError(err.message || 'Failed to log in. The link may have expired.');
