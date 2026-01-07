@@ -98,11 +98,12 @@ async function generateLoginTokens(
   const guestToken = generateToken();
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes
 
-  // Delete any existing tokens for this workspace
+  // Clean up only expired tokens (keep active ones so older email links still work)
   await supabase
     .from("demo_login_tokens")
     .delete()
-    .eq("workspace_id", workspaceId);
+    .eq("workspace_id", workspaceId)
+    .lt("expires_at", new Date().toISOString());
 
   // Create new tokens
   await supabase.from("demo_login_tokens").insert([
@@ -693,9 +694,11 @@ serve(async (req) => {
     }
 
     // MODE: consume-guest-token - validate and consume a guest auto-login token
+    // Allows re-use within TTL to handle email client link prefetching
     if (mode === "consume-guest-token") {
       const { token } = body;
-      console.log("Consume guest token mode");
+      const tokenPrefix = token ? token.substring(0, 6) : "none";
+      console.log(`Consume guest token mode, token prefix: ${tokenPrefix}`);
 
       if (!token) {
         return new Response(JSON.stringify({ success: false, error: "Token is required" }), {
@@ -713,32 +716,34 @@ serve(async (req) => {
         .single();
 
       if (tokenError || !tokenRecord) {
-        console.error("Token lookup failed:", tokenError);
-        return new Response(JSON.stringify({ success: false, error: "Token not found" }), {
+        console.error(`Token lookup failed (prefix ${tokenPrefix}):`, tokenError);
+        return new Response(JSON.stringify({ success: false, error: "Token not found - the link may be old or invalid" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (tokenRecord.used_at) {
-        return new Response(JSON.stringify({ success: false, error: "Token already used" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      // Check expiry (this is the hard limit)
       if (new Date(tokenRecord.expires_at) < new Date()) {
-        return new Response(JSON.stringify({ success: false, error: "Token expired" }), {
+        console.log(`Token expired (prefix ${tokenPrefix}), expired at: ${tokenRecord.expires_at}`);
+        return new Response(JSON.stringify({ success: false, error: "Token expired - please generate a new demo link" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Mark token as used
-      await supabaseAdmin
-        .from("demo_login_tokens")
-        .update({ used_at: new Date().toISOString() })
-        .eq("id", tokenRecord.id);
+      // Allow re-use within TTL (handles email client prefetching)
+      // Only log if it's a re-use, don't fail
+      if (tokenRecord.used_at) {
+        console.log(`Token reused (prefix ${tokenPrefix}), originally used at: ${tokenRecord.used_at}`);
+      } else {
+        // Mark token as used on first use
+        await supabaseAdmin
+          .from("demo_login_tokens")
+          .update({ used_at: new Date().toISOString() })
+          .eq("id", tokenRecord.id);
+        console.log(`Token first use (prefix ${tokenPrefix})`);
+      }
 
       const guest = tokenRecord.guests;
       const resort = tokenRecord.resorts;
@@ -759,9 +764,11 @@ serve(async (req) => {
     }
 
     // MODE: consume-staff-token - validate and consume a staff auto-login token
+    // Allows re-use within TTL to handle email client link prefetching
     if (mode === "consume-staff-token") {
       const { token } = body;
-      console.log("Consume staff token mode");
+      const tokenPrefix = token ? token.substring(0, 6) : "none";
+      console.log(`Consume staff token mode, token prefix: ${tokenPrefix}`);
 
       if (!token) {
         return new Response(JSON.stringify({ success: false, error: "Token is required" }), {
@@ -779,22 +786,17 @@ serve(async (req) => {
         .single();
 
       if (tokenError || !tokenRecord) {
-        console.error("Token lookup failed:", tokenError);
-        return new Response(JSON.stringify({ success: false, error: "Token not found" }), {
+        console.error(`Token lookup failed (prefix ${tokenPrefix}):`, tokenError);
+        return new Response(JSON.stringify({ success: false, error: "Token not found - the link may be old or invalid" }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      if (tokenRecord.used_at) {
-        return new Response(JSON.stringify({ success: false, error: "Token already used" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
+      // Check expiry (this is the hard limit)
       if (new Date(tokenRecord.expires_at) < new Date()) {
-        return new Response(JSON.stringify({ success: false, error: "Token expired" }), {
+        console.log(`Token expired (prefix ${tokenPrefix}), expired at: ${tokenRecord.expires_at}`);
+        return new Response(JSON.stringify({ success: false, error: "Token expired - please generate a new demo link" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -811,6 +813,7 @@ serve(async (req) => {
       }
 
       // Generate new temp password and update auth user
+      // This is idempotent - each token use gets a fresh password
       const tempPassword = generatePassword();
       
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(workspace.staff_user_id, {
@@ -825,11 +828,17 @@ serve(async (req) => {
         });
       }
 
-      // Mark token as used
-      await supabaseAdmin
-        .from("demo_login_tokens")
-        .update({ used_at: new Date().toISOString() })
-        .eq("id", tokenRecord.id);
+      // Log re-use vs first use, but always succeed
+      if (tokenRecord.used_at) {
+        console.log(`Token reused (prefix ${tokenPrefix}), originally used at: ${tokenRecord.used_at}`);
+      } else {
+        // Mark token as used on first use
+        await supabaseAdmin
+          .from("demo_login_tokens")
+          .update({ used_at: new Date().toISOString() })
+          .eq("id", tokenRecord.id);
+        console.log(`Token first use (prefix ${tokenPrefix})`);
+      }
 
       return new Response(JSON.stringify({
         success: true,

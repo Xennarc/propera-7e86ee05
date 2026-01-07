@@ -30,7 +30,19 @@ export default function DemoAutoLoginPage() {
           }
         });
 
-        if (fnError) throw fnError;
+        // Parse the actual error from the edge function response
+        if (fnError) {
+          let errorMessage = 'Failed to log in. The link may have expired.';
+          try {
+            if (fnError.context?.body) {
+              const body = JSON.parse(fnError.context.body);
+              if (body.error) errorMessage = body.error;
+            }
+          } catch {
+            // Fallback to generic message
+          }
+          throw new Error(errorMessage);
+        }
 
         if (!data?.success) {
           throw new Error(data?.error || 'Invalid or expired token');
