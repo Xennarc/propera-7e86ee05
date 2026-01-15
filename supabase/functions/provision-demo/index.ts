@@ -1411,7 +1411,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         email: staffEmail,
-        password: tempPassword,
+        temp_password: tempPassword,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -2385,7 +2385,8 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
         num_adults: Math.floor(Math.random() * 2) + 1,
         num_children: Math.floor(Math.random() * 2),
         status: status,
-        source: "STAFF",
+        source: "STAFF_FRONT_DESK",
+        origin: "seed",
         notes: note,
         price_per_person: 50,
         total_amount: 50 * (Math.floor(Math.random() * 2) + 1),
@@ -2422,7 +2423,8 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
         num_adults: Math.floor(Math.random() * 3) + 1,
         num_children: Math.floor(Math.random() * 2),
         status: status,
-        source: "STAFF",
+        source: "STAFF_FRONT_DESK",
+        origin: "seed",
         special_requests: request,
       });
     }
