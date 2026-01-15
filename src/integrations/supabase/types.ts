@@ -4298,6 +4298,19 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_add_resort_member: {
+        Args: {
+          p_department?: string
+          p_resort_id: string
+          p_role: Database["public"]["Enums"]["resort_role"]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      admin_remove_resort_member: {
+        Args: { p_resort_id: string; p_user_id: string }
+        Returns: boolean
+      }
       admin_reset_staff_password: {
         Args: { p_new_password: string; p_user_id: string }
         Returns: Json
