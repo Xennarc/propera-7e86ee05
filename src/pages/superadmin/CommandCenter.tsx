@@ -29,6 +29,7 @@ import { ResortDrawer } from '@/components/superadmin/ResortDrawer';
 import { RolloutsPanel } from '@/components/superadmin/RolloutsPanel';
 import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
 import { FounderControls } from '@/components/superadmin/FounderControls';
+import { SecurityAuditPanel } from '@/components/superadmin/SecurityAuditPanel';
 import { usePlatformActivityRealtime, EVENT_TYPE_CONFIG } from '@/hooks/usePlatformActivity';
 import { useErrorCount24h } from '@/hooks/usePlatformErrors';
 import { useActionQueueDetectors } from '@/hooks/useActionQueueDetectors';
@@ -37,7 +38,7 @@ import {
   Building2, Users, Calendar, Utensils, TrendingUp, AlertTriangle, AlertCircle,
   CheckCircle2, ArrowUpRight, ExternalLink, Plane, Activity, Bell, Clock,
   ChevronRight, Sparkles, Zap, Eye, Radio, Settings, Search, BarChart3,
-  Pencil, Shield,
+  Pencil, Shield, ShieldCheck,
 } from 'lucide-react';
 
 // Write Mode Context
@@ -104,7 +105,7 @@ function ResortHealthCard({ resort, metrics, onClick }: {
 export default function CommandCenter() {
   const navigate = useNavigate();
   const { resorts, setCurrentResort } = useResort();
-  const [mode, setMode] = useState<'pulse' | 'control' | 'investigate'>('pulse');
+  const [mode, setMode] = useState<'pulse' | 'control' | 'investigate' | 'security'>('pulse');
   const [includeDemos, setIncludeDemos] = useState(false);
   const [selectedResort, setSelectedResort] = useState<typeof resorts[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -292,10 +293,11 @@ export default function CommandCenter() {
           </AlertDialog>
 
           <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="bg-muted/50 rounded-lg p-1">
-            <TabsList className="grid grid-cols-3 gap-1 bg-transparent">
+            <TabsList className="grid grid-cols-4 gap-1 bg-transparent">
               <TabsTrigger value="pulse" className="text-xs gap-1 data-[state=active]:bg-background"><Radio className="h-3 w-3" />Pulse</TabsTrigger>
               <TabsTrigger value="control" className="text-xs gap-1 data-[state=active]:bg-background"><Settings className="h-3 w-3" />Control</TabsTrigger>
               <TabsTrigger value="investigate" className="text-xs gap-1 data-[state=active]:bg-background"><Search className="h-3 w-3" />Investigate</TabsTrigger>
+              <TabsTrigger value="security" className="text-xs gap-1 data-[state=active]:bg-background"><ShieldCheck className="h-3 w-3" />Security</TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="flex items-center gap-2">
@@ -411,6 +413,10 @@ export default function CommandCenter() {
           const resort = resorts.find(r => r.id === resortId);
           if (resort) handleResortClick(resort);
         }} />
+      )}
+
+      {mode === 'security' && (
+        <SecurityAuditPanel />
       )}
 
       {/* Resort Grid */}
