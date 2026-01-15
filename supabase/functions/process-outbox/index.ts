@@ -478,11 +478,15 @@ async function processEvent(
   }
 }
 
-// Main handler
+// Main handler - supports both scheduled invocations and manual triggers
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Log invocation source for debugging
+  const isScheduled = req.headers.get("x-supabase-cron") === "true";
+  console.log(`Outbox processor invoked (scheduled: ${isScheduled})`);
 
   const startTime = Date.now();
   const results: ProcessResult[] = [];

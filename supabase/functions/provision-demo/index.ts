@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,7 +156,13 @@ async function validateStaffCredentials(
   }
 }
 
-// Email sending helper
+// Get Resend client (may be null if not configured)
+function getResend(): Resend | null {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  return apiKey ? new Resend(apiKey) : null;
+}
+
+// Email sending helper using Resend SDK
 async function sendDemoEmail(params: {
   to: string;
   resortName: string;
@@ -169,8 +176,8 @@ async function sendDemoEmail(params: {
   workspaceId?: string;
   supabaseAdmin?: any;
 }): Promise<{ sent: boolean; error: string }> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendApiKey) {
+  const resend = getResend();
+  if (!resend) {
     console.log("RESEND_API_KEY not configured");
     return { sent: false, error: "RESEND_API_KEY not configured" };
   }
@@ -197,17 +204,11 @@ async function sendDemoEmail(params: {
 
   try {
     console.log("Sending demo email to:", params.to);
-    const emailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Propera <noreply@propera.cc>",
-        to: [params.to],
-        subject,
-        html: `
+    const result = await resend.emails.send({
+      from: "Propera <noreply@propera.cc>",
+      to: [params.to],
+      subject,
+      html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 32px;">
             <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
@@ -242,55 +243,43 @@ async function sendDemoEmail(params: {
           </div>
         </div>
       `,
-      }),
     });
 
-    const responseText = await emailRes.text();
-    console.log("Resend response:", emailRes.status, responseText);
+    console.log("Resend SDK response:", result);
 
-    if (emailRes.ok) {
-      // Update last_email_sent_at if workspaceId provided
-      if (params.workspaceId && params.supabaseAdmin) {
-        await params.supabaseAdmin.from("demo_workspaces").update({
-          last_email_sent_at: new Date().toISOString(),
-        }).eq("id", params.workspaceId);
-      }
-      return { sent: true, error: "" };
-    } else {
-      return { sent: false, error: responseText };
+    // Update last_email_sent_at if workspaceId provided
+    if (params.workspaceId && params.supabaseAdmin) {
+      await params.supabaseAdmin.from("demo_workspaces").update({
+        last_email_sent_at: new Date().toISOString(),
+      }).eq("id", params.workspaceId);
     }
+    return { sent: true, error: "" };
   } catch (err: any) {
     console.error("Email send error:", err);
     return { sent: false, error: err?.message || "Unknown email error" };
   }
 }
 
-// Simplified email for singleton demo mode
+// Simplified email for singleton demo mode using Resend SDK
 async function sendDemoEmailSingleton(params: {
   to: string;
   staffUrl: string;
   guestUrl: string;
   resortName: string;
 }): Promise<{ sent: boolean; error: string }> {
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendApiKey) {
+  const resend = getResend();
+  if (!resend) {
     console.log("RESEND_API_KEY not configured");
     return { sent: false, error: "RESEND_API_KEY not configured" };
   }
 
   try {
     console.log("Sending singleton demo email to:", params.to);
-    const emailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Propera <noreply@propera.cc>",
-        to: [params.to],
-        subject: `🎉 Your ${params.resortName} demo access`,
-        html: `
+    const result = await resend.emails.send({
+      from: "Propera <noreply@propera.cc>",
+      to: [params.to],
+      subject: `🎉 Your ${params.resortName} demo access`,
+      html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 32px;">
             <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
@@ -323,17 +312,10 @@ async function sendDemoEmailSingleton(params: {
           </div>
         </div>
       `,
-      }),
     });
 
-    const responseText = await emailRes.text();
-    console.log("Resend response:", emailRes.status, responseText);
-
-    if (emailRes.ok) {
-      return { sent: true, error: "" };
-    } else {
-      return { sent: false, error: responseText };
-    }
+    console.log("Resend SDK response:", result);
+    return { sent: true, error: "" };
   } catch (err: any) {
     console.error("Singleton email send error:", err);
     return { sent: false, error: err?.message || "Unknown email error" };
