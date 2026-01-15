@@ -185,12 +185,22 @@ export default function GuestActivitiesBrowser() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    {/* Category Icon with colored background */}
-                    <div className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-xl shrink-0",
-                      config.bgClass
-                    )}>
-                      <CategoryIcon category={session.category} size={24} />
+                    {/* Activity Image or Category Icon fallback */}
+                    <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden">
+                      {session.image_url ? (
+                        <img 
+                          src={session.image_url} 
+                          alt={session.activity_name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className={cn(
+                          "flex h-full w-full items-center justify-center",
+                          config.bgClass
+                        )}>
+                          <CategoryIcon category={session.category} size={24} />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
