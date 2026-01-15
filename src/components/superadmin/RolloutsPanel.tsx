@@ -17,16 +17,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useResort } from '@/contexts/ResortContext';
-import { useRolloutHistory, useExecuteRollout, useRollbackRollout } from '@/hooks/useRollouts';
+import { useRolloutHistory, useRollbackRollout } from '@/hooks/useRollouts';
+import { useCreateRolloutJob, useExecuteRollout } from '@/hooks/useRolloutJobs';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   Rocket,
@@ -42,9 +46,14 @@ import {
   Undo2,
   History,
   Clock,
+  Shield,
+  Eye,
+  Loader2,
 } from 'lucide-react';
 
-type ChangeType = 'enable_prearrival' | 'disable_guest_booking' | 'enable_loyalty' | 'refresh_branding' | 'regen_seo';
+type ChangeType = 'enable_prearrival' | 'disable_prearrival' | 'enable_guest_booking' | 'disable_guest_booking' | 
+                  'enable_loyalty' | 'disable_loyalty' | 'enable_activities' | 'disable_activities' |
+                  'enable_dining' | 'disable_dining' | 'refresh_branding' | 'refresh_seo';
 
 interface RolloutChange {
   type: ChangeType;
@@ -56,13 +65,22 @@ interface RolloutChange {
 
 const ROLLOUT_CHANGES: RolloutChange[] = [
   { type: 'enable_prearrival', label: 'Enable Pre-arrival', description: 'Turn on pre-arrival for resorts', icon: ToggleRight },
+  { type: 'disable_prearrival', label: 'Disable Pre-arrival', description: 'Turn off pre-arrival', icon: ToggleRight, dangerous: true },
+  { type: 'enable_guest_booking', label: 'Enable Guest Booking', description: 'Allow guest self-booking', icon: Settings },
   { type: 'disable_guest_booking', label: 'Disable Guest Booking', description: 'Turn off guest self-booking', icon: Settings, dangerous: true },
   { type: 'enable_loyalty', label: 'Enable Loyalty', description: 'Turn on loyalty program', icon: CreditCard },
-  { type: 'refresh_branding', label: 'Refresh Branding', description: 'Refresh guest portal branding', icon: Paintbrush },
-  { type: 'regen_seo', label: 'Regenerate SEO', description: 'Regenerate sitemap and SEO', icon: Globe },
+  { type: 'disable_loyalty', label: 'Disable Loyalty', description: 'Turn off loyalty program', icon: CreditCard, dangerous: true },
+  { type: 'enable_activities', label: 'Enable Activities', description: 'Turn on activities module', icon: ToggleRight },
+  { type: 'enable_dining', label: 'Enable Dining', description: 'Turn on dining module', icon: ToggleRight },
+  { type: 'refresh_branding', label: 'Refresh Branding', description: 'Increment branding version', icon: Paintbrush },
+  { type: 'refresh_seo', label: 'Regenerate SEO', description: 'Increment SEO version', icon: Globe },
 ];
 
-export function RolloutsPanel() {
+interface RolloutsPanelProps {
+  writeMode?: boolean;
+}
+
+export function RolloutsPanel({ writeMode = false }: RolloutsPanelProps) {
   const { resorts } = useResort();
   const [activeTab, setActiveTab] = useState<'execute' | 'history'>('execute');
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -72,14 +90,22 @@ export function RolloutsPanel() {
   const [confirmText, setConfirmText] = useState('');
   const [notes, setNotes] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dryRunResult, setDryRunResult] = useState<any>(null);
+  const [showDryRunPreview, setShowDryRunPreview] = useState(false);
 
   const { data: rolloutHistory, isLoading: loadingHistory } = useRolloutHistory(20);
-  const executeRollout = useExecuteRollout();
+  const { data: rolloutJobs, isLoading: loadingJobs } = useRolloutJobs();
+  const createJob = useCreateRolloutJob();
+  const executeJob = useExecuteRolloutJob();
   const rollbackRollout = useRollbackRollout();
 
   const activeResorts = resorts.filter(r => r.status === 'ACTIVE' && !r.is_demo);
 
   const handleSelectChange = (type: ChangeType) => {
+    if (!writeMode) {
+      toast.error('Enable Write Mode to execute rollouts');
+      return;
+    }
     setSelectedChange(type);
     setStep(2);
   };
@@ -96,15 +122,7 @@ export function RolloutsPanel() {
     setStep(3);
   };
 
-  const handleConfirm = () => {
-    if (scope === 'all' && confirmText !== 'APPLY TO ALL') {
-      toast.error('Please type APPLY TO ALL to confirm');
-      return;
-    }
-    setDialogOpen(true);
-  };
-
-  const handleExecuteRollout = async () => {
+  const handleDryRun = async () => {
     if (!selectedChange) return;
 
     const resortIds = scope === 'all' 
@@ -112,17 +130,50 @@ export function RolloutsPanel() {
       : selectedResorts;
 
     try {
-      await executeRollout.mutateAsync({
+      // Create job first
+      const job = await createJob.mutateAsync({
         changeType: selectedChange,
         changeLabel: getChangeDetails()?.label || selectedChange,
         scope,
-        resortIds,
+        targetResortIds: resortIds,
         notes: notes || undefined,
       });
-      setDialogOpen(false);
-      resetWizard();
+
+      // Execute dry run
+      const result = await executeJob.mutateAsync({
+        jobId: job.id,
+        dryRun: true,
+      });
+
+      setDryRunResult(result);
+      setShowDryRunPreview(true);
     } catch (error) {
-      // Error handled by mutation
+      toast.error('Failed to run preview');
+    }
+  };
+
+  const handleExecuteRollout = async () => {
+    if (!selectedChange || !dryRunResult) return;
+
+    try {
+      // Find the job ID from dry run
+      const pendingJob = rolloutJobs?.find(j => j.status === 'dry_run');
+      if (!pendingJob) {
+        toast.error('No pending job found');
+        return;
+      }
+
+      await executeJob.mutateAsync({
+        jobId: pendingJob.id,
+        dryRun: false,
+      });
+
+      setDialogOpen(false);
+      setShowDryRunPreview(false);
+      resetWizard();
+      toast.success('Rollout executed successfully');
+    } catch (error) {
+      toast.error('Rollout failed');
     }
   };
 
@@ -141,6 +192,7 @@ export function RolloutsPanel() {
     setSelectedResorts([]);
     setConfirmText('');
     setNotes('');
+    setDryRunResult(null);
   };
 
   const getChangeDetails = () => {
@@ -160,6 +212,12 @@ export function RolloutsPanel() {
           <div className="flex items-center gap-2">
             <Rocket className="h-5 w-5 text-primary" />
             <CardTitle>Rollouts</CardTitle>
+            {!writeMode && (
+              <Badge variant="outline" className="text-xs">
+                <Shield className="h-3 w-3 mr-1" />
+                Read-only
+              </Badge>
+            )}
           </div>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
             <TabsList className="h-8">
@@ -173,6 +231,14 @@ export function RolloutsPanel() {
       <CardContent>
         {activeTab === 'execute' && (
           <>
+            {/* Write Mode Warning */}
+            {!writeMode && (
+              <div className="p-3 mb-4 bg-warning/10 border border-warning/20 rounded-lg text-sm text-warning flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                <span>Enable Write Mode in the header to execute rollouts</span>
+              </div>
+            )}
+
             {/* Step indicator */}
             <div className="flex items-center gap-2 mb-4">
               <Badge variant="outline" className="text-xs">Step {step} of 4</Badge>
@@ -189,8 +255,9 @@ export function RolloutsPanel() {
                 {ROLLOUT_CHANGES.map((change) => (
                   <button
                     key={change.type}
-                    className="w-full flex items-center gap-3 p-4 rounded-xl bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-border transition-all text-left"
+                    className={`w-full flex items-center gap-3 p-4 rounded-xl bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-border transition-all text-left ${!writeMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => handleSelectChange(change.type)}
+                    disabled={!writeMode}
                   >
                     <div className={`p-2 rounded-lg ${change.dangerous ? 'bg-destructive/10' : 'bg-primary/10'}`}>
                       <change.icon className={`h-5 w-5 ${change.dangerous ? 'text-destructive' : 'text-primary'}`} />
@@ -352,21 +419,83 @@ export function RolloutsPanel() {
                   </div>
                 )}
 
-                <Button 
-                  className="w-full" 
-                  onClick={handleConfirm}
-                  disabled={scope === 'all' && confirmText !== 'APPLY TO ALL'}
-                >
-                  Confirm & Execute
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    className="flex-1" 
+                    onClick={handleDryRun}
+                    disabled={createJob.isPending || (scope === 'all' && confirmText !== 'APPLY TO ALL')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Changes
+                  </Button>
+                </div>
               </div>
             )}
+
+            {/* Dry Run Preview Dialog */}
+            <Dialog open={showDryRunPreview} onOpenChange={setShowDryRunPreview}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Eye className="h-5 w-5" />
+                    Preview: {getChangeDetails()?.label}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Review the changes before applying
+                  </DialogDescription>
+                </DialogHeader>
+                {dryRunResult && (
+                  <ScrollArea className="max-h-[300px]">
+                    <div className="space-y-2">
+                      {dryRunResult.results?.map((result: any) => {
+                        const resort = resorts.find(r => r.id === result.resortId);
+                        return (
+                          <div key={result.resortId} className="p-3 bg-muted/30 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-sm">{resort?.name || result.resortId}</span>
+                              {result.success ? (
+                                <Badge variant="outline" className="bg-success/10 text-success border-success/30">Ready</Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">Error</Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>Old: {JSON.stringify(result.oldValue)}</p>
+                              <p>New: {JSON.stringify(result.newValue)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowDryRunPreview(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleExecuteRollout} disabled={executeJob.isPending}>
+                    {executeJob.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Applying...
+                      </>
+                    ) : (
+                      <>
+                        <Rocket className="h-4 w-4 mr-2" />
+                        Apply Changes
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
 
         {activeTab === 'history' && (
           <div className="space-y-3">
-            {loadingHistory ? (
+            {loadingHistory || loadingJobs ? (
               <div className="space-y-3">
                 {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
               </div>
@@ -378,7 +507,7 @@ export function RolloutsPanel() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge variant={rollout.status === 'executed' ? 'default' : 'outline'} className="text-xs">
+                            <Badge variant={rollout.status === 'executed' ? 'default' : rollout.status === 'rolled_back' ? 'secondary' : 'outline'} className="text-xs">
                               {rollout.status}
                             </Badge>
                             <span className="font-medium text-sm">{rollout.change_label}</span>
@@ -402,7 +531,7 @@ export function RolloutsPanel() {
                             <p className="text-xs text-muted-foreground mt-2 italic">"{rollout.notes}"</p>
                           )}
                         </div>
-                        {rollout.status === 'executed' && (
+                        {rollout.status === 'executed' && writeMode && (
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -427,39 +556,6 @@ export function RolloutsPanel() {
             )}
           </div>
         )}
-
-        {/* Confirmation Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-                Execute Rollout?
-              </DialogTitle>
-              <DialogDescription>
-                This will apply {getChangeDetails()?.label.toLowerCase()} to {getAffectedCount()} resort(s).
-                All changes will be logged to the audit trail.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <p className="text-sm font-medium">Summary</p>
-              <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
-                <li>• Change: {getChangeDetails()?.label}</li>
-                <li>• Scope: {scope === 'all' ? 'All resorts' : `${getAffectedCount()} resort(s)`}</li>
-                <li>• Rollback: Available for 24 hours</li>
-              </ul>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleExecuteRollout} disabled={executeRollout.isPending}>
-                <Rocket className="h-4 w-4 mr-2" />
-                {executeRollout.isPending ? 'Executing...' : 'Execute'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );

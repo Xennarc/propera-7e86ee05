@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,17 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { getTierInfo, SubscriptionTier } from '@/lib/tier-features';
@@ -20,11 +31,20 @@ import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
 import { FounderControls } from '@/components/superadmin/FounderControls';
 import { usePlatformActivityRealtime, EVENT_TYPE_CONFIG } from '@/hooks/usePlatformActivity';
 import { useErrorCount24h } from '@/hooks/usePlatformErrors';
+import { useActionQueueDetectors } from '@/hooks/useActionQueueDetectors';
+import { toast } from 'sonner';
 import {
   Building2, Users, Calendar, Utensils, TrendingUp, AlertTriangle, AlertCircle,
   CheckCircle2, ArrowUpRight, ExternalLink, Plane, Activity, Bell, Clock,
   ChevronRight, Sparkles, Zap, Eye, Radio, Settings, Search, BarChart3,
+  Pencil, Shield,
 } from 'lucide-react';
+
+// Write Mode Context
+export interface WriteModeState {
+  enabled: boolean;
+  expiresAt: Date | null;
+}
 
 // KPI Card Component
 function KPICard({ title, value, icon: Icon, onClick, loading, variant = 'default' }: { 
@@ -34,8 +54,10 @@ function KPICard({ title, value, icon: Icon, onClick, loading, variant = 'defaul
   const variantStyles = { default: 'bg-card', primary: 'bg-primary/5 border-primary/20', success: 'bg-success/5 border-success/20', warning: 'bg-warning/5 border-warning/20' };
   const iconStyles = { default: 'text-muted-foreground', primary: 'text-primary', success: 'text-success', warning: 'text-warning' };
   return (
-    <Card className={`${variantStyles[variant]} cursor-pointer hover:shadow-md transition-all duration-200 group`} onClick={onClick}>
-      <CardContent className="p-4">
+    <Card className={`${variantStyles[variant]} cursor-pointer hover:shadow-md transition-all duration-200 group relative overflow-hidden`} onClick={onClick}>
+      {/* Subtle pulse overlay for live data */}
+      <div className="absolute inset-0 bg-primary/5 animate-pulse rounded-xl opacity-30 pointer-events-none" />
+      <CardContent className="p-4 relative">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
@@ -86,7 +108,40 @@ export default function CommandCenter() {
   const [includeDemos, setIncludeDemos] = useState(false);
   const [selectedResort, setSelectedResort] = useState<typeof resorts[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [actionQueueFilter, setActionQueueFilter] = useState<'all' | 'P0'>('all');
   const today = new Date().toISOString().split('T')[0];
+
+  // Write Mode State
+  const [writeMode, setWriteMode] = useState(false);
+  const [writeModeExpiry, setWriteModeExpiry] = useState<Date | null>(null);
+  const [showWriteModeConfirm, setShowWriteModeConfirm] = useState(false);
+
+  // Auto-disable write mode after 10 minutes
+  useEffect(() => {
+    if (writeMode) {
+      const expiry = new Date(Date.now() + 10 * 60 * 1000);
+      setWriteModeExpiry(expiry);
+      const timer = setTimeout(() => {
+        setWriteMode(false);
+        setWriteModeExpiry(null);
+        toast.info('Write Mode automatically disabled after 10 minutes');
+      }, 10 * 60 * 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setWriteModeExpiry(null);
+    }
+  }, [writeMode]);
+
+  const handleEnableWriteMode = () => {
+    setWriteMode(true);
+    setShowWriteModeConfirm(false);
+    toast.success('Write Mode enabled for 10 minutes');
+  };
+
+  const handleDisableWriteMode = () => {
+    setWriteMode(false);
+    toast.info('Write Mode disabled');
+  };
 
   // Get resort IDs for queries
   const activeResorts = includeDemos ? resorts : resorts.filter(r => r.status === 'ACTIVE' && !r.is_demo);
@@ -97,6 +152,9 @@ export default function CommandCenter() {
 
   // Real error count
   const { data: errorCount24h } = useErrorCount24h(resortIds);
+
+  // Expanded Action Queue Detectors
+  const { data: detectedItems, isLoading: loadingDetectors } = useActionQueueDetectors(resorts);
 
   // Platform KPIs
   const { data: kpis, isLoading: loadingKPIs } = useQuery({
@@ -135,28 +193,10 @@ export default function CommandCenter() {
     },
   });
 
-  // Action Queue Items
-  const { data: actionItems, isLoading: loadingActions } = useQuery({
-    queryKey: ['command-center-actions', resorts.map(r => r.id)],
-    queryFn: async () => {
-      const items: ActionQueueItem[] = [];
-      const activeResortsList = resorts.filter(r => r.status === 'ACTIVE');
-      for (const resort of activeResortsList) {
-        const { count: activityCount } = await supabase.from('activities').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).eq('is_active', true);
-        const { count: sessionCount } = await supabase.from('activity_sessions').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).gte('date', today);
-        if (activityCount && activityCount > 0 && (!sessionCount || sessionCount === 0)) {
-          items.push({ id: `no-sessions-${resort.id}`, severity: 'P1', title: 'No upcoming sessions', description: `${activityCount} activities exist but no sessions scheduled`, resort: resort.name, resortId: resort.id, category: 'config', triggeredAt: new Date(), fixAction: { label: 'Create Sessions', type: 'navigate', target: `/superadmin/resorts/${resort.id}` } });
-        }
-        const { count: restaurantCount } = await supabase.from('restaurants').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).eq('is_active', true);
-        const { count: slotCount } = await supabase.from('restaurant_time_slots').select('*', { count: 'exact', head: true }).eq('resort_id', resort.id).gte('date', today);
-        if (restaurantCount && restaurantCount > 0 && (!slotCount || slotCount === 0)) {
-          items.push({ id: `no-slots-${resort.id}`, severity: 'P1', title: 'No dining slots', description: `${restaurantCount} restaurants without available slots`, resort: resort.name, resortId: resort.id, category: 'config', triggeredAt: new Date(), fixAction: { label: 'Create Slots', type: 'navigate', target: `/superadmin/resorts/${resort.id}` } });
-        }
-      }
-      return items.sort((a, b) => { const order = { P0: 0, P1: 1, P2: 2, P3: 3 }; return order[a.severity] - order[b.severity]; });
-    },
-    enabled: resorts.length > 0,
-  });
+  // Use detected items from hook, with filter support
+  const actionItems = (detectedItems || []).filter(item => 
+    actionQueueFilter === 'all' || item.severity === actionQueueFilter
+  );
 
   // Resort metrics
   const { data: resortMetrics, isLoading: loadingResorts } = useQuery({
@@ -181,6 +221,18 @@ export default function CommandCenter() {
 
   const handleResortClick = (resort: typeof resorts[0]) => { setSelectedResort(resort); setDrawerOpen(true); };
 
+  // Handle saved view navigation from FounderControls
+  const handleSavedViewChange = (viewId: string) => {
+    if (viewId === 'p0-incidents') {
+      setMode('pulse');
+      setActionQueueFilter('P0');
+    } else if (viewId === 'top-resorts') {
+      navigate('/superadmin/resorts?sort=health');
+    } else if (viewId === 'arrivals-72h') {
+      navigate('/superadmin/guests?filter=arrivals-72h');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header with Mode Switch */}
@@ -190,6 +242,55 @@ export default function CommandCenter() {
           <p className="text-muted-foreground text-sm mt-1">Platform overview and global controls</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Write Mode Badge */}
+          {writeMode && writeModeExpiry && (
+            <Badge 
+              variant="destructive" 
+              className="animate-pulse cursor-pointer flex items-center gap-1.5"
+              onClick={handleDisableWriteMode}
+            >
+              <Pencil className="h-3 w-3" />
+              Write Mode ({formatDistanceToNow(writeModeExpiry)})
+            </Badge>
+          )}
+
+          {/* Write Mode Toggle */}
+          <AlertDialog open={showWriteModeConfirm} onOpenChange={setShowWriteModeConfirm}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant={writeMode ? "destructive" : "outline"} 
+                size="sm" 
+                className="gap-1.5"
+                onClick={() => writeMode ? handleDisableWriteMode() : setShowWriteModeConfirm(true)}
+              >
+                <Shield className="h-4 w-4" />
+                {writeMode ? 'Disable Write' : 'Write Mode'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-warning" />
+                  Enable Write Mode?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="space-y-2">
+                  <p>Write Mode allows you to make real changes to resort settings and configurations.</p>
+                  <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                    <li>It will automatically disable after <strong>10 minutes</strong> for safety</li>
+                    <li>All actions will be logged to the audit trail</li>
+                    <li>Changes take effect immediately</li>
+                  </ul>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleEnableWriteMode} className="bg-warning text-warning-foreground hover:bg-warning/90">
+                  Enable Write Mode
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="bg-muted/50 rounded-lg p-1">
             <TabsList className="grid grid-cols-3 gap-1 bg-transparent">
               <TabsTrigger value="pulse" className="text-xs gap-1 data-[state=active]:bg-background"><Radio className="h-3 w-3" />Pulse</TabsTrigger>
@@ -212,14 +313,19 @@ export default function CommandCenter() {
         <KPICard title="Activity Pax" value={kpis?.activityPax || 0} icon={Calendar} loading={loadingKPIs} variant="success" />
         <KPICard title="Covers" value={kpis?.diningCovers || 0} icon={Utensils} loading={loadingKPIs} variant="warning" />
         <KPICard title="Pre-arrival" value={`${kpis?.prearrivalRate || 0}%`} icon={CheckCircle2} loading={loadingKPIs} />
-        <KPICard title="Errors 24h" value={errorCount24h || 0} icon={AlertCircle} loading={false} onClick={() => navigate('/superadmin/health')} />
+        <KPICard title="Errors 24h" value={errorCount24h || 0} icon={AlertCircle} loading={false} onClick={() => setMode('investigate')} />
       </div>
 
       {/* Mode Content */}
       {mode === 'pulse' && (
         <div className="grid gap-6 lg:grid-cols-4">
           <div className="lg:col-span-3 space-y-6">
-            <ActionQueue items={actionItems || []} loading={loadingActions} />
+            <ActionQueue 
+              items={actionItems} 
+              loading={loadingDetectors} 
+              filter={actionQueueFilter}
+              onFilterChange={setActionQueueFilter}
+            />
             
             {/* Real Activity Feed */}
             <Card>
@@ -281,14 +387,14 @@ export default function CommandCenter() {
             </Card>
           </div>
           <div className="lg:col-span-1">
-            <FounderControls resortIds={resortIds} />
+            <FounderControls resortIds={resortIds} onViewChange={handleSavedViewChange} />
           </div>
         </div>
       )}
 
       {mode === 'control' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <RolloutsPanel />
+          <RolloutsPanel writeMode={writeMode} />
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" />Quick Actions</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -301,7 +407,10 @@ export default function CommandCenter() {
       )}
 
       {mode === 'investigate' && (
-        <ErrorExplorer />
+        <ErrorExplorer onResortClick={(resortId) => {
+          const resort = resorts.find(r => r.id === resortId);
+          if (resort) handleResortClick(resort);
+        }} />
       )}
 
       {/* Resort Grid */}
@@ -322,7 +431,12 @@ export default function CommandCenter() {
         )}
       </div>
 
-      <ResortDrawer resort={selectedResort} open={drawerOpen} onOpenChange={setDrawerOpen} />
+      <ResortDrawer 
+        resort={selectedResort} 
+        open={drawerOpen} 
+        onOpenChange={setDrawerOpen}
+        writeMode={writeMode}
+      />
     </div>
   );
 }
