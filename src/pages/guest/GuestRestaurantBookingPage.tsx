@@ -125,6 +125,16 @@ export default function GuestRestaurantBookingPage() {
   const bookMutation = useMutation({
     mutationFn: async () => {
       if (!guest || !slotId) throw new Error('Invalid state');
+      
+      // Fetch resort to check if it's a demo resort
+      const { data: resortData } = await supabase
+        .from('resorts')
+        .select('is_demo, code')
+        .eq('id', guest.resortId)
+        .single();
+      
+      const isDemoResort = resortData?.is_demo || resortData?.code === 'DEMO';
+      
       const { data, error } = await supabase.rpc('guest_create_restaurant_reservation', {
         p_guest_id: guest.guestId,
         p_slot_id: slotId,
@@ -133,7 +143,18 @@ export default function GuestRestaurantBookingPage() {
         p_special_requests: specialRequests.trim() || null,
       });
       if (error) throw error;
-      return data as { success: boolean; reservation_id?: string; status?: string; requires_approval?: boolean; error?: string };
+      
+      const result = data as { success: boolean; reservation_id?: string; status?: string; requires_approval?: boolean; error?: string };
+      
+      // If demo resort, update the reservation with origin='demo_user'
+      if (isDemoResort && result?.success && result?.reservation_id) {
+        await supabase
+          .from('restaurant_reservations')
+          .update({ origin: 'demo_user' })
+          .eq('id', result.reservation_id);
+      }
+      
+      return result;
     },
     onSuccess: async (data) => {
       if (data.success) {
