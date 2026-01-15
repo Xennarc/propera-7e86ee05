@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
-import { PublicBackdrop } from '@/components/public/PublicBackdrop';
 
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
@@ -129,8 +128,7 @@ const PRICING_PAGE_SCHEMA = {
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background relative">
-      <PublicBackdrop />
+    <div className="min-h-screen bg-background">
       <SEOHead
         title="Pricing - Resort Booking Platform Plans"
         description="Simple, transparent pricing for modern resorts. Choose from Essential, Professional, or Elite plans to streamline guest bookings, staff operations, and analytics."

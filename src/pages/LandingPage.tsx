@@ -4,7 +4,6 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
-import { PublicBackdrop } from '@/components/public/PublicBackdrop';
 import { useState, useEffect, lazy, Suspense } from 'react';
 
 // Eagerly load above-fold components
@@ -59,8 +58,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background relative">
-      <PublicBackdrop />
+    <div className="min-h-screen bg-background">
       <SEOHead
         title="Resort Operations, Beautifully Organized | Propera"
         description="Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless. Built for resorts worldwide."
