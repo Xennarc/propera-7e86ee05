@@ -640,7 +640,17 @@ serve(async (req) => {
       const normalizedEmail = email.trim().toLowerCase();
       console.log("Start demo singleton mode for:", normalizedEmail);
 
-      // 1. Upsert into demo_leads
+      // 1a. Fetch existing lead's last_seen_at BEFORE upsert (for accurate cooldown check)
+      const { data: existingLead } = await supabaseAdmin
+        .from("demo_leads")
+        .select("last_seen_at")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      const previousLastSeenAt = existingLead?.last_seen_at || null;
+      console.log("Previous last_seen_at for cooldown check:", previousLastSeenAt);
+
+      // 1b. Upsert into demo_leads (this updates last_seen_at to now)
       const { data: lead, error: leadError } = await supabaseAdmin
         .from("demo_leads")
         .upsert(
@@ -919,18 +929,13 @@ serve(async (req) => {
       const staffUrl = `${PRODUCTION_URL}/demo/login?token=${staffToken}`;
       const guestUrl = `${PRODUCTION_URL}/demo/login?token=${guestToken}`;
 
-      // 7. Send email (with cooldown check based on lead's last_seen_at)
+      // 7. Send email (with cooldown check based on lead's PREVIOUS last_seen_at)
       let emailSent = false;
       let emailError = "";
 
-      // Check cooldown using lead's previous last_seen_at (before we just updated it)
-      const { data: leadCheck } = await supabaseAdmin
-        .from("demo_leads")
-        .select("last_seen_at")
-        .eq("email", normalizedEmail)
-        .single();
-
-      const cooldownCheck = canResendEmail(leadCheck?.last_seen_at || null);
+      // Use the captured previousLastSeenAt from BEFORE the upsert (fixes race condition)
+      const cooldownCheck = canResendEmail(previousLastSeenAt);
+      console.log("Email cooldown check:", { previousLastSeenAt, allowed: cooldownCheck.allowed, waitSeconds: cooldownCheck.waitSeconds });
 
       if (cooldownCheck.allowed) {
         const resendResult = await sendDemoEmailSingleton({
