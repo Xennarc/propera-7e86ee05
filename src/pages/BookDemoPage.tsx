@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark, ProperaMarkAnimated } from '@/components/icons/ProperaLogo';
 import { Separator } from '@/components/ui/separator';
+import { PublicBackdrop } from '@/components/public/PublicBackdrop';
 import { 
   Accordion,
   AccordionContent,
@@ -158,20 +159,7 @@ export default function BookDemoPage() {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] animate-pulse-soft" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-lagoon-500/5 rounded-full blur-[100px] animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '2s' }} />
-        {/* Subtle grid overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.1) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-      </div>
+      <PublicBackdrop />
 
       <SEOHead
         title="Book a Propera Demo | Resort Bookings, Scheduling & Guest Portal"
