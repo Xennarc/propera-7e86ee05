@@ -11,6 +11,9 @@ import { Plus, Search, Edit, Trash2, Utensils, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { RestaurantDialog } from './RestaurantDialog';
 import { SetupBanner } from '@/components/staff/SetupBanner';
+import { useDemoReadOnly } from '@/hooks/useDemoReadOnly';
+import { DemoReadOnlyBanner } from '@/components/demo/DemoReadOnlyBanner';
+import { DemoActionWrapper } from '@/components/ui/demo-action-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function RestaurantsPage() {
+  const { isReadOnly } = useDemoReadOnly();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [slotsCount, setSlotsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -97,19 +101,23 @@ export default function RestaurantsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {isReadOnly && <DemoReadOnlyBanner />}
+      
       <div className="page-header">
         <div>
           <h1 className="page-header-title">Restaurants</h1>
           <p className="page-header-subtitle">Manage resort dining venues</p>
         </div>
-        <Button onClick={() => { setEditingRestaurant(null); setDialogOpen(true); }} className="tap-target">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Restaurant
-        </Button>
+        <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating restaurants is disabled in demo mode">
+          <Button onClick={() => { setEditingRestaurant(null); setDialogOpen(true); }} className="tap-target" disabled={isReadOnly}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Restaurant
+          </Button>
+        </DemoActionWrapper>
       </div>
 
       {/* Setup Banner: Restaurants exist but no time slots */}
-      {restaurants.length > 0 && slotsCount === 0 && (
+      {restaurants.length > 0 && slotsCount === 0 && !isReadOnly && (
         <SetupBanner
           id="restaurants-need-slots"
           title="Next step: Add time slots for your restaurants"
@@ -152,7 +160,7 @@ export default function RestaurantsPage() {
                   ? 'Try adjusting your search terms'
                   : "Create your first restaurant to manage dining reservations."}
               </p>
-              {!search && (
+              {!search && !isReadOnly && (
                 <Button onClick={() => { setEditingRestaurant(null); setDialogOpen(true); }} className="tap-target">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Restaurant
@@ -199,20 +207,26 @@ export default function RestaurantsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => { setEditingRestaurant(restaurant); setDialogOpen(true); }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteRestaurant(restaurant)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Editing is disabled in demo mode">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => { setEditingRestaurant(restaurant); setDialogOpen(true); }}
+                              disabled={isReadOnly}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DemoActionWrapper>
+                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Deleting is disabled in demo mode">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteRestaurant(restaurant)}
+                              disabled={isReadOnly}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </DemoActionWrapper>
                         </div>
                       </TableCell>
                     </TableRow>
