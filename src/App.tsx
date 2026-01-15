@@ -134,6 +134,7 @@ const PrearrivalCheckinWizard = lazy(() => import("./pages/prearrival/Prearrival
 const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPage"));
 const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
+const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
 
 // Lazy loaded pages - Public
 const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
@@ -246,6 +247,7 @@ const App = () => (
                 <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
                 
                 {/* Demo auto-login routes */}
+                <Route path="/demo/login" element={<DemoLoginPage />} />
                 <Route path="/staff/demo-login" element={<DemoAutoLoginPage />} />
                 <Route path="/guest/demo-login" element={<DemoGuestAutoLoginPage />} />
                 

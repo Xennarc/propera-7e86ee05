@@ -872,9 +872,40 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_seen_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_seen_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_seen_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       demo_login_tokens: {
         Row: {
           created_at: string
+          demo_lead_id: string | null
           expires_at: string
           guest_id: string | null
           id: string
@@ -887,6 +918,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          demo_lead_id?: string | null
           expires_at?: string
           guest_id?: string | null
           id?: string
@@ -899,6 +931,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          demo_lead_id?: string | null
           expires_at?: string
           guest_id?: string | null
           id?: string
@@ -910,6 +943,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "demo_login_tokens_demo_lead_id_fkey"
+            columns: ["demo_lead_id"]
+            isOneToOne: false
+            referencedRelation: "demo_leads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "demo_login_tokens_resort_id_fkey"
             columns: ["resort_id"]
