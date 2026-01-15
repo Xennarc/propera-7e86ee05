@@ -191,6 +191,7 @@ export type Database = {
           notes: string | null
           num_adults: number
           num_children: number
+          origin: string | null
           payout_status: Database["public"]["Enums"]["payout_status"]
           price_per_person: number
           provider_type: Database["public"]["Enums"]["provider_type"]
@@ -223,6 +224,7 @@ export type Database = {
           notes?: string | null
           num_adults?: number
           num_children?: number
+          origin?: string | null
           payout_status?: Database["public"]["Enums"]["payout_status"]
           price_per_person?: number
           provider_type?: Database["public"]["Enums"]["provider_type"]
@@ -255,6 +257,7 @@ export type Database = {
           notes?: string | null
           num_adults?: number
           num_children?: number
+          origin?: string | null
           payout_status?: Database["public"]["Enums"]["payout_status"]
           price_per_person?: number
           provider_type?: Database["public"]["Enums"]["provider_type"]
@@ -990,6 +993,45 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_reset_logs: {
+        Row: {
+          action: string
+          availability_updates_json: Json | null
+          deleted_counts_json: Json | null
+          duration_ms: number | null
+          error_message: string | null
+          freshness_updates_json: Json | null
+          id: string
+          ran_at: string
+          seeded_bookings_json: Json | null
+          status: string
+        }
+        Insert: {
+          action?: string
+          availability_updates_json?: Json | null
+          deleted_counts_json?: Json | null
+          duration_ms?: number | null
+          error_message?: string | null
+          freshness_updates_json?: Json | null
+          id?: string
+          ran_at?: string
+          seeded_bookings_json?: Json | null
+          status?: string
+        }
+        Update: {
+          action?: string
+          availability_updates_json?: Json | null
+          deleted_counts_json?: Json | null
+          duration_ms?: number | null
+          error_message?: string | null
+          freshness_updates_json?: Json | null
+          id?: string
+          ran_at?: string
+          seeded_bookings_json?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       demo_tenants: {
         Row: {
           created_at: string
@@ -1341,6 +1383,7 @@ export type Database = {
           created_at: string
           guest_id: string
           id: string
+          origin: string | null
           reservation_date: string | null
           reservation_time: string | null
           resort_id: string
@@ -1357,6 +1400,7 @@ export type Database = {
           created_at?: string
           guest_id: string
           id?: string
+          origin?: string | null
           reservation_date?: string | null
           reservation_time?: string | null
           resort_id: string
@@ -1373,6 +1417,7 @@ export type Database = {
           created_at?: string
           guest_id?: string
           id?: string
+          origin?: string | null
           reservation_date?: string | null
           reservation_time?: string | null
           resort_id?: string
@@ -3050,6 +3095,7 @@ export type Database = {
           id: string
           num_adults: number
           num_children: number
+          origin: string | null
           resort_id: string
           restaurant_slot_id: string
           room_number: string
@@ -3070,6 +3116,7 @@ export type Database = {
           id?: string
           num_adults?: number
           num_children?: number
+          origin?: string | null
           resort_id: string
           restaurant_slot_id: string
           room_number: string
@@ -3090,6 +3137,7 @@ export type Database = {
           id?: string
           num_adults?: number
           num_children?: number
+          origin?: string | null
           resort_id?: string
           restaurant_slot_id?: string
           room_number?: string
