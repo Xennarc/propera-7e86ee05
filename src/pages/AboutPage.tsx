@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { LogIn, Menu, X } from 'lucide-react';
+import { PublicBackdrop } from '@/components/public/PublicBackdrop';
 
 import { AboutHero } from '@/components/about/AboutHero';
 import { OriginSection } from '@/components/about/OriginSection';
@@ -37,7 +38,8 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      <PublicBackdrop />
       <SEOHead 
         title="About Us - Our Story & Mission" 
         description="Propera connects resort operations and guest experience into one platform. Learn our story and mission to transform resorts worldwide." 
