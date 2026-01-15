@@ -62,6 +62,25 @@ export function useRolloutHistory(limit = 20) {
   });
 }
 
+// Fetch pending/in-progress jobs
+export function useRolloutJobs() {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['rollout-jobs-active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('rollout_jobs')
+        .select('*')
+        .in('status', ['pending', 'dry_run', 'in_progress'])
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as RolloutJob[];
+    },
+  });
+  
+  return { jobs: data || [], isLoading, error, refetchJobs: refetch };
+}
+
 // Fetch specific job with steps
 export function useRolloutJob(jobId: string | undefined) {
   return useQuery({
