@@ -954,6 +954,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "demo_login_tokens_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "demo_login_tokens_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
