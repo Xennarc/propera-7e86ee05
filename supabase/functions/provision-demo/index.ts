@@ -265,6 +265,74 @@ async function sendDemoEmail(params: {
   }
 }
 
+// Simplified email for singleton demo mode
+async function sendDemoEmailSingleton(params: {
+  to: string;
+  staffUrl: string;
+  guestUrl: string;
+  resortName: string;
+}): Promise<{ sent: boolean; error: string }> {
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  if (!resendApiKey) {
+    console.log("RESEND_API_KEY not configured");
+    return { sent: false, error: "RESEND_API_KEY not configured" };
+  }
+
+  try {
+    console.log("Sending singleton demo email to:", params.to);
+    const emailRes = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Propera <noreply@propera.cc>",
+        to: [params.to],
+        subject: `🎉 Your ${params.resortName} demo access`,
+        html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
+            <p style="color: #64748b; margin: 0; font-size: 16px;">Click the buttons below to explore <strong>${params.resortName}</strong></p>
+            <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">⚡ Links expire in 15 minutes</p>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+            <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console</h2>
+            <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings. (Read-only demo)</p>
+            <a href="${params.staffUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
+          </div>
+
+          <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
+            <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal</h2>
+            <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Experience booking from the guest's perspective.</p>
+            <a href="${params.guestUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
+          </div>
+
+          <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">This is a shared demo environment. Data resets periodically.</p>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a></p>
+          </div>
+        </div>
+      `,
+      }),
+    });
+
+    const responseText = await emailRes.text();
+    console.log("Resend response:", emailRes.status, responseText);
+
+    if (emailRes.ok) {
+      return { sent: true, error: "" };
+    } else {
+      return { sent: false, error: responseText };
+    }
+  } catch (err: any) {
+    console.error("Singleton email send error:", err);
+    return { sent: false, error: err?.message || "Unknown email error" };
+  }
+}
+
 // Resend cooldown check (60 seconds)
 const RESEND_COOLDOWN_SECONDS = 60;
 
@@ -542,6 +610,15 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
   console.log("Demo data refresh complete");
 }
 
+// Shared Golden Demo Resort Constants
+const DEMO_RESORT_CODE = "DEMO";
+const DEMO_RESORT_NAME = "Propera Demo Resort";
+const DEMO_TOKEN_TTL_MIN = 15;
+const SHARED_WORKSPACE_EMAIL = "__shared_demo__";
+const DEMO_STAFF_EMAIL = "demo-staff@propera.cc";
+const DEMO_GUEST_ROOM = "101";
+const DEMO_GUEST_NAME = "Demo Guest";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -549,9 +626,10 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { email, resort_name, timezone, rooms_range, departments, mode = "provision" } = body;
+    const { email, resort_name, timezone, rooms_range, departments, mode = "provision", utm } = body;
 
-    if (!email) {
+    // For start-demo-singleton, email is required. For other modes, check as before.
+    if (!email && mode !== "consume-guest-token" && mode !== "consume-staff-token") {
       return new Response(JSON.stringify({ success: false, error: "Email is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -565,6 +643,309 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
+
+    // ============================================================
+    // MODE: start-demo-singleton - Shared Golden Demo Resort
+    // ============================================================
+    if (mode === "start-demo-singleton") {
+      const normalizedEmail = email.trim().toLowerCase();
+      console.log("Start demo singleton mode for:", normalizedEmail);
+
+      // 1. Upsert into demo_leads
+      const { data: lead, error: leadError } = await supabaseAdmin
+        .from("demo_leads")
+        .upsert(
+          {
+            email: normalizedEmail,
+            last_seen_at: new Date().toISOString(),
+            utm_source: utm?.source || null,
+            utm_medium: utm?.medium || null,
+            utm_campaign: utm?.campaign || null,
+          },
+          { onConflict: "email" }
+        )
+        .select()
+        .single();
+
+      if (leadError) {
+        console.error("Lead upsert error:", leadError);
+      }
+
+      // 2. Ensure shared demo resort exists (idempotent)
+      let { data: demoResort } = await supabaseAdmin
+        .from("resorts")
+        .select("*")
+        .eq("code", DEMO_RESORT_CODE)
+        .single();
+
+      if (!demoResort) {
+        console.log("Creating shared demo resort...");
+        const { data: newResort, error: resortError } = await supabaseAdmin
+          .from("resorts")
+          .insert({
+            name: DEMO_RESORT_NAME,
+            code: DEMO_RESORT_CODE,
+            timezone: "Indian/Maldives",
+            currency: "USD",
+            status: "ACTIVE",
+            is_demo: true,
+            subscription_tier: "ELITE",
+            onboarding_status: "COMPLETE",
+          })
+          .select()
+          .single();
+
+        if (resortError) {
+          console.error("Failed to create demo resort:", resortError);
+          throw new Error("Failed to create shared demo resort");
+        }
+        demoResort = newResort;
+        console.log("Created demo resort:", demoResort.id);
+
+        // Seed the shared demo with data
+        const departments = ["dive", "watersports", "spa", "excursions", "dining"];
+        await seedDemoData(supabaseAdmin, demoResort.id, departments, DEMO_RESORT_CODE);
+        console.log("Seeded demo data for shared resort");
+      }
+
+      // 3. Ensure shared workspace exists
+      let { data: sharedWorkspace } = await supabaseAdmin
+        .from("demo_workspaces")
+        .select("*")
+        .eq("email", SHARED_WORKSPACE_EMAIL)
+        .single();
+
+      if (!sharedWorkspace) {
+        console.log("Creating shared workspace...");
+        const { data: newWorkspace, error: wsError } = await supabaseAdmin
+          .from("demo_workspaces")
+          .insert({
+            email: SHARED_WORKSPACE_EMAIL,
+            resort_name: DEMO_RESORT_NAME,
+            resort_id: demoResort.id,
+            resort_code: DEMO_RESORT_CODE,
+            timezone: demoResort.timezone,
+            status: "ready",
+            expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
+          })
+          .select()
+          .single();
+
+        if (wsError) {
+          console.error("Failed to create shared workspace:", wsError);
+          throw new Error("Failed to create shared workspace");
+        }
+        sharedWorkspace = newWorkspace;
+      }
+
+      // 4. Ensure fixed demo staff user exists
+      let demoStaffUserId: string | null = null;
+
+      const { data: existingMembership } = await supabaseAdmin
+        .from("resort_memberships")
+        .select("user_id")
+        .eq("resort_id", demoResort.id)
+        .eq("resort_role", "RESORT_ADMIN")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (existingMembership) {
+        demoStaffUserId = existingMembership.user_id;
+      } else {
+        // Create demo staff user
+        console.log("Creating demo staff user...");
+        const demoPassword = generatePassword();
+        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+          email: DEMO_STAFF_EMAIL,
+          password: demoPassword,
+          email_confirm: true,
+          user_metadata: { full_name: "Demo Admin", is_demo_user: true },
+        });
+
+        if (authError && !authError.message.includes("already been registered")) {
+          console.error("Failed to create demo staff:", authError);
+          throw new Error("Failed to create demo staff user");
+        }
+
+        if (authUser?.user) {
+          demoStaffUserId = authUser.user.id;
+
+          await supabaseAdmin.from("profiles").upsert({
+            id: demoStaffUserId,
+            username: "demo.admin",
+            full_name: "Demo Admin",
+            global_role: "STANDARD",
+          });
+
+          await supabaseAdmin.from("resort_memberships").insert({
+            user_id: demoStaffUserId,
+            resort_id: demoResort.id,
+            resort_role: "RESORT_ADMIN",
+          });
+        } else {
+          // User exists, find them
+          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = existingUsers?.users?.find((u: any) => u.email === DEMO_STAFF_EMAIL);
+          if (existingUser) {
+            demoStaffUserId = existingUser.id;
+            // Ensure membership exists
+            await supabaseAdmin.from("resort_memberships").upsert({
+              user_id: demoStaffUserId,
+              resort_id: demoResort.id,
+              resort_role: "RESORT_ADMIN",
+            }, { onConflict: "user_id,resort_id" });
+          }
+        }
+      }
+
+      // Update shared workspace with staff info
+      if (demoStaffUserId && !sharedWorkspace.staff_user_id) {
+        await supabaseAdmin.from("demo_workspaces").update({
+          staff_user_id: demoStaffUserId,
+          staff_email: DEMO_STAFF_EMAIL,
+        }).eq("id", sharedWorkspace.id);
+        sharedWorkspace.staff_user_id = demoStaffUserId;
+        sharedWorkspace.staff_email = DEMO_STAFF_EMAIL;
+      }
+
+      // 5. Ensure fixed demo guest exists
+      let { data: demoGuest } = await supabaseAdmin
+        .from("guests")
+        .select("*")
+        .eq("resort_id", demoResort.id)
+        .eq("room_number", DEMO_GUEST_ROOM)
+        .eq("portal_enabled", true)
+        .single();
+
+      const today = new Date();
+      if (!demoGuest) {
+        console.log("Creating demo guest...");
+        const guestPin = generatePin();
+        const pinHash = await hashPin(guestPin);
+
+        const { data: newGuest, error: guestError } = await supabaseAdmin
+          .from("guests")
+          .insert({
+            resort_id: demoResort.id,
+            full_name: DEMO_GUEST_NAME,
+            room_number: DEMO_GUEST_ROOM,
+            nationality: "International",
+            email: "demo.guest@example.com",
+            check_in_date: formatDate(addDays(today, -1)),
+            check_out_date: formatDate(addDays(today, 7)),
+            portal_enabled: true,
+            portal_pin_hash: pinHash,
+            portal_pin_last4: guestPin,
+            portal_pin_set_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (guestError) {
+          console.error("Failed to create demo guest:", guestError);
+        } else {
+          demoGuest = newGuest;
+        }
+      } else {
+        // Ensure guest dates are current
+        await supabaseAdmin.from("guests").update({
+          check_in_date: formatDate(addDays(today, -1)),
+          check_out_date: formatDate(addDays(today, 7)),
+        }).eq("id", demoGuest.id);
+      }
+
+      // Update shared workspace with guest info
+      if (demoGuest && !sharedWorkspace.guest_id) {
+        const nameParts = demoGuest.full_name.split(" ");
+        await supabaseAdmin.from("demo_workspaces").update({
+          guest_id: demoGuest.id,
+          guest_room: demoGuest.room_number,
+          guest_last_name: nameParts[nameParts.length - 1],
+        }).eq("id", sharedWorkspace.id);
+        sharedWorkspace.guest_id = demoGuest.id;
+        sharedWorkspace.guest_room = demoGuest.room_number;
+        sharedWorkspace.guest_last_name = nameParts[nameParts.length - 1];
+      }
+
+      // 6. Generate short-lived tokens (15 min TTL, reusable within window)
+      const staffToken = generateToken();
+      const guestToken = generateToken();
+      const tokenExpiresAt = new Date(Date.now() + DEMO_TOKEN_TTL_MIN * 60 * 1000).toISOString();
+
+      // Clean up old expired tokens for this workspace
+      await supabaseAdmin
+        .from("demo_login_tokens")
+        .delete()
+        .eq("workspace_id", sharedWorkspace.id)
+        .lt("expires_at", new Date().toISOString());
+
+      // Insert new tokens with lead reference
+      await supabaseAdmin.from("demo_login_tokens").insert([
+        {
+          workspace_id: sharedWorkspace.id,
+          token: staffToken,
+          token_type: "staff",
+          user_id: demoStaffUserId,
+          resort_id: demoResort.id,
+          expires_at: tokenExpiresAt,
+          demo_lead_id: lead?.id || null,
+        },
+        {
+          workspace_id: sharedWorkspace.id,
+          token: guestToken,
+          token_type: "guest",
+          guest_id: demoGuest?.id,
+          resort_id: demoResort.id,
+          expires_at: tokenExpiresAt,
+          demo_lead_id: lead?.id || null,
+        },
+      ]);
+
+      const staffUrl = `${PRODUCTION_URL}/staff/demo-login?token=${staffToken}`;
+      const guestUrl = `${PRODUCTION_URL}/guest/demo-login?token=${guestToken}`;
+
+      // 7. Send email (with cooldown check based on lead's last_seen_at)
+      let emailSent = false;
+      let emailError = "";
+
+      // Check cooldown using lead's previous last_seen_at (before we just updated it)
+      const { data: leadCheck } = await supabaseAdmin
+        .from("demo_leads")
+        .select("last_seen_at")
+        .eq("email", normalizedEmail)
+        .single();
+
+      const cooldownCheck = canResendEmail(leadCheck?.last_seen_at || null);
+
+      if (cooldownCheck.allowed) {
+        const resendResult = await sendDemoEmailSingleton({
+          to: normalizedEmail,
+          staffUrl,
+          guestUrl,
+          resortName: DEMO_RESORT_NAME,
+        });
+        emailSent = resendResult.sent;
+        emailError = resendResult.error;
+      } else {
+        emailError = `Please wait ${cooldownCheck.waitSeconds}s before requesting another email`;
+      }
+
+      // 8. Return immediate response with URLs
+      return new Response(JSON.stringify({
+        success: true,
+        staffUrl,
+        guestUrl,
+        leadId: lead?.id || null,
+        resortCode: DEMO_RESORT_CODE,
+        resortName: DEMO_RESORT_NAME,
+        resortId: demoResort.id,
+        emailSent,
+        emailError: emailSent ? null : emailError,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // MODE: regenerate-credentials - rotate password/PIN and generate new tokens
     if (mode === "regenerate-credentials") {
