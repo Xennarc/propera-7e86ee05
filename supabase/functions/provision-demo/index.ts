@@ -16,7 +16,7 @@ const DEMO_ACTIVITIES = [
   { name: "Sunrise Yoga", category: "SPA", description: "Start your day with beachfront yoga", short_description: "Morning yoga session", duration_minutes: 60, default_max_capacity: 15, default_price_per_person: 25, guest_can_book: true, guest_cutoff_hours: 2, requires_approval: false, difficulty_level: "EASY" },
   { name: "Night Fishing", category: "EXCURSION", description: "Traditional Maldivian fishing experience", short_description: "Evening fishing trip", duration_minutes: 180, default_max_capacity: 8, default_price_per_person: 95, guest_can_book: true, guest_cutoff_hours: 6, requires_approval: false, difficulty_level: "EASY" },
   { name: "Deep Tissue Massage", category: "SPA", description: "Relaxing full body massage", short_description: "60-min massage", duration_minutes: 60, default_max_capacity: 2, default_price_per_person: 120, guest_can_book: true, guest_cutoff_hours: 4, requires_approval: false, difficulty_level: "EASY" },
-  { name: "Advanced Reef Dive", category: "DIVE", description: "For certified divers", short_description: "2-tank dive trip", duration_minutes: 240, default_max_capacity: 6, default_price_per_person: 200, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "INTERMEDIATE" },
+  { name: "Advanced Reef Dive", category: "DIVE", description: "For certified divers", short_description: "2-tank dive trip", duration_minutes: 240, default_max_capacity: 6, default_price_per_person: 200, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "ADVANCED" },
 ];
 
 const DEMO_RESTAURANTS = [
@@ -176,11 +176,11 @@ async function sendDemoEmail(params: {
   }
 
   const staffLoginUrl = params.staffToken 
-    ? `${PRODUCTION_URL}/staff/demo-login?token=${params.staffToken}`
+    ? `${PRODUCTION_URL}/demo/login?token=${params.staffToken}`
     : `${PRODUCTION_URL}/staff/auth?username=${encodeURIComponent(params.staffIdentifier)}`;
   
   const guestLoginUrl = params.guestToken
-    ? `${PRODUCTION_URL}/guest/demo-login?token=${params.guestToken}`
+    ? `${PRODUCTION_URL}/demo/login?token=${params.guestToken}`
     : `${PRODUCTION_URL}/resort/${params.resortCode}/guest/login?roomNumber=${encodeURIComponent(params.guestInfo.roomNumber)}&lastName=${encodeURIComponent(params.guestInfo.lastName)}`;
 
   const subject = params.isReminder 
@@ -713,6 +713,19 @@ serve(async (req) => {
         const departments = ["dive", "watersports", "spa", "excursions", "dining"];
         await seedDemoData(supabaseAdmin, demoResort.id, departments, DEMO_RESORT_CODE);
         console.log("Seeded demo data for shared resort");
+      } else {
+        // Check if activities exist - if not, seeding may have failed before
+        const { count: activityCount } = await supabaseAdmin
+          .from("activities")
+          .select("id", { count: "exact", head: true })
+          .eq("resort_id", demoResort.id);
+        
+        if (!activityCount || activityCount === 0) {
+          console.log("Demo resort exists but activities missing, reseeding...");
+          const departments = ["dive", "watersports", "spa", "excursions", "dining"];
+          await seedDemoData(supabaseAdmin, demoResort.id, departments, DEMO_RESORT_CODE);
+          console.log("Reseeded demo data for shared resort");
+        }
       }
 
       // 3. Ensure shared workspace exists
@@ -843,7 +856,7 @@ serve(async (req) => {
             check_out_date: formatDate(addDays(today, 7)),
             portal_enabled: true,
             portal_pin_hash: pinHash,
-            portal_pin_last4: guestPin,
+            portal_pin_last4: guestPin.slice(-4),
             portal_pin_set_at: new Date().toISOString(),
           })
           .select()
@@ -855,11 +868,23 @@ serve(async (req) => {
           demoGuest = newGuest;
         }
       } else {
-        // Ensure guest dates are current
-        await supabaseAdmin.from("guests").update({
+        // Ensure guest dates are current and PIN is set
+        const updates: any = {
           check_in_date: formatDate(addDays(today, -1)),
           check_out_date: formatDate(addDays(today, 7)),
-        }).eq("id", demoGuest.id);
+        };
+        
+        // If PIN is missing, generate one
+        if (!demoGuest.portal_pin_hash) {
+          console.log("Demo guest missing PIN, generating...");
+          const guestPin = generatePin();
+          const pinHash = await hashPin(guestPin);
+          updates.portal_pin_hash = pinHash;
+          updates.portal_pin_last4 = guestPin.slice(-4);
+          updates.portal_pin_set_at = new Date().toISOString();
+        }
+        
+        await supabaseAdmin.from("guests").update(updates).eq("id", demoGuest.id);
       }
 
       // Update shared workspace with guest info
@@ -909,8 +934,8 @@ serve(async (req) => {
         },
       ]);
 
-      const staffUrl = `${PRODUCTION_URL}/staff/demo-login?token=${staffToken}`;
-      const guestUrl = `${PRODUCTION_URL}/guest/demo-login?token=${guestToken}`;
+      const staffUrl = `${PRODUCTION_URL}/demo/login?token=${staffToken}`;
+      const guestUrl = `${PRODUCTION_URL}/demo/login?token=${guestToken}`;
 
       // 7. Send email (with cooldown check based on lead's last_seen_at)
       let emailSent = false;
@@ -986,8 +1011,8 @@ serve(async (req) => {
         rotated.guestInfo.guestId
       );
 
-      const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
-      const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+        const staffLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.staffToken}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.guestToken}`;
 
       // Send email
       const emailResult = await sendDemoEmail({
@@ -1099,8 +1124,8 @@ serve(async (req) => {
         workspace_id: workspace.id,
         staff_token: tokens.staffToken,
         guest_token: tokens.guestToken,
-        staff_login_url: `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`,
-        guest_login_url: `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`,
+        staff_login_url: `${PRODUCTION_URL}/demo/login?token=${tokens.staffToken}`,
+        guest_login_url: `${PRODUCTION_URL}/demo/login?token=${tokens.guestToken}`,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -1226,7 +1251,7 @@ serve(async (req) => {
       // Find and validate the token
       const { data: tokenRecord, error: tokenError } = await supabaseAdmin
         .from("demo_login_tokens")
-        .select("*, guests(*), resorts!demo_login_tokens_resort_id_fkey(*)")
+        .select("*")
         .eq("token", token)
         .eq("token_type", "guest")
         .single();
@@ -1267,8 +1292,18 @@ serve(async (req) => {
         console.log(`Token first use (prefix ${tokenPrefix})`);
       }
 
-      const guest = tokenRecord.guests;
-      const resort = tokenRecord.resorts;
+      // Fetch guest and resort separately (FK now exists but separate queries are more robust)
+      const { data: guest } = await supabaseAdmin
+        .from("guests")
+        .select("*")
+        .eq("id", tokenRecord.guest_id)
+        .single();
+
+      const { data: resort } = await supabaseAdmin
+        .from("resorts")
+        .select("*")
+        .eq("id", tokenRecord.resort_id)
+        .single();
 
       return new Response(JSON.stringify({
         success: true,
@@ -1368,9 +1403,14 @@ serve(async (req) => {
         console.log(`Token first use (prefix ${tokenPrefix})`);
       }
 
+      // For shared demo workspace, use the constant staff email
+      const staffEmail = workspace.email === SHARED_WORKSPACE_EMAIL 
+        ? DEMO_STAFF_EMAIL 
+        : (workspace.staff_email || DEMO_STAFF_EMAIL);
+
       return new Response(JSON.stringify({
         success: true,
-        email: workspace.staff_email,
+        email: staffEmail,
         password: tempPassword,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -1441,8 +1481,8 @@ serve(async (req) => {
           rotated.guestInfo.guestId
         );
 
-        const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
-        const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+        const staffLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.staffToken}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.guestToken}`;
 
         const emailResult = await sendDemoEmail({
           to: email,
@@ -1580,7 +1620,7 @@ serve(async (req) => {
         const pinHash = await hashPin(newPin);
         await supabaseAdmin.from("guests").update({
           portal_pin_hash: pinHash,
-          portal_pin_last4: newPin,
+          portal_pin_last4: newPin.slice(-4),
           portal_pin_set_at: new Date().toISOString(),
         }).eq("id", demoGuest.id);
         
@@ -1611,8 +1651,8 @@ serve(async (req) => {
           guestInfo.guestId
         );
 
-        const staffLoginUrl = `${PRODUCTION_URL}/staff/demo-login?token=${tokens.staffToken}`;
-        const guestLoginUrl = `${PRODUCTION_URL}/guest/demo-login?token=${tokens.guestToken}`;
+        const staffLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.staffToken}`;
+        const guestLoginUrl = `${PRODUCTION_URL}/demo/login?token=${tokens.guestToken}`;
 
         const emailResult = await sendDemoEmail({
           to: email,
