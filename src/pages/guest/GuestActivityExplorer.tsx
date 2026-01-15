@@ -305,11 +305,22 @@ export default function GuestActivityExplorer() {
                 >
                   <Card className="h-full hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer group">
                     <CardContent className="p-3 flex items-center gap-3">
-                      <div className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                        categoryConfig.bgClass
-                      )}>
-                        <CategoryIcon category={activity.category} size={20} />
+                      {/* Activity Image or Category Icon fallback */}
+                      <div className="relative h-10 w-10 shrink-0 rounded-lg overflow-hidden">
+                        {activity.image_url ? (
+                          <img 
+                            src={activity.image_url} 
+                            alt={activity.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className={cn(
+                            "flex h-full w-full items-center justify-center",
+                            categoryConfig.bgClass
+                          )}>
+                            <CategoryIcon category={activity.category} size={20} />
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-foreground text-sm truncate group-hover:text-primary transition-colors">
