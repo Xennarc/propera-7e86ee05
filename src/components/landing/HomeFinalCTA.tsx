@@ -52,7 +52,6 @@ export function HomeFinalCTA() {
             </div>
           </div>
         </div>
-      </div>
     </section>
   );
 }
