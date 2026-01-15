@@ -1601,6 +1601,54 @@ export type Database = {
           },
         ]
       }
+      incidents: {
+        Row: {
+          affected_resort_ids: string[] | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          metadata_json: Json | null
+          related_error_ids: string[] | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_resort_ids?: string[] | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          metadata_json?: Json | null
+          related_error_ids?: string[] | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_resort_ids?: string[] | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          metadata_json?: Json | null
+          related_error_ids?: string[] | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_events: {
         Row: {
           created_at: string
@@ -2840,6 +2888,59 @@ export type Database = {
           },
         ]
       }
+      resort_settings: {
+        Row: {
+          activities_enabled: boolean
+          branding_version: number
+          created_at: string
+          dining_enabled: boolean
+          guest_booking_enabled: boolean
+          id: string
+          loyalty_enabled: boolean
+          prearrival_enabled: boolean
+          resort_id: string
+          seo_version: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activities_enabled?: boolean
+          branding_version?: number
+          created_at?: string
+          dining_enabled?: boolean
+          guest_booking_enabled?: boolean
+          id?: string
+          loyalty_enabled?: boolean
+          prearrival_enabled?: boolean
+          resort_id: string
+          seo_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activities_enabled?: boolean
+          branding_version?: number
+          created_at?: string
+          dining_enabled?: boolean
+          guest_booking_enabled?: boolean
+          id?: string
+          loyalty_enabled?: boolean
+          prearrival_enabled?: boolean
+          resort_id?: string
+          seo_version?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_settings_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resorts: {
         Row: {
           brand_theme: string | null
@@ -3423,6 +3524,111 @@ export type Database = {
           rollback_by?: string | null
           scope?: string
           status?: string
+        }
+        Relationships: []
+      }
+      rollout_job_steps: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          job_id: string
+          new_value_json: Json
+          old_value_json: Json
+          resort_id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id: string
+          new_value_json?: Json
+          old_value_json?: Json
+          resort_id: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          job_id?: string
+          new_value_json?: Json
+          old_value_json?: Json
+          resort_id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rollout_job_steps_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "rollout_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rollout_job_steps_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rollout_jobs: {
+        Row: {
+          change_label: string
+          change_type: string
+          created_at: string
+          created_by: string
+          dry_run_result_json: Json | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          notes: string | null
+          payload_json: Json | null
+          scope: string
+          started_at: string | null
+          status: string
+          target_resort_ids: string[]
+        }
+        Insert: {
+          change_label: string
+          change_type: string
+          created_at?: string
+          created_by: string
+          dry_run_result_json?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          payload_json?: Json | null
+          scope: string
+          started_at?: string | null
+          status?: string
+          target_resort_ids?: string[]
+        }
+        Update: {
+          change_label?: string
+          change_type?: string
+          created_at?: string
+          created_by?: string
+          dry_run_result_json?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          payload_json?: Json | null
+          scope?: string
+          started_at?: string | null
+          status?: string
+          target_resort_ids?: string[]
         }
         Relationships: []
       }
