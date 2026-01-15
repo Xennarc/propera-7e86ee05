@@ -12,6 +12,9 @@ import { useToast } from '@/hooks/use-toast';
 import { ActivityDialog } from './ActivityDialog';
 import { SetupBanner } from '@/components/staff/SetupBanner';
 import { CategoryBadge, CategoryIcon } from '@/components/ui/category-badge';
+import { useDemoReadOnly } from '@/hooks/useDemoReadOnly';
+import { DemoReadOnlyBanner } from '@/components/demo/DemoReadOnlyBanner';
+import { DemoActionWrapper } from '@/components/ui/demo-action-wrapper';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export default function ActivitiesPage() {
+  const { isReadOnly } = useDemoReadOnly();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [sessionsCount, setSessionsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -99,19 +103,23 @@ export default function ActivitiesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {isReadOnly && <DemoReadOnlyBanner />}
+      
       <div className="page-header">
         <div>
           <h1 className="page-header-title">Activities</h1>
           <p className="page-header-subtitle">Manage resort activities and excursions</p>
         </div>
-        <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Activity
-        </Button>
+        <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating activities is disabled in demo mode">
+          <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target" disabled={isReadOnly}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Activity
+          </Button>
+        </DemoActionWrapper>
       </div>
 
       {/* Setup Banner: Activities exist but no sessions */}
-      {activities.length > 0 && sessionsCount === 0 && (
+      {activities.length > 0 && sessionsCount === 0 && !isReadOnly && (
         <SetupBanner
           id="activities-need-sessions"
           title="Next step: Add sessions for your activities"
@@ -154,7 +162,7 @@ export default function ActivitiesPage() {
                   ? 'Try adjusting your search terms'
                   : "Create your first activity to get started with bookings."}
               </p>
-              {!search && (
+              {!search && !isReadOnly && (
                 <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Activity
@@ -206,20 +214,26 @@ export default function ActivitiesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => { setEditingActivity(activity); setDialogOpen(true); }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteActivity(activity)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Editing is disabled in demo mode">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => { setEditingActivity(activity); setDialogOpen(true); }}
+                              disabled={isReadOnly}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DemoActionWrapper>
+                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Deleting is disabled in demo mode">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteActivity(activity)}
+                              disabled={isReadOnly}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </DemoActionWrapper>
                         </div>
                       </TableCell>
                     </TableRow>

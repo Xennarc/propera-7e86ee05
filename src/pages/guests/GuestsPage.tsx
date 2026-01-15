@@ -40,10 +40,14 @@ import { GuestPrearrivalQuickFlags } from '@/components/guests/GuestPrearrivalQu
 import { useGuestsQuery } from '@/hooks/useGuestsQuery';
 import { useGuestMutations } from '@/hooks/useGuestMutations';
 import { supabase } from '@/integrations/supabase/client';
+import { useDemoReadOnly } from '@/hooks/useDemoReadOnly';
+import { DemoReadOnlyBanner } from '@/components/demo/DemoReadOnlyBanner';
+import { DemoActionWrapper } from '@/components/ui/demo-action-wrapper';
 
 type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending' | 'prearrival-completed' | 'has-allergies' | 'arriving-72h';
 
 function GuestsPageContent() {
+  const { isReadOnly } = useDemoReadOnly();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<GuestFilter>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -324,14 +328,18 @@ function GuestsPageContent() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {isReadOnly && <DemoReadOnlyBanner />}
+      
       <PageHeader
         title="Guests"
         description="Manage resort guests and their stays"
         action={
-          <Button onClick={() => { setEditingGuest(null); setDialogOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Guest
-          </Button>
+          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating guests is disabled in demo mode">
+            <Button onClick={() => { setEditingGuest(null); setDialogOpen(true); }} disabled={isReadOnly}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Guest
+            </Button>
+          </DemoActionWrapper>
         }
       />
 
@@ -426,7 +434,7 @@ function GuestsPageContent() {
               title={search || filter !== 'all' ? 'No guests found' : 'No guests yet'}
               description={search || filter !== 'all' ? 'Try adjusting your filters' : 'Add your first guest to get started'}
               action={
-                !search && filter === 'all' && (
+                !search && filter === 'all' && !isReadOnly && (
                   <Button onClick={() => { setEditingGuest(null); setDialogOpen(true); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Guest
