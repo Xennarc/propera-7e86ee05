@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,9 +29,11 @@ const DEFAULT_SAVED_VIEWS: SavedView[] = [
 
 interface FounderControlsProps {
   resortIds?: string[];
+  onViewChange?: (viewId: string) => void;
 }
 
-export function FounderControls({ resortIds }: FounderControlsProps) {
+export function FounderControls({ resortIds, onViewChange }: FounderControlsProps) {
+  const navigate = useNavigate();
   const [favorites, setFavorites] = useState<Favorite[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('superadmin-favorites') || '[]');
@@ -48,6 +51,27 @@ export function FounderControls({ resortIds }: FounderControlsProps) {
       localStorage.setItem('superadmin-favorites', JSON.stringify(updated));
       return updated;
     });
+  };
+
+  const handleViewClick = (viewId: string) => {
+    // First, try to call the onViewChange callback for in-page state changes
+    if (onViewChange) {
+      onViewChange(viewId);
+    }
+    
+    // Then handle navigation based on view type
+    switch (viewId) {
+      case 'top-resorts':
+        navigate('/superadmin/resorts?sort=health');
+        break;
+      case 'p0-incidents':
+        // This is handled by onViewChange to filter ActionQueue
+        // Stay on current page, just filter
+        break;
+      case 'arrivals-72h':
+        navigate('/superadmin/guests?filter=arrivals-72h');
+        break;
+    }
   };
 
   return (
@@ -134,6 +158,7 @@ export function FounderControls({ resortIds }: FounderControlsProps) {
                 key={view.id} 
                 variant="ghost" 
                 className="w-full justify-start h-auto py-2"
+                onClick={() => handleViewClick(view.id)}
               >
                 <view.icon className="h-4 w-4 mr-2 text-muted-foreground" />
                 <div className="text-left">

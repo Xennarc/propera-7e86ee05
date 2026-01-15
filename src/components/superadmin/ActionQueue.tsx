@@ -12,19 +12,26 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronRight,
   Zap,
-  RefreshCw,
   Eye,
   Settings,
   Calendar,
   Utensils,
   Mail,
-  X,
+  AlertCircle,
+  Database,
+  Users,
 } from 'lucide-react';
 
 export interface ActionQueueItem {
@@ -34,7 +41,7 @@ export interface ActionQueueItem {
   description: string;
   resort?: string;
   resortId?: string;
-  category: 'config' | 'data' | 'invite' | 'error';
+  category: 'config' | 'data' | 'invite' | 'error' | 'security' | 'outbox';
   triggeredAt: Date;
   fixAction?: {
     label: string;
@@ -47,10 +54,12 @@ export interface ActionQueueItem {
 interface ActionQueueProps {
   items: ActionQueueItem[];
   loading?: boolean;
+  filter?: 'all' | 'P0';
+  onFilterChange?: (filter: 'all' | 'P0') => void;
   onItemFix?: (item: ActionQueueItem) => void;
 }
 
-// Severity Badge Component
+// Severity Badge Component with incident-like styling
 function SeverityBadge({ level }: { level: 'P0' | 'P1' | 'P2' | 'P3' }) {
   const styles = {
     P0: 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse',
@@ -66,7 +75,21 @@ function SeverityBadge({ level }: { level: 'P0' | 'P1' | 'P2' | 'P3' }) {
   );
 }
 
-export function ActionQueue({ items, loading, onItemFix }: ActionQueueProps) {
+// Get incident-like row styling based on severity
+function getRowStyle(severity: 'P0' | 'P1' | 'P2' | 'P3') {
+  switch (severity) {
+    case 'P0':
+      return 'border-l-4 border-l-destructive bg-destructive/5';
+    case 'P1':
+      return 'border-l-4 border-l-warning bg-warning/5';
+    case 'P2':
+      return 'border-l-4 border-l-info bg-info/5';
+    default:
+      return 'border-l-4 border-l-muted-foreground/30';
+  }
+}
+
+export function ActionQueue({ items, loading, filter = 'all', onFilterChange, onItemFix }: ActionQueueProps) {
   const navigate = useNavigate();
   const [selectedItem, setSelectedItem] = useState<ActionQueueItem | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -94,12 +117,15 @@ export function ActionQueue({ items, loading, onItemFix }: ActionQueueProps) {
   const getCategoryIcon = (category: ActionQueueItem['category']) => {
     switch (category) {
       case 'config': return Settings;
-      case 'data': return Calendar;
+      case 'data': return Database;
       case 'invite': return Mail;
-      case 'error': return AlertTriangle;
+      case 'error': return AlertCircle;
       default: return AlertTriangle;
     }
   };
+
+  // Count P0 items for badge
+  const p0Count = items.filter(i => i.severity === 'P0').length;
 
   return (
     <>
@@ -109,10 +135,28 @@ export function ActionQueue({ items, loading, onItemFix }: ActionQueueProps) {
             <div className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-warning" />
               <CardTitle>Action Queue</CardTitle>
+              {p0Count > 0 && (
+                <Badge variant="destructive" className="animate-pulse">
+                  {p0Count} Critical
+                </Badge>
+              )}
             </div>
-            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-              {items.length} pending
-            </Badge>
+            <div className="flex items-center gap-2">
+              {onFilterChange && (
+                <Select value={filter} onValueChange={(v) => onFilterChange(v as 'all' | 'P0')}>
+                  <SelectTrigger className="w-28 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All ({items.length})</SelectItem>
+                    <SelectItem value="P0">P0 Only ({p0Count})</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                {items.length} pending
+              </Badge>
+            </div>
           </div>
           <CardDescription>Issues that need your attention with quick fix actions</CardDescription>
         </CardHeader>
@@ -129,7 +173,7 @@ export function ActionQueue({ items, loading, onItemFix }: ActionQueueProps) {
                   return (
                     <div
                       key={item.id}
-                      className="group p-4 rounded-xl bg-muted/30 border border-border/50 hover:bg-muted/50 hover:border-border transition-all"
+                      className={`group p-4 rounded-xl border border-border/50 hover:border-border transition-all ${getRowStyle(item.severity)}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5">

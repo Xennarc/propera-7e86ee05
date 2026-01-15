@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -13,8 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useResort } from '@/contexts/ResortContext';
 import { usePlatformErrors, useResolveError, TimeRange } from '@/hooks/usePlatformErrors';
+import { useCreateIncident } from '@/hooks/useIncidents';
 import { format } from 'date-fns';
 import {
   Search,
@@ -29,15 +40,26 @@ import {
   Activity,
   RefreshCw,
   CheckCircle2,
+  FileWarning,
+  Plus,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function ErrorExplorer() {
+interface ErrorExplorerProps {
+  onResortClick?: (resortId: string) => void;
+}
+
+export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
   const navigate = useNavigate();
   const { resorts } = useResort();
   const [resortFilter, setResortFilter] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   const [searchQuery, setSearchQuery] = useState('');
+  const [affectedResortsDialogOpen, setAffectedResortsDialogOpen] = useState(false);
+  const [createIncidentDialogOpen, setCreateIncidentDialogOpen] = useState(false);
+  const [incidentTitle, setIncidentTitle] = useState('');
+  const [incidentDescription, setIncidentDescription] = useState('');
+  const [incidentSeverity, setIncidentSeverity] = useState<'P0' | 'P1' | 'P2' | 'P3'>('P1');
 
   const { data, isLoading, refetch } = usePlatformErrors(
     resortFilter === 'all' ? undefined : resortFilter,
@@ -46,6 +68,7 @@ export function ErrorExplorer() {
   );
 
   const resolveError = useResolveError();
+  const createIncident = useCreateIncident();
 
   const filteredErrors = data?.errors.filter(e => 
     searchQuery === '' || 
@@ -53,12 +76,60 @@ export function ErrorExplorer() {
     e.error_message.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
+  // Calculate affected resorts from filtered errors
+  const affectedResorts = useMemo(() => {
+    if (!filteredErrors.length) return [];
+    
+    const resortCounts = new Map<string, { id: string; name: string; count: number }>();
+    
+    for (const error of filteredErrors) {
+      if (error.resort_id && error.resort_name) {
+        const existing = resortCounts.get(error.resort_id);
+        if (existing) {
+          existing.count++;
+        } else {
+          resortCounts.set(error.resort_id, {
+            id: error.resort_id,
+            name: error.resort_name,
+            count: 1
+          });
+        }
+      }
+    }
+    
+    return Array.from(resortCounts.values()).sort((a, b) => b.count - a.count);
+  }, [filteredErrors]);
+
   const handleResolve = async (errorId: string) => {
     try {
       await resolveError.mutateAsync(errorId);
       toast.success('Error marked as resolved');
     } catch {
       toast.error('Failed to resolve error');
+    }
+  };
+
+  const handleCreateIncident = async () => {
+    if (!incidentTitle.trim()) {
+      toast.error('Please enter an incident title');
+      return;
+    }
+
+    try {
+      await createIncident.mutateAsync({
+        title: incidentTitle,
+        description: incidentDescription || undefined,
+        severity: incidentSeverity,
+        affectedResortIds: affectedResorts.map(r => r.id),
+        relatedErrorIds: filteredErrors.slice(0, 50).map(e => e.id),
+      });
+      toast.success('Incident created successfully');
+      setCreateIncidentDialogOpen(false);
+      setIncidentTitle('');
+      setIncidentDescription('');
+      setIncidentSeverity('P1');
+    } catch {
+      toast.error('Failed to create incident');
     }
   };
 
@@ -170,7 +241,7 @@ export function ErrorExplorer() {
               </div>
             ) : (
               <div className="space-y-2">
-                {data?.metrics.topRoutes.slice(0, 3).map((route, i) => (
+                {data?.metrics.topRoutes.slice(0, 3).map((route) => (
                   <div key={route.route} className="flex items-center justify-between text-sm">
                     <span className="font-mono text-muted-foreground truncate">{route.route}</span>
                     <Badge variant="outline">{route.count}</Badge>
@@ -276,21 +347,136 @@ export function ErrorExplorer() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-1" onClick={() => navigate('/superadmin/audit')}>
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-start gap-1" 
+              onClick={() => navigate('/superadmin/audit')}
+            >
               <span className="font-medium text-sm">Show changes before spike</span>
               <span className="text-xs text-muted-foreground">View audit logs around error times</span>
             </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-1">
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-start gap-1"
+              onClick={() => setAffectedResortsDialogOpen(true)}
+              disabled={affectedResorts.length === 0}
+            >
               <span className="font-medium text-sm">Show affected resorts</span>
-              <span className="text-xs text-muted-foreground">See which resorts are impacted</span>
+              <span className="text-xs text-muted-foreground">
+                {affectedResorts.length} resort(s) impacted
+              </span>
             </Button>
-            <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-1" onClick={() => navigate('/superadmin/support')}>
-              <span className="font-medium text-sm">Open Support Mode</span>
-              <span className="text-xs text-muted-foreground">Debug in affected environment</span>
+            <Button 
+              variant="outline" 
+              className="h-auto p-4 flex flex-col items-start gap-1"
+              onClick={() => setCreateIncidentDialogOpen(true)}
+              disabled={filteredErrors.length === 0}
+            >
+              <span className="font-medium text-sm flex items-center gap-1">
+                <Plus className="h-3 w-3" /> Create Incident
+              </span>
+              <span className="text-xs text-muted-foreground">Link errors to incident</span>
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Affected Resorts Dialog */}
+      <Dialog open={affectedResortsDialogOpen} onOpenChange={setAffectedResortsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Affected Resorts
+            </DialogTitle>
+            <DialogDescription>
+              Resorts with errors matching your current filters
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px]">
+            <div className="space-y-2">
+              {affectedResorts.map(resort => (
+                <Button
+                  key={resort.id}
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => {
+                    if (onResortClick) {
+                      onResortClick(resort.id);
+                    }
+                    setAffectedResortsDialogOpen(false);
+                  }}
+                >
+                  <span>{resort.name}</span>
+                  <Badge variant="destructive">{resort.count} errors</Badge>
+                </Button>
+              ))}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Incident Dialog */}
+      <Dialog open={createIncidentDialogOpen} onOpenChange={setCreateIncidentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileWarning className="h-5 w-5 text-warning" />
+              Create Incident
+            </DialogTitle>
+            <DialogDescription>
+              Create an incident to track this error cluster
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Incident Title</Label>
+              <Input 
+                placeholder="e.g., API timeout errors on booking flow"
+                value={incidentTitle}
+                onChange={(e) => setIncidentTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Severity</Label>
+              <Select value={incidentSeverity} onValueChange={(v) => setIncidentSeverity(v as typeof incidentSeverity)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="P0">P0 - Critical</SelectItem>
+                  <SelectItem value="P1">P1 - High</SelectItem>
+                  <SelectItem value="P2">P2 - Medium</SelectItem>
+                  <SelectItem value="P3">P3 - Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Description (optional)</Label>
+              <Textarea 
+                placeholder="Additional context..."
+                value={incidentDescription}
+                onChange={(e) => setIncidentDescription(e.target.value)}
+              />
+            </div>
+            <div className="p-3 bg-muted/30 rounded-lg text-sm">
+              <p className="font-medium mb-1">Will be linked:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• {Math.min(filteredErrors.length, 50)} error(s)</li>
+                <li>• {affectedResorts.length} affected resort(s)</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateIncidentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateIncident} disabled={createIncident.isPending}>
+              {createIncident.isPending ? 'Creating...' : 'Create Incident'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
