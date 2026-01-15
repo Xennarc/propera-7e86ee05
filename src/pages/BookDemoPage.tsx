@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
-import { ProperaMark, ProperaMarkAnimated } from '@/components/icons/ProperaLogo';
-import { Separator } from '@/components/ui/separator';
 import { 
   Accordion,
   AccordionContent,
@@ -32,6 +29,7 @@ import { LiveDemoQualifier } from '@/components/demo/LiveDemoQualifier';
 import { ResumeDemoBanner } from '@/components/demo/ResumeDemoBanner';
 import { useDemoWorkspace } from '@/hooks/useDemoWorkspace';
 import { cn } from '@/lib/utils';
+import { MarketingLayout } from '@/components/layout/MarketingLayout';
 
 const TRUST_CHIPS = [
   'White-label guest portal',
@@ -157,22 +155,7 @@ export default function BookDemoPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated background glows */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] animate-pulse-soft" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-lagoon-500/5 rounded-full blur-[100px] animate-pulse-soft" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[80px] animate-pulse-soft" style={{ animationDelay: '2s' }} />
-        {/* Subtle grid overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.1) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / 0.1) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-          }}
-        />
-      </div>
-
+    <MarketingLayout currentPage="demo">
       <SEOHead
         title="Book a Propera Demo | Resort Bookings, Scheduling & Guest Portal"
         description="See how Propera streamlines resort activities, spa, excursions and dining—live availability, guest self-service, and real-time operations. Try instantly or book a walkthrough."
@@ -181,35 +164,7 @@ export default function BookDemoPage() {
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, BOOK_DEMO_SCHEMA]}
       />
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
-        <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3 group">
-            <ProperaMark size={40} className="text-primary transition-transform duration-300 group-hover:scale-105" />
-            <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-1">
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                <Link to="/">Home</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                <Link to="/about">About</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm" className="rounded-full px-4 font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
-                <Link to="/pricing">Pricing</Link>
-              </Button>
-              <span className="text-sm text-primary font-medium px-4">Demo</span>
-            </div>
-            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-            <Button asChild variant="ghost" size="sm" className="rounded-full font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
-              <Link to="/staff/auth">Sign in</Link>
-            </Button>
-          </div>
-        </nav>
-      </header>
-
-      <main className="pt-24 relative z-10">
+      <div className="pt-24 relative z-10">
         {/* Resume Demo Banner */}
         {hasExistingWorkspace && (
           <div className="container mx-auto px-4 mb-6">
@@ -231,14 +186,7 @@ export default function BookDemoPage() {
               <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl" />
               
               <div className="relative bg-card/60 backdrop-blur-2xl rounded-3xl border border-border/30 p-8 md:p-12 lg:p-16 shadow-elevated">
-                {/* Animated Propera Mark as decorative element */}
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                  <div className="bg-card/80 backdrop-blur-xl rounded-2xl p-3 border border-primary/20 shadow-lg">
-                    <ProperaMarkAnimated size={48} className="text-primary" />
-                  </div>
-                </div>
-
-                <div className="text-center mt-6">
+                <div className="text-center">
                   <span className="glass-pill mb-6 inline-flex items-center">
                     <Sparkles className="h-3.5 w-3.5 mr-2" />
                     Propera Demo
@@ -593,30 +541,7 @@ export default function BookDemoPage() {
             </div>
           </div>
         </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="py-12 bg-muted/50 backdrop-blur-xl border-t border-border/50 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Link to="/" className="flex items-center gap-3 group">
-              <ProperaMark size={36} className="text-primary transition-transform duration-300 group-hover:scale-105" />
-              <div className="flex flex-col">
-                <span className="font-bold text-foreground">Propera</span>
-                <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
-              </div>
-            </Link>
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-primary transition-colors">Home</Link>
-              <Link to="/about" className="hover:text-primary transition-colors">About</Link>
-              <Link to="/pricing" className="hover:text-primary transition-colors">Pricing</Link>
-              <Link to="/staff/auth" className="hover:text-primary transition-colors">Staff Login</Link>
-              <Separator orientation="vertical" className="h-4 bg-border hidden sm:block" />
-              <span className="text-muted-foreground/60">© {new Date().getFullYear()} Propera</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      </div>
 
       {/* Demo Wizard Modal */}
       <DemoWizard 
@@ -629,6 +554,6 @@ export default function BookDemoPage() {
         open={showLiveQualifier} 
         onOpenChange={setShowLiveQualifier} 
       />
-    </div>
+    </MarketingLayout>
   );
 }

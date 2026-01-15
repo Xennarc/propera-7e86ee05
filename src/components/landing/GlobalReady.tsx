@@ -8,10 +8,7 @@ export function GlobalReady() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-24 bg-gradient-to-br from-teal-400/5 via-background to-primary/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden atlas-texture">
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/10 dark:bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/8 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-lagoon-500/8 dark:bg-lagoon-500/5 rounded-full blur-[100px] pointer-events-none" />
+    <section className="py-24 relative overflow-hidden">
       
       {/* Decorative globe wireframe */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-[0.03] pointer-events-none">

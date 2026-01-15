@@ -93,12 +93,7 @@ export function HowItWorks() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-24 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 dark:via-primary/5 to-transparent" />
-      {/* Enhanced glows for light mode */}
-      <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
-
+    <section className="py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4">
         <div
           ref={ref}

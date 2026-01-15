@@ -82,32 +82,6 @@ export function HomeHero() {
         </div>
       </div>
 
-      {/* Premium ribbon divider */}
-      <div className="absolute bottom-0 left-0 right-0 h-px">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <svg 
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-4 opacity-60"
-          viewBox="0 0 128 16" 
-          fill="none"
-        >
-          <path 
-            d="M0 8 Q32 2, 64 8 T128 8" 
-            stroke="url(#hero-ribbon)" 
-            strokeWidth="1.5" 
-            fill="none"
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="hero-ribbon" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="hsl(175 50% 45%)" stopOpacity="0" />
-              <stop offset="30%" stopColor="hsl(175 50% 45%)" stopOpacity="0.6" />
-              <stop offset="50%" stopColor="hsl(175 50% 55%)" stopOpacity="0.8" />
-              <stop offset="70%" stopColor="hsl(175 50% 45%)" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="hsl(175 50% 45%)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
     </section>
   );
 }
