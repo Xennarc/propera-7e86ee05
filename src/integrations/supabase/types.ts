@@ -2352,6 +2352,65 @@ export type Database = {
           },
         ]
       }
+      platform_audit_log: {
+        Row: {
+          action: string
+          actor_type: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_value: Json | null
+          old_value: Json | null
+          request_id: string | null
+          resort_id: string | null
+          target_id: string | null
+          target_table: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_type: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          request_id?: string | null
+          resort_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_type?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_value?: Json | null
+          old_value?: Json | null
+          request_id?: string | null
+          resort_id?: string | null
+          target_id?: string | null
+          target_table?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_audit_log_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_errors: {
         Row: {
           action: string | null
@@ -4282,7 +4341,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      security_rls_audit: {
+        Row: {
+          details: string | null
+          issue_type: string | null
+          recommended_fix: string | null
+          schema_name: string | null
+          severity: string | null
+          severity_order: number | null
+          table_name: string | null
+          type_order: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_staff_invitation: {
@@ -4512,6 +4583,18 @@ export type Database = {
         Args: { p_resort_role: string }
         Returns: string
       }
+      get_security_audit_results: {
+        Args: never
+        Returns: {
+          details: string
+          issue_type: string
+          recommended_fix: string
+          schema_name: string
+          severity: string
+          table_name: string
+        }[]
+      }
+      get_security_audit_summary: { Args: never; Returns: Json }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
@@ -4868,6 +4951,18 @@ export type Database = {
           p_route: string
           p_severity?: string
           p_user_type?: string
+        }
+        Returns: string
+      }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_new_value?: Json
+          p_old_value?: Json
+          p_resort_id?: string
+          p_target_id?: string
+          p_target_table?: string
         }
         Returns: string
       }
