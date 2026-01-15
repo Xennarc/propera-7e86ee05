@@ -697,7 +697,7 @@ serve(async (req) => {
             status: "ACTIVE",
             is_demo: true,
             subscription_tier: "ELITE",
-            onboarding_status: "COMPLETE",
+            onboarding_status: "COMPLETED",
           })
           .select()
           .single();
