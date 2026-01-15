@@ -72,14 +72,7 @@ export function WhyProperaCards() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-24 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 dark:via-primary/5 to-transparent" />
-      
-      {/* Enhanced decorative elements for light mode */}
-      <div className="absolute top-20 left-[15%] w-20 h-20 rounded-full bg-primary/10 dark:bg-primary/8 blur-xl pointer-events-none" />
-      <div className="absolute bottom-20 right-[20%] w-32 h-32 rounded-full bg-teal-400/10 dark:bg-teal-400/8 blur-xl pointer-events-none" />
-      <div className="absolute top-1/2 right-[10%] w-[300px] h-[300px] rounded-full bg-primary/8 dark:bg-primary/5 blur-[100px] pointer-events-none" />
-
+    <section className="py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4">
         <div
           ref={ref}

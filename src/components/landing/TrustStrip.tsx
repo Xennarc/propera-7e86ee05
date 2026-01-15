@@ -13,11 +13,7 @@ export function TrustStrip() {
   const { shouldAnimate } = useAnimationPreference();
 
   return (
-    <section className="py-14 bg-background relative overflow-hidden">
-      {/* Subtle top edge highlight */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-      
+    <section className="py-14 relative overflow-hidden">
       <div className="container mx-auto px-4">
         <motion.div
           initial={shouldAnimate ? { opacity: 0 } : { opacity: 1 }}

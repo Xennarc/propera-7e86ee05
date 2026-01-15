@@ -137,13 +137,6 @@ export function AboutHero() {
           </motion.div>
         </div>
 
-        {/* Ocean line divider */}
-        <motion.div
-          initial={reducedMotion ? {} : { opacity: 0, scaleX: 0 }}
-          animate={{ opacity: 1, scaleX: 1 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="absolute bottom-16 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent"
-        />
 
         {/* Scroll indicator */}
         <motion.div

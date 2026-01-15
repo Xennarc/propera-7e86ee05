@@ -1,8 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SEOHead, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
-import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { MarketingLayout } from '@/components/layout/MarketingLayout';
 
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
@@ -128,7 +125,7 @@ const PRICING_PAGE_SCHEMA = {
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <MarketingLayout currentPage="pricing">
       <SEOHead
         title="Pricing - Resort Booking Platform Plans"
         description="Simple, transparent pricing for modern resorts. Choose from Essential, Professional, or Elite plans to streamline guest bookings, staff operations, and analytics."
@@ -137,54 +134,13 @@ export default function PricingPage() {
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, PRICING_PAGE_SCHEMA]}
       />
 
-      {/* Header - matches home page */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
-        <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <ProperaMark size={40} className="text-primary" />
-            <span className="text-xl font-bold text-foreground tracking-tight">Propera</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-              <Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About</Link>
-              <Link to="/pricing" className="text-sm text-primary font-medium">Pricing</Link>
-            </div>
-            <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-          </div>
-        </nav>
-      </header>
-
-      <main>
-        <PricingHeroSection />
-        <PricingPlanGrid plans={PLANS} />
-        <PricingComparisonMatrix />
-        <PricingTrustSection />
-        <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
-        <PricingFAQSection faqs={FAQS} />
-        <PricingCTASection />
-      </main>
-
-      {/* Footer - premium style */}
-      <footer className="footer-premium py-14">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Link to="/" className="flex items-center gap-3">
-              <ProperaMark size={36} className="text-primary" />
-              <div className="flex flex-col">
-                <span className="font-bold text-foreground">Propera</span>
-                <span className="text-xs text-muted-foreground">Your resort, perfectly in sync.</span>
-              </div>
-            </Link>
-            <div className="flex items-center gap-8 text-sm text-muted-foreground">
-              <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
-              <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-              <span>© {new Date().getFullYear()} Propera</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <PricingHeroSection />
+      <PricingPlanGrid plans={PLANS} />
+      <PricingComparisonMatrix />
+      <PricingTrustSection />
+      <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
+      <PricingFAQSection faqs={FAQS} />
+      <PricingCTASection />
+    </MarketingLayout>
   );
 }

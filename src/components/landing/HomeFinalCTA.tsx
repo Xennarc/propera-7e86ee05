@@ -10,13 +10,8 @@ export function HomeFinalCTA() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="py-24 cta-spotlight atlas-texture">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 dark:from-primary/10 via-background to-teal-400/10 dark:to-teal-400/10" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 dark:bg-primary/15 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-teal-400/12 dark:bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="container relative mx-auto px-4 z-10">
+    <section className="py-24 relative overflow-hidden">
+      <div className="container relative mx-auto px-4 z-10">
           <div
             ref={ref}
             className={`section-reveal max-w-3xl mx-auto text-center ${revealed ? 'section-revealed' : ''}`}

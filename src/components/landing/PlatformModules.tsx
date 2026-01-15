@@ -155,12 +155,7 @@ export function PlatformModules() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section id="platform-overview" className="py-24 bg-gradient-to-br from-background via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
-      {/* Enhanced TideGlow background for light mode */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/12 dark:bg-primary/6 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-lagoon-500/8 dark:bg-lagoon-500/4 rounded-full blur-[100px] pointer-events-none" />
-
+    <section id="platform-overview" className="py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4 z-10">
         <FloatingFragments />
         

@@ -256,10 +256,6 @@ export function PricingHeroSection() {
         </div>
       </div>
 
-      {/* Ribbon divider */}
-      <div className="absolute bottom-0 left-0 right-0 h-px">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-      </div>
     </section>
   );
 }
