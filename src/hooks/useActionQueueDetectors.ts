@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format, subDays, subHours, subMinutes } from 'date-fns';
 
 export type ActionSeverity = 'P0' | 'P1' | 'P2' | 'P3';
-export type ActionCategory = 'config' | 'invite' | 'data' | 'error' | 'security';
+export type ActionCategory = 'config' | 'invite' | 'data' | 'error' | 'security' | 'outbox';
 
 export interface ActionQueueItem {
   id: string;
@@ -16,8 +16,8 @@ export interface ActionQueueItem {
   triggeredAt: Date;
   fixAction?: {
     label: string;
-    type: 'navigate' | 'api' | 'drawer';
-    target: string;
+    type: 'navigate' | 'api' | 'dialog';
+    target?: string;
   };
 }
 

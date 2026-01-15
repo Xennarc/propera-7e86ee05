@@ -30,7 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useResort } from '@/contexts/ResortContext';
 import { useRolloutHistory, useRollbackRollout } from '@/hooks/useRollouts';
-import { useCreateRolloutJob, useExecuteRollout } from '@/hooks/useRolloutJobs';
+import { useCreateRolloutJob, useExecuteRollout, useRolloutJobs } from '@/hooks/useRolloutJobs';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
   Rocket,
@@ -94,9 +94,9 @@ export function RolloutsPanel({ writeMode = false }: RolloutsPanelProps) {
   const [showDryRunPreview, setShowDryRunPreview] = useState(false);
 
   const { data: rolloutHistory, isLoading: loadingHistory } = useRolloutHistory(20);
-  const { data: rolloutJobs, isLoading: loadingJobs } = useRolloutJobs();
+  const { jobs: rolloutJobs, isLoading: loadingJobs, refetchJobs } = useRolloutJobs();
   const createJob = useCreateRolloutJob();
-  const executeJob = useExecuteRolloutJob();
+  const executeJob = useExecuteRollout();
   const rollbackRollout = useRollbackRollout();
 
   const activeResorts = resorts.filter(r => r.status === 'ACTIVE' && !r.is_demo);
