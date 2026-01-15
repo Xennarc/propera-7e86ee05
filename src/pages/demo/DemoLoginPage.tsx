@@ -42,6 +42,9 @@ export default function DemoLoginPage() {
 
       if (staffData?.success) {
         // Staff token - sign in with temporary password
+        // Add small delay to ensure password update has propagated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: staffData.email,
           password: staffData.temp_password,
@@ -49,9 +52,19 @@ export default function DemoLoginPage() {
 
         if (authError) {
           console.error('Staff sign-in failed:', authError);
-          setStatus('error');
-          setError('Failed to sign in. Please try again.');
-          return;
+          // Retry once after another short delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email: staffData.email,
+            password: staffData.temp_password,
+          });
+          
+          if (retryError) {
+            console.error('Staff sign-in retry failed:', retryError);
+            setStatus('error');
+            setError('Failed to sign in. Please try again.');
+            return;
+          }
         }
 
         setStatus('success');
