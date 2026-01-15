@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { getTierInfo, SubscriptionTier } from '@/lib/tier-features';
 import { subDays, format } from 'date-fns';
+import { DemoResetButton } from '@/components/superadmin/DemoResetButton';
 
 export default function SuperAdminDashboard() {
   const { resorts, setCurrentResort } = useResort();
@@ -323,29 +324,34 @@ export default function SuperAdminDashboard() {
         description="Central management for all Propera resorts"
       />
 
-      {/* Global Health Alerts */}
-      {healthAlerts && healthAlerts.length > 0 && (
-        <Card className="border-warning/50 bg-warning/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-warning">
-              <AlertTriangle className="h-5 w-5" />
-              Health Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {healthAlerts.map((alert, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-sm">
-                  <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
-                    {alert.count}
-                  </Badge>
-                  <span className="text-muted-foreground">{alert.message}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Demo Reset + Health Alerts */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DemoResetButton />
+        
+        {/* Global Health Alerts */}
+        {healthAlerts && healthAlerts.length > 0 && (
+          <Card className="border-warning/50 bg-warning/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-warning">
+                <AlertTriangle className="h-5 w-5" />
+                Health Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {healthAlerts.map((alert, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm">
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                      {alert.count}
+                    </Badge>
+                    <span className="text-muted-foreground">{alert.message}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Filters Row */}
       <div className="flex flex-wrap items-center gap-4">

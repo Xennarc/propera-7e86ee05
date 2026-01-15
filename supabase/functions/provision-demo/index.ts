@@ -295,23 +295,30 @@ async function sendDemoEmailSingleton(params: {
           <div style="text-align: center; margin-bottom: 32px;">
             <h1 style="color: #0f172a; margin: 0 0 8px; font-size: 28px;">Welcome to Propera!</h1>
             <p style="color: #64748b; margin: 0; font-size: 16px;">Click the buttons below to explore <strong>${params.resortName}</strong></p>
-            <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">⚡ Links expire in 15 minutes</p>
+            <p style="margin: 8px 0 0; font-size: 12px; color: #64748b;">⚡ One-click access links expire in 15 minutes</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; padding: 24px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
             <h2 style="color: #0f172a; margin: 0 0 16px; font-size: 18px;">👤 Staff Console</h2>
-            <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, sessions, guests, and view bookings. (Read-only demo)</p>
+            <p style="color: #475569; margin: 0 0 16px; font-size: 14px;">Manage activities, restaurants, and guests. View bookings and upcoming sessions for the next 2 weeks.</p>
             <a href="${params.staffUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Staff Console →</a>
           </div>
 
           <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #a7f3d0;">
             <h2 style="color: #065f46; margin: 0 0 16px; font-size: 18px;">🏝️ Guest Portal</h2>
-            <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Experience booking from the guest's perspective.</p>
+            <p style="color: #047857; margin: 0 0 16px; font-size: 14px;">Book activities and dining from the guest's perspective. Browse sessions available this week and beyond.</p>
             <a href="${params.guestUrl}" style="display: inline-block; background: #059669; color: white; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px;">Open Guest Portal →</a>
           </div>
 
+          <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <p style="color: #475569; font-size: 13px; margin: 0; text-align: center;">
+              ✨ Fresh inventory is always available for the next 14 days<br/>
+              🔄 Demo data resets periodically to stay current
+            </p>
+          </div>
+
           <div style="text-align: center; padding-top: 24px; border-top: 1px solid #e2e8f0;">
-            <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">This is a shared demo environment. Data resets periodically.</p>
+            <p style="color: #64748b; font-size: 13px; margin: 0 0 8px;">This is a shared demo – staff actions are read-only to protect the showroom.</p>
             <p style="color: #94a3b8; font-size: 12px; margin: 0;">Questions? Reply to this email or visit <a href="${PRODUCTION_URL}" style="color: #2563eb;">propera.cc</a></p>
           </div>
         </div>

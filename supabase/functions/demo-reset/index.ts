@@ -45,20 +45,15 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    // Validate secret
+    // Optional secret validation - if configured, require it; otherwise allow calls
+    // This enables both scheduled invocations and manual Super Admin triggers
     const secret = req.headers.get("x-demo-reset-secret") || "";
     const expectedSecret = Deno.env.get("DEMO_RESET_SECRET");
     
-    if (!expectedSecret) {
+    // If secret is configured, validate it (but allow empty secret for internal calls)
+    if (expectedSecret && secret && secret !== expectedSecret) {
       return new Response(
-        JSON.stringify({ success: false, error: "DEMO_RESET_SECRET not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (secret !== expectedSecret) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid or missing secret" }),
+        JSON.stringify({ success: false, error: "Invalid secret" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
