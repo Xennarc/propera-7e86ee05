@@ -9,16 +9,328 @@ const corsHeaders = {
 
 const PRODUCTION_URL = "https://propera.cc";
 
+// Enhanced activity definitions with rich content
 const DEMO_ACTIVITIES = [
-  { name: "House Reef Snorkel", category: "WATERSPORT", description: "Explore our vibrant house reef teeming with tropical fish and coral formations", short_description: "Guided snorkel tour", duration_minutes: 90, default_max_capacity: 8, default_price_per_person: 45, guest_can_book: true, guest_cutoff_hours: 2, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1024&h=576&fit=crop" },
-  { name: "Intro Dive", category: "DIVE", description: "Perfect for beginners - experience the underwater world with certified instructors", short_description: "Beginner dive experience", duration_minutes: 180, default_max_capacity: 4, default_price_per_person: 150, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=1024&h=576&fit=crop" },
-  { name: "Sunset Dolphin Cruise", category: "EXCURSION", description: "Watch dolphins play in their natural habitat as the sun sets over the Indian Ocean", short_description: "Evening dolphin trip", duration_minutes: 120, default_max_capacity: 12, default_price_per_person: 85, guest_can_book: true, guest_cutoff_hours: 4, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=1024&h=576&fit=crop" },
-  { name: "Kayak Adventure", category: "WATERSPORT", description: "Explore the crystal-clear lagoon and discover hidden beaches by kayak", short_description: "Self-guided kayak tour", duration_minutes: 60, default_max_capacity: 10, default_price_per_person: 35, guest_can_book: true, guest_cutoff_hours: 1, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1572111065620-89d50c5e75f5?w=1024&h=576&fit=crop" },
-  { name: "Sunrise Yoga", category: "SPA", description: "Start your day with a rejuvenating beachfront yoga session at sunrise", short_description: "Morning yoga session", duration_minutes: 60, default_max_capacity: 15, default_price_per_person: 25, guest_can_book: true, guest_cutoff_hours: 2, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1024&h=576&fit=crop" },
-  { name: "Night Fishing", category: "EXCURSION", description: "Traditional Maldivian line fishing under the stars - catch your own dinner", short_description: "Evening fishing trip", duration_minutes: 180, default_max_capacity: 8, default_price_per_person: 95, guest_can_book: true, guest_cutoff_hours: 6, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1545450660-3378a7f3a364?w=1024&h=576&fit=crop" },
-  { name: "Deep Tissue Massage", category: "SPA", description: "Relaxing full body massage in our overwater spa with ocean views", short_description: "60-min massage", duration_minutes: 60, default_max_capacity: 2, default_price_per_person: 120, guest_can_book: true, guest_cutoff_hours: 4, requires_approval: false, difficulty_level: "EASY", image_url: "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=1024&h=576&fit=crop" },
-  { name: "Advanced Reef Dive", category: "DIVE", description: "Explore stunning dive sites with manta rays and reef sharks for certified divers", short_description: "2-tank dive trip", duration_minutes: 240, default_max_capacity: 6, default_price_per_person: 200, guest_can_book: true, guest_cutoff_hours: 12, requires_approval: true, difficulty_level: "ADVANCED", image_url: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=1024&h=576&fit=crop" },
+  { 
+    name: "Sunrise Yoga", 
+    category: "SPA", 
+    description: "Greet the day with a soul-nourishing yoga session as the first golden rays paint the ocean. Our certified instructor guides you through gentle flows on the pristine beach, surrounded by the soothing sounds of waves and tropical birds.", 
+    short_description: "Beachfront sunrise yoga session",
+    full_description: "Begin your morning in paradise with our signature Sunrise Yoga experience. As the sky transforms from deep purple to brilliant orange, find your center on our pristine white sand beach. Our certified yoga instructor leads a 60-minute session suitable for all levels, combining gentle Vinyasa flows with mindful meditation. The session concludes with a peaceful Savasana as the sun rises fully above the horizon. Fresh coconut water and tropical fruit are served afterward.",
+    highlights: JSON.stringify(["Beachfront setting with panoramic ocean views", "All levels welcome - modifications provided", "Fresh coconut water & fruit included", "Complimentary yoga mat & towel"]),
+    includes: "Yoga mat, towel, fresh coconut water, tropical fruit platter",
+    health_and_safety_notes: "Arrive 10 minutes early. Inform instructor of any injuries. Stay hydrated.",
+    faq: JSON.stringify([{q: "Do I need yoga experience?", a: "No, our sessions welcome all levels from complete beginners to advanced practitioners."}]),
+    duration_minutes: 60, 
+    default_max_capacity: 15, 
+    default_price_per_person: 35, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 2, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Deep Tissue Massage", 
+    category: "SPA", 
+    description: "Melt away tension in our overwater spa pavilion with a therapeutic deep tissue massage. Expert therapists use traditional techniques combined with aromatic local oils to release muscle knots and restore your body's natural balance.", 
+    short_description: "60-minute therapeutic massage",
+    full_description: "Surrender to complete relaxation in our stunning overwater spa pavilion, where floor-to-ceiling windows frame endless ocean views. Our skilled therapists begin with a consultation to understand your needs, then use a combination of deep tissue techniques, pressure point therapy, and long flowing strokes to release chronic muscle tension. Choose from our signature coconut oil, calming lavender, or invigorating lemongrass blends. The treatment includes a warm compress finish and herbal tea service.",
+    highlights: JSON.stringify(["Private overwater pavilion with glass floor panels", "Choice of aromatherapy oils", "Targets deep muscle tension & stress", "Includes herbal tea & relaxation time"]),
+    includes: "60-min massage, choice of oils, warm compress, herbal tea, robe & slippers",
+    health_and_safety_notes: "Not recommended during first trimester pregnancy. Inform therapist of any medical conditions.",
+    faq: JSON.stringify([{q: "What pressure levels are available?", a: "Our therapists customize pressure from medium to firm based on your preference and needs."}]),
+    duration_minutes: 60, 
+    default_max_capacity: 2, 
+    default_price_per_person: 120, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 4, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Couples Spa Ritual", 
+    category: "SPA", 
+    description: "Share an unforgettable wellness journey with your partner in our exclusive couples suite. This 2-hour ritual combines body scrub, massage, and bath ceremony with champagne and ocean views for the ultimate romantic escape.", 
+    short_description: "2-hour couples spa experience",
+    full_description: "Create lasting memories in our secluded couples pavilion overlooking the crystal lagoon. Your journey begins with a detoxifying coconut and sea salt body scrub, followed by a synchronized aromatherapy massage performed by two expert therapists. The experience culminates with a private flower-petal bath infused with essential oils, accompanied by champagne and chocolate truffles. The entire suite is yours for an additional 30 minutes of relaxation.",
+    highlights: JSON.stringify(["Private couples suite with infinity views", "Body scrub + massage + flower bath", "Champagne & chocolate truffles", "Extended relaxation time included"]),
+    includes: "Body scrub, 60-min massage, flower bath, champagne, chocolates, extended suite access",
+    health_and_safety_notes: "Contains nut-based products. Advise of allergies during booking.",
+    duration_minutes: 150, 
+    default_max_capacity: 2, 
+    default_price_per_person: 280, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 24, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "House Reef Snorkel", 
+    category: "WATERSPORT", 
+    description: "Discover an underwater wonderland just steps from shore. Our pristine house reef hosts over 200 species of tropical fish, graceful sea turtles, and stunning coral formations. Expert marine biologists guide you through this natural aquarium.", 
+    short_description: "Guided snorkel on pristine house reef",
+    full_description: "Step off our jetty and into a kaleidoscope of marine life. Our resident marine biologist leads small groups along the reef, identifying species and explaining the delicate coral ecosystem. Witness parrotfish, butterflyfish, and if you're lucky, our resident hawksbill turtles. Premium snorkel equipment is provided, and our team ensures your safety throughout. Perfect for first-timers and experienced snorkelers alike.",
+    highlights: JSON.stringify(["200+ fish species & regular turtle sightings", "Led by resident marine biologist", "Premium equipment included", "Underwater camera rental available"]),
+    includes: "Premium mask, snorkel & fins, reef-safe sunscreen, bottled water, fish ID card",
+    health_and_safety_notes: "Basic swimming ability required. Life jackets available. Reef-safe sunscreen only.",
+    faq: JSON.stringify([{q: "Do I need to be a strong swimmer?", a: "Basic swimming ability is sufficient. Life jackets are available for extra confidence."}]),
+    duration_minutes: 90, 
+    default_max_capacity: 8, 
+    default_price_per_person: 55, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 2, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    is_swimming_required: true,
+    image_url: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Kayak Adventure", 
+    category: "WATERSPORT", 
+    description: "Paddle through crystal-clear lagoon waters at your own pace. Explore hidden sandbars, spot baby reef sharks in the shallows, and discover secret beaches inaccessible by foot. Single and tandem kayaks available.", 
+    short_description: "Self-guided lagoon kayaking",
+    full_description: "Collect your kayak from our water sports center and set off to explore our stunning lagoon at your leisure. Our team provides a waterproof map highlighting the best spots - from shallow areas teeming with baby blacktip reef sharks to secluded sandbars perfect for a swimming break. Both single and tandem kayaks are available, along with dry bags for your valuables and GoPro mounts for capturing your adventure.",
+    highlights: JSON.stringify(["Explore at your own pace", "Spot baby reef sharks & stingrays", "Access hidden sandbars", "Waterproof map & dry bag included"]),
+    includes: "Kayak, paddle, life jacket, waterproof map, dry bag, bottled water",
+    health_and_safety_notes: "Wear reef shoes. Apply sunscreen before departure. Stay within marked lagoon area.",
+    duration_minutes: 60, 
+    default_max_capacity: 10, 
+    default_price_per_person: 45, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 1, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1572111065620-89d50c5e75f5?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Paddleboard Lesson", 
+    category: "WATERSPORT", 
+    description: "Master the art of stand-up paddleboarding in our calm turquoise lagoon. Perfect for beginners, this lesson covers technique, balance, and water safety, leaving you confident to explore independently.", 
+    short_description: "SUP beginner lesson",
+    full_description: "Learn the increasingly popular sport of stand-up paddleboarding in ideal conditions. Our certified instructor starts with beach-based technique training before guiding you into our sheltered lagoon. By the session's end, you'll be confidently paddling, turning, and even trying some yoga poses on the board! Complimentary board rental for the rest of the day included.",
+    highlights: JSON.stringify(["Calm lagoon - perfect learning conditions", "Small groups (max 6 people)", "Complimentary board rental post-lesson", "Waterproof phone pouch included"]),
+    includes: "Paddleboard, paddle, instructor, complimentary rental post-lesson, phone pouch",
+    health_and_safety_notes: "Swimming ability required. Wear quick-dry clothing. Sunscreen essential.",
+    duration_minutes: 75, 
+    default_max_capacity: 6, 
+    default_price_per_person: 65, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 2, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    is_swimming_required: true,
+    image_url: "https://images.unsplash.com/photo-1526188717906-ab4a2f949f47?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Night Snorkel", 
+    category: "WATERSPORT", 
+    description: "Witness the reef's nocturnal transformation on this magical after-dark adventure. Armed with underwater torches, discover hunting octopuses, sleeping parrotfish in mucus cocoons, and bioluminescent plankton.", 
+    short_description: "Guided underwater torch adventure",
+    full_description: "As darkness falls, the reef comes alive with a completely different cast of characters. Join our marine guide for a fascinating twilight snorkel using powerful underwater torches. Watch hunting moray eels emerge from their hiding spots, see parrotfish wrapped in protective mucus bubbles, and marvel as your fins disturb clouds of bioluminescent plankton. This unforgettable experience reveals a hidden world few ever witness.",
+    highlights: JSON.stringify(["See nocturnal marine life", "Professional underwater torches provided", "Bioluminescent plankton", "Maximum 6 guests for intimate experience"]),
+    includes: "Premium snorkel gear, underwater torch, wetsuit (optional), hot chocolate after",
+    health_and_safety_notes: "Good swimming ability required. Must be comfortable in dark water.",
+    duration_minutes: 75, 
+    default_max_capacity: 6, 
+    default_price_per_person: 85, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 4, 
+    requires_approval: false, 
+    difficulty_level: "MODERATE", 
+    is_swimming_required: true,
+    image_url: "https://images.unsplash.com/photo-1682687982501-1e58ab814714?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Intro Dive", 
+    category: "DIVE", 
+    description: "Take your first breath underwater and discover the magic of scuba diving. No experience needed - our PADI instructors provide comprehensive training and guide you through every moment of this life-changing experience.", 
+    short_description: "First-time scuba experience",
+    full_description: "Your underwater journey begins in our dive center with theory and pool training. Learn essential skills including breathing, equalizing, and hand signals in the comfort of shallow water. Once confident, transfer to our house reef for a guided dive to 10-12 meters alongside your instructor. Encounter colorful fish, sea turtles, and stunning coral as you take your first underwater breaths. Photos and video of your experience are available.",
+    highlights: JSON.stringify(["No prior experience needed", "Pool training + open water dive", "Maximum 2 guests per instructor", "Underwater photos available"]),
+    includes: "Full scuba equipment, pool training, 1 ocean dive, instructor, dive log book",
+    health_and_safety_notes: "Medical questionnaire required. Not suitable for those with respiratory conditions. No flying for 24 hours after diving.",
+    faq: JSON.stringify([{q: "Is diving safe for beginners?", a: "Absolutely! With proper training and our 1:2 instructor ratio, you're in expert hands throughout."}]),
+    duration_minutes: 180, 
+    default_max_capacity: 4, 
+    default_price_per_person: 175, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 24, 
+    requires_approval: true, 
+    difficulty_level: "EASY", 
+    is_swimming_required: true,
+    image_url: "https://images.unsplash.com/photo-1544551763-77ef2d0cfc6c?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Advanced Reef Dive", 
+    category: "DIVE", 
+    description: "Certified divers explore world-class sites featuring manta rays, reef sharks, and vibrant coral walls. Our expert dive masters know where the big stuff hides - join us for an unforgettable two-tank adventure.", 
+    short_description: "2-tank dive for certified divers",
+    full_description: "Board our fully-equipped dive dhoni for a morning of spectacular diving. Your dive master selects sites based on current conditions and marine life activity - options include the famous Manta Point, Shark Reef, and Turtle Garden. Each dive explores different ecosystems from coral-covered thilas to dramatic channel drifts. Between dives, enjoy fresh fruit and refreshments while discussing what you've seen. Nitrox available for qualified divers.",
+    highlights: JSON.stringify(["Manta rays, reef sharks & turtles", "2 dives at premium sites", "Nitrox available", "Refreshments between dives"]),
+    includes: "Full equipment, 2 dives, boat transfer, dive guide, refreshments, Nitrox (if certified)",
+    health_and_safety_notes: "Open Water certification minimum. Dive computer mandatory. Log book required.",
+    faq: JSON.stringify([{q: "What certification do I need?", a: "PADI Open Water or equivalent. Advanced Open Water recommended but not required."}]),
+    duration_minutes: 240, 
+    default_max_capacity: 8, 
+    default_price_per_person: 220, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 12, 
+    requires_approval: true, 
+    difficulty_level: "ADVANCED", 
+    is_swimming_required: true,
+    image_url: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Sunset Dolphin Cruise", 
+    category: "EXCURSION", 
+    description: "Set sail at golden hour aboard a traditional Maldivian dhoni as pods of spinner dolphins leap and play around the boat. Toast the spectacular sunset with champagne while dolphins perform their acrobatic displays.", 
+    short_description: "Champagne sunset & dolphin watching",
+    full_description: "Board our traditional wooden dhoni as the late afternoon light turns golden. Cruise to known dolphin gathering spots where pods of up to 100 spinner dolphins often swim alongside boats. Watch as they leap, spin, and play in the bow wave while the sun sinks toward the horizon. Sip champagne and enjoy chef-prepared canapés as the sky transforms through oranges, pinks, and purples. We guarantee dolphin sightings or offer a free rebooking.",
+    highlights: JSON.stringify(["Guaranteed dolphin sighting*", "Champagne & gourmet canapés", "Traditional dhoni experience", "Prime photography opportunity"]),
+    includes: "Champagne, canapés, soft drinks, sunset photography tips, cozy blankets",
+    health_and_safety_notes: "Motion sickness tablets recommended for sensitive guests. Life jackets available.",
+    faq: JSON.stringify([{q: "What if we don't see dolphins?", a: "We maintain a 98% sighting rate. If dolphins aren't spotted, you receive a free rebooking."}]),
+    duration_minutes: 120, 
+    default_max_capacity: 12, 
+    default_price_per_person: 95, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 4, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Night Fishing", 
+    category: "EXCURSION", 
+    description: "Experience authentic Maldivian culture on a traditional night fishing trip. Learn line-fishing techniques passed down through generations, and if you're lucky, have your catch prepared by our chefs for the next day's lunch.", 
+    short_description: "Traditional Maldivian fishing",
+    full_description: "Depart at dusk aboard a traditional dhoni, cruising to productive fishing grounds as stars emerge overhead. Our local crew teaches you the hand-line technique used in the Maldives for centuries. Common catches include red snapper, grouper, and emperor fish. Listen to crew stories, enjoy light refreshments, and experience the peaceful magic of fishing under the stars. Your catch can be cooked to order the following day.",
+    highlights: JSON.stringify(["Learn traditional fishing techniques", "Keep your catch - we'll cook it!", "Stargazing opportunity", "Authentic local experience"]),
+    includes: "Fishing equipment, bait, refreshments, crew assistance, catch preparation next day",
+    health_and_safety_notes: "Can be choppy - motion sickness precautions advised. Warm layer recommended for return.",
+    duration_minutes: 180, 
+    default_max_capacity: 8, 
+    default_price_per_person: 95, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 6, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1545450660-3378a7f3a364?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Sandbank Picnic", 
+    category: "EXCURSION", 
+    description: "Escape to your own private island for an unforgettable castaway experience. We set up a luxurious picnic on a pristine sandbank accessible only by boat, complete with gourmet lunch, champagne, and snorkeling gear.", 
+    short_description: "Private sandbank escape",
+    full_description: "Speed by private boat to an uninhabited sandbank where we've prepared your exclusive setup - Bedouin-style shade tent, cushions, and a fully stocked gourmet picnic. Spend hours in complete privacy, swimming in gin-clear waters, snorkeling the surrounding reef, and enjoying lobster, fresh salads, and chilled champagne. Your butler-host remains discreetly nearby to refresh drinks and deliver dessert. The ultimate romantic escape.",
+    highlights: JSON.stringify(["Completely private experience", "Gourmet picnic with champagne", "Butler service included", "Snorkel gear provided"]),
+    includes: "Private boat transfer, gourmet picnic, champagne, snorkel gear, sun shade, butler service",
+    health_and_safety_notes: "Limited shade - high SPF essential. Swimming ability recommended.",
+    duration_minutes: 240, 
+    default_max_capacity: 4, 
+    default_price_per_person: 295, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 24, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Local Island Visit", 
+    category: "EXCURSION", 
+    description: "Discover authentic Maldivian culture with a guided visit to a nearby inhabited island. Explore colorful streets, meet local artisans, visit a traditional mosque, and shop for handmade souvenirs.", 
+    short_description: "Cultural island excursion",
+    full_description: "Gain insight into traditional Maldivian life on this half-day cultural excursion. Your English-speaking guide leads you through the village, explaining local customs, architecture, and daily life. Visit a traditional boat-builder, watch lacquer work artisans, and peek inside a coral stone mosque. Enjoy fresh 'hedhika' (local short-eats) at a family-run café and browse stalls selling handwoven mats and coconut crafts. A unique window into island life beyond the resort.",
+    highlights: JSON.stringify(["Meet local artisans & craftspeople", "Taste authentic Maldivian snacks", "Visit traditional mosque (modest dress provided)", "Support local community"]),
+    includes: "Boat transfer, English-speaking guide, local snacks & drinks, modest attire for mosque",
+    health_and_safety_notes: "Modest dress required for mosque visits. Walking shoes recommended. Respect local customs.",
+    faq: JSON.stringify([{q: "What should I wear?", a: "Casual clothes are fine. We provide cover-ups for mosque visits. No swimwear please."}]),
+    duration_minutes: 180, 
+    default_max_capacity: 10, 
+    default_price_per_person: 85, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 4, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1024&h=576&fit=crop" 
+  },
+  { 
+    name: "Photography Tour", 
+    category: "EXCURSION", 
+    description: "Capture the Maldives through the lens of a professional photographer. This sunrise or sunset tour takes you to the most photogenic spots on the island, with expert guidance on composition, lighting, and settings.", 
+    short_description: "Photo safari with professional",
+    full_description: "Join our resident professional photographer for a golden hour expedition to the island's most stunning locations. Whether you're using a smartphone or DSLR, you'll learn practical techniques for capturing breathtaking landscapes, wildlife, and creative portraits. Visit jetty silhouettes, swaying palms, and beach vistas carefully timed for optimal light. Receive personalized tips and tricks, and leave with portfolio-worthy images. Includes basic editing session afterward.",
+    highlights: JSON.stringify(["Professional photographer guidance", "Best locations for golden hour", "Camera settings & composition tips", "Basic editing session included"]),
+    includes: "Professional photographer guide, 2-hour tour, editing session, location guide map",
+    health_and_safety_notes: "Sunrise tours start 30 min before dawn. Bring your own camera/phone.",
+    duration_minutes: 120, 
+    default_max_capacity: 6, 
+    default_price_per_person: 120, 
+    guest_can_book: true, 
+    guest_cutoff_hours: 12, 
+    requires_approval: false, 
+    difficulty_level: "EASY", 
+    image_url: "https://images.unsplash.com/photo-1500463959177-e0869687df26?w=1024&h=576&fit=crop" 
+  },
 ];
+
+// Activity-specific session time slots
+const ACTIVITY_TIME_SLOTS: Record<string, { time: string; label?: string }[]> = {
+  // Category defaults
+  SPA: [
+    { time: "09:00", label: "Morning" },
+    { time: "11:00", label: "Late Morning" },
+    { time: "14:00", label: "Afternoon" },
+    { time: "16:00", label: "Late Afternoon" },
+  ],
+  DIVE: [
+    { time: "07:30", label: "Early Morning" },
+    { time: "10:30", label: "Mid Morning" },
+    { time: "14:00", label: "Afternoon" },
+  ],
+  WATERSPORT: [
+    { time: "08:00", label: "Morning" },
+    { time: "10:30", label: "Late Morning" },
+    { time: "14:00", label: "Afternoon" },
+    { time: "16:00", label: "Late Afternoon" },
+  ],
+  EXCURSION: [
+    { time: "09:00", label: "Morning" },
+    { time: "14:00", label: "Afternoon" },
+  ],
+  
+  // Activity-specific overrides (takes precedence over category)
+  "Sunrise Yoga": [{ time: "06:00", label: "Sunrise" }],
+  "Night Fishing": [{ time: "17:30", label: "Evening Departure" }],
+  "Sunset Dolphin Cruise": [{ time: "17:00", label: "Sunset" }],
+  "Night Snorkel": [{ time: "19:30", label: "After Dark" }],
+  "Photography Tour": [
+    { time: "05:30", label: "Sunrise" },
+    { time: "17:00", label: "Sunset" },
+  ],
+  "Sandbank Picnic": [{ time: "10:00", label: "Morning Departure" }],
+  "Couples Spa Ritual": [
+    { time: "10:00", label: "Morning" },
+    { time: "15:00", label: "Afternoon" },
+  ],
+  "Advanced Reef Dive": [
+    { time: "07:00", label: "Early Morning" },
+    { time: "13:30", label: "Afternoon" },
+  ],
+};
+
+// Helper to get time slots for an activity
+function getActivityTimeSlots(activityName: string, category: string): { time: string; label?: string }[] {
+  // Check for activity-specific override first
+  if (ACTIVITY_TIME_SLOTS[activityName]) {
+    return ACTIVITY_TIME_SLOTS[activityName];
+  }
+  // Fall back to category default
+  return ACTIVITY_TIME_SLOTS[category] || [{ time: "09:00" }, { time: "14:00" }];
+}
 
 const DEMO_RESTAURANTS = [
   { name: "Lagoon Restaurant", description: "Overwater dining with stunning views", total_capacity: 60, guest_can_book: true, guest_cutoff_minutes: 60, max_pax_per_booking: 8, requires_approval: false },
@@ -2260,32 +2572,33 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     for (let day = 0; day <= 14; day++) {
       const sessionDate = formatDate(addDays(today, day));
       activities.forEach((activity: any) => {
-        sessions.push({
-          resort_id: resortId,
-          activity_id: activity.id,
-          date: sessionDate,
-          start_time: "09:00",
-          end_time: "10:30",
-          capacity: activity.default_max_capacity,
-          status: "SCHEDULED",
-        });
-        if (day % 2 === 0) {
+        // Get activity-specific time slots
+        const timeSlots = getActivityTimeSlots(activity.name, activity.category);
+        
+        timeSlots.forEach((slot) => {
+          // Calculate end time based on duration
+          const [startHour, startMin] = slot.time.split(":").map(Number);
+          const totalMinutes = startHour * 60 + startMin + activity.duration_minutes;
+          const endHour = Math.floor(totalMinutes / 60);
+          const endMin = totalMinutes % 60;
+          const endTime = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
+          
           sessions.push({
             resort_id: resortId,
             activity_id: activity.id,
             date: sessionDate,
-            start_time: "14:00",
-            end_time: "15:30",
+            start_time: slot.time,
+            end_time: endTime,
             capacity: activity.default_max_capacity,
             status: "SCHEDULED",
           });
-        }
+        });
       });
     }
     const { data: createdSessions, error: sessError } = await supabase.from("activity_sessions").insert(sessions).select();
     if (sessError) console.error("Error creating sessions:", sessError);
     else {
-      console.log("Created", sessions.length, "activity sessions");
+      console.log("Created", sessions.length, "activity sessions with realistic times");
       allSessions = createdSessions || [];
     }
   }

@@ -9,8 +9,34 @@ const corsHeaders = {
 // Demo resort configuration
 const DEMO_RESORT_CODE = "DEMO";
 
-// Session schedule templates
-const ACTIVITY_SESSION_TIMES = ["09:00", "14:00", "17:00"];
+// Activity-specific session time slots (matches provision-demo logic)
+const ACTIVITY_TIME_SLOTS: Record<string, { time: string }[]> = {
+  // Category defaults
+  SPA: [{ time: "09:00" }, { time: "11:00" }, { time: "14:00" }, { time: "16:00" }],
+  DIVE: [{ time: "07:30" }, { time: "10:30" }, { time: "14:00" }],
+  WATERSPORT: [{ time: "08:00" }, { time: "10:30" }, { time: "14:00" }, { time: "16:00" }],
+  EXCURSION: [{ time: "09:00" }, { time: "14:00" }],
+  
+  // Activity-specific overrides
+  "Sunrise Yoga": [{ time: "06:00" }],
+  "Night Fishing": [{ time: "17:30" }],
+  "Sunset Dolphin Cruise": [{ time: "17:00" }],
+  "Night Snorkel": [{ time: "19:30" }],
+  "Photography Tour": [{ time: "05:30" }, { time: "17:00" }],
+  "Sandbank Picnic": [{ time: "10:00" }],
+  "Couples Spa Ritual": [{ time: "10:00" }, { time: "15:00" }],
+  "Advanced Reef Dive": [{ time: "07:00" }, { time: "13:30" }],
+};
+
+// Helper to get time slots for an activity
+function getActivityTimeSlots(activityName: string, category: string): { time: string }[] {
+  if (ACTIVITY_TIME_SLOTS[activityName]) {
+    return ACTIVITY_TIME_SLOTS[activityName];
+  }
+  return ACTIVITY_TIME_SLOTS[category] || [{ time: "09:00" }, { time: "14:00" }];
+}
+
+// Restaurant slot configuration
 const RESTAURANT_MEAL_SLOTS = {
   LUNCH: { start: "12:00", end: "14:00" },
   DINNER_EARLY: { start: "19:00", end: "20:30" },
@@ -302,10 +328,10 @@ serve(async (req) => {
       }
     }
 
-    // Get activities for session creation
+    // Get activities for session creation (include name for time slot lookup)
     const { data: activities } = await supabase
       .from("activities")
-      .select("id, default_max_capacity, duration_minutes, category")
+      .select("id, name, default_max_capacity, duration_minutes, category")
       .eq("resort_id", demoResortId)
       .eq("is_active", true);
 
@@ -316,18 +342,16 @@ serve(async (req) => {
       .eq("resort_id", demoResortId)
       .eq("is_active", true);
 
-    // Create sessions for next 14 days
+    // Create sessions for next 14 days using activity-specific time slots
     if (activities?.length && !isDryRun) {
       for (let dayOffset = 0; dayOffset <= 14; dayOffset++) {
         const sessionDate = formatDate(addDays(today, dayOffset));
         
         for (const activity of activities) {
-          // Determine time slots based on category
-          const times = activity.category === "EXCURSION" 
-            ? ["09:00", "14:00"] 
-            : ACTIVITY_SESSION_TIMES;
+          // Get activity-specific time slots
+          const timeSlots = getActivityTimeSlots(activity.name, activity.category);
 
-          for (const startTime of times) {
+          for (const slot of timeSlots) {
             // Check if session already exists
             const { data: existing } = await supabase
               .from("activity_sessions")
@@ -335,21 +359,22 @@ serve(async (req) => {
               .eq("resort_id", demoResortId)
               .eq("activity_id", activity.id)
               .eq("date", sessionDate)
-              .eq("start_time", startTime)
+              .eq("start_time", slot.time)
               .single();
 
             if (!existing) {
-              const durationHours = activity.duration_minutes / 60;
-              const startHour = parseInt(startTime.split(":")[0]);
-              const endHour = Math.floor(startHour + durationHours);
-              const endMinutes = Math.round((durationHours - Math.floor(durationHours)) * 60);
-              const endTime = `${String(endHour).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+              // Calculate end time based on duration
+              const [startHour, startMin] = slot.time.split(":").map(Number);
+              const totalMinutes = startHour * 60 + startMin + activity.duration_minutes;
+              const endHour = Math.floor(totalMinutes / 60);
+              const endMin = totalMinutes % 60;
+              const endTime = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
 
               await supabase.from("activity_sessions").insert({
                 resort_id: demoResortId,
                 activity_id: activity.id,
                 date: sessionDate,
-                start_time: startTime,
+                start_time: slot.time,
                 end_time: endTime,
                 capacity: activity.default_max_capacity,
                 status: "SCHEDULED",
