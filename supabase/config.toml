@@ -37,3 +37,6 @@ schedule = "0 6 */4 * *"
 
 [functions.execute-rollout]
 verify_jwt = true
+
+[functions.delete-resort]
+verify_jwt = false
