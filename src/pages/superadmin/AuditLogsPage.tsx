@@ -38,6 +38,10 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   resort_tier_changed: { label: 'Tier Changed', color: 'bg-primary/10 text-primary border-primary/20' },
   resort_deleted: { label: 'Resort Deleted', color: 'bg-destructive/10 text-destructive border-destructive/20' },
   resort_setting_updated: { label: 'Setting Updated', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  resort_purge_requested: { label: 'Purge Requested', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  resort_purge_started: { label: 'Purge Started', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  resort_purge_completed: { label: 'Purge Completed', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  resort_purge_failed: { label: 'Purge Failed', color: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
 export default function AuditLogsPage() {
