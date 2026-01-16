@@ -50,7 +50,32 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
 
-        // Brand color scales
+        // Modern Professional Palette
+        midnight: {
+          950: "hsl(var(--midnight-950))",
+          900: "hsl(var(--midnight-900))",
+          800: "hsl(var(--midnight-800))",
+          700: "hsl(var(--midnight-700))",
+          600: "hsl(var(--midnight-600))",
+          500: "hsl(var(--midnight-500))",
+        },
+        lime: {
+          600: "hsl(var(--lime-600))",
+          500: "hsl(var(--lime-500))",
+          400: "hsl(var(--lime-400))",
+          300: "hsl(var(--lime-300))",
+          200: "hsl(var(--lime-200))",
+          DEFAULT: "hsl(var(--lime-400))",
+        },
+        blurple: {
+          600: "hsl(var(--blurple-600))",
+          500: "hsl(var(--blurple-500))",
+          400: "hsl(var(--blurple-400))",
+          300: "hsl(var(--blurple-300))",
+          DEFAULT: "hsl(var(--blurple-500))",
+        },
+
+        // Legacy brand color scales (backwards compatibility)
         navy: {
           950: "hsl(var(--navy-950))",
           900: "hsl(var(--navy-900))",
@@ -156,12 +181,15 @@ export default {
         },
       },
       borderRadius: {
+        // Modern Professional radii - larger and softer
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
-        "3xl": "calc(var(--radius) + 16px)",
+        "3xl": "1.5rem", // 24px for cards
+        "4xl": "2rem",
+        "pill": "9999px",
       },
       boxShadow: {
         "soft": "0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.04)",
@@ -170,7 +198,12 @@ export default {
         "card": "0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02)",
         "card-hover": "0 4px 16px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04)",
         "inner-glow": "inset 0 1px 2px rgba(255, 255, 255, 0.08)",
-        "glow": "0 0 24px rgba(var(--primary), 0.12)",
+        // Lime glow shadows
+        "glow": "0 0 24px rgba(195, 255, 46, 0.15)",
+        "glow-lime": "0 0 20px rgba(195, 255, 46, 0.3)",
+        "glow-lime-lg": "0 0 40px rgba(195, 255, 46, 0.4)",
+        "glow-blurple": "0 0 24px rgba(88, 101, 242, 0.25)",
+        // Legacy
         "glow-coral": "0 0 24px rgba(var(--coral-500), 0.2)",
         "glow-lagoon": "0 0 24px rgba(var(--lagoon-500), 0.2)",
       },
@@ -214,6 +247,10 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.7" },
         },
+        "glow-pulse": {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(195, 255, 46, 0.3)" },
+          "50%": { boxShadow: "0 0 30px rgba(195, 255, 46, 0.5)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -226,9 +263,13 @@ export default {
         "shimmer": "shimmer 2s infinite",
         "float": "float 6s ease-in-out infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
       },
       fontFamily: {
-        sans: ['Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+      },
+      letterSpacing: {
+        'heading': '0.02em',
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.875rem" }],
@@ -240,8 +281,8 @@ export default {
         "2xl": ["1.5rem", { lineHeight: "2rem" }],
         "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
         "4xl": ["2.25rem", { lineHeight: "2.5rem", letterSpacing: "-0.02em" }],
-        "display": ["3rem", { lineHeight: "1.15", letterSpacing: "-0.02em" }],
-        "headline": ["2rem", { lineHeight: "1.25", letterSpacing: "-0.01em" }],
+        "display": ["3rem", { lineHeight: "1.15", letterSpacing: "0.02em" }],
+        "headline": ["2rem", { lineHeight: "1.25", letterSpacing: "0.02em" }],
       },
       spacing: {
         "18": "4.5rem",
