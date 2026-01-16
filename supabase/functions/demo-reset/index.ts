@@ -73,19 +73,23 @@ serve(async (req) => {
     // ============================================================
     // SAFETY CHECK: Find and validate demo resort
     // ============================================================
-    const { data: demoResort, error: resortError } = await supabase
+    // Prefer resort with code=DEMO, otherwise get the first is_demo=true resort
+    const { data: demoResorts, error: resortError } = await supabase
       .from("resorts")
       .select("id, code, is_demo, name")
       .or(`code.eq.${DEMO_RESORT_CODE},is_demo.eq.true`)
-      .single();
+      .order("code", { ascending: true }); // DEMO comes first alphabetically
 
-    if (resortError || !demoResort) {
+    if (resortError || !demoResorts?.length) {
       console.error("Demo resort not found:", resortError);
       return new Response(
         JSON.stringify({ success: false, error: "Demo resort not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Prefer resort with exact code "DEMO", otherwise use first result
+    const demoResort = demoResorts.find(r => r.code === DEMO_RESORT_CODE) || demoResorts[0];
 
     if (!demoResort.is_demo && demoResort.code !== DEMO_RESORT_CODE) {
       console.error("Safety check failed: Resort is neither is_demo=true nor code=DEMO");
@@ -190,9 +194,47 @@ serve(async (req) => {
     console.log(`Cleanup complete:`, results.deleted);
 
     // ============================================================
-    // PASS 2: FRESHNESS - Update guest dates to be today-relevant
+    // PASS 2: DEDUPLICATE - Remove duplicate guests per room
     // ============================================================
-    console.log("Pass 2: Refreshing guest dates...");
+    console.log("Pass 2: Deduplicating guests by room number...");
+
+    const { data: allGuests } = await supabase
+      .from("guests")
+      .select("id, room_number, created_at")
+      .eq("resort_id", demoResortId)
+      .order("created_at", { ascending: true });
+
+    let duplicatesDeleted = 0;
+    if (allGuests?.length && !isDryRun) {
+      // Group by room, keep oldest
+      const roomMap = new Map<string, string[]>();
+      for (const guest of allGuests) {
+        const existing = roomMap.get(guest.room_number) || [];
+        existing.push(guest.id);
+        roomMap.set(guest.room_number, existing);
+      }
+      
+      for (const [room, guestIds] of roomMap) {
+        if (guestIds.length > 1) {
+          const duplicateIds = guestIds.slice(1); // Keep first (oldest)
+          // Delete related records first
+          await supabase.from("activity_bookings").delete().in("guest_id", duplicateIds);
+          await supabase.from("restaurant_reservations").delete().in("guest_id", duplicateIds);
+          await supabase.from("guest_requests").delete().in("guest_id", duplicateIds);
+          await supabase.from("booking_attendees").delete().in("guest_id", duplicateIds);
+          await supabase.from("travel_party_members").delete().in("guest_id", duplicateIds);
+          await supabase.from("guest_sessions").delete().in("guest_id", duplicateIds);
+          await supabase.from("guests").delete().in("id", duplicateIds);
+          duplicatesDeleted += duplicateIds.length;
+        }
+      }
+    }
+    console.log(`Deduplicated: ${duplicatesDeleted} duplicate guests removed`);
+
+    // ============================================================
+    // PASS 3: FRESHNESS - Update guest dates to be today-relevant
+    // ============================================================
+    console.log("Pass 3: Refreshing guest dates...");
 
     const { data: demoGuests } = await supabase
       .from("guests")
@@ -223,9 +265,9 @@ serve(async (req) => {
     console.log(`Guest freshness: ${results.freshness.guests_updated} updated`);
 
     // ============================================================
-    // PASS 3: AVAILABILITY - Ensure 14-day inventory
+    // PASS 4: AVAILABILITY - Ensure 14-day inventory
     // ============================================================
-    console.log("Pass 3: Ensuring availability for next 14 days...");
+    console.log("Pass 4: Ensuring availability for next 14 days...");
 
     // Archive old sessions (> 7 days ago)
     const archiveCutoff = formatDate(addDays(today, -7));
@@ -358,9 +400,9 @@ serve(async (req) => {
     console.log(`Availability:`, results.availability);
 
     // ============================================================
-    // PASS 4: AUTO-HEAL - Ensure dashboards have seed activity
+    // PASS 5: AUTO-HEAL - Ensure dashboards have seed activity
     // ============================================================
-    console.log("Pass 4: Auto-healing seeded bookings...");
+    console.log("Pass 5: Auto-healing seeded bookings...");
 
     // Count existing seed bookings in next 7 days
     const next7Days = formatDate(addDays(today, 7));

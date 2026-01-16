@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, CheckCircle, AlertCircle, Clock, Loader2, Eye } from 'lucide-react';
+import { RefreshCw, CheckCircle, AlertCircle, Clock, Loader2, Eye, CalendarClock } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, addDays, format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,28 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Calculate next scheduled run (every 4 days at 6:00 UTC)
+function getNextScheduledRun(lastRunDate?: Date): Date {
+  const now = new Date();
+  // If we have a last run, next is 4 days from that
+  if (lastRunDate) {
+    const next = addDays(lastRunDate, 4);
+    next.setUTCHours(6, 0, 0, 0);
+    if (next > now) return next;
+  }
+  // Otherwise, calculate based on current date
+  const next = new Date(now);
+  next.setUTCHours(6, 0, 0, 0);
+  if (next <= now) {
+    next.setDate(next.getDate() + 1);
+  }
+  // Find next multiple of 4 days
+  const dayOfMonth = next.getDate();
+  const daysUntilNext = (4 - (dayOfMonth % 4)) % 4;
+  next.setDate(next.getDate() + daysUntilNext);
+  return next;
+}
 
 interface ResetLog {
   id: string;
@@ -91,6 +113,8 @@ export function DemoResetButton() {
 
   const isRunning = dryRunMutation.isPending || resetMutation.isPending;
 
+  const nextScheduled = getNextScheduledRun(lastRun ? new Date(lastRun.ran_at) : undefined);
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -101,22 +125,28 @@ export function DemoResetButton() {
               Demo Reset
             </CardTitle>
             <CardDescription>
-              Clean demo data and refresh showroom content
+              Auto-resets every 4 days • Cleans demo data, refreshes guests
             </CardDescription>
           </div>
-          {lastRun && (
-            <Badge 
-              variant={lastRun.status === 'success' ? 'default' : 'destructive'}
-              className="text-xs"
-            >
-              {lastRun.status === 'success' ? (
-                <CheckCircle className="h-3 w-3 mr-1" />
-              ) : (
-                <AlertCircle className="h-3 w-3 mr-1" />
-              )}
-              {formatDistanceToNow(new Date(lastRun.ran_at), { addSuffix: true })}
-            </Badge>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {lastRun && (
+              <Badge 
+                variant={lastRun.status === 'success' ? 'default' : 'destructive'}
+                className="text-xs"
+              >
+                {lastRun.status === 'success' ? (
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                ) : (
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                )}
+                {formatDistanceToNow(new Date(lastRun.ran_at), { addSuffix: true })}
+              </Badge>
+            )}
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <CalendarClock className="h-3 w-3" />
+              Next: {format(nextScheduled, 'MMM d, HH:mm')} UTC
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
