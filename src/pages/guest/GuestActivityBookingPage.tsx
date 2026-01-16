@@ -66,39 +66,21 @@ export default function GuestActivityBookingPage() {
       const today = new Date().toISOString().split('T')[0];
       const startDate = guest.checkInDate > today ? guest.checkInDate : today;
       
-      // Query sessions directly with proper date filtering
+      // Use secure RPC to fetch activities (resort-scoped, no cross-tenant leakage)
+      const { data: activities, error: activitiesError } = await supabase
+        .rpc('guest_get_activity_details', { p_resort_id: guest.resortId });
+      
+      if (activitiesError) throw activitiesError;
+      if (!activities || activities.length === 0) return [];
+      
+      const activityIds = activities.map((a: any) => a.id);
+      const activitiesMap = new Map(activities.map((a: any) => [a.id, a]));
+      
+      // Query sessions for these activities
       const { data: sessions, error } = await supabase
         .from('activity_sessions')
-        .select(`
-          id,
-          date,
-          start_time,
-          end_time,
-          capacity,
-          notes,
-          status,
-          activity:activities!inner(
-            id,
-            name,
-            short_description,
-            category,
-            duration_minutes,
-            max_pax_per_booking,
-            requires_approval,
-            image_url,
-            resort_id,
-            is_active,
-            guest_can_book,
-            difficulty_level,
-            default_price_per_person,
-            guest_cutoff_hours,
-            guest_can_cancel,
-            guest_cancel_cutoff_hours
-          )
-        `)
-        .eq('activity.resort_id', guest.resortId)
-        .eq('activity.is_active', true)
-        .eq('activity.guest_can_book', true)
+        .select('id, date, start_time, end_time, capacity, notes, status, activity_id')
+        .in('activity_id', activityIds)
         .eq('status', 'SCHEDULED')
         .gte('date', startDate)
         .lte('date', guest.checkOutDate)
@@ -123,29 +105,32 @@ export default function GuestActivityBookingPage() {
         bookedCounts[b.session_id] = (bookedCounts[b.session_id] || 0) + b.num_adults + b.num_children;
       });
       
-      // Transform to match expected format
-      return (sessions || []).map(s => ({
-        id: s.id,
-        date: s.date,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        capacity: s.capacity,
-        notes: s.notes,
-        activity_id: s.activity.id,
-        activity_name: s.activity.name,
-        description: s.activity.short_description,
-        category: s.activity.category,
-        duration_minutes: s.activity.duration_minutes,
-        max_pax_per_booking: s.activity.max_pax_per_booking,
-        requires_approval: s.activity.requires_approval,
-        image_url: s.activity.image_url,
-        difficulty_level: s.activity.difficulty_level,
-        price_per_person: s.activity.default_price_per_person,
-        guest_cutoff_hours: s.activity.guest_cutoff_hours,
-        guest_can_cancel: s.activity.guest_can_cancel,
-        guest_cancel_cutoff_hours: s.activity.guest_cancel_cutoff_hours,
-        remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
-      }));
+      // Transform to match expected format, joining activity data client-side
+      return (sessions || []).map(s => {
+        const activity = activitiesMap.get(s.activity_id);
+        return {
+          id: s.id,
+          date: s.date,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          capacity: s.capacity,
+          notes: s.notes,
+          activity_id: s.activity_id,
+          activity_name: activity?.name || 'Unknown Activity',
+          description: activity?.short_description,
+          category: activity?.category,
+          duration_minutes: activity?.duration_minutes,
+          max_pax_per_booking: activity?.max_pax_per_booking,
+          requires_approval: activity?.requires_approval,
+          image_url: activity?.image_url,
+          difficulty_level: activity?.difficulty_level,
+          price_per_person: activity?.default_price_per_person,
+          guest_cutoff_hours: activity?.guest_cutoff_hours,
+          guest_can_cancel: activity?.guest_can_cancel,
+          guest_cancel_cutoff_hours: activity?.guest_cancel_cutoff_hours,
+          remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
+        };
+      });
     },
     enabled: !!guest,
     refetchOnWindowFocus: true,
