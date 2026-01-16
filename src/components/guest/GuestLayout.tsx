@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
-import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
+import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   IconStay,
   IconActivities,
@@ -20,20 +20,20 @@ import { Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const baseNavItems = [
-  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home', activeColor: 'text-primary', activeBg: 'bg-primary/10' },
-  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities', activeColor: 'text-lagoon', activeBg: 'bg-lagoon/10' },
-  { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining', activeColor: 'text-sunset', activeBg: 'bg-sunset/10' },
-  { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings', activeColor: 'text-orchid', activeBg: 'bg-orchid/10' },
+  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
+  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
+  { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining' },
+  { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings' },
 ];
 
-const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty', activeColor: 'text-amber-500', activeBg: 'bg-amber-500/10' };
+const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty' };
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
 
-// Memoized nav item for better mobile performance
+// Memoized nav item with unified lime indicator
 const NavItem = memo(({ item, isActive, label }: { 
-  item: { icon: React.ComponentType<{ className?: string }>; href: string; activeColor: string; activeBg: string }; 
+  item: { icon: React.ComponentType<{ className?: string }>; href: string }; 
   isActive: boolean; 
   label: string;
 }) => {
@@ -44,20 +44,21 @@ const NavItem = memo(({ item, isActive, label }: {
       className={cn(
         "guest-nav-item relative min-w-[60px] tap-target touch-passive",
         isActive 
-          ? `${item.activeColor} ${item.activeBg}` 
+          ? "text-primary" 
           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
       )}
     >
+      {/* Unified lime dot indicator */}
       {isActive && (
-        <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-current" />
+        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--lime-400))]" />
       )}
       <Icon className={cn(
         "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
         isActive && "scale-110"
       )} />
       <span className={cn(
-        "text-[10px] sm:text-[11px] font-semibold transition-all",
-        isActive && "font-bold"
+        "text-[10px] sm:text-[11px] font-medium transition-all",
+        isActive && "font-bold text-primary"
       )}>
         {label}
       </span>
@@ -208,19 +209,25 @@ export function GuestLayout() {
         </div>
       </header>
 
-      {/* Main content with optimized padding and GPU acceleration */}
+      {/* Main content with safe-area-aware bottom padding */}
       <main 
         ref={mainRef} 
-        className="flex-1 overflow-auto pb-24 sm:pb-28 scroll-smooth-touch gpu-scroll touch-scroll"
+        className="flex-1 overflow-auto guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
       >
         <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
           <Outlet />
         </div>
       </main>
 
-      {/* Mobile-optimized Bottom Navigation with glassmorphism */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 surface-glass-strong border-t border-border/20 shadow-lg shadow-black/10 safe-area-inset-bottom contain-layout">
-        <div className="flex h-16 sm:h-20 items-center justify-around px-2 max-w-lg mx-auto">
+      {/* Mobile-optimized Bottom Navigation with glassmorphism + safe area */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 guest-glass-bar border-t border-border/20 contain-layout">
+        <div 
+          className="flex items-center justify-around px-2 max-w-lg mx-auto"
+          style={{ 
+            height: 'var(--guest-nav-h)', 
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
+          }}
+        >
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/guest' && location.pathname.startsWith(item.href));

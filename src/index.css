@@ -1249,6 +1249,58 @@
 
 /* === Guest Portal Specific Styles === */
 @layer components {
+  /* === Guest Portal CSS Variables === */
+  :root {
+    --guest-nav-h: 72px;
+  }
+
+  /* Safe bottom padding accounting for nav + safe area */
+  .guest-safe-bottom {
+    padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  /* Glass bar for headers/nav with gradient stroke */
+  .guest-glass-bar {
+    @apply backdrop-blur-xl border-border/20;
+    background: hsl(var(--card) / 0.85);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--lime-400) / 0.05) inset,
+      0 4px 24px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .dark .guest-glass-bar {
+    background: hsl(var(--card) / 0.7);
+  }
+
+  /* Horizontal chip scroll row with fade edges */
+  .guest-chip-row {
+    @apply flex gap-2 overflow-x-auto pb-1 -mx-4 px-4;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(90deg, transparent, black 16px, black calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 16px, black calc(100% - 16px), transparent);
+  }
+
+  .guest-chip-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .guest-chip-row > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* Consistent guest card styling */
+  .guest-card-surface {
+    @apply bg-card rounded-2xl border border-border/50 p-4 transition-all duration-150;
+  }
+
+  .guest-card-surface:hover {
+    @apply border-border/80 shadow-soft;
+  }
+
   /* Guest card with subtle animation */
   .guest-card {
     @apply relative bg-card rounded-3xl border border-border/50 overflow-hidden transition-all duration-200;
@@ -1316,6 +1368,15 @@
   
   .tap-target-lg {
     @apply min-h-[48px] min-w-[48px];
+  }
+
+  /* Collapsible sticky header */
+  .guest-sticky-header {
+    @apply sticky top-0 z-10 -mx-4 px-4 pt-2 pb-3 transition-all duration-200;
+  }
+
+  .guest-sticky-header.is-compact {
+    @apply guest-glass-bar border-b;
   }
 }
 

@@ -173,13 +173,13 @@ export default function GuestRestaurantBrowser() {
         </SelectContent>
       </Select>
 
-      {/* Date Picker with Month Navigation */}
+      {/* Compact Date Picker */}
       <GuestDatePicker
         value={selectedDate}
         onChange={setSelectedDate}
         minDate={guest.checkInDate}
         maxDate={guest.checkOutDate}
-        hint={t('dining.selectDate')}
+        compact={true}
       />
 
       {isLoading ? (
