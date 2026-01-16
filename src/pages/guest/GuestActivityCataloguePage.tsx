@@ -52,23 +52,23 @@ export default function GuestActivityCataloguePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<'all' | 'events'>('all');
 
-  // Fetch all activities for the resort
+  // Fetch all activities for the resort using secure RPC (resort-scoped, no cross-tenant leakage)
   const { data: activities, isLoading } = useQuery({
     queryKey: ['guest-activity-catalogue', guest?.resortId],
     queryFn: async () => {
       if (!guest) return [];
       
       const { data, error } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('resort_id', guest.resortId)
-        .eq('is_active', true)
-        .eq('guest_can_book', true)
-        .order('category')
-        .order('name');
+        .rpc('guest_get_activity_details', { p_resort_id: guest.resortId });
 
       if (error) throw error;
-      return data as Activity[];
+      
+      // Sort client-side since RPC doesn't support ordering
+      return (data || []).sort((a: any, b: any) => {
+        const catCompare = (a.category || '').localeCompare(b.category || '');
+        if (catCompare !== 0) return catCompare;
+        return (a.name || '').localeCompare(b.name || '');
+      }) as Activity[];
     },
     enabled: !!guest,
   });
@@ -81,30 +81,21 @@ export default function GuestActivityCataloguePage() {
       const today = new Date().toISOString().split('T')[0];
       const startDate = guest.checkInDate > today ? guest.checkInDate : today;
       
-      // Query sessions directly
+      // Use secure RPC to fetch activities (resort-scoped)
+      const { data: activities, error: activitiesError } = await supabase
+        .rpc('guest_get_activity_details', { p_resort_id: guest.resortId });
+      
+      if (activitiesError) throw activitiesError;
+      if (!activities || activities.length === 0) return [];
+      
+      const activityIds = activities.map((a: any) => a.id);
+      const activitiesMap = new Map(activities.map((a: any) => [a.id, a]));
+      
+      // Query sessions for these activities
       const { data: sessions, error } = await supabase
         .from('activity_sessions')
-        .select(`
-          id,
-          date,
-          start_time,
-          end_time,
-          capacity,
-          notes,
-          status,
-          activity:activities!inner(
-            id,
-            name,
-            category,
-            requires_approval,
-            resort_id,
-            is_active,
-            guest_can_book
-          )
-        `)
-        .eq('activity.resort_id', guest.resortId)
-        .eq('activity.is_active', true)
-        .eq('activity.guest_can_book', true)
+        .select('id, date, start_time, end_time, capacity, notes, status, activity_id')
+        .in('activity_id', activityIds)
         .eq('status', 'SCHEDULED')
         .gte('date', startDate)
         .lte('date', guest.checkOutDate)
@@ -128,16 +119,19 @@ export default function GuestActivityCataloguePage() {
         bookedCounts[b.session_id] = (bookedCounts[b.session_id] || 0) + b.num_adults + b.num_children;
       });
       
-      return (sessions || []).map(s => ({
-        id: s.id,
-        date: s.date,
-        start_time: s.start_time,
-        notes: s.notes,
-        activity_name: s.activity.name,
-        category: s.activity.category,
-        requires_approval: s.activity.requires_approval,
-        remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
-      }));
+      return (sessions || []).map(s => {
+        const activity = activitiesMap.get(s.activity_id);
+        return {
+          id: s.id,
+          date: s.date,
+          start_time: s.start_time,
+          notes: s.notes,
+          activity_name: activity?.name || 'Unknown Activity',
+          category: activity?.category,
+          requires_approval: activity?.requires_approval,
+          remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
+        };
+      });
     },
     enabled: !!guest,
   });

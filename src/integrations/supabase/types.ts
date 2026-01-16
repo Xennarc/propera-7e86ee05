@@ -4723,6 +4723,37 @@ export type Database = {
         }
         Returns: Json
       }
+      guest_get_activity_details: {
+        Args: { p_activity_id?: string; p_resort_id: string }
+        Returns: {
+          age_min: number
+          cancellation_policy_text: string
+          category: string
+          default_max_capacity: number
+          default_price_per_person: number
+          description: string
+          difficulty_level: string
+          duration_minutes: number
+          faq: Json
+          full_description: string
+          guest_can_book: boolean
+          guest_can_cancel: boolean
+          guest_cancel_cutoff_hours: number
+          guest_cutoff_hours: number
+          health_and_safety_notes: string
+          highlights: Json
+          id: string
+          image_url: string
+          includes: string
+          is_swimming_required: boolean
+          max_age: number
+          max_pax_per_booking: number
+          name: string
+          requires_approval: boolean
+          short_description: string
+          suitable_for_non_swimmers: boolean
+        }[]
+      }
       guest_get_available_sessions: {
         Args: { p_category?: string; p_date: string; p_guest_id: string }
         Returns: {
