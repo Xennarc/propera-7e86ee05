@@ -7,6 +7,7 @@ import { useSyncInvalidation } from '@/hooks/sync/useSyncInvalidation';
 interface UseDiningBookingSyncOptions {
   slotId?: string;
   guestId?: string;
+  resortId?: string; // Allow passing resortId directly for guest portal
   enabled?: boolean;
 }
 
@@ -16,12 +17,16 @@ interface UseDiningBookingSyncOptions {
  */
 export function useDiningBookingSync({ 
   slotId, 
-  guestId, 
+  guestId,
+  resortId: providedResortId,
   enabled = true 
 }: UseDiningBookingSyncOptions = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
   const { invalidateDining } = useSyncInvalidation();
+  
+  // Use provided resortId (for guests) or currentResort.id (for staff)
+  const resortId = providedResortId || currentResort?.id;
 
   const handleReservationChange = useCallback((payload: any) => {
     const changedSlotId = payload.new?.restaurant_slot_id || payload.old?.restaurant_slot_id;
@@ -69,17 +74,17 @@ export function useDiningBookingSync({
   }, [queryClient, currentResort?.id]);
 
   useEffect(() => {
-    if (!enabled || !currentResort?.id) return;
+    if (!enabled || !resortId) return;
 
     // Build filter based on provided options
-    let filter = `resort_id=eq.${currentResort.id}`;
+    let filter = `resort_id=eq.${resortId}`;
     if (slotId) {
       filter = `restaurant_slot_id=eq.${slotId}`;
     } else if (guestId) {
       filter = `guest_id=eq.${guestId}`;
     }
 
-    const channelName = `dining-reservations-sync-${currentResort.id}${slotId ? `-${slotId}` : ''}${guestId ? `-${guestId}` : ''}`;
+    const channelName = `dining-reservations-sync-${resortId}${slotId ? `-${slotId}` : ''}${guestId ? `-${guestId}` : ''}`;
 
     const channel = supabase
       .channel(channelName)
@@ -98,15 +103,21 @@ export function useDiningBookingSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, slotId, guestId, handleReservationChange]);
+  }, [enabled, resortId, slotId, guestId, handleReservationChange]);
 }
 
 /**
  * Hook for real-time sync of restaurant time slots (capacity changes, status changes)
  */
-export function useDiningSlotSync({ enabled = true }: { enabled?: boolean } = {}) {
+export function useDiningSlotSync({ 
+  resortId: providedResortId,
+  enabled = true 
+}: { resortId?: string; enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Use provided resortId (for guests) or currentResort.id (for staff)
+  const resortId = providedResortId || currentResort?.id;
 
   const handleSlotChange = useCallback((payload: any) => {
     const changedSlotId = payload.new?.id || payload.old?.id;
@@ -138,17 +149,17 @@ export function useDiningSlotSync({ enabled = true }: { enabled?: boolean } = {}
   }, [queryClient, currentResort?.id]);
 
   useEffect(() => {
-    if (!enabled || !currentResort?.id) return;
+    if (!enabled || !resortId) return;
 
     const channel = supabase
-      .channel(`dining-slots-sync-${currentResort.id}`)
+      .channel(`dining-slots-sync-${resortId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'restaurant_time_slots',
-          filter: `resort_id=eq.${currentResort.id}`,
+          filter: `resort_id=eq.${resortId}`,
         },
         handleSlotChange
       )
@@ -157,17 +168,17 @@ export function useDiningSlotSync({ enabled = true }: { enabled?: boolean } = {}
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, handleSlotChange]);
+  }, [enabled, resortId, handleSlotChange]);
 }
 
 /**
  * Compound hook for guest portal - listens to both reservation and slot changes
  */
-export function useGuestDiningSync(guestId: string | undefined) {
-  const enabled = !!guestId;
+export function useGuestDiningSync(guestId: string | undefined, resortId?: string) {
+  const enabled = !!guestId && !!resortId;
   
-  useDiningBookingSync({ guestId, enabled });
-  useDiningSlotSync({ enabled });
+  useDiningBookingSync({ guestId, resortId, enabled });
+  useDiningSlotSync({ resortId, enabled });
 }
 
 /**

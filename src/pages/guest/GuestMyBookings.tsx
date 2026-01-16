@@ -72,8 +72,8 @@ export default function GuestMyBookings() {
   } | null>(null);
 
   // Enable real-time sync for activities and dining
-  useGuestActivitySync(guest?.guestId);
-  useGuestDiningSync(guest?.guestId);
+  useGuestActivitySync(guest?.guestId, guest?.resortId);
+  useGuestDiningSync(guest?.guestId, guest?.resortId);
 
   // First get room guests to show shared room bookings
   const { data: roomGuests } = useQuery({

@@ -160,6 +160,7 @@ export default function GuestRestaurantBookingPage() {
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-slots'] });
+        queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
         setBookingResult({
           success: true,
           requiresApproval: data.requires_approval,
