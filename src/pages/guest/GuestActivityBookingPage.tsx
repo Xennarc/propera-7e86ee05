@@ -58,18 +58,94 @@ export default function GuestActivityBookingPage() {
   // Enable real-time sync for activity bookings
   useGuestActivitySync(guest?.guestId);
 
-  // Fetch all available sessions
+  // Fetch all available sessions for the guest's stay period
   const { data: allSessions, isLoading, refetch: refetchSessions } = useQuery({
-    queryKey: ['guest-all-sessions', guest?.guestId],
+    queryKey: ['guest-all-sessions', guest?.guestId, guest?.checkInDate, guest?.checkOutDate],
     queryFn: async () => {
       if (!guest) return [];
-      const { data, error } = await supabase.rpc('guest_get_available_sessions', {
-        p_guest_id: guest.guestId,
-        p_date: null,
-        p_category: null,
-      });
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = guest.checkInDate > today ? guest.checkInDate : today;
+      
+      // Query sessions directly with proper date filtering
+      const { data: sessions, error } = await supabase
+        .from('activity_sessions')
+        .select(`
+          id,
+          date,
+          start_time,
+          end_time,
+          capacity,
+          notes,
+          status,
+          activity:activities!inner(
+            id,
+            name,
+            short_description,
+            category,
+            duration_minutes,
+            max_pax_per_booking,
+            requires_approval,
+            image_url,
+            resort_id,
+            is_active,
+            guest_can_book,
+            difficulty_level,
+            default_price_per_person,
+            guest_cutoff_hours,
+            guest_can_cancel,
+            guest_cancel_cutoff_hours
+          )
+        `)
+        .eq('activity.resort_id', guest.resortId)
+        .eq('activity.is_active', true)
+        .eq('activity.guest_can_book', true)
+        .eq('status', 'SCHEDULED')
+        .gte('date', startDate)
+        .lte('date', guest.checkOutDate)
+        .order('date')
+        .order('start_time');
+
       if (error) throw error;
-      return (data as any[]) || [];
+      
+      // Fetch bookings to calculate remaining spots
+      const sessionIds = sessions?.map(s => s.id) || [];
+      if (sessionIds.length === 0) return [];
+      
+      const { data: bookings } = await supabase
+        .from('activity_bookings')
+        .select('session_id, num_adults, num_children')
+        .in('session_id', sessionIds)
+        .in('status', ['CONFIRMED', 'PENDING']);
+      
+      // Calculate booked counts per session
+      const bookedCounts: Record<string, number> = {};
+      bookings?.forEach(b => {
+        bookedCounts[b.session_id] = (bookedCounts[b.session_id] || 0) + b.num_adults + b.num_children;
+      });
+      
+      // Transform to match expected format
+      return (sessions || []).map(s => ({
+        id: s.id,
+        date: s.date,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        capacity: s.capacity,
+        notes: s.notes,
+        activity_id: s.activity.id,
+        activity_name: s.activity.name,
+        description: s.activity.short_description,
+        category: s.activity.category,
+        duration_minutes: s.activity.duration_minutes,
+        max_pax_per_booking: s.activity.max_pax_per_booking,
+        requires_approval: s.activity.requires_approval,
+        image_url: s.activity.image_url,
+        difficulty_level: s.activity.difficulty_level,
+        price_per_person: s.activity.default_price_per_person,
+        guest_cutoff_hours: s.activity.guest_cutoff_hours,
+        guest_can_cancel: s.activity.guest_can_cancel,
+        guest_cancel_cutoff_hours: s.activity.guest_cancel_cutoff_hours,
+        remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
+      }));
     },
     enabled: !!guest,
     refetchOnWindowFocus: true,

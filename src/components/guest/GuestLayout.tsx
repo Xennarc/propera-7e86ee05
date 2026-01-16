@@ -72,6 +72,14 @@ export function GuestLayout() {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Set initialized once loading completes (prevents flash)
+  useEffect(() => {
+    if (!loading) {
+      setIsInitialized(true);
+    }
+  }, [loading]);
 
   // Fetch branding dynamically from DB - this ensures immediate updates after staff saves
   const { data: brandingData } = useResortBranding(guest?.resortId);
@@ -137,7 +145,7 @@ export function GuestLayout() {
     setIsScrolled(false);
   }, [currentTab]);
 
-  if (loading) {
+  if (loading || !isInitialized) {
     return (
       <div className="flex min-h-screen items-center justify-center hero-pattern">
         <ProperaLoader size={64} text="Loading your experience..." />
