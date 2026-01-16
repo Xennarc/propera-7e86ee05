@@ -32,12 +32,13 @@ const ValueCard = memo(function ValueCard({
 }) {
   return (
     <div
-      className={`value-card-premium group cursor-pointer hover-lift-card stagger-${staggerIndex + 1}`}
+      className={`group cursor-pointer stagger-${staggerIndex + 1}`}
     >
-      <div className="relative">
-        {/* Icon orb with CSS hover */}
-        <div className="icon-orb-gradient icon-orb-hover text-primary mb-6">
-          <card.icon className="h-7 w-7" />
+      <div className="value-card-premium stroke-gradient h-full">
+        <div className="relative p-6">
+          {/* Icon orb with gradient */}
+          <div className="icon-orb-gradient icon-orb-hover text-primary mb-6">
+            <card.icon className="h-7 w-7" />
         </div>
         
         <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>
@@ -62,6 +63,7 @@ const ValueCard = memo(function ValueCard({
         <div className="learn-more-hint mt-4 flex items-center gap-1 text-xs text-primary font-medium">
           <span>Learn more</span>
           <ArrowRight className="h-3 w-3" />
+        </div>
         </div>
       </div>
     </div>

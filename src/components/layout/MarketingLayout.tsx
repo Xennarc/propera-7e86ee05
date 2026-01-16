@@ -29,7 +29,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
   ];
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden bg-background">
       {/* Fixed canvas background */}
       <div className="marketing-canvas" />
       
@@ -39,15 +39,15 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
       <div className="marketing-glow-cta" />
       
       {/* Subtle grain overlay */}
-      <div className="fixed inset-0 pointer-events-none grain-overlay opacity-30" />
+      <div className="fixed inset-0 pointer-events-none grain-overlay opacity-20 dark:opacity-30" />
 
       {/* Scrollable content */}
       <div className="relative z-10">
-        {/* Header - translucent becoming solid on scroll */}
+        {/* Header - glassmorphism with gradient stroke */}
         <header 
           className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
             scrolled 
-              ? 'bg-background/90 backdrop-blur-xl shadow-sm' 
+              ? 'surface-glass-strong shadow-lg shadow-black/5 dark:shadow-black/20' 
               : 'bg-transparent backdrop-blur-sm'
           }`}
         >
@@ -78,12 +78,12 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             {/* Right: CTAs */}
             <div className="hidden md:flex items-center gap-3">
               <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-              <Button asChild variant="ghost" size="sm">
+              <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Link to="/auth">
                   Sign In
                 </Link>
               </Button>
-              <Button asChild size="sm" className="rounded-full px-5 font-semibold">
+              <Button asChild size="sm" className="rounded-full px-5 font-semibold glow-lime">
                 <Link to="/book-demo">
                   Book a demo
                 </Link>
@@ -99,9 +99,9 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             </div>
           </nav>
           
-          {/* Mobile Menu - Drawer style */}
+          {/* Mobile Menu - Drawer style with glassmorphism */}
           {mobileMenuOpen && (
-            <div className="md:hidden bg-background/98 backdrop-blur-xl py-6">
+            <div className="md:hidden surface-glass-strong py-6 border-t border-border/20">
               <div className="container mx-auto px-4 flex flex-col gap-4">
                 {navLinks.map((link) => (
                   <Link 
@@ -118,12 +118,12 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                   </Link>
                 ))}
                 <div className="pt-4 space-y-3">
-                  <Button asChild variant="outline" size="lg" className="w-full rounded-xl">
+                  <Button asChild variant="outline" size="lg" className="w-full rounded-full">
                     <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild size="lg" className="w-full rounded-xl">
+                  <Button asChild size="lg" className="w-full rounded-full glow-lime">
                     <Link to="/book-demo" onClick={() => setMobileMenuOpen(false)}>
                       Book a demo
                     </Link>

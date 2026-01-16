@@ -36,7 +36,7 @@ export function StaffTopbar({ onMenuClick, onCommandBarOpen }: StaffTopbarProps)
   const { currentResort } = useResort();
 
   return (
-    <header className="sticky top-0 z-20 h-14 lg:h-16 border-b border-border/50 bg-card/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 h-14 lg:h-16 border-b border-border/30 surface-glass-strong">
       <div className="flex h-full items-center justify-between px-4 lg:px-6 gap-4">
         {/* Left side */}
         <div className="flex items-center gap-3 min-w-0 flex-1">

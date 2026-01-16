@@ -18,14 +18,18 @@ export function HomeHero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden hero-premium-bg grain-overlay atlas-texture">
-      {/* Lagoon glow spotlights - enhanced for light mode */}
-      <div className="absolute top-1/4 right-0 w-[600px] md:w-[900px] h-[600px] md:h-[900px] bg-primary/15 dark:bg-primary/12 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[400px] md:w-[700px] h-[400px] md:h-[700px] bg-teal-400/15 dark:bg-teal-400/15 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-lagoon-500/10 dark:bg-lagoon-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Soft radial glow behind headline */}
-      <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-primary/12 dark:bg-primary/15 rounded-full blur-[100px] pointer-events-none" />
+    <section className="relative min-h-screen flex items-center pt-24 pb-16 overflow-hidden bg-background">
+      {/* Midnight gradient base */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
+      
+      {/* Lime glow spotlight */}
+      <div className="absolute top-1/4 right-0 w-[600px] md:w-[800px] h-[600px] md:h-[800px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[150px] pointer-events-none" />
+      
+      {/* Blurple glow */}
+      <div className="absolute bottom-0 left-0 w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[120px] pointer-events-none" />
+      
+      {/* Teal accent glow */}
+      <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -47,7 +51,7 @@ export function HomeHero() {
               <Button 
                 asChild 
                 size="lg" 
-                className="btn-cta-premium text-base px-8 h-14 rounded-xl text-primary-foreground transition-all duration-200 group"
+                className="bg-primary text-primary-foreground text-base px-8 h-14 rounded-full font-semibold glow-lime transition-all duration-200 group hover:-translate-y-0.5"
               >
                 <Link to="/book-demo">
                   Book a demo
@@ -57,7 +61,7 @@ export function HomeHero() {
               <Button
                 variant="outline"
                 size="lg"
-                className="btn-ghost-premium text-base px-8 h-14 rounded-xl group"
+                className="text-base px-8 h-14 rounded-full border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 group"
                 onClick={scrollToProduct}
               >
                 <Zap className="mr-2 h-4 w-4 text-primary" />
@@ -65,10 +69,10 @@ export function HomeHero() {
               </Button>
             </div>
 
-            {/* Value Chips - static for instant load */}
+            {/* Value Chips - glassmorphism style */}
             <div className="flex flex-wrap gap-2">
               {valueChips.map((chip) => (
-                <Badge key={chip} variant="secondary" className="px-3 py-1.5 text-xs font-medium bg-card/60 backdrop-blur-sm border border-border/30 hover:bg-card/80 transition-colors">
+                <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors">
                   {chip}
                 </Badge>
               ))}

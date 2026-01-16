@@ -151,10 +151,10 @@ export function GuestLayout() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      {/* Mobile-optimized Header with dynamic shadow */}
+      {/* Mobile-optimized Header with glassmorphism */}
       <header className={cn(
-        "sticky top-0 z-20 bg-card/95 backdrop-blur-xl border-b transition-all duration-200 safe-area-inset-top",
-        isScrolled ? "border-border/50 shadow-sm" : "border-transparent"
+        "sticky top-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
+        isScrolled ? "border-border/30 shadow-lg shadow-black/5" : "border-transparent"
       )}>
         <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
           <Link 
@@ -210,8 +210,8 @@ export function GuestLayout() {
         </div>
       </main>
 
-      {/* Mobile-optimized Bottom Navigation with active indicator */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 bg-card/98 backdrop-blur-xl border-t border-border/30 shadow-guest-elevated safe-area-inset-bottom contain-layout">
+      {/* Mobile-optimized Bottom Navigation with glassmorphism */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 surface-glass-strong border-t border-border/20 shadow-lg shadow-black/10 safe-area-inset-bottom contain-layout">
         <div className="flex h-16 sm:h-20 items-center justify-around px-2 max-w-lg mx-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 

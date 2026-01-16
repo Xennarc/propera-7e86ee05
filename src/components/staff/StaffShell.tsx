@@ -94,8 +94,8 @@ export function StaffShell() {
       />
       
       <div className="flex min-h-screen w-full bg-background">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/50">
+        {/* Desktop Sidebar - with gradient stroke */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
           <StaffSidebar />
         </aside>
 

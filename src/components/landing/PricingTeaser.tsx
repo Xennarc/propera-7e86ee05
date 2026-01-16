@@ -30,13 +30,13 @@ export function PricingTeaser() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button asChild size="lg" className="btn-cta-premium rounded-xl px-8 h-12 text-primary-foreground group">
+            <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full px-8 h-12 font-semibold glow-lime group hover:-translate-y-0.5 transition-all">
               <Link to="/pricing">
                 View pricing
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="btn-ghost-premium rounded-xl px-8 h-12">
+            <Button asChild variant="outline" size="lg" className="rounded-full px-8 h-12 border-border/50 hover:border-primary/30">
               <Link to="/book-demo">
                 Book a demo
               </Link>
