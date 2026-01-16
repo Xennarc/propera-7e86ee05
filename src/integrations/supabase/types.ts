@@ -4723,33 +4723,24 @@ export type Database = {
         }
         Returns: Json
       }
-      guest_get_available_sessions:
-        | {
-            Args: {
-              p_category?: Database["public"]["Enums"]["activity_category"]
-              p_date?: string
-              p_guest_id: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: { p_category?: string; p_date: string; p_guest_id: string }
-            Returns: {
-              activity_id: string
-              activity_name: string
-              capacity: number
-              category: string
-              description: string
-              difficulty_level: string
-              duration_minutes: number
-              end_time: string
-              id: string
-              image_url: string
-              remaining_spots: number
-              requires_approval: boolean
-              start_time: string
-            }[]
-          }
+      guest_get_available_sessions: {
+        Args: { p_category?: string; p_date: string; p_guest_id: string }
+        Returns: {
+          activity_id: string
+          activity_name: string
+          capacity: number
+          category: string
+          description: string
+          difficulty_level: string
+          duration_minutes: number
+          end_time: string
+          id: string
+          image_url: string
+          remaining_spots: number
+          requires_approval: boolean
+          start_time: string
+        }[]
+      }
       guest_get_available_slots: {
         Args: { p_date?: string; p_guest_id: string; p_restaurant_id?: string }
         Returns: Json

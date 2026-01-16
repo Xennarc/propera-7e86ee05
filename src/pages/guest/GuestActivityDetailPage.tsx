@@ -78,8 +78,10 @@ export default function GuestActivityDetailPage() {
     queryKey: ['guest-activity-sessions', activityId, guest?.guestId],
     queryFn: async () => {
       if (!guest) return [];
+      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase.rpc('guest_get_available_sessions', {
         p_guest_id: guest.guestId,
+        p_date: today,
       });
       if (error) throw error;
       // Filter sessions for this activity
