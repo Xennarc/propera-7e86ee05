@@ -300,7 +300,8 @@ const App = () => (
                   <Route index element={<GuestHome />} />
                   <Route path="profile" element={<GuestProfilePage />} />
                   <Route path="bookings" element={<GuestMyBookings />} />
-                  <Route path="activities" element={<GuestActivityCataloguePage />} />
+                  <Route path="activities" element={<GuestActivitySessionsPage />} />
+                  <Route path="activities/catalogue" element={<GuestActivityCataloguePage />} />
                   <Route path="activities/sessions" element={<GuestActivitySessionsPage />} />
                   <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />
                   <Route path="activities/:activityId" element={<GuestActivityDetailPage />} />

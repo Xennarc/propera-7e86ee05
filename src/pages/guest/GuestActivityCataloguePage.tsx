@@ -75,16 +75,69 @@ export default function GuestActivityCataloguePage() {
 
   // Fetch upcoming sessions to identify special events (one-off sessions)
   const { data: upcomingSessions } = useQuery({
-    queryKey: ['guest-upcoming-sessions', guest?.guestId],
+    queryKey: ['guest-upcoming-sessions', guest?.guestId, guest?.checkInDate, guest?.checkOutDate],
     queryFn: async () => {
       if (!guest) return [];
-      const { data, error } = await supabase.rpc('guest_get_available_sessions', {
-        p_guest_id: guest.guestId,
-        p_date: null,
-        p_category: null,
-      });
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = guest.checkInDate > today ? guest.checkInDate : today;
+      
+      // Query sessions directly
+      const { data: sessions, error } = await supabase
+        .from('activity_sessions')
+        .select(`
+          id,
+          date,
+          start_time,
+          end_time,
+          capacity,
+          notes,
+          status,
+          activity:activities!inner(
+            id,
+            name,
+            category,
+            requires_approval,
+            resort_id,
+            is_active,
+            guest_can_book
+          )
+        `)
+        .eq('activity.resort_id', guest.resortId)
+        .eq('activity.is_active', true)
+        .eq('activity.guest_can_book', true)
+        .eq('status', 'SCHEDULED')
+        .gte('date', startDate)
+        .lte('date', guest.checkOutDate)
+        .order('date')
+        .order('start_time');
+
       if (error) throw error;
-      return (data as any[]) || [];
+      
+      // Fetch bookings to calculate remaining spots
+      const sessionIds = sessions?.map(s => s.id) || [];
+      if (sessionIds.length === 0) return [];
+      
+      const { data: bookings } = await supabase
+        .from('activity_bookings')
+        .select('session_id, num_adults, num_children')
+        .in('session_id', sessionIds)
+        .in('status', ['CONFIRMED', 'PENDING']);
+      
+      const bookedCounts: Record<string, number> = {};
+      bookings?.forEach(b => {
+        bookedCounts[b.session_id] = (bookedCounts[b.session_id] || 0) + b.num_adults + b.num_children;
+      });
+      
+      return (sessions || []).map(s => ({
+        id: s.id,
+        date: s.date,
+        start_time: s.start_time,
+        notes: s.notes,
+        activity_name: s.activity.name,
+        category: s.activity.category,
+        requires_approval: s.activity.requires_approval,
+        remaining_spots: s.capacity - (bookedCounts[s.id] || 0),
+      }));
     },
     enabled: !!guest,
   });
