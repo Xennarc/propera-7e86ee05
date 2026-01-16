@@ -33,8 +33,8 @@ export function ResumeDemoBanner({
 
   return (
     <Card className={cn(
-      'relative overflow-hidden bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5',
-      'border-primary/20 p-4 md:p-6',
+      'relative overflow-hidden stroke-gradient',
+      'border-primary/20 p-4 md:p-6 rounded-2xl',
       className
     )}>
       {/* Dismiss button */}
@@ -78,7 +78,7 @@ export function ResumeDemoBanner({
             size="sm"
             onClick={onResume}
             disabled={isLoading}
-            className="rounded-full font-semibold"
+            className="rounded-full font-semibold glow-lime"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

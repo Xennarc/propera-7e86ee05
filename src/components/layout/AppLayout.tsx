@@ -105,7 +105,7 @@ export function AppLayout() {
         
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top App Bar */}
-          <header className="sticky top-0 z-10 h-14 lg:h-16 border-b border-border/50 bg-card/90 backdrop-blur-xl shadow-soft">
+          <header className="sticky top-0 z-10 h-14 lg:h-16 border-b border-border/30 surface-glass-strong">
             <div className="flex h-full items-center justify-between px-4 lg:px-6 gap-4">
               <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1">
                 {/* Mobile Menu */}

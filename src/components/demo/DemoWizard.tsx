@@ -163,7 +163,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-3xl dark:bg-midnight-900">
         {step === 'form' && (
           <>
             <DialogHeader>
@@ -193,7 +193,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
 
               <Button 
                 type="submit" 
-                className="w-full rounded-full font-semibold" 
+                className="w-full rounded-full font-semibold glow-lime" 
                 size="lg"
                 disabled={!isFormValid() || isSubmitting}
               >
@@ -237,7 +237,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
             <div className="space-y-3">
               <Button 
                 size="lg" 
-                className="w-full rounded-full font-semibold"
+                className="w-full rounded-full font-semibold glow-lime"
                 onClick={openStaffConsole}
               >
                 Open Staff Console
@@ -323,7 +323,7 @@ export function DemoWizard({ open, onOpenChange, resumeMode = false }: DemoWizar
             <div className="space-y-3">
               <Button 
                 size="lg" 
-                className="w-full rounded-full font-semibold"
+                className="w-full rounded-full font-semibold glow-lime"
                 onClick={() => window.open('mailto:hello@propera.io?subject=Demo access request', '_blank')}
               >
                 <Mail className="mr-2 h-4 w-4" />

@@ -65,7 +65,7 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
               <p className="text-sm text-muted-foreground mb-4">
                 Tell us your resort size and departments — we'll recommend the best fit.
               </p>
-              <Button asChild size="sm" className="btn-cta-premium rounded-full text-primary-foreground">
+              <Button asChild size="sm" className="bg-primary text-primary-foreground rounded-full font-semibold glow-lime">
                 <a href="mailto:hello@propera.io?subject=Help me choose a plan">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4" />

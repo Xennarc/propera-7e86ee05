@@ -50,9 +50,9 @@ export default function GuestLogin() {
       <main className="flex-1 flex items-start justify-center px-4 pt-8 relative z-10">
         <div className="w-full max-w-md space-y-6">
           {/* Main info card */}
-          <Card className="shadow-elevated border-border/40">
+          <Card className="shadow-xl shadow-black/10 border-border/30 dark:bg-midnight-900 rounded-3xl">
             <CardHeader className="pb-4 pt-8 text-center">
-              <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-4" aria-hidden="true">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4" aria-hidden="true">
                 <QrCode className="h-7 w-7 text-primary" />
               </div>
               <CardTitle className="text-xl font-bold">Use Your Resort Link</CardTitle>
@@ -94,7 +94,7 @@ export default function GuestLogin() {
           </Card>
 
           {/* Help card */}
-          <Card className="border-border/40">
+          <Card className="border-border/30 dark:bg-midnight-900 rounded-3xl">
             <CardContent className="py-5">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-full bg-secondary/50 flex items-center justify-center flex-shrink-0" aria-hidden="true">

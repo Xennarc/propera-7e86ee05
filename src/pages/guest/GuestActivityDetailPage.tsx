@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/accordion';
 import { 
   ArrowLeft, 
+  ArrowRight,
   Clock, 
   Users, 
   AlertTriangle,
@@ -443,6 +444,20 @@ export default function GuestActivityDetailPage() {
       </div>
 
       {/* Sticky Book Button */}
+      {activity.guest_can_book && (
+        <div className="fixed bottom-20 left-0 right-0 p-4 surface-glass-strong border-t border-border/20 z-10">
+          <Button 
+            asChild 
+            size="lg" 
+            className="w-full bg-primary text-primary-foreground rounded-full font-semibold h-14 text-base glow-lime"
+          >
+            <Link to={`/guest/${code}/activities/${activityId}/sessions`}>
+              View Available Sessions
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+      )}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-xl border-t border-border z-50">
         <div className="max-w-lg mx-auto">
           {sessions && sessions.length > 0 ? (
