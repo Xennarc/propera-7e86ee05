@@ -155,38 +155,46 @@ export function ResortActionsMenu({ resort, onOpenSettings, onRefresh }: ResortA
     },
   });
 
-  // Delete mutation
+  // Delete mutation - uses backend function to bypass RLS
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-
-      // Log the action BEFORE delete
-      await supabase.from('admin_audit_logs').insert({
-        actor_id: userId!,
-        action: 'resort_deleted',
-        resort_id: resort.id,
-        metadata_json: { resort_name: resort.name, resort_code: resort.code },
+      const { data, error } = await supabase.functions.invoke('delete-resort', {
+        body: { resortId: resort.id },
       });
 
-      const { error } = await supabase
-        .from('resorts')
-        .delete()
-        .eq('id', resort.id);
-
       if (error) throw error;
+      
+      // Check for error in response body
+      if (data?.error) {
+        throw new Error(data.details || data.error);
+      }
+      
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resorts'] });
+      
+      // Clear current resort if it was the deleted one
+      const currentResort = resorts.find(r => r.id === resort.id);
+      if (currentResort) {
+        const remaining = resorts.filter(r => r.id !== resort.id);
+        if (remaining.length > 0) {
+          setCurrentResort(remaining[0]);
+        } else {
+          setCurrentResort(null as any);
+        }
+      }
+      
       onRefresh();
       toast.success(`${resort.name} deleted`);
       setDeleteDialogOpen(false);
       setConfirmCode('');
       setConfirmDelete('');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Delete error:', error);
-      toast.error('Failed to delete resort. It may have associated data.');
+      const message = error?.message || 'Failed to delete resort';
+      toast.error(`Delete failed: ${message}`);
     },
   });
 
