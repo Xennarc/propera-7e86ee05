@@ -287,6 +287,7 @@ export default function GuestActivityBookingPage() {
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['guest-all-sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
         setBookingResult({
           success: true,
           requiresApproval: data.requires_approval,

@@ -6,6 +6,7 @@ import { useResort } from '@/contexts/ResortContext';
 interface UseActivityBookingSyncOptions {
   sessionId?: string;
   guestId?: string;
+  resortId?: string; // Allow passing resortId directly for guest portal
   enabled?: boolean;
 }
 
@@ -15,11 +16,15 @@ interface UseActivityBookingSyncOptions {
  */
 export function useActivityBookingSync({ 
   sessionId, 
-  guestId, 
+  guestId,
+  resortId: providedResortId,
   enabled = true 
 }: UseActivityBookingSyncOptions = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Use provided resortId (for guests) or currentResort.id (for staff)
+  const resortId = providedResortId || currentResort?.id;
 
   const handleBookingChange = useCallback((payload: any) => {
     const changedSessionId = payload.new?.session_id || payload.old?.session_id;
@@ -58,25 +63,25 @@ export function useActivityBookingSync({
     });
     
     // Staff activity sessions list
-    if (currentResort?.id) {
+    if (resortId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['activity-sessions', currentResort.id] 
+        queryKey: ['activity-sessions', resortId] 
       });
     }
-  }, [queryClient, currentResort?.id]);
+  }, [queryClient, resortId]);
 
   useEffect(() => {
-    if (!enabled || !currentResort?.id) return;
+    if (!enabled || !resortId) return;
 
     // Build filter based on provided options
-    let filter = `resort_id=eq.${currentResort.id}`;
+    let filter = `resort_id=eq.${resortId}`;
     if (sessionId) {
       filter = `session_id=eq.${sessionId}`;
     } else if (guestId) {
       filter = `guest_id=eq.${guestId}`;
     }
 
-    const channelName = `activity-bookings-sync-${currentResort.id}${sessionId ? `-${sessionId}` : ''}${guestId ? `-${guestId}` : ''}`;
+    const channelName = `activity-bookings-sync-${resortId}${sessionId ? `-${sessionId}` : ''}${guestId ? `-${guestId}` : ''}`;
 
     const channel = supabase
       .channel(channelName)
@@ -95,15 +100,21 @@ export function useActivityBookingSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, sessionId, guestId, handleBookingChange]);
+  }, [enabled, resortId, sessionId, guestId, handleBookingChange]);
 }
 
 /**
  * Hook for real-time sync of activity sessions (capacity changes, status changes)
  */
-export function useActivitySessionSync({ enabled = true }: { enabled?: boolean } = {}) {
+export function useActivitySessionSync({ 
+  resortId: providedResortId,
+  enabled = true 
+}: { resortId?: string; enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Use provided resortId (for guests) or currentResort.id (for staff)
+  const resortId = providedResortId || currentResort?.id;
 
   const handleSessionChange = useCallback((payload: any) => {
     const changedSessionId = payload.new?.id || payload.old?.id;
@@ -124,25 +135,25 @@ export function useActivitySessionSync({ enabled = true }: { enabled?: boolean }
     });
     
     // Staff activity sessions list
-    if (currentResort?.id) {
+    if (resortId) {
       queryClient.invalidateQueries({ 
-        queryKey: ['activity-sessions', currentResort.id] 
+        queryKey: ['activity-sessions', resortId] 
       });
     }
-  }, [queryClient, currentResort?.id]);
+  }, [queryClient, resortId]);
 
   useEffect(() => {
-    if (!enabled || !currentResort?.id) return;
+    if (!enabled || !resortId) return;
 
     const channel = supabase
-      .channel(`activity-sessions-sync-${currentResort.id}`)
+      .channel(`activity-sessions-sync-${resortId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'activity_sessions',
-          filter: `resort_id=eq.${currentResort.id}`,
+          filter: `resort_id=eq.${resortId}`,
         },
         handleSessionChange
       )
@@ -151,17 +162,17 @@ export function useActivitySessionSync({ enabled = true }: { enabled?: boolean }
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, handleSessionChange]);
+  }, [enabled, resortId, handleSessionChange]);
 }
 
 /**
  * Compound hook for guest portal - listens to both booking and session changes
  */
-export function useGuestActivitySync(guestId: string | undefined) {
-  const enabled = !!guestId;
+export function useGuestActivitySync(guestId: string | undefined, resortId?: string) {
+  const enabled = !!guestId && !!resortId;
   
-  useActivityBookingSync({ guestId, enabled });
-  useActivitySessionSync({ enabled });
+  useActivityBookingSync({ guestId, resortId, enabled });
+  useActivitySessionSync({ resortId, enabled });
 }
 
 /**
