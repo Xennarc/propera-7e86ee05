@@ -207,7 +207,7 @@ export default function BookDemoPage() {
                   <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                     <Button 
                       size="xl" 
-                      className="btn-cta-premium rounded-2xl font-semibold px-8"
+                      className="bg-primary text-primary-foreground rounded-full font-semibold px-8 glow-lime hover:-translate-y-0.5 transition-all"
                       onClick={handleOpenWizard}
                       data-trigger-demo
                     >
@@ -217,7 +217,7 @@ export default function BookDemoPage() {
                     <Button 
                       size="xl" 
                       variant="outline"
-                      className="btn-ghost-premium rounded-2xl font-semibold px-8"
+                      className="rounded-full font-semibold px-8 border-border/50 hover:border-primary/30"
                       onClick={() => setShowLiveQualifier(true)}
                       data-trigger-qualifier
                     >
@@ -326,7 +326,7 @@ export default function BookDemoPage() {
                   </ul>
                   <Button 
                     size="lg" 
-                    className="w-full btn-cta-premium rounded-2xl font-semibold"
+                    className="w-full bg-primary text-primary-foreground rounded-full font-semibold glow-lime"
                     onClick={() => setShowDemoWizard(true)}
                   >
                     Create My Demo Workspace
@@ -380,7 +380,7 @@ export default function BookDemoPage() {
                   <Button 
                     size="lg" 
                     variant="outline"
-                    className="w-full btn-ghost-premium rounded-2xl font-semibold"
+                    className="w-full rounded-full font-semibold border-border/50 hover:border-primary/30"
                     onClick={() => setShowLiveQualifier(true)}
                   >
                     Book a Walkthrough

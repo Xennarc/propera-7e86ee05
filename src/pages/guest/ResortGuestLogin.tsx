@@ -328,7 +328,7 @@ export default function ResortGuestLogin() {
           </p>
         </header>
 
-        <Card className="shadow-elevated border-border/50">
+        <Card className="shadow-xl shadow-black/10 border-border/30 dark:bg-midnight-900 rounded-3xl">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl">Sign In</CardTitle>
             <CardDescription>Use your room number and last name to view your schedule and make bookings.</CardDescription>
@@ -391,7 +391,7 @@ export default function ResortGuestLogin() {
               
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold"
+                className="w-full h-12 text-base font-semibold rounded-xl glow-lime"
                 style={branding.login_primary_color ? { 
                   backgroundColor: branding.login_primary_color,
                   borderColor: branding.login_primary_color 

@@ -34,13 +34,13 @@ export function PricingCTASection() {
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 stagger-3">
-              <Button asChild size="lg" className="btn-cta-premium rounded-xl font-semibold h-12 px-8 text-primary-foreground group">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 px-8 glow-lime group hover:-translate-y-0.5 transition-all">
                 <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="btn-ghost-premium rounded-xl font-semibold h-12 px-8">
+              <Button asChild variant="outline" size="lg" className="rounded-full font-semibold h-12 px-8 border-border/50 hover:border-primary/30">
                 <a href="mailto:hello@propera.io?subject=Sales Inquiry">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Contact sales

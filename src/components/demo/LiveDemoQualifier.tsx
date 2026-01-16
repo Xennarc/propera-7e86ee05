@@ -130,7 +130,7 @@ export function LiveDemoQualifier({ open, onOpenChange }: LiveDemoQualifierProps
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg rounded-3xl dark:bg-midnight-900">
         {step === 'form' && (
           <>
             <DialogHeader>
@@ -240,7 +240,7 @@ export function LiveDemoQualifier({ open, onOpenChange }: LiveDemoQualifierProps
 
               <Button 
                 type="submit" 
-                className="w-full rounded-full font-semibold" 
+                className="w-full rounded-full font-semibold glow-lime" 
                 size="lg"
                 disabled={!isFormValid() || isSubmitting}
                 data-trigger-qualifier
@@ -280,7 +280,7 @@ export function LiveDemoQualifier({ open, onOpenChange }: LiveDemoQualifierProps
             <Card className="bg-primary/5 border-primary/20 mb-6">
               <CardContent className="pt-6 text-center">
                 <Calendar className="h-10 w-10 text-primary mx-auto mb-4" />
-                <Button className="rounded-full font-semibold" size="lg" asChild>
+                <Button className="rounded-full font-semibold glow-lime" size="lg" asChild>
                   <a 
                     href="https://calendly.com/propera/demo" 
                     target="_blank" 
@@ -368,7 +368,7 @@ export function LiveDemoQualifier({ open, onOpenChange }: LiveDemoQualifierProps
 
             <Button 
               size="lg" 
-              className="w-full rounded-full font-semibold"
+              className="w-full rounded-full font-semibold glow-lime"
               onClick={triggerDemoWizard}
             >
               <Play className="mr-2 h-4 w-4" />
