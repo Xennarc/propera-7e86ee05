@@ -40,3 +40,6 @@ verify_jwt = true
 
 [functions.delete-resort]
 verify_jwt = false
+
+[functions.purge-resort]
+verify_jwt = false

@@ -2947,6 +2947,60 @@ export type Database = {
           },
         ]
       }
+      resort_purge_jobs: {
+        Row: {
+          current_step: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          is_demo: boolean
+          progress: number
+          reason: string | null
+          requested_at: string
+          requested_by: string
+          resort_code: string
+          resort_id: string
+          resort_name: string
+          started_at: string | null
+          status: string
+          summary: Json
+        }
+        Insert: {
+          current_step?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          is_demo?: boolean
+          progress?: number
+          reason?: string | null
+          requested_at?: string
+          requested_by: string
+          resort_code: string
+          resort_id: string
+          resort_name: string
+          started_at?: string | null
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          current_step?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          is_demo?: boolean
+          progress?: number
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          resort_code?: string
+          resort_id?: string
+          resort_name?: string
+          started_at?: string | null
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       resort_settings: {
         Row: {
           activities_enabled: boolean
@@ -5027,6 +5081,15 @@ export type Database = {
       remove_user_role: {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
+      }
+      request_resort_purge: {
+        Args: {
+          p_confirm_word: string
+          p_reason?: string
+          p_resort_code: string
+          p_resort_id: string
+        }
+        Returns: string
       }
       resolve_permissions: {
         Args: { p_resort_id: string; p_user_id: string }

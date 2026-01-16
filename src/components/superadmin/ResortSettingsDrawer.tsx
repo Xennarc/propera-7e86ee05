@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { getTierInfo, SubscriptionTier, tierHasFeature, TierFeature } from '@/lib/tier-features';
 import { format } from 'date-fns';
+import { usePurgeJob } from '@/hooks/usePurgeJob';
 import {
   Drawer,
   DrawerContent,
@@ -18,9 +19,12 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertDialog,
@@ -52,6 +56,7 @@ import {
   Trash2,
   RefreshCw,
   Pause,
+  Loader2,
 } from 'lucide-react';
 
 interface Resort {
@@ -107,6 +112,12 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [confirmCode, setConfirmCode] = useState('');
   const [confirmDelete, setConfirmDelete] = useState('');
+  const [confirmDemoDelete, setConfirmDemoDelete] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [understandCheckbox, setUnderstandCheckbox] = useState(false);
+
+  // Purge job hook
+  const { job: purgeJob, isLoading: loadingPurgeJob, isPurging, startPurge, retryPurge } = usePurgeJob(resort?.id);
 
   // Fetch settings
   const { data: settings, isLoading: loadingSettings } = useResortSettings(resort?.id);
@@ -358,7 +369,54 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
     window.open(`/guest/login?resort=${resort.code}`, '_blank');
   };
 
-  const canDelete = confirmCode === resort.code && confirmDelete === 'DELETE';
+  // Validation for delete action
+  const codeMatches = confirmCode === resort.code;
+  const deleteWordMatches = confirmDelete === 'DELETE';
+  const demoWordMatches = !resort.is_demo || confirmDemoDelete === 'DELETE DEMO';
+  const canDelete = codeMatches && deleteWordMatches && demoWordMatches && understandCheckbox;
+
+  // Determine confirmation word for RPC
+  const confirmWord = resort.is_demo ? 'DELETE DEMO' : 'DELETE';
+
+  // Handle purge request
+  const handlePurgeRequest = async () => {
+    if (!resort) return;
+    
+    try {
+      await startPurge({
+        resortId: resort.id,
+        resortCode: resort.code,
+        confirmWord,
+        reason: deleteReason || undefined,
+      });
+      
+      toast.success('Purge job started');
+      // Don't close dialog - show progress instead
+    } catch (error) {
+      console.error('Purge request failed:', error);
+    }
+  };
+
+  // Handle purge retry
+  const handleRetryPurge = async () => {
+    if (!purgeJob) return;
+    
+    try {
+      await retryPurge(purgeJob.id);
+      toast.success('Retry initiated');
+    } catch (error) {
+      console.error('Purge retry failed:', error);
+    }
+  };
+
+  // Reset delete dialog state
+  const resetDeleteDialog = () => {
+    setConfirmCode('');
+    setConfirmDelete('');
+    setConfirmDemoDelete('');
+    setDeleteReason('');
+    setUnderstandCheckbox(false);
+  };
 
   const isDowngrade = newTier !== currentTier && 
     ['ESSENTIAL', 'PROFESSIONAL', 'ELITE'].indexOf(newTier) < 
@@ -706,6 +764,71 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                   </div>
                 )}
 
+                {/* Active Purge Job Status */}
+                {purgeJob && ['queued', 'running', 'failed'].includes(purgeJob.status) && (
+                  <div className={`p-4 border rounded-xl ${
+                    purgeJob.status === 'failed' 
+                      ? 'border-destructive/50 bg-destructive/10' 
+                      : 'border-amber-500/50 bg-amber-500/10'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      {purgeJob.status === 'running' || purgeJob.status === 'queued' ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-destructive" />
+                      )}
+                      <span className="font-medium">
+                        {purgeJob.status === 'queued' && 'Purge Queued'}
+                        {purgeJob.status === 'running' && 'Purge In Progress'}
+                        {purgeJob.status === 'failed' && 'Purge Failed'}
+                      </span>
+                      <Badge variant="outline" className="ml-auto text-xs">
+                        {purgeJob.status.toUpperCase()}
+                      </Badge>
+                    </div>
+                    
+                    {(purgeJob.status === 'running' || purgeJob.status === 'queued') && (
+                      <>
+                        <Progress value={purgeJob.progress} className="h-2 mb-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {purgeJob.current_step || 'Initializing...'} ({purgeJob.progress}%)
+                        </p>
+                      </>
+                    )}
+                    
+                    {purgeJob.status === 'failed' && (
+                      <>
+                        <p className="text-sm text-destructive mb-3">
+                          {purgeJob.error || 'Unknown error occurred'}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleRetryPurge}
+                          disabled={isPurging}
+                        >
+                          {isPurging ? 'Retrying...' : 'Retry Purge'}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Completed Purge Job */}
+                {purgeJob && purgeJob.status === 'completed' && (
+                  <div className="p-4 border border-success/50 bg-success/10 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <span className="font-medium text-success">Purge Completed</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Deleted {purgeJob.summary?.total_rows_deleted || 0} rows and{' '}
+                      {purgeJob.summary?.total_files_deleted || 0} files in{' '}
+                      {((purgeJob.summary?.duration_ms || 0) / 1000).toFixed(1)}s
+                    </p>
+                  </div>
+                )}
+
                 {/* Delete Resort */}
                 <div className="p-4 border border-destructive/50 rounded-xl">
                   <div className="flex items-center justify-between">
@@ -715,13 +838,14 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                         Delete Resort Permanently
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        This action cannot be undone
+                        Permanently delete all resort data including guests, bookings, and files
                       </p>
                     </div>
                     <Button 
                       variant="destructive" 
                       size="sm"
                       onClick={() => setDeleteDialogOpen(true)}
+                      disabled={purgeJob && ['queued', 'running'].includes(purgeJob.status)}
                     >
                       Delete
                     </Button>
@@ -805,56 +929,133 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Dialog with Double Confirmation */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+      {/* Delete Dialog with Triple Confirmation for Demo */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) resetDeleteDialog();
+      }}>
+        <AlertDialogContent className="sm:max-w-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-5 w-5" />
               Delete Resort Permanently
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-sm">
-                <p className="font-medium text-destructive">⚠️ This action is irreversible!</p>
-                <p className="mt-2">
-                  Deleting <strong>{resort.name}</strong> will permanently remove all associated data.
-                </p>
-              </div>
-              
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label htmlFor="drawer-delete-code">Type the resort code: <strong>{resort.code}</strong></Label>
-                  <Input
-                    id="drawer-delete-code"
-                    value={confirmCode}
-                    onChange={(e) => setConfirmCode(e.target.value)}
-                    placeholder={resort.code}
-                    className="mt-2"
-                  />
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg text-sm">
+                  <p className="font-medium text-destructive">⚠️ This action is irreversible!</p>
+                  <p className="mt-2">
+                    Deleting <strong>{resort.name}</strong> will permanently remove:
+                  </p>
+                  <ul className="mt-2 space-y-1 text-muted-foreground">
+                    <li>• All guest records and bookings</li>
+                    <li>• All activities and restaurant reservations</li>
+                    <li>• All staff access and audit logs</li>
+                    <li>• All uploaded files and images</li>
+                  </ul>
                 </div>
-                <div>
-                  <Label htmlFor="drawer-delete-confirm">Type <strong>DELETE</strong> to confirm</Label>
-                  <Input
-                    id="drawer-delete-confirm"
-                    value={confirmDelete}
-                    onChange={(e) => setConfirmDelete(e.target.value)}
-                    placeholder="DELETE"
-                    className="mt-2"
-                  />
+
+                {resort.is_demo && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm">
+                    <p className="font-medium text-amber-600">
+                      This is a DEMO resort — extra confirmation required
+                    </p>
+                  </div>
+                )}
+                
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <Label htmlFor="drawer-delete-code">
+                      Type the resort code: <strong className="font-mono">{resort.code}</strong>
+                    </Label>
+                    <Input
+                      id="drawer-delete-code"
+                      value={confirmCode}
+                      onChange={(e) => setConfirmCode(e.target.value)}
+                      placeholder={resort.code}
+                      className="mt-2 font-mono"
+                    />
+                    {confirmCode && confirmCode !== resort.code && (
+                      <p className="text-xs text-destructive mt-1">Code does not match</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="drawer-delete-confirm">
+                      Type <strong>DELETE</strong> to confirm
+                    </Label>
+                    <Input
+                      id="drawer-delete-confirm"
+                      value={confirmDelete}
+                      onChange={(e) => setConfirmDelete(e.target.value)}
+                      placeholder="DELETE"
+                      className="mt-2"
+                    />
+                  </div>
+
+                  {resort.is_demo && (
+                    <div>
+                      <Label htmlFor="drawer-delete-demo-confirm">
+                        Type <strong>DELETE DEMO</strong> to confirm demo deletion
+                      </Label>
+                      <Input
+                        id="drawer-delete-demo-confirm"
+                        value={confirmDemoDelete}
+                        onChange={(e) => setConfirmDemoDelete(e.target.value)}
+                        placeholder="DELETE DEMO"
+                        className="mt-2"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="drawer-delete-reason">
+                      Reason for deletion (optional)
+                    </Label>
+                    <Textarea
+                      id="drawer-delete-reason"
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      placeholder="Enter reason for audit trail..."
+                      className="mt-2"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="drawer-delete-understand"
+                      checked={understandCheckbox}
+                      onCheckedChange={(checked) => setUnderstandCheckbox(checked === true)}
+                    />
+                    <Label 
+                      htmlFor="drawer-delete-understand" 
+                      className="text-sm font-normal leading-tight cursor-pointer"
+                    >
+                      I understand this will permanently delete all resort data and cannot be undone
+                    </Label>
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setConfirmCode(''); setConfirmDelete(''); }}>
+            <AlertDialogCancel onClick={resetDeleteDialog}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteMutation.mutate()}
-              disabled={!canDelete || deleteMutation.isPending}
+              onClick={handlePurgeRequest}
+              disabled={!canDelete || isPurging}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+              {isPurging ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Delete Permanently'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
