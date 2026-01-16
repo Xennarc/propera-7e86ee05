@@ -71,7 +71,7 @@ function SuperAdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const location = useLocation();
 
   return (
-    <div className="flex h-full flex-col bg-sidebar">
+    <div className="flex h-full flex-col bg-sidebar dark:bg-midnight-900">
       {/* Header */}
       <div className="p-5 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
@@ -182,14 +182,14 @@ export default function SuperAdminLayout() {
   return (
     <div className="flex min-h-screen w-full bg-background">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-sidebar fixed inset-y-0 left-0 z-30">
+      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 dark:border-midnight-700/50 bg-sidebar dark:bg-midnight-900 fixed inset-y-0 left-0 z-30">
         <SuperAdminSidebar />
       </aside>
 
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col lg:ml-64">
         {/* Top Header Bar */}
-        <header className="sticky top-0 z-20 h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-20 h-16 border-b border-border/30 dark:border-midnight-700/50 surface-glass-strong">
           <div className="flex h-full items-center gap-4 px-4 lg:px-6">
             {/* Mobile Menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

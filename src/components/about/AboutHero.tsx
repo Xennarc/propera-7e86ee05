@@ -12,17 +12,16 @@ export function AboutHero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16">
-      {/* Rich gradient mesh background - enhanced for light mode */}
+    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16 bg-background">
+      {/* Midnight gradient base */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-teal-400/8 dark:from-background dark:via-background dark:to-primary/5" />
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/12 dark:bg-primary/8 rounded-full blur-[180px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-teal-400/15 dark:bg-teal-400/8 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] bg-accent/10 dark:bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
-        {/* Soft spotlight glow behind headline */}
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[300px] bg-primary/15 dark:bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
-        {/* Subtle atlas texture for light mode */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
+        {/* Lime glow spotlight */}
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[180px] pointer-events-none" />
+        {/* Blurple glow */}
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[150px] pointer-events-none" />
+        {/* Teal accent */}
+        <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[120px] pointer-events-none" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
@@ -33,7 +32,7 @@ export function AboutHero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-8 border border-primary/20">
+            <div className="glass-pill text-primary px-4 py-2 mb-8 border border-primary/20">
               About Propera
             </div>
             
@@ -49,7 +48,7 @@ export function AboutHero() {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <Button 
                 size="lg" 
-                className="rounded-full font-semibold px-8 shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all"
+                className="bg-primary text-primary-foreground rounded-full font-semibold px-8 glow-lime hover:-translate-y-0.5 transition-all"
                 onClick={scrollToProduct}
               >
                 See the platform
@@ -59,7 +58,7 @@ export function AboutHero() {
                 asChild
                 variant="outline" 
                 size="lg" 
-                className="rounded-full font-semibold"
+                className="rounded-full font-semibold border-border/50 hover:border-primary/30"
               >
                 <Link to="/pricing">View pricing</Link>
               </Button>
@@ -75,7 +74,7 @@ export function AboutHero() {
           >
             <div className="relative">
               {/* Glass frame card */}
-              <div className="bg-card/60 backdrop-blur-2xl rounded-3xl border border-border/50 shadow-2xl overflow-hidden p-6">
+              <div className="surface-glass-strong rounded-3xl border border-border/30 dark:border-midnight-700/50 shadow-2xl shadow-black/20 overflow-hidden p-6">
                 {/* Mac dots */}
                 <div className="flex items-center gap-2 mb-6">
                   <div className="flex gap-1.5">

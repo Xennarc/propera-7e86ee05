@@ -281,7 +281,7 @@ export default function Auth() {
         <ThemeToggle className="text-muted-foreground hover:text-foreground" />
       </div>
 
-      <div className="relative lg:w-2/5 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 lg:p-12 flex flex-col justify-center">
+      <div className="relative lg:w-2/5 bg-gradient-to-br from-lime-400/10 via-midnight-900/50 to-background dark:from-lime-400/5 dark:via-midnight-950 p-8 lg:p-12 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full space-y-6">
           <div className="flex items-center gap-3">
             <ProperaMark size={48} className="text-primary" />
@@ -311,7 +311,7 @@ export default function Auth() {
 
       <div className="flex-1 flex items-center justify-center p-4 lg:p-12 bg-background">
         <div className="w-full max-w-md space-y-6 animate-fade-in">
-          <Card className="shadow-lg border-border/50">
+          <Card className="shadow-2xl shadow-black/10 border-border/30 dark:border-midnight-700/50 dark:bg-midnight-900">
             <CardHeader className="pb-3">
               <CardTitle className="text-xl">Sign In</CardTitle>
               <CardDescription>
@@ -375,7 +375,7 @@ export default function Auth() {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-4 pt-2">
-                <Button type="submit" className="w-full h-11 font-medium" disabled={isLoading}>
+                <Button type="submit" className="w-full h-11 font-medium rounded-xl glow-lime" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

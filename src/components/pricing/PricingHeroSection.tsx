@@ -60,11 +60,16 @@ export function PricingHeroSection() {
   };
 
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-28 pb-16 hero-premium-bg grain-overlay">
-      {/* Enhanced TideGlow spotlights for light mode */}
-      <div className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-primary/15 dark:bg-primary/8 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-teal-400/12 dark:bg-teal-400/6 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-lagoon-500/10 dark:bg-lagoon-500/5 rounded-full blur-[100px] pointer-events-none" />
+    <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-28 pb-16 bg-background">
+      {/* Midnight gradient base */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
+      
+      {/* Lime glow spotlight */}
+      <div className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[150px] pointer-events-none" />
+      {/* Blurple glow */}
+      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[130px] pointer-events-none" />
+      {/* Teal accent */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
@@ -80,7 +85,7 @@ export function PricingHeroSection() {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-4">
-              <Button asChild size="lg" className="btn-cta-premium rounded-xl font-semibold h-12 px-8 text-primary-foreground group">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 px-8 glow-lime group hover:-translate-y-0.5 transition-all">
                 <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -89,7 +94,7 @@ export function PricingHeroSection() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="btn-ghost-premium rounded-xl font-semibold h-12 px-8"
+                className="rounded-full font-semibold h-12 px-8 border-border/50 hover:border-primary/30"
                 onClick={scrollToPlans}
               >
                 <Zap className="mr-2 h-4 w-4 text-primary" />
