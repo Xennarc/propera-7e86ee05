@@ -76,15 +76,17 @@ export function useUpdateResortSetting() {
       
       if (!userId) throw new Error('Not authenticated');
       
-      // Update setting
+      // Use upsert to handle case where settings row doesn't exist
       const { error } = await supabase
         .from('resort_settings')
-        .update({ 
+        .upsert({ 
+          resort_id: resortId,
           [key]: value, 
           updated_at: new Date().toISOString(),
           updated_by: userId
-        })
-        .eq('resort_id', resortId);
+        }, { 
+          onConflict: 'resort_id' 
+        });
       
       if (error) throw error;
       
