@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,35 +19,48 @@ import {
   Building2,
   Search,
   Plus,
-  MoreHorizontal,
-  ExternalLink,
-  Settings,
-  Users,
-  Calendar,
-  Utensils,
   CheckCircle,
   AlertCircle,
-  Filter,
-  ChevronRight,
-  Eye,
   Star,
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { ResortActionsMenu } from '@/components/superadmin/ResortActionsMenu';
+import { ResortSettingsDrawer } from '@/components/superadmin/ResortSettingsDrawer';
+
+// Resort type for drawer
+interface ResortForDrawer {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  is_demo: boolean;
+  subscription_tier: string;
+  timezone?: string;
+  currency?: string;
+  demo_expires_at?: string | null;
+}
 
 export default function ResortsManagementPage() {
   const navigate = useNavigate();
-  const { resorts, setCurrentResort } = useResort();
+  const queryClient = useQueryClient();
+  const { resorts, setCurrentResort, refetch: refetchResorts } = useResort();
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [includeDemos, setIncludeDemos] = useState(true);
+  const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
+  const [selectedResort, setSelectedResort] = useState<ResortForDrawer | null>(null);
   const today = new Date().toISOString().split('T')[0];
+
+  const handleOpenSettings = useCallback((resort: ResortForDrawer) => {
+    setSelectedResort(resort);
+    setSettingsDrawerOpen(true);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['resorts'] });
+    queryClient.invalidateQueries({ queryKey: ['resorts-management-metrics'] });
+    refetchResorts();
+  }, [queryClient, refetchResorts]);
 
   // Filter resorts
   const filteredResorts = resorts.filter(r => {
@@ -389,28 +402,18 @@ export default function ResortsManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewResort(resort.id)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleSwitchToResort(resort.id)}>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Open Staff Portal
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <Settings className="mr-2 h-4 w-4" />
-                              Settings
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <ResortActionsMenu
+                          resort={{
+                            id: resort.id,
+                            name: resort.name,
+                            code: resort.code,
+                            status: resort.status,
+                            is_demo: resort.is_demo,
+                            subscription_tier: resort.subscription_tier,
+                          }}
+                          onOpenSettings={handleOpenSettings}
+                          onRefresh={handleRefresh}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -426,6 +429,14 @@ export default function ResortsManagementPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Settings Drawer */}
+      <ResortSettingsDrawer
+        resort={selectedResort}
+        open={settingsDrawerOpen}
+        onOpenChange={setSettingsDrawerOpen}
+        onRefresh={handleRefresh}
+      />
     </div>
   );
 }
