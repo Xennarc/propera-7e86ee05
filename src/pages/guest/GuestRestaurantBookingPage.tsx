@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
 import { createGuestNotification, createStaffNotificationsForRoles, formatRestaurantReservationMessage } from '@/lib/notifications';
 import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
+import { useGuestDiningSync } from '@/hooks/useDiningBookingSync';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -52,6 +53,9 @@ export default function GuestRestaurantBookingPage() {
     requiresApproval?: boolean;
     error?: string;
   } | null>(null);
+
+  // Enable real-time sync for dining bookings (must pass resortId for guest sessions)
+  useGuestDiningSync(guest?.guestId, guest?.resortId);
 
   // Fetch room occupancy (number of guests in the same room)
   const { data: roomOccupancy = 2 } = useQuery({

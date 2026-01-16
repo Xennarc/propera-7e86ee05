@@ -4802,6 +4802,7 @@ export type Database = {
       }
       guest_get_prearrival_data: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
+      guest_get_room_bookings: { Args: { p_guest_id: string }; Returns: Json }
       guest_get_unread_notification_count: {
         Args: { p_guest_id: string }
         Returns: number
