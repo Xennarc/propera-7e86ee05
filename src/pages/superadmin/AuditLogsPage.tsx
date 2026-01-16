@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -32,13 +33,29 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   remove_staff_access: { label: 'Staff Removed', color: 'bg-destructive/10 text-destructive border-destructive/20' },
   create_resort: { label: 'Resort Created', color: 'bg-success/10 text-success border-success/20' },
   deactivate_resort: { label: 'Resort Deactivated', color: 'bg-muted text-muted-foreground border-border' },
+  resort_suspended: { label: 'Resort Suspended', color: 'bg-warning/10 text-warning border-warning/20' },
+  resort_unsuspended: { label: 'Resort Unsuspended', color: 'bg-success/10 text-success border-success/20' },
+  resort_tier_changed: { label: 'Tier Changed', color: 'bg-primary/10 text-primary border-primary/20' },
+  resort_deleted: { label: 'Resort Deleted', color: 'bg-destructive/10 text-destructive border-destructive/20' },
+  resort_setting_updated: { label: 'Setting Updated', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
 };
 
 export default function AuditLogsPage() {
   const { resorts } = useResort();
+  const [searchParams] = useSearchParams();
+  
+  // Initialize resort filter from URL param if present
+  const resortIdFromUrl = searchParams.get('resort');
   const [searchQuery, setSearchQuery] = useState('');
-  const [resortFilter, setResortFilter] = useState<string>('all');
+  const [resortFilter, setResortFilter] = useState<string>(resortIdFromUrl || 'all');
   const [actionFilter, setActionFilter] = useState<string>('all');
+
+  // Update filter when URL changes
+  useEffect(() => {
+    if (resortIdFromUrl) {
+      setResortFilter(resortIdFromUrl);
+    }
+  }, [resortIdFromUrl]);
 
   // Fetch audit logs
   const { data: auditLogs, isLoading } = useQuery({

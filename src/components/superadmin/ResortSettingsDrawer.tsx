@@ -104,6 +104,7 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
   const [newTier, setNewTier] = useState<SubscriptionTier>('ESSENTIAL');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [confirmCode, setConfirmCode] = useState('');
   const [confirmDelete, setConfirmDelete] = useState('');
 
@@ -240,6 +241,61 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
     onError: (error) => {
       console.error('Delete error:', error);
       toast.error('Failed to delete resort. It may have associated data.');
+    },
+  });
+
+  // Suspend/Unsuspend mutation
+  const suspendMutation = useMutation({
+    mutationFn: async (suspend: boolean) => {
+      if (!resort) throw new Error('No resort');
+      
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      const { error } = await supabase
+        .from('resorts')
+        .update({ status: suspend ? 'INACTIVE' : 'ACTIVE' })
+        .eq('id', resort.id);
+
+      if (error) throw error;
+
+      await supabase.from('admin_audit_logs').insert({
+        actor_id: userId!,
+        action: suspend ? 'resort_suspended' : 'resort_unsuspended',
+        resort_id: resort.id,
+        metadata_json: { resort_name: resort.name },
+      });
+
+      return suspend;
+    },
+    onSuccess: (suspended) => {
+      queryClient.invalidateQueries({ queryKey: ['resorts'] });
+      onRefresh();
+      toast.success(suspended ? `${resort?.name} suspended` : `${resort?.name} reactivated`);
+      setSuspendDialogOpen(false);
+      setConfirmCode('');
+    },
+    onError: () => {
+      toast.error('Failed to update resort status');
+    },
+  });
+
+  // Reseed demo mutation (only for demo resorts - calls demo-reset edge function)
+  const reseedMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('demo-reset', {
+        body: { action: 'run' },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resorts'] });
+      onRefresh();
+      toast.success('Demo data reseeded successfully');
+    },
+    onError: () => {
+      toast.error('Failed to reseed demo data');
     },
   });
 
@@ -606,9 +662,13 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                         }
                       </p>
                     </div>
-                    <Badge variant={resort.status === 'INACTIVE' ? 'destructive' : 'outline'}>
-                      {resort.status}
-                    </Badge>
+                    <Button 
+                      variant={resort.status === 'INACTIVE' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setSuspendDialogOpen(true)}
+                    >
+                      {resort.status === 'INACTIVE' ? 'Unsuspend' : 'Suspend'}
+                    </Button>
                   </div>
                 </div>
 
@@ -618,15 +678,20 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                     <div className="flex items-center justify-between">
                       <div>
                         <Label className="flex items-center gap-2">
-                          <RefreshCw className="h-4 w-4" />
+                          <RefreshCw className={`h-4 w-4 ${reseedMutation.isPending ? 'animate-spin' : ''}`} />
                           Reseed Demo Data
                         </Label>
                         <p className="text-xs text-muted-foreground mt-1">
                           Reset demo data to initial state
                         </p>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Reseed
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => reseedMutation.mutate()}
+                        disabled={reseedMutation.isPending}
+                      >
+                        {reseedMutation.isPending ? 'Reseeding...' : 'Reseed'}
                       </Button>
                     </div>
                   </div>
@@ -781,6 +846,46 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Suspend/Unsuspend Dialog */}
+      <AlertDialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              {resort.status === 'INACTIVE' ? 'Unsuspend Resort' : 'Suspend Resort'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                {resort.status === 'INACTIVE' 
+                  ? `You are about to unsuspend ${resort.name}. This will restore access for all staff and guests.`
+                  : `You are about to suspend ${resort.name}. This will prevent all staff and guests from accessing the resort.`
+                }
+              </p>
+              <div className="pt-3">
+                <Label htmlFor="drawer-suspend-code">Type the resort code to confirm: <strong>{resort.code}</strong></Label>
+                <Input
+                  id="drawer-suspend-code"
+                  value={confirmCode}
+                  onChange={(e) => setConfirmCode(e.target.value)}
+                  placeholder={resort.code}
+                  className="mt-2"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setConfirmCode(''); }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => suspendMutation.mutate(resort.status === 'ACTIVE')}
+              disabled={confirmCode !== resort.code || suspendMutation.isPending}
+              className={resort.status === 'INACTIVE' ? '' : 'bg-warning text-warning-foreground hover:bg-warning/90'}
+            >
+              {suspendMutation.isPending ? 'Processing...' : resort.status === 'INACTIVE' ? 'Unsuspend' : 'Suspend'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

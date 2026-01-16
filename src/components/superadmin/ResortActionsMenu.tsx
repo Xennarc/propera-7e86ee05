@@ -136,14 +136,11 @@ export function ResortActionsMenu({ resort, onOpenSettings, onRefresh }: ResortA
     },
   });
 
-  // Reseed demo mutation (only for demo resorts)
+  // Reseed demo mutation (only for demo resorts - calls demo-reset edge function)
   const reseedMutation = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('provision-demo', {
-        body: { 
-          mode: 'reseed',
-          resortId: resort.id,
-        },
+      const { data, error } = await supabase.functions.invoke('demo-reset', {
+        body: { action: 'run' },
       });
       if (error) throw error;
       return data;
