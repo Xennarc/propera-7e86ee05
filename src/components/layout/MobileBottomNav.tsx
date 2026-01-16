@@ -60,7 +60,7 @@ export function MobileBottomNav() {
   const visibleMoreItems = moreNavItems.filter(item => canViewItem(item.resortRoles));
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card/95 backdrop-blur-xl border-t border-border/50 safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-strong border-t border-border/20 safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16 px-2">
         {visiblePrimaryItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
@@ -94,7 +94,7 @@ export function MobileBottomNav() {
               <span className="text-[10px] font-medium">More</span>
             </button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-2xl">
+          <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-3xl bg-card dark:bg-midnight-900 border-border/30">
             <SheetHeader className="pb-4">
               <SheetTitle className="text-left">Quick Navigation</SheetTitle>
             </SheetHeader>
@@ -108,8 +108,8 @@ export function MobileBottomNav() {
                     to={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 p-4 rounded-xl border border-border/50 transition-all duration-200",
-                      "bg-muted/30 hover:bg-muted/60",
+                      "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-200",
+                      "bg-muted/20 border-border/30 hover:bg-muted/40 dark:bg-midnight-800/50 dark:border-midnight-700/50",
                       active && "bg-primary/10 border-primary/30 text-primary"
                     )}
                   >

@@ -8,12 +8,12 @@ export function AboutFinalCTA() {
   const reducedMotion = useReducedMotion();
 
   return (
-    <section className="py-24 md:py-32 relative overflow-hidden">
-      {/* Rich gradient background - enhanced for light mode */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-background to-teal-400/15 dark:from-primary/10 dark:via-background dark:to-teal-400/10" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/20 dark:bg-primary/15 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-teal-400/15 dark:bg-teal-400/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-1/3 left-0 w-[300px] h-[300px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+    <section className="py-24 md:py-32 relative overflow-hidden bg-background">
+      {/* Midnight gradient with glows */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-midnight-900/30 to-background dark:via-midnight-950" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-lime-400/8 dark:bg-lime-400/12 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-blurple-500/6 dark:bg-blurple-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/3 left-0 w-[300px] h-[300px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
@@ -33,7 +33,7 @@ export function AboutFinalCTA() {
               />
             )}
             
-            <div className="relative bg-card rounded-3xl border border-border/50 p-10 md:p-14 shadow-2xl">
+            <div className="relative bg-card dark:bg-midnight-900 rounded-3xl border border-border/30 dark:border-midnight-700/50 p-10 md:p-14 shadow-2xl shadow-black/20 stroke-gradient">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6 leading-tight">
                 See Propera with your resort's branding.
               </h2>
@@ -43,13 +43,13 @@ export function AboutFinalCTA() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-                <Button asChild size="lg" className="text-base px-10 h-14 rounded-full shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all group w-full sm:w-auto">
+                <Button asChild size="lg" className="bg-primary text-primary-foreground text-base px-10 h-14 rounded-full font-semibold glow-lime hover:-translate-y-0.5 transition-all group w-full sm:w-auto">
                   <Link to="/book-demo">
                     Book a demo
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="text-base px-10 h-14 rounded-full w-full sm:w-auto">
+                <Button asChild variant="outline" size="lg" className="text-base px-10 h-14 rounded-full border-border/50 hover:border-primary/30 w-full sm:w-auto">
                   <Link to="/pricing">View pricing</Link>
                 </Button>
               </div>

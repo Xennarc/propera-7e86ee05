@@ -210,9 +210,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   };
 
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
+    <div className="flex h-full flex-col bg-sidebar dark:bg-midnight-900 text-sidebar-foreground">
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4 border-b border-sidebar-border/50 dark:border-midnight-700/50">
         <div className="flex items-center gap-3">
           <ProperaMark size={36} className="text-sidebar-primary shrink-0" />
           {!collapsed && (
@@ -233,7 +233,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                 setCurrentResort(resort || null);
               }}
             >
-              <SelectTrigger className="w-full bg-sidebar-accent/50 border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent h-11">
+              <SelectTrigger className="w-full bg-sidebar-accent/50 dark:bg-midnight-800/50 border-sidebar-border dark:border-midnight-700 text-sidebar-foreground hover:bg-sidebar-accent dark:hover:bg-midnight-800 h-11 rounded-xl">
                 <SelectValue placeholder="Select resort" />
               </SelectTrigger>
               <SelectContent>
@@ -401,9 +401,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border/50 dark:border-midnight-700/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-foreground text-sm font-bold shrink-0">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-accent dark:bg-midnight-800 text-sidebar-foreground text-sm font-bold shrink-0">
             {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
           </div>
           {!collapsed && (

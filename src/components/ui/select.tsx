@@ -21,9 +21,10 @@ const SelectTrigger = React.forwardRef<
       "ring-offset-background transition-all duration-150",
       "placeholder:text-muted-foreground/60",
       "hover:border-border/80",
-      "focus:outline-none focus:ring-2 focus:ring-ring/20 focus:ring-offset-0 focus:border-primary",
+      "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary",
       "disabled:cursor-not-allowed disabled:opacity-50",
       "[&>span]:line-clamp-1",
+      "dark:bg-midnight-900 dark:border-midnight-700 dark:focus:border-lime-400 dark:focus:ring-lime-400/20",
       className,
     )}
     {...props}
@@ -72,7 +73,8 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-xl border border-border/40 bg-popover text-popover-foreground shadow-medium",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-2xl border border-border/30 bg-popover text-popover-foreground shadow-xl shadow-black/10",
+        "dark:bg-midnight-900 dark:border-midnight-700/50 dark:shadow-black/30",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
