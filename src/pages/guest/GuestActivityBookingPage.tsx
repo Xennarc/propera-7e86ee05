@@ -55,8 +55,8 @@ export default function GuestActivityBookingPage() {
     error?: string;
   } | null>(null);
 
-  // Enable real-time sync for activity bookings
-  useGuestActivitySync(guest?.guestId);
+  // Enable real-time sync for activity bookings (must pass resortId for guest sessions)
+  useGuestActivitySync(guest?.guestId, guest?.resortId);
 
   // Fetch all available sessions for the guest's stay period
   const { data: allSessions, isLoading, refetch: refetchSessions } = useQuery({

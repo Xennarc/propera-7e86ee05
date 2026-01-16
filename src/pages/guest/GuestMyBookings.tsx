@@ -75,123 +75,75 @@ export default function GuestMyBookings() {
   useGuestActivitySync(guest?.guestId, guest?.resortId);
   useGuestDiningSync(guest?.guestId, guest?.resortId);
 
-  // First get room guests to show shared room bookings
-  const { data: roomGuests } = useQuery({
-    queryKey: ['room-guests', guest?.resortId, guest?.roomNumber],
-    queryFn: async () => {
-      if (!guest?.resortId || !guest?.roomNumber) return [];
-      const { data, error } = await supabase
-        .from('guests')
-        .select('id, full_name')
-        .eq('resort_id', guest.resortId)
-        .eq('room_number', guest.roomNumber);
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!guest?.resortId && !!guest?.roomNumber,
-  });
-
-  // Create stable query key - use sorted guest IDs instead of object reference
-  const roomGuestIds = roomGuests?.map(g => g.id)?.sort()?.join(',') || '';
-
-  // Fetch bookings for all guests in the room
+  // Fetch all bookings using secure RPC (works for guest sessions without JWT claims)
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ['guest-room-bookings', guest?.resortId, guest?.roomNumber, roomGuestIds],
+    queryKey: ['guest-room-bookings', guest?.guestId],
     queryFn: async () => {
-      if (!guest || !roomGuests || roomGuests.length === 0) return null;
+      if (!guest?.guestId) return null;
       
-      const guestIds = roomGuests.map(g => g.id);
+      const { data, error } = await supabase.rpc('guest_get_room_bookings', {
+        p_guest_id: guest.guestId,
+      });
       
-      // Fetch activity bookings for all room guests
-      const { data: activityData, error: activityError } = await supabase
-        .from('activity_bookings')
-        .select(`
-          id, guest_id, num_adults, num_children, status, notes, created_at,
-          session:activity_sessions(
-            id, date, start_time, end_time, capacity,
-            activity:activities(
-              id, name, category, duration_minutes, guest_can_cancel, guest_cancel_cutoff_hours,
-              image_url, max_pax_per_booking
-            )
-          )
-        `)
-        .in('guest_id', guestIds)
-        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Failed to fetch room bookings:', error);
+        return null;
+      }
+      
+      const result = data as any;
+      if (result?.error) {
+        console.error('RPC error:', result.error);
+        return null;
+      }
+      
+      // Transform RPC response to match expected format
+      const activity_bookings = (result?.activity_bookings || []).map((b: any) => ({
+        id: b.id,
+        guest_id: b.guest_id,
+        booked_by: b.guest?.full_name || 'Room guest',
+        is_own_booking: b.guest_id === guest.guestId,
+        num_adults: b.num_adults,
+        num_children: b.num_children,
+        status: b.status,
+        notes: b.notes,
+        date: b.session?.date,
+        start_time: b.session?.start_time,
+        end_time: b.session?.end_time,
+        session_id: b.session?.id,
+        activity_name: b.session?.activity?.name,
+        category: b.session?.activity?.category,
+        duration_minutes: b.session?.activity?.duration_minutes,
+        guest_can_cancel: b.session?.activity?.guest_can_cancel,
+        guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours,
+        max_pax_per_booking: 10, // Default, not needed for display
+        image_url: b.session?.activity?.image_url,
+        booking_type: 'activity' as const,
+      }));
 
-      // Fetch restaurant reservations for all room guests
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurant_reservations')
-        .select(`
-          id, guest_id, num_adults, num_children, status, special_requests, created_at,
-          slot:restaurant_time_slots(
-            id, date, start_time, end_time, meal_period,
-            restaurant:restaurants(
-              id, name, guest_can_cancel, guest_cancel_cutoff_minutes, max_pax_per_booking
-            )
-          )
-        `)
-        .in('guest_id', guestIds)
-        .order('created_at', { ascending: false });
-
-      // Transform activity bookings to match expected format
-      const activity_bookings = (activityData || []).map(b => {
-        const session = b.session as any;
-        const activity = session?.activity;
-        const bookedByGuest = roomGuests.find(g => g.id === b.guest_id);
-        return {
-          id: b.id,
-          guest_id: b.guest_id,
-          booked_by: bookedByGuest?.full_name || 'Room guest',
-          is_own_booking: b.guest_id === guest.guestId,
-          num_adults: b.num_adults,
-          num_children: b.num_children,
-          status: b.status,
-          notes: b.notes,
-          date: session?.date,
-          start_time: session?.start_time,
-          end_time: session?.end_time,
-          session_id: session?.id,
-          activity_name: activity?.name,
-          category: activity?.category,
-          duration_minutes: activity?.duration_minutes,
-          guest_can_cancel: activity?.guest_can_cancel,
-          guest_cancel_cutoff_hours: activity?.guest_cancel_cutoff_hours,
-          max_pax_per_booking: activity?.max_pax_per_booking,
-          image_url: activity?.image_url,
-          booking_type: 'activity' as const,
-        };
-      });
-
-      // Transform restaurant reservations to match expected format
-      const restaurant_reservations = (restaurantData || []).map(r => {
-        const slot = r.slot as any;
-        const restaurant = slot?.restaurant;
-        const bookedByGuest = roomGuests.find(g => g.id === r.guest_id);
-        return {
-          id: r.id,
-          guest_id: r.guest_id,
-          booked_by: bookedByGuest?.full_name || 'Room guest',
-          is_own_booking: r.guest_id === guest.guestId,
-          num_adults: r.num_adults,
-          num_children: r.num_children,
-          status: r.status,
-          special_requests: r.special_requests,
-          date: slot?.date,
-          start_time: slot?.start_time,
-          end_time: slot?.end_time,
-          slot_id: slot?.id,
-          meal_period: slot?.meal_period,
-          restaurant_name: restaurant?.name,
-          guest_can_cancel: restaurant?.guest_can_cancel,
-          guest_cancel_cutoff_minutes: restaurant?.guest_cancel_cutoff_minutes,
-          max_pax_per_booking: restaurant?.max_pax_per_booking,
-          booking_type: 'restaurant' as const,
-        };
-      });
+      const restaurant_reservations = (result?.restaurant_reservations || []).map((r: any) => ({
+        id: r.id,
+        guest_id: r.guest_id,
+        booked_by: r.guest?.full_name || 'Room guest',
+        is_own_booking: r.guest_id === guest.guestId,
+        num_adults: r.party_size || 2,
+        num_children: 0,
+        status: r.status,
+        special_requests: r.special_requests,
+        date: r.slot?.date,
+        start_time: r.slot?.start_time,
+        end_time: r.slot?.end_time,
+        slot_id: r.slot?.id,
+        meal_period: r.slot?.meal_period,
+        restaurant_name: r.slot?.restaurant?.name,
+        guest_can_cancel: r.slot?.restaurant?.guest_can_cancel,
+        guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_hours ? r.slot.restaurant.guest_cancel_cutoff_hours * 60 : 60,
+        max_pax_per_booking: 10, // Default, not needed for display
+        booking_type: 'restaurant' as const,
+      }));
 
       return { activity_bookings, restaurant_reservations };
     },
-    enabled: !!guest && !!roomGuests && roomGuests.length > 0,
+    enabled: !!guest?.guestId,
     staleTime: 30000,
   });
 
