@@ -196,8 +196,10 @@ export default function PreArrivalPage() {
     queryKey: ['prearrival-activities', tokenData?.guest_id],
     queryFn: async () => {
       if (!tokenData || !guest) return [];
+      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase.rpc('guest_get_available_sessions', {
         p_guest_id: tokenData.guest_id,
+        p_date: today,
       });
       if (error) throw error;
       return (data as any) as ActivitySession[];
