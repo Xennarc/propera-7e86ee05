@@ -33,7 +33,19 @@ const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> =
 export default function GuestActivitySessionsPage() {
   const { guest } = useGuestAuth();
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  // Default to today, but clamp to guest's stay dates
+  const getInitialDate = () => {
+    const today = new Date();
+    const todayStr = format(today, 'yyyy-MM-dd');
+    if (guest) {
+      if (todayStr < guest.checkInDate) return guest.checkInDate;
+      if (todayStr > guest.checkOutDate) return guest.checkInDate;
+    }
+    return todayStr;
+  };
+  
+  const [selectedDate, setSelectedDate] = useState(getInitialDate);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const { data: sessions, isLoading, isError } = useQuery({
@@ -161,6 +173,11 @@ export default function GuestActivitySessionsPage() {
                           <span className={cn("font-mono font-semibold text-sm", config.colorClass)}>
                             {session.start_time?.slice(0, 5)}
                           </span>
+                          {session.date && session.date !== selectedDate && (
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(session.date), 'MMM d')}
+                            </span>
+                          )}
                           <CategoryBadge category={session.category} size="sm" showLabel={false} />
                         </div>
                         {session.requires_approval ? (
