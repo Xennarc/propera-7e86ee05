@@ -649,9 +649,28 @@ export default function GuestMyBookings() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
+      <div className="mb-1">
         <h1 className="text-xl font-bold text-foreground">{t('bookings.title')}</h1>
         <p className="text-sm text-muted-foreground">{t('bookings.subtitle')}</p>
+      </div>
+
+      {/* Today's Quick Status - Always visible */}
+      <div className="guest-card-surface mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Calendar className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Today</p>
+              <p className="text-xs text-muted-foreground">{format(new Date(), 'EEEE, MMM d')}</p>
+            </div>
+          </div>
+          <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+            {(showActivities ? upcomingActivities : []).filter(a => a.date === today).length + 
+             (showDining ? upcomingReservations : []).filter(r => r.date === today).length} today
+          </span>
+        </div>
       </div>
 
       {/* Quick Filter Tabs */}
@@ -694,17 +713,19 @@ export default function GuestMyBookings() {
       {isLoading ? (
         <GuestBookingsLoading />
       ) : isEmpty ? (
-        <Card className="guest-card border-dashed bg-muted/20">
-          <GuestEmptyState
-            icon={Calendar}
-            title={t('bookings.noBookings')}
-            description={t('bookings.noBookingsDescription')}
-            actionLabel={t('bookings.browseActivities')}
-            actionHref="/guest/activities"
-            secondaryActionLabel={t('bookings.viewRestaurants')}
-            secondaryActionHref="/guest/restaurants"
-          />
-        </Card>
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Card className="guest-card border-dashed bg-muted/20 w-full">
+            <GuestEmptyState
+              icon={Calendar}
+              title={t('bookings.noBookings')}
+              description={t('bookings.noBookingsDescription')}
+              actionLabel={t('bookings.browseActivities')}
+              actionHref="/guest/activities"
+              secondaryActionLabel={t('bookings.viewRestaurants')}
+              secondaryActionHref="/guest/restaurants"
+            />
+          </Card>
+        </div>
       ) : (
         <>
           {/* Upcoming Summary */}
