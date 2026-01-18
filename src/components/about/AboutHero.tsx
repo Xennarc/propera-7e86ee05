@@ -66,8 +66,9 @@ export function AboutHero() {
               </Button>
             </div>
 
-            {/* Mobile: Pre-arrival Wizard Showcase */}
-            <div className="lg:hidden flex justify-center mt-8">
+            {/* Mobile: Pre-arrival Wizard Showcase with glow effect */}
+            <div className="lg:hidden flex justify-center mt-10 relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-teal-400/5 to-transparent rounded-3xl blur-2xl scale-110 -z-10" />
               <PrearrivalWizardShowcase />
             </div>
           </motion.div>

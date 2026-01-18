@@ -71,7 +71,7 @@ export function HomeHero() {
             </div>
 
             {/* Value Chips - glassmorphism style */}
-            <div className="flex flex-wrap gap-2 justify-center lg:justify-start mb-8 lg:mb-10">
+            <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
               {valueChips.map((chip) => (
                 <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors">
                   {chip}
@@ -79,8 +79,8 @@ export function HomeHero() {
               ))}
             </div>
 
-            {/* Phone Mockup - Below CTAs (both mobile and desktop) */}
-            <div className="flex justify-center lg:justify-start">
+            {/* Phone Mockup - Below CTAs with proper spacing */}
+            <div className="flex justify-center lg:justify-start mt-8 lg:mt-10">
               <MobileGuestShowcase />
             </div>
           </div>

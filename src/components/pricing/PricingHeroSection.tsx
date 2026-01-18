@@ -117,9 +117,9 @@ export function PricingHeroSection() {
           </div>
 
           {/* Right - Interactive Product Preview */}
-          {/* Mobile: Activity Calendar Showcase */}
-          <div className="lg:hidden flex justify-center mb-2">
-            <ActivityCalendarShowcase />
+          {/* Mobile: Activity Calendar Showcase with proper spacing */}
+          <div className="lg:hidden flex justify-center mt-6">
+            <ActivityCalendarShowcase className="max-w-[240px]" />
           </div>
 
           {/* Desktop: Full interactive preview */}

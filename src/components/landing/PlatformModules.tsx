@@ -169,9 +169,9 @@ export function PlatformModules() {
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Pick what you need today. Grow into more later.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-12 max-w-6xl mx-auto">
             {/* Module cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {modules.map((module, index) => (
                 <ModuleCard 
                   key={module.title} 
@@ -181,15 +181,10 @@ export function PlatformModules() {
               ))}
             </div>
 
-            {/* Notification Stream Showcase */}
-            <div className="hidden lg:flex items-center justify-center stagger-8">
+            {/* Notification Stream Showcase - Desktop only (no mobile duplicate) */}
+            <div className="hidden lg:flex items-start justify-center pt-4 stagger-8">
               <NotificationStreamShowcase />
             </div>
-          </div>
-
-          {/* Mobile: Show notification showcase below */}
-          <div className="lg:hidden flex justify-center mt-8 stagger-8">
-            <NotificationStreamShowcase />
           </div>
         </div>
       </div>

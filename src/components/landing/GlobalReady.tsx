@@ -51,16 +51,21 @@ export function GlobalReady() {
             </div>
           </div>
 
-          {/* Multi-Resort Showcase */}
-          <div className="flex justify-center mb-16 stagger-2">
-            <MultiResortShowcase />
+          {/* Multi-Resort Showcase - compact */}
+          <div className="flex justify-center mb-12 stagger-2">
+            <MultiResortShowcase className="max-w-[260px]" />
           </div>
 
-          {/* Guest Journey Flow */}
-          <div className="max-w-5xl mx-auto stagger-3">
-            <div className="text-center mb-8">
-              <h3 className="text-xl font-semibold text-foreground mb-2">The guest journey, seamlessly connected</h3>
-              <p className="text-sm text-muted-foreground">Every touchpoint, from booking to departure</p>
+          {/* Visual separator */}
+          <div className="max-w-xs mx-auto mb-12">
+            <div className="h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
+          </div>
+
+          {/* Guest Journey Flow - with subheader */}
+          <div className="max-w-4xl mx-auto stagger-3">
+            <div className="text-center mb-6">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">End-to-end experience</p>
+              <h3 className="text-lg font-semibold text-foreground">The guest journey, seamlessly connected</h3>
             </div>
             <GuestJourneyFlow />
           </div>

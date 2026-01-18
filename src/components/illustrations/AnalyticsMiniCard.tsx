@@ -8,7 +8,7 @@ const kpis = [
 
 const chartBars = [35, 45, 30, 60, 50, 75, 65];
 
-export function AnalyticsMiniCard({ className }: { className?: string }) {
+export function AnalyticsMiniCard({ className = '' }: { className?: string }) {
   return (
     <div className={cn("w-full max-w-[280px] bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-lg p-4", className)}>
       {/* Header */}
