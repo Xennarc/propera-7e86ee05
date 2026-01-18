@@ -34,8 +34,8 @@ export function HomeHero() {
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-16 items-center text-center lg:text-left">
-          {/* Left: Copy - instant load for fast FCP */}
-          <div className="max-w-xl mx-auto lg:mx-0 relative z-10 order-2 lg:order-1">
+          {/* Left: Copy + Phone Mockup */}
+          <div className="max-w-xl mx-auto lg:mx-0 relative z-10">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-[1.1] tracking-tight">
               Resort operations.{' '}
               <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
@@ -71,30 +71,26 @@ export function HomeHero() {
             </div>
 
             {/* Value Chips - glassmorphism style */}
-            <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+            <div className="flex flex-wrap gap-2 justify-center lg:justify-start mb-8 lg:mb-10">
               {valueChips.map((chip) => (
                 <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors">
                   {chip}
                 </Badge>
               ))}
             </div>
-          </div>
 
-          {/* Right: Interactive Product Showcase */}
-          <div className="relative lg:pl-8 order-1 lg:order-2" style={{ minHeight: '280px' }}>
-            {/* Mobile: Simplified Guest Portal Showcase */}
-            <div className="lg:hidden flex justify-center">
+            {/* Phone Mockup - Below CTAs (both mobile and desktop) */}
+            <div className="flex justify-center lg:justify-start">
               <MobileGuestShowcase />
             </div>
-            
-            {/* Desktop: Full Interactive Showcase */}
-            <div className="hidden lg:block">
-              <InteractiveProductShowcase />
-            </div>
+          </div>
+
+          {/* Right: Interactive Product Showcase (Desktop only) */}
+          <div className="relative lg:pl-8 hidden lg:block" style={{ minHeight: '500px' }}>
+            <InteractiveProductShowcase />
           </div>
         </div>
       </div>
-
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { Globe } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { GuestJourneyFlow } from '@/components/illustrations/GuestJourneyFlow';
+import { MultiResortShowcase } from '@/components/illustrations/MultiResortShowcase';
 
 const regionChips = ['Island resorts', 'City resorts', 'Mountain retreats', 'Boutique hotels', 'Beach clubs'];
 
@@ -38,7 +39,7 @@ export function GlobalReady() {
               From boutique hideaways to multi-property groups — Propera keeps the experience consistent.
             </p>
 
-            <div className="flex flex-wrap justify-center gap-3 mb-16">
+            <div className="flex flex-wrap justify-center gap-3 mb-12">
               {regionChips.map((chip) => (
                 <span
                   key={chip}
@@ -48,6 +49,11 @@ export function GlobalReady() {
                 </span>
               ))}
             </div>
+          </div>
+
+          {/* Multi-Resort Showcase */}
+          <div className="flex justify-center mb-16 stagger-2">
+            <MultiResortShowcase />
           </div>
 
           {/* Guest Journey Flow */}

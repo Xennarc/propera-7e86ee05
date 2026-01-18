@@ -3,6 +3,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronDown, Coffee, Waves, Sparkles, MessageSquare } from 'lucide-react';
+import { PrearrivalWizardShowcase } from '@/components/illustrations/PrearrivalWizardShowcase';
 
 export function AboutHero() {
   const reducedMotion = useReducedMotion();
@@ -63,6 +64,11 @@ export function AboutHero() {
               >
                 <Link to="/pricing">View pricing</Link>
               </Button>
+            </div>
+
+            {/* Mobile: Pre-arrival Wizard Showcase */}
+            <div className="lg:hidden flex justify-center mt-8">
+              <PrearrivalWizardShowcase />
             </div>
           </motion.div>
 

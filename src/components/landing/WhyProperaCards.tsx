@@ -1,6 +1,7 @@
 import { BarChart3, Smartphone, RefreshCw, Check, ArrowRight } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { AnalyticsMiniCard } from '@/components/illustrations/AnalyticsMiniCard';
 
 const cards = [
   {
@@ -89,7 +90,7 @@ export function WhyProperaCards() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
             {cards.map((card, index) => (
               <ValueCard
                 key={card.title}
@@ -97,6 +98,11 @@ export function WhyProperaCards() {
                 staggerIndex={index + 1}
               />
             ))}
+          </div>
+
+          {/* Analytics Illustration */}
+          <div className="flex justify-center stagger-5">
+            <AnalyticsMiniCard />
           </div>
         </div>
       </div>

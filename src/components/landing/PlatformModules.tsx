@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { NotificationStreamShowcase } from '@/components/illustrations/NotificationStreamShowcase';
 
 const modules = [
   { 
@@ -168,14 +169,27 @@ export function PlatformModules() {
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Pick what you need today. Grow into more later.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
-            {modules.map((module, index) => (
-              <ModuleCard 
-                key={module.title} 
-                module={module} 
-                staggerIndex={Math.min(index + 2, 7)}
-              />
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 max-w-6xl mx-auto">
+            {/* Module cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+              {modules.map((module, index) => (
+                <ModuleCard 
+                  key={module.title} 
+                  module={module} 
+                  staggerIndex={Math.min(index + 2, 7)}
+                />
+              ))}
+            </div>
+
+            {/* Notification Stream Showcase */}
+            <div className="hidden lg:flex items-center justify-center stagger-8">
+              <NotificationStreamShowcase />
+            </div>
+          </div>
+
+          {/* Mobile: Show notification showcase below */}
+          <div className="lg:hidden flex justify-center mt-8 stagger-8">
+            <NotificationStreamShowcase />
           </div>
         </div>
       </div>

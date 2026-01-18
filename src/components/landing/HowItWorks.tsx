@@ -1,9 +1,10 @@
-import { Settings, Smartphone, Users, Play, Waves, Sun, Sparkles } from 'lucide-react';
+import { Settings, Smartphone, Users, Play, Waves, Sun, Sparkles, CheckCircle2, Clock, Circle } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { cn } from '@/lib/utils';
 
 import { DeviceMockup } from '@/components/illustrations/DeviceMockup';
+import { StaffTasksShowcase } from '@/components/illustrations/StaffTasksShowcase';
 
 const steps = [
   {
@@ -37,19 +38,6 @@ const steps = [
     },
   },
 ];
-
-// Mobile phone preview content matching guest portal
-const mobilePreviewItems = [
-  { name: 'Snorkel Safari', icon: Waves, color: 'lagoon' },
-  { name: 'Sunset Cruise', icon: Sun, color: 'sunset' },
-  { name: 'Spa Session', icon: Sparkles, color: 'orchid' },
-];
-
-const colorMap: Record<string, { bg: string; text: string }> = {
-  lagoon: { bg: 'bg-lagoon/10', text: 'text-lagoon' },
-  sunset: { bg: 'bg-sunset/10', text: 'text-sunset' },
-  orchid: { bg: 'bg-orchid/10', text: 'text-orchid' },
-};
 
 const StepCard = memo(function StepCard({
   step,
@@ -103,40 +91,6 @@ const StepCard = memo(function StepCard({
   );
 });
 
-// Mini phone mockup for mobile - matches guest portal
-function MiniPhoneMockup() {
-  return (
-    <div className="mx-auto w-[140px] bg-card/95 backdrop-blur-xl rounded-[20px] border-2 border-border/50 shadow-lg overflow-hidden">
-      {/* Notch */}
-      <div className="flex justify-center pt-1.5">
-        <div className="w-10 h-3 bg-background rounded-full" />
-      </div>
-      
-      {/* Screen content */}
-      <div className="px-2 py-2 space-y-1.5">
-        <p className="text-[8px] font-semibold text-foreground px-1">My Bookings</p>
-        {mobilePreviewItems.map((item) => {
-          const colors = colorMap[item.color];
-          const Icon = item.icon;
-          return (
-            <div key={item.name} className="flex items-center gap-1.5 p-1.5 bg-card/80 rounded-lg border border-border/30">
-              <div className={cn("w-5 h-5 rounded-md flex items-center justify-center", colors.bg)}>
-                <Icon className={cn("h-2.5 w-2.5", colors.text)} />
-              </div>
-              <span className="text-[8px] font-medium text-foreground truncate">{item.name}</span>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Home indicator */}
-      <div className="flex justify-center pb-1.5">
-        <div className="w-10 h-0.5 bg-muted-foreground/30 rounded-full" />
-      </div>
-    </div>
-  );
-}
-
 export function HowItWorks() {
   const { ref, revealed } = useScrollReveal();
 
@@ -168,34 +122,17 @@ export function HowItWorks() {
             ))}
           </div>
 
-          {/* Mobile: Mini phone preview */}
+          {/* Mobile: Staff Tasks phone preview */}
           <div className="md:hidden flex justify-center mb-8">
-            <MiniPhoneMockup />
+            <StaffTasksShowcase />
           </div>
 
           {/* Device mockup showcase - desktop only */}
           <div className="hidden md:flex justify-center items-end gap-6 max-w-3xl mx-auto stagger-5">
-            <DeviceMockup type="phone" floating className="hidden lg:block">
-              <div className="space-y-2">
-                <div className="text-[10px] font-medium text-muted-foreground mb-2">Guest Portal</div>
-                {mobilePreviewItems.map((item, i) => {
-                  const colors = colorMap[item.color];
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.name}
-                      className={`flex items-center gap-2 p-2 bg-background/60 rounded-lg border border-border/20 text-[10px] stagger-${i + 1}`}
-                    >
-                      <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", colors.bg)}>
-                        <Icon className={cn("h-3 w-3", colors.text)} />
-                      </div>
-                      <span className="text-foreground">{item.name}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </DeviceMockup>
+            {/* Staff Tasks Phone */}
+            <StaffTasksShowcase className="hidden lg:block" />
             
+            {/* Desktop Dashboard */}
             <DeviceMockup type="desktop" className="flex-1 max-w-md">
               <div className="space-y-3">
                 <div className="text-xs font-medium text-muted-foreground mb-3">Staff Dashboard</div>
