@@ -101,13 +101,13 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
           
           {/* Mobile Menu - Drawer style with glassmorphism */}
           {mobileMenuOpen && (
-            <div className="md:hidden surface-glass-strong py-6 border-t border-border/20">
-              <div className="container mx-auto px-4 flex flex-col gap-4">
+            <div className="md:hidden surface-glass-strong py-6 border-t border-border/20 pb-safe">
+              <div className="container mx-auto px-4 flex flex-col gap-2">
                 {navLinks.map((link) => (
                   <Link 
                     key={link.key}
                     to={link.href} 
-                    className={`text-base py-3 transition-colors ${
+                    className={`text-base py-4 min-h-[48px] flex items-center transition-colors ${
                       currentPage === link.key 
                         ? 'text-primary font-medium' 
                         : 'text-foreground hover:text-primary'
@@ -118,12 +118,12 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                   </Link>
                 ))}
                 <div className="pt-4 space-y-3">
-                  <Button asChild variant="outline" size="lg" className="w-full rounded-full">
+                  <Button asChild variant="outline" size="lg" className="w-full rounded-full h-12">
                     <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild size="lg" className="w-full rounded-full glow-lime">
+                  <Button asChild size="lg" className="w-full rounded-full glow-lime h-12">
                     <Link to="/book-demo" onClick={() => setMobileMenuOpen(false)}>
                       Book a demo
                     </Link>
@@ -138,10 +138,10 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
         <main>{children}</main>
 
         {/* Footer - seamless with canvas */}
-        <footer className="relative py-14">
+        <footer className="relative py-10 md:py-14 pb-safe">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-4 gap-10 mb-10">
-              <div className="md:col-span-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10 mb-10">
+              <div className="col-span-2 md:col-span-1">
                 <Link to="/" className="flex items-center gap-3 mb-4">
                   <ProperaMark size={36} className="text-primary" />
                   <span className="font-bold text-foreground text-lg">Propera</span>
@@ -152,27 +152,27 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
               </div>
               
               <div>
-                <h4 className="font-semibold text-foreground mb-5">Product</h4>
+                <h4 className="font-semibold text-foreground mb-4 md:mb-5">Product</h4>
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li><a href="/#platform-overview" className="hover:text-foreground transition-colors">Features</a></li>
-                  <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
-                  <li><Link to="/guest/login" className="hover:text-foreground transition-colors">Guest Portal</Link></li>
+                  <li><a href="/#platform-overview" className="hover:text-foreground transition-colors py-1 inline-block">Features</a></li>
+                  <li><Link to="/pricing" className="hover:text-foreground transition-colors py-1 inline-block">Pricing</Link></li>
+                  <li><Link to="/guest/login" className="hover:text-foreground transition-colors py-1 inline-block">Guest Portal</Link></li>
                 </ul>
               </div>
               
               <div>
-                <h4 className="font-semibold text-foreground mb-5">Company</h4>
+                <h4 className="font-semibold text-foreground mb-4 md:mb-5">Company</h4>
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
-                  <li><a href="mailto:hello@propera.io" className="hover:text-foreground transition-colors">Contact</a></li>
+                  <li><Link to="/about" className="hover:text-foreground transition-colors py-1 inline-block">About</Link></li>
+                  <li><a href="mailto:hello@propera.io" className="hover:text-foreground transition-colors py-1 inline-block">Contact</a></li>
                 </ul>
               </div>
               
               <div>
-                <h4 className="font-semibold text-foreground mb-5">Get Started</h4>
+                <h4 className="font-semibold text-foreground mb-4 md:mb-5">Get Started</h4>
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li><Link to="/auth" className="hover:text-foreground transition-colors">Sign In</Link></li>
-                  <li><Link to="/guest/find" className="hover:text-foreground transition-colors">Find Your Resort</Link></li>
+                  <li><Link to="/auth" className="hover:text-foreground transition-colors py-1 inline-block">Sign In</Link></li>
+                  <li><Link to="/guest/find" className="hover:text-foreground transition-colors py-1 inline-block">Find Your Resort</Link></li>
                 </ul>
               </div>
             </div>

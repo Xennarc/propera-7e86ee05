@@ -179,20 +179,20 @@ export default function BookDemoPage() {
         )}
 
         {/* Hero Section */}
-        <section className="py-16 md:py-24 lg:py-32">
+        <section className="py-10 md:py-16 lg:py-24 xl:py-32">
           <div className="container mx-auto px-4">
             <div className="relative max-w-4xl mx-auto">
-              {/* Glow effect behind panel */}
-              <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl" />
+              {/* Glow effect behind panel - hidden on mobile */}
+              <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-primary/5 to-transparent blur-3xl rounded-3xl hidden sm:block" />
               
-              <div className="relative bg-card/60 backdrop-blur-2xl rounded-3xl border border-border/30 p-8 md:p-12 lg:p-16 shadow-elevated">
+              <div className="relative bg-card/60 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-border/30 p-6 sm:p-8 md:p-12 lg:p-16 shadow-elevated">
                 <div className="text-center">
-                  <span className="glass-pill mb-6 inline-flex items-center">
-                    <Sparkles className="h-3.5 w-3.5 mr-2" />
+                  <span className="glass-pill mb-4 sm:mb-6 inline-flex items-center text-xs sm:text-sm">
+                    <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-2" />
                     Propera Demo
                   </span>
                   
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight leading-tight">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-4 sm:mb-6 tracking-tight leading-tight">
                     Let guests book.
                     <br />
                     <span className="bg-gradient-to-r from-teal-500 via-teal-400 to-lagoon-500 bg-clip-text text-transparent">
@@ -200,41 +200,41 @@ export default function BookDemoPage() {
                     </span>
                   </h1>
                   
-                  <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+                  <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
                     Propera is a modern guest booking and operations hub for island resorts — activities, spa, excursions, and dining — with real-time availability and a clean guest portal.
                   </p>
 
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-4 sm:mb-6">
                     <Button 
-                      size="xl" 
-                      className="bg-primary text-primary-foreground rounded-full font-semibold px-8 glow-lime hover:-translate-y-0.5 transition-all"
+                      size="lg" 
+                      className="bg-primary text-primary-foreground rounded-full font-semibold px-6 sm:px-8 h-12 glow-lime hover:-translate-y-0.5 transition-all w-full sm:w-auto"
                       onClick={handleOpenWizard}
                       data-trigger-demo
                     >
                       Try Propera Now (10 min)
-                      <Play className="ml-2 h-5 w-5" />
+                      <Play className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <Button 
-                      size="xl" 
+                      size="lg" 
                       variant="outline"
-                      className="rounded-full font-semibold px-8 border-border/50 hover:border-primary/30"
+                      className="rounded-full font-semibold px-6 sm:px-8 h-12 border-border/50 hover:border-primary/30 w-full sm:w-auto"
                       onClick={() => setShowLiveQualifier(true)}
                       data-trigger-qualifier
                     >
                       Book a Live Walkthrough
-                      <Calendar className="ml-2 h-5 w-5" />
+                      <Calendar className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </div>
 
-                  <p className="text-sm text-muted-foreground/80 mb-10">
+                  <p className="text-xs sm:text-sm text-muted-foreground/80 mb-6 sm:mb-8 md:mb-10">
                     No pressure. No long forms. Your demo workspace is created instantly.
                   </p>
 
                   {/* Trust chips */}
-                  <div className="flex flex-wrap justify-center gap-3">
+                  <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                     {TRUST_CHIPS.map((chip) => (
-                      <span key={chip} className="glass-pill text-sm">
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-primary" />
+                      <span key={chip} className="glass-pill text-xs sm:text-sm">
+                        <CheckCircle2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 sm:mr-2 text-primary" />
                         {chip}
                       </span>
                     ))}
@@ -246,39 +246,39 @@ export default function BookDemoPage() {
         </section>
 
         {/* Two Paths Section */}
-        <section className="py-20 relative">
+        <section className="py-12 md:py-16 lg:py-20 relative">
           <div className="container mx-auto px-4">
             {/* Segmented Toggle */}
-            <div className="flex justify-center mb-10">
-              <div className="inline-flex bg-card/80 backdrop-blur-xl rounded-2xl p-1.5 border border-border/50">
+            <div className="flex justify-center mb-6 md:mb-10">
+              <div className="inline-flex bg-card/80 backdrop-blur-xl rounded-xl sm:rounded-2xl p-1 sm:p-1.5 border border-border/50">
                 <button
                   onClick={() => setSelectedPath('instant')}
                   className={cn(
-                    "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
+                    "px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300",
                     selectedPath === 'instant' 
                       ? "bg-primary text-primary-foreground shadow-lg" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Zap className="h-4 w-4 inline mr-2" />
+                  <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1.5 sm:mr-2" />
                   Instant Demo
                 </button>
                 <button
                   onClick={() => setSelectedPath('walkthrough')}
                   className={cn(
-                    "px-6 py-3 rounded-xl text-sm font-semibold transition-all duration-300",
+                    "px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-300",
                     selectedPath === 'walkthrough' 
                       ? "bg-primary text-primary-foreground shadow-lg" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Calendar className="h-4 w-4 inline mr-2" />
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 inline mr-1.5 sm:mr-2" />
                   Live Walkthrough
                 </button>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-5xl mx-auto">
               {/* Card A - Self-Serve Demo */}
               <Card 
                 className={cn(

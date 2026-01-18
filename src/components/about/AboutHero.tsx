@@ -12,43 +12,44 @@ export function AboutHero() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-24 pb-16 bg-background">
+    <section className="relative min-h-[80vh] md:min-h-screen flex items-center overflow-hidden pt-20 md:pt-24 pb-12 md:pb-16 bg-background">
       {/* Midnight gradient base */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
-        {/* Lime glow spotlight */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[180px] pointer-events-none" />
-        {/* Blurple glow */}
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[150px] pointer-events-none" />
-        {/* Teal accent */}
-        <div className="absolute top-1/3 left-1/3 w-[400px] h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[120px] pointer-events-none" />
+        {/* Lime glow spotlight - hidden on mobile */}
+        <div className="absolute top-0 right-0 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[100px] md:blur-[180px] pointer-events-none hidden sm:block" />
+        {/* Blurple glow - hidden on mobile */}
+        <div className="absolute bottom-0 left-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[80px] md:blur-[150px] pointer-events-none hidden sm:block" />
+        {/* Teal accent - hidden on mobile */}
+        <div className="absolute top-1/3 left-1/3 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[60px] md:blur-[120px] pointer-events-none hidden sm:block" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-20 items-center text-center lg:text-left">
           {/* Left - Content */}
           <motion.div
             initial={reducedMotion ? {} : { opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
+            className="max-w-xl mx-auto lg:mx-0"
           >
-            <div className="glass-pill text-primary px-4 py-2 mb-8 border border-primary/20">
+            <div className="glass-pill text-primary px-4 py-2 mb-6 md:mb-8 border border-primary/20 inline-flex">
               About Propera
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-8 leading-[1.1] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 md:mb-8 leading-[1.1] tracking-tight">
               Hospitality, with{' '}
               <span className="text-primary">calm precision.</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-xl">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground mb-8 md:mb-10 leading-relaxed max-w-xl">
               Propera was created to bring clarity to the busiest places — so teams can focus on service, and guests can focus on the stay.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:justify-center lg:justify-start">
               <Button 
                 size="lg" 
-                className="bg-primary text-primary-foreground rounded-full font-semibold px-8 glow-lime hover:-translate-y-0.5 transition-all"
+                className="bg-primary text-primary-foreground rounded-full font-semibold px-6 sm:px-8 h-12 glow-lime hover:-translate-y-0.5 transition-all w-full sm:w-auto"
                 onClick={scrollToProduct}
               >
                 See the platform
@@ -58,7 +59,7 @@ export function AboutHero() {
                 asChild
                 variant="outline" 
                 size="lg" 
-                className="rounded-full font-semibold border-border/50 hover:border-primary/30"
+                className="rounded-full font-semibold border-border/50 hover:border-primary/30 h-12 w-full sm:w-auto"
               >
                 <Link to="/pricing">View pricing</Link>
               </Button>
