@@ -1844,6 +1844,35 @@
   }
 }
 
+/* Mobile optimizations for marketing pages */
+@media (max-width: 768px) {
+  /* Reduce glow blur for performance */
+  .marketing-glow-hero,
+  .marketing-glow-mid,
+  .marketing-glow-cta {
+    filter: blur(60px);
+    animation-duration: 45s; /* Slower = less CPU */
+  }
+  
+  /* Disable gradient shimmer on mobile for battery */
+  .marketing-canvas::after {
+    animation: none;
+  }
+}
+
+/* Mobile-safe hero height (avoids browser chrome issues) */
+.hero-mobile-safe {
+  min-height: calc(100vh - 100px);
+  min-height: calc(100dvh - 100px);
+}
+
+/* Hide decorative elements on mobile */
+@media (max-width: 768px) {
+  .hide-mobile-decorative {
+    display: none !important;
+  }
+}
+
 /* Lifted Surface for highlighted sections */
 .marketing-lifted-surface {
   border-radius: 1.5rem;

@@ -93,22 +93,23 @@ export function HowItWorks() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section className="py-24 relative overflow-hidden">
+    <section className="py-16 md:py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4">
         <div
           ref={ref}
           className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="text-center mb-16 stagger-1">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center mb-10 md:mb-16 stagger-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 md:mb-4">
               From setup to service — smoothly.
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Hover over each step to see what happens
+            <p className="text-sm md:text-base text-muted-foreground max-w-xl mx-auto px-4">
+              <span className="hidden md:inline">Hover over each step to see what happens</span>
+              <span className="md:hidden">Tap each step to learn more</span>
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-12 md:gap-8 max-w-4xl mx-auto mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8 max-w-4xl mx-auto mb-10 md:mb-16">
             {steps.map((step, index) => (
               <StepCard
                 key={step.title}
@@ -119,9 +120,9 @@ export function HowItWorks() {
             ))}
           </div>
 
-          {/* Device mockup showcase */}
-          <div className="flex justify-center items-end gap-6 max-w-3xl mx-auto stagger-5">
-            <DeviceMockup type="phone" floating className="hidden md:block">
+          {/* Device mockup showcase - hidden on mobile */}
+          <div className="hidden md:flex justify-center items-end gap-6 max-w-3xl mx-auto stagger-5">
+            <DeviceMockup type="phone" floating className="hidden lg:block">
               <div className="space-y-2">
                 <div className="text-[10px] font-medium text-muted-foreground mb-2">Guest Portal</div>
                 {['Snorkel Safari', 'Sunset Cruise', 'Spa Session'].map((item, i) => (

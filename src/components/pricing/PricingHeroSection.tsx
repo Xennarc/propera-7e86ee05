@@ -60,32 +60,32 @@ export function PricingHeroSection() {
   };
 
   return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-28 pb-16 bg-background">
+    <section className="relative min-h-[70vh] md:min-h-[80vh] flex items-center overflow-hidden pt-20 md:pt-28 pb-12 md:pb-16 bg-background">
       {/* Midnight gradient base */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
       
-      {/* Lime glow spotlight */}
-      <div className="absolute top-20 right-1/4 w-[600px] h-[600px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[150px] pointer-events-none" />
-      {/* Blurple glow */}
-      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[130px] pointer-events-none" />
-      {/* Teal accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[100px] pointer-events-none" />
+      {/* Lime glow spotlight - hidden on mobile */}
+      <div className="absolute top-20 right-1/4 w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[100px] md:blur-[150px] pointer-events-none hidden sm:block" />
+      {/* Blurple glow - hidden on mobile */}
+      <div className="absolute bottom-0 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[80px] md:blur-[130px] pointer-events-none hidden sm:block" />
+      {/* Teal accent - hidden on mobile */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[60px] md:blur-[100px] pointer-events-none hidden sm:block" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center max-w-6xl mx-auto">
           {/* Left - Copy */}
           <div className="text-center lg:text-left">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-[1.1] tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-[1.1] tracking-tight">
               Pricing, made simple.
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8">
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-6 md:mb-8">
               Propera brings guests, teams, and schedules into one elegant system — so every day runs smoothly.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-4 mb-4">
-              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 px-8 glow-lime group hover:-translate-y-0.5 transition-all">
+            <div className="flex flex-col sm:flex-row items-center lg:items-start gap-3 sm:gap-4 mb-4 sm:justify-center lg:justify-start">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 px-6 sm:px-8 glow-lime group hover:-translate-y-0.5 transition-all w-full sm:w-auto">
                 <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -94,7 +94,7 @@ export function PricingHeroSection() {
               <Button 
                 variant="outline" 
                 size="lg" 
-                className="rounded-full font-semibold h-12 px-8 border-border/50 hover:border-primary/30"
+                className="rounded-full font-semibold h-12 px-6 sm:px-8 border-border/50 hover:border-primary/30 w-full sm:w-auto"
                 onClick={scrollToPlans}
               >
                 <Zap className="mr-2 h-4 w-4 text-primary" />
@@ -106,7 +106,7 @@ export function PricingHeroSection() {
             </p>
 
             {/* Value chips - static */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-8">
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6 md:mt-8">
               {VALUE_CHIPS.map((chip) => (
                 <span key={chip} className="glass-pill text-xs">
                   {chip}

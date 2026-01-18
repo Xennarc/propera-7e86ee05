@@ -69,20 +69,20 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section id="plans" className="py-16 md:py-20 relative overflow-hidden scroll-mt-24">
+    <section id="plans" className="py-12 md:py-16 lg:py-20 relative overflow-hidden scroll-mt-24">
       {/* Midnight gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-midnight-900/30 to-background dark:via-midnight-950" />
       
-      {/* Lime glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-lime-400/5 dark:bg-lime-400/8 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[120px] pointer-events-none" />
+      {/* Lime glow - hidden on mobile */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[400px] md:h-[600px] bg-lime-400/5 dark:bg-lime-400/8 rounded-full blur-[100px] md:blur-[140px] pointer-events-none hidden sm:block" />
+      <div className="absolute top-0 right-0 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[80px] md:blur-[120px] pointer-events-none hidden sm:block" />
       
       <div className="container mx-auto px-4 relative z-10">
         <div
           ref={ref}
           className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {plans.map((plan, index) => {
               const config = PLAN_CONFIG[plan.id] || PLAN_CONFIG.essential;
               const Icon = config.icon;

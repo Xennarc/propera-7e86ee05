@@ -155,7 +155,7 @@ export function PlatformModules() {
   const { ref, revealed } = useScrollReveal();
 
   return (
-    <section id="platform-overview" className="py-24 relative overflow-hidden">
+    <section id="platform-overview" className="py-16 md:py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4 z-10">
         <FloatingFragments />
         
@@ -163,12 +163,12 @@ export function PlatformModules() {
           ref={ref}
           className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="text-center mb-16 stagger-1">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Everything in one place.</h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">Pick what you need today. Grow into more later.</p>
+          <div className="text-center mb-10 md:mb-16 stagger-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 md:mb-4">Everything in one place.</h2>
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Pick what you need today. Grow into more later.</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 max-w-6xl mx-auto">
             {modules.map((module, index) => (
               <ModuleCard 
                 key={module.title} 
