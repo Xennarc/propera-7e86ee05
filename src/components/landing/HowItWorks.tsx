@@ -111,7 +111,7 @@ export function HowItWorks() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8 max-w-4xl mx-auto mb-10 md:mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8 max-w-4xl mx-auto">
             {steps.map((step, index) => (
               <StepCard
                 key={step.title}
@@ -122,46 +122,49 @@ export function HowItWorks() {
             ))}
           </div>
 
-          {/* Mobile: Staff Tasks phone preview */}
-          <div className="md:hidden flex justify-center mb-8">
-            <StaffTasksShowcase />
-          </div>
+          {/* Device mockup showcase - with proper spacing */}
+          <div className="mt-12 md:mt-16 pt-8 border-t border-border/20">
+            {/* Mobile: Staff Tasks phone preview */}
+            <div className="md:hidden flex justify-center">
+              <StaffTasksShowcase />
+            </div>
 
-          {/* Device mockup showcase - desktop only */}
-          <div className="hidden md:flex justify-center items-end gap-6 max-w-3xl mx-auto stagger-5">
-            {/* Staff Tasks Phone */}
-            <StaffTasksShowcase className="hidden lg:block" />
-            
-            {/* Desktop Dashboard */}
-            <DeviceMockup type="desktop" className="flex-1 max-w-md">
-              <div className="space-y-3">
-                <div className="text-xs font-medium text-muted-foreground mb-3">Staff Dashboard</div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'Bookings', value: '24' },
-                    { label: 'Guests', value: '86' },
-                    { label: 'Requests', value: '5' },
-                  ].map((stat, i) => (
-                    <div
-                      key={stat.label}
-                      className={`bg-background/60 rounded-lg p-2 text-center border border-border/20 stagger-${i + 1}`}
-                    >
-                      <p className="text-lg font-bold text-foreground">{stat.value}</p>
-                      <p className="text-[9px] text-muted-foreground">{stat.label}</p>
-                    </div>
-                  ))}
+            {/* Desktop: Staff Tasks Phone + Dashboard side by side */}
+            <div className="hidden md:flex justify-center items-end gap-8 max-w-3xl mx-auto stagger-5">
+              {/* Staff Tasks Phone */}
+              <StaffTasksShowcase className="hidden lg:block" />
+              
+              {/* Desktop Dashboard */}
+              <DeviceMockup type="desktop" className="flex-1 max-w-md">
+                <div className="space-y-3">
+                  <div className="text-xs font-medium text-muted-foreground mb-3">Staff Dashboard</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: 'Bookings', value: '24' },
+                      { label: 'Guests', value: '86' },
+                      { label: 'Requests', value: '5' },
+                    ].map((stat, i) => (
+                      <div
+                        key={stat.label}
+                        className={`bg-background/60 rounded-lg p-2 text-center border border-border/20 stagger-${i + 1}`}
+                      >
+                        <p className="text-lg font-bold text-foreground">{stat.value}</p>
+                        <p className="text-[9px] text-muted-foreground">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="h-12 bg-gradient-to-r from-primary/10 to-teal-400/10 rounded-lg flex items-end px-2 pb-1 gap-1">
+                    {[30, 45, 35, 60, 50, 70, 55].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 bg-primary/60 rounded-t-sm chart-bar-grow"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="h-12 bg-gradient-to-r from-primary/10 to-teal-400/10 rounded-lg flex items-end px-2 pb-1 gap-1">
-                  {[30, 45, 35, 60, 50, 70, 55].map((h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 bg-primary/60 rounded-t-sm chart-bar-grow"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </DeviceMockup>
+              </DeviceMockup>
+            </div>
           </div>
         </div>
       </div>

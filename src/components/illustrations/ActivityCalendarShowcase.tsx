@@ -30,7 +30,7 @@ const availabilityStyles = {
   full: 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30',
 };
 
-export function ActivityCalendarShowcase({ className }: { className?: string }) {
+export function ActivityCalendarShowcase({ className = '' }: { className?: string }) {
   return (
     <div className={cn("w-[200px] bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-lg p-3", className)}>
       {/* Header */}

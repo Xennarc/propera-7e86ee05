@@ -28,7 +28,7 @@ const resorts = [
   },
 ];
 
-export function MultiResortShowcase({ className }: { className?: string }) {
+export function MultiResortShowcase({ className = '' }: { className?: string }) {
   return (
     <div className={cn("w-[220px] bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-lg overflow-hidden", className)}>
       {/* Header - looks like a dropdown */}
