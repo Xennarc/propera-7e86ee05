@@ -1,6 +1,7 @@
-import { Settings, Smartphone, Users, Play } from 'lucide-react';
+import { Settings, Smartphone, Users, Play, Waves, Sun, Sparkles } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { cn } from '@/lib/utils';
 
 import { DeviceMockup } from '@/components/illustrations/DeviceMockup';
 
@@ -37,6 +38,19 @@ const steps = [
   },
 ];
 
+// Mobile phone preview content matching guest portal
+const mobilePreviewItems = [
+  { name: 'Snorkel Safari', icon: Waves, color: 'lagoon' },
+  { name: 'Sunset Cruise', icon: Sun, color: 'sunset' },
+  { name: 'Spa Session', icon: Sparkles, color: 'orchid' },
+];
+
+const colorMap: Record<string, { bg: string; text: string }> = {
+  lagoon: { bg: 'bg-lagoon/10', text: 'text-lagoon' },
+  sunset: { bg: 'bg-sunset/10', text: 'text-sunset' },
+  orchid: { bg: 'bg-orchid/10', text: 'text-orchid' },
+};
+
 const StepCard = memo(function StepCard({
   step,
   index,
@@ -51,16 +65,16 @@ const StepCard = memo(function StepCard({
       className={`relative flex flex-col items-center text-center group stagger-${index + 2}`}
     >
       {/* Number badge with gradient orb */}
-      <div className="relative mb-6">
-        <div className="icon-orb-gradient icon-orb-hover w-16 h-16 text-primary cursor-pointer">
-          <step.icon className="h-7 w-7" />
+      <div className="relative mb-4 md:mb-6">
+        <div className="icon-orb-gradient icon-orb-hover w-14 h-14 md:w-16 md:h-16 text-primary cursor-pointer">
+          <step.icon className="h-6 w-6 md:h-7 md:w-7" />
         </div>
-        <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-gradient-to-br from-primary to-teal-400 text-primary-foreground flex items-center justify-center text-sm font-bold shadow-lg shadow-primary/30">
+        <div className="absolute -top-2 -right-2 w-6 h-6 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-primary to-teal-400 text-primary-foreground flex items-center justify-center text-xs md:text-sm font-bold shadow-lg shadow-primary/30">
           {step.number}
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold text-foreground mb-2">{step.title}</h3>
+      <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">{step.title}</h3>
       <p className="text-muted-foreground text-sm max-w-xs leading-relaxed mb-4">{step.description}</p>
 
       {/* Mini preview on hover - CSS only */}
@@ -88,6 +102,40 @@ const StepCard = memo(function StepCard({
     </div>
   );
 });
+
+// Mini phone mockup for mobile - matches guest portal
+function MiniPhoneMockup() {
+  return (
+    <div className="mx-auto w-[140px] bg-card/95 backdrop-blur-xl rounded-[20px] border-2 border-border/50 shadow-lg overflow-hidden">
+      {/* Notch */}
+      <div className="flex justify-center pt-1.5">
+        <div className="w-10 h-3 bg-background rounded-full" />
+      </div>
+      
+      {/* Screen content */}
+      <div className="px-2 py-2 space-y-1.5">
+        <p className="text-[8px] font-semibold text-foreground px-1">My Bookings</p>
+        {mobilePreviewItems.map((item) => {
+          const colors = colorMap[item.color];
+          const Icon = item.icon;
+          return (
+            <div key={item.name} className="flex items-center gap-1.5 p-1.5 bg-card/80 rounded-lg border border-border/30">
+              <div className={cn("w-5 h-5 rounded-md flex items-center justify-center", colors.bg)}>
+                <Icon className={cn("h-2.5 w-2.5", colors.text)} />
+              </div>
+              <span className="text-[8px] font-medium text-foreground truncate">{item.name}</span>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Home indicator */}
+      <div className="flex justify-center pb-1.5">
+        <div className="w-10 h-0.5 bg-muted-foreground/30 rounded-full" />
+      </div>
+    </div>
+  );
+}
 
 export function HowItWorks() {
   const { ref, revealed } = useScrollReveal();
@@ -120,22 +168,31 @@ export function HowItWorks() {
             ))}
           </div>
 
-          {/* Device mockup showcase - hidden on mobile */}
+          {/* Mobile: Mini phone preview */}
+          <div className="md:hidden flex justify-center mb-8">
+            <MiniPhoneMockup />
+          </div>
+
+          {/* Device mockup showcase - desktop only */}
           <div className="hidden md:flex justify-center items-end gap-6 max-w-3xl mx-auto stagger-5">
             <DeviceMockup type="phone" floating className="hidden lg:block">
               <div className="space-y-2">
                 <div className="text-[10px] font-medium text-muted-foreground mb-2">Guest Portal</div>
-                {['Snorkel Safari', 'Sunset Cruise', 'Spa Session'].map((item, i) => (
-                  <div
-                    key={item}
-                    className={`flex items-center gap-2 p-2 bg-background/60 rounded-lg border border-border/20 text-[10px] stagger-${i + 1}`}
-                  >
-                    <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                      <span className="text-primary text-[8px]">🏄</span>
+                {mobilePreviewItems.map((item, i) => {
+                  const colors = colorMap[item.color];
+                  const Icon = item.icon;
+                  return (
+                    <div
+                      key={item.name}
+                      className={`flex items-center gap-2 p-2 bg-background/60 rounded-lg border border-border/20 text-[10px] stagger-${i + 1}`}
+                    >
+                      <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", colors.bg)}>
+                        <Icon className={cn("h-3 w-3", colors.text)} />
+                      </div>
+                      <span className="text-foreground">{item.name}</span>
                     </div>
-                    <span className="text-foreground">{item}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </DeviceMockup>
             

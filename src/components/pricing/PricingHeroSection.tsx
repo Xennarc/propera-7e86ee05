@@ -116,6 +116,35 @@ export function PricingHeroSection() {
           </div>
 
           {/* Right - Interactive Product Preview */}
+          {/* Mobile: Mini product preview */}
+          <div className="lg:hidden flex justify-center mb-2">
+            <div className="relative">
+              {/* Stacked cards effect */}
+              <div className="absolute -rotate-3 -left-2 top-2 w-44 h-24 bg-lagoon/5 rounded-2xl border border-lagoon/20" />
+              <div className="absolute rotate-2 -right-2 top-2 w-44 h-24 bg-sunset/5 rounded-2xl border border-sunset/20" />
+              <div className="relative w-44 bg-card rounded-2xl border border-border p-3 shadow-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Calendar className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <span className="text-xs font-semibold text-foreground">Guest Portal</span>
+                </div>
+                <div className="space-y-1.5">
+                  {[
+                    { name: 'Snorkel Safari', color: 'bg-lagoon/10' },
+                    { name: 'Sunset Cruise', color: 'bg-sunset/10' },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-2 p-1.5 rounded-lg border border-border/30">
+                      <div className={`w-5 h-5 rounded ${item.color}`} />
+                      <span className="text-[10px] font-medium text-foreground">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop: Full interactive preview */}
           <div className="relative hidden lg:block">
             {/* Floating status chips */}
             <FloatingUIChip
