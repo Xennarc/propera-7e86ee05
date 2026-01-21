@@ -16,13 +16,13 @@ import {
   IconLogout,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
-import { Crown } from 'lucide-react';
+import { Crown, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const baseNavItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
   { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
-  { icon: IconRestaurants, labelKey: 'nav.dining', href: '/guest/restaurants', key: 'guest-dining' },
+  { icon: Bell, labelKey: 'nav.requests', href: '/guest/requests', key: 'guest-requests' },
   { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings' },
 ];
 

@@ -1017,6 +1017,12 @@ serve(async (req) => {
         const departments = ["dive", "watersports", "spa", "excursions", "dining"];
         await seedDemoData(supabaseAdmin, demoResort.id, departments, DEMO_RESORT_CODE);
         console.log("Seeded demo data for shared resort");
+        
+        // Initialize guest requests system (departments, catalog, retention policy)
+        await supabaseAdmin.rpc('initialize_guest_requests_for_resort', { 
+          p_resort_id: demoResort.id 
+        });
+        console.log("Initialized guest requests for demo resort");
       } else {
         // Check if activities exist - if not, seeding may have failed before
         const { count: activityCount } = await supabaseAdmin
@@ -1029,6 +1035,20 @@ serve(async (req) => {
           const departments = ["dive", "watersports", "spa", "excursions", "dining"];
           await seedDemoData(supabaseAdmin, demoResort.id, departments, DEMO_RESORT_CODE);
           console.log("Reseeded demo data for shared resort");
+        }
+        
+        // Ensure guest requests are initialized
+        const { count: deptCount } = await supabaseAdmin
+          .from("departments")
+          .select("id", { count: "exact", head: true })
+          .eq("resort_id", demoResort.id);
+        
+        if (!deptCount || deptCount === 0) {
+          console.log("Guest requests not initialized, setting up...");
+          await supabaseAdmin.rpc('initialize_guest_requests_for_resort', { 
+            p_resort_id: demoResort.id 
+          });
+          console.log("Initialized guest requests for demo resort");
         }
       }
 
