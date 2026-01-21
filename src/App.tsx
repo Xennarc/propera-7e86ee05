@@ -133,6 +133,8 @@ const PrearrivalLandingPage = lazy(() => import("./pages/prearrival/PrearrivalLa
 const PrearrivalCheckinWizard = lazy(() => import("./pages/prearrival/PrearrivalCheckinWizard"));
 const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPage"));
+const GuestRequestsCatalogPage = lazy(() => import("./pages/guest/GuestRequestsPage"));
+const GuestMyRequestsPage = lazy(() => import("./pages/guest/GuestMyRequestsPage"));
 const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
 const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
 
@@ -311,6 +313,8 @@ const App = () => (
                   <Route path="notifications" element={<GuestNotificationsPage />} />
                   <Route path="loyalty" element={<GuestLoyaltyPage />} />
                   <Route path="travel-party" element={<GuestTravelPartyPage />} />
+                  <Route path="requests" element={<GuestRequestsCatalogPage />} />
+                  <Route path="requests/my" element={<GuestMyRequestsPage />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />
