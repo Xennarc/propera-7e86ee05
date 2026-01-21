@@ -43,3 +43,7 @@ verify_jwt = false
 
 [functions.purge-resort]
 verify_jwt = false
+
+[functions.retention-scheduler]
+verify_jwt = false
+schedule = "0 3 * * *"
