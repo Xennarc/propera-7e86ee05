@@ -69,7 +69,7 @@ const GuestBehaviourReport = lazy(() => import("./pages/reports/GuestBehaviourRe
 const MarketReport = lazy(() => import("./pages/reports/MarketReport"));
 const StayFeedbackReport = lazy(() => import("./pages/reports/StayFeedbackReport"));
 const SalesPerformanceReport = lazy(() => import("./pages/reports/SalesPerformanceReport"));
-const GuestRequestsPage = lazy(() => import("./pages/staff/GuestRequestsPage"));
+const StaffRequestsInboxPage = lazy(() => import("./pages/staff/StaffRequestsInboxPage"));
 const TodaysOpportunitiesPage = lazy(() => import("./pages/staff/TodaysOpportunitiesPage"));
 const PrearrivalDashboardPage = lazy(() => import("./pages/staff/PrearrivalDashboardPage"));
 const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAcceptPage"));
@@ -214,7 +214,7 @@ const App = () => (
                   <Route path="reports/guest-behaviour" element={<GuestBehaviourReport />} />
                   <Route path="reports/market" element={<MarketReport />} />
                   <Route path="reports/stay-feedback" element={<StayFeedbackReport />} />
-                  <Route path="guest-requests" element={<GuestRequestsPage />} />
+                  <Route path="guest-requests" element={<StaffRequestsInboxPage />} />
                   <Route path="today" element={<TodaysOpportunitiesPage />} />
                   <Route path="prearrival" element={<PrearrivalDashboardPage />} />
                   <Route path="team" element={<StaffDirectoryPage />} />
