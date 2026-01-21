@@ -1158,6 +1158,111 @@ export type Database = {
           },
         ]
       }
+      department_memberships: {
+        Row: {
+          created_at: string
+          department_key: string
+          dept_role: string
+          id: string
+          resort_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_key: string
+          dept_role: string
+          id?: string
+          resort_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department_key?: string
+          dept_role?: string
+          id?: string
+          resort_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_memberships_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_retention_overrides: {
+        Row: {
+          archive_after_days: number | null
+          created_at: string
+          delete_after_days: number | null
+          department_key: string
+          id: string
+          resort_id: string
+        }
+        Insert: {
+          archive_after_days?: number | null
+          created_at?: string
+          delete_after_days?: number | null
+          department_key: string
+          id?: string
+          resort_id: string
+        }
+        Update: {
+          archive_after_days?: number | null
+          created_at?: string
+          delete_after_days?: number | null
+          department_key?: string
+          id?: string
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_retention_overrides_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          resort_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          resort_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_outbox: {
         Row: {
           attempts: number
@@ -2862,6 +2967,56 @@ export type Database = {
         }
         Relationships: []
       }
+      request_catalog: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          default_priority: string
+          department_key: string
+          icon_key: string | null
+          id: string
+          is_active: boolean
+          is_billable: boolean
+          resort_id: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          default_priority?: string
+          department_key: string
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          is_billable?: boolean
+          resort_id?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          default_priority?: string
+          department_key?: string
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          is_billable?: boolean
+          resort_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_catalog_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resort_directory: {
         Row: {
           category: string | null
@@ -3000,6 +3155,44 @@ export type Database = {
           summary?: Json
         }
         Relationships: []
+      }
+      resort_retention_policies: {
+        Row: {
+          created_at: string
+          default_archive_after_days: number
+          default_delete_after_days: number
+          department_visibility_policy: string
+          id: string
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_archive_after_days?: number
+          default_delete_after_days?: number
+          department_visibility_policy?: string
+          id?: string
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_archive_after_days?: number
+          default_delete_after_days?: number
+          department_visibility_policy?: string
+          id?: string
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_retention_policies_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resort_settings: {
         Row: {
@@ -3742,6 +3935,250 @@ export type Database = {
           started_at?: string | null
           status?: string
           target_resort_ids?: string[]
+        }
+        Relationships: []
+      }
+      service_request_events: {
+        Row: {
+          actor_guest_id: string | null
+          actor_user_id: string | null
+          event_at: string
+          event_type: string
+          id: string
+          meta: Json
+          request_id: string
+          resort_id: string
+        }
+        Insert: {
+          actor_guest_id?: string | null
+          actor_user_id?: string | null
+          event_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          request_id: string
+          resort_id: string
+        }
+        Update: {
+          actor_guest_id?: string | null
+          actor_user_id?: string | null
+          event_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          request_id?: string
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          catalog_id: string | null
+          category: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          department_key: string
+          guest_id: string
+          id: string
+          internal_notes: string | null
+          is_asap: boolean
+          notes: string | null
+          priority: string
+          quantity: number
+          requested_for_at: string | null
+          resort_id: string
+          room_id: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          catalog_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_key: string
+          guest_id: string
+          id?: string
+          internal_notes?: string | null
+          is_asap?: boolean
+          notes?: string | null
+          priority?: string
+          quantity?: number
+          requested_for_at?: string | null
+          resort_id: string
+          room_id?: string | null
+          status?: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          catalog_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_key?: string
+          guest_id?: string
+          id?: string
+          internal_notes?: string | null
+          is_asap?: boolean
+          notes?: string | null
+          priority?: string
+          quantity?: number
+          requested_for_at?: string | null
+          resort_id?: string
+          room_id?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "request_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_requests_archive: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          archived_at: string
+          archived_by: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          catalog_id: string | null
+          category: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          department_key: string
+          guest_id: string
+          id: string
+          internal_notes: string | null
+          is_asap: boolean
+          notes: string | null
+          priority: string
+          quantity: number
+          requested_for_at: string | null
+          resort_id: string
+          room_id: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          archived_at?: string
+          archived_by?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          catalog_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at: string
+          department_key: string
+          guest_id: string
+          id: string
+          internal_notes?: string | null
+          is_asap?: boolean
+          notes?: string | null
+          priority: string
+          quantity?: number
+          requested_for_at?: string | null
+          resort_id: string
+          room_id?: string | null
+          status: string
+          title: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          archived_at?: string
+          archived_by?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          catalog_id?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          department_key?: string
+          guest_id?: string
+          id?: string
+          internal_notes?: string | null
+          is_asap?: boolean
+          notes?: string | null
+          priority?: string
+          quantity?: number
+          requested_for_at?: string | null
+          resort_id?: string
+          room_id?: string | null
+          status?: string
+          title?: string
         }
         Relationships: []
       }
@@ -4749,6 +5186,10 @@ export type Database = {
         Args: { p_guest_id: string; p_reservation_id: string }
         Returns: boolean
       }
+      guest_cancel_service_request: {
+        Args: { p_guest_id: string; p_request_id: string; p_resort_id: string }
+        Returns: boolean
+      }
       guest_create_activity_booking: {
         Args: {
           p_guest_id: string
@@ -4776,6 +5217,22 @@ export type Database = {
           p_special_requests?: string
         }
         Returns: Json
+      }
+      guest_create_service_request: {
+        Args: {
+          p_catalog_id?: string
+          p_category?: string
+          p_department_key?: string
+          p_guest_id: string
+          p_is_asap?: boolean
+          p_notes?: string
+          p_priority?: string
+          p_quantity?: number
+          p_requested_for_at?: string
+          p_resort_id: string
+          p_title?: string
+        }
+        Returns: string
       }
       guest_get_activity_details: {
         Args: { p_activity_id?: string; p_resort_id: string }
@@ -4855,8 +5312,40 @@ export type Database = {
         Returns: Json
       }
       guest_get_prearrival_data: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_request_catalog: {
+        Args: { p_resort_id: string }
+        Returns: {
+          category: string
+          code: string
+          department_key: string
+          icon_key: string
+          id: string
+          is_billable: boolean
+          title: string
+        }[]
+      }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
       guest_get_room_bookings: { Args: { p_guest_id: string }; Returns: Json }
+      guest_get_service_requests: {
+        Args: { p_guest_id: string; p_resort_id: string }
+        Returns: {
+          acknowledged_at: string
+          cancelled_at: string
+          catalog_icon_key: string
+          category: string
+          completed_at: string
+          created_at: string
+          department_key: string
+          id: string
+          is_asap: boolean
+          notes: string
+          priority: string
+          quantity: number
+          requested_for_at: string
+          status: string
+          title: string
+        }[]
+      }
       guest_get_unread_notification_count: {
         Args: { p_guest_id: string }
         Returns: number
@@ -4972,6 +5461,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      initialize_guest_requests_for_resort: {
+        Args: { p_resort_id: string }
+        Returns: undefined
       }
       is_demo_write_blocked: { Args: never; Returns: boolean }
       is_guest_session: { Args: never; Returns: boolean }
@@ -5104,6 +5597,18 @@ export type Database = {
       }
       retry_failed_events: { Args: { p_event_ids: string[] }; Returns: number }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
+      seed_resort_departments: {
+        Args: { p_resort_id: string }
+        Returns: undefined
+      }
+      seed_resort_request_catalog: {
+        Args: { p_resort_id: string }
+        Returns: undefined
+      }
+      seed_resort_retention_policy: {
+        Args: { p_resort_id: string }
+        Returns: undefined
+      }
       set_permission_override: {
         Args: {
           p_effect: Database["public"]["Enums"]["permission_effect"]
