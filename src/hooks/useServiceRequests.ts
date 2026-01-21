@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isBefore, parseISO } from 'date-fns';
 
 export interface ServiceRequest {
   id: string;
@@ -129,7 +130,7 @@ export function useRequestCatalog(resortId: string, enabled = true) {
   });
 }
 
-interface CreateServiceRequestParams {
+export interface CreateServiceRequestParams {
   guestId: string;
   resortId: string;
   catalogId?: string;
@@ -143,14 +144,42 @@ interface CreateServiceRequestParams {
 }
 
 /**
- * Hook for service request mutations
+ * Validate scheduled time is not in the past
+ */
+export function validateScheduledTime(requestedForAt: string | undefined, isAsap: boolean): string | null {
+  if (isAsap || !requestedForAt) return null;
+  
+  const scheduled = parseISO(requestedForAt);
+  const now = new Date();
+  
+  // Add 5 minute buffer
+  now.setMinutes(now.getMinutes() - 5);
+  
+  if (isBefore(scheduled, now)) {
+    return 'Scheduled time cannot be in the past. Please select a future time.';
+  }
+  
+  return null;
+}
+
+/**
+ * Hook for service request mutations with optimistic UI
  */
 export function useServiceRequestMutations(guestId: string, resortId: string) {
   const queryClient = useQueryClient();
   const queryKey = ['guest-service-requests', resortId, guestId];
+  
+  // Track pending mutations to prevent double-submit
+  const pendingMutations = useRef(new Set<string>());
 
   const createMutation = useMutation({
     mutationFn: async (params: CreateServiceRequestParams) => {
+      // Validate scheduled time
+      const validationError = validateScheduledTime(params.requestedForAt, params.isAsap ?? true);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      
       const { data, error } = await supabase.rpc('guest_create_service_request', {
         p_guest_id: params.guestId,
         p_resort_id: params.resortId,
@@ -167,26 +196,77 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast.success('Your request has been submitted!');
+    onMutate: async (params: CreateServiceRequestParams) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey });
+      
+      // Snapshot previous state
+      const previous = queryClient.getQueryData<ServiceRequest[]>(queryKey);
+      
+      // Create optimistic request
+      const optimisticRequest: ServiceRequest = {
+        id: `optimistic-${Date.now()}`,
+        title: params.title,
+        notes: params.notes || null,
+        quantity: params.quantity || 1,
+        is_asap: params.isAsap ?? true,
+        requested_for_at: params.requestedForAt || null,
+        department_key: params.departmentKey,
+        category: params.category || null,
+        priority: 'NORMAL',
+        status: 'NEW',
+        created_at: new Date().toISOString(),
+        acknowledged_at: null,
+        completed_at: null,
+        cancelled_at: null,
+      };
+      
+      // Optimistically update the cache
+      queryClient.setQueryData<ServiceRequest[]>(queryKey, (old) => 
+        [optimisticRequest, ...(old || [])]
+      );
+      
+      return { previous, optimisticId: optimisticRequest.id };
+    },
+    onSuccess: (_, __, context) => {
+      toast.success('Your request has been submitted!', {
+        description: "We'll get to it as soon as possible.",
+      });
+      // Invalidate to get the real data with proper ID
       queryClient.invalidateQueries({ queryKey });
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to submit request');
+    onError: (error: Error, _, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
+      }
+      toast.error('Failed to submit request', {
+        description: error.message || 'Please try again.',
+      });
     },
   });
 
   const cancelMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const { data, error } = await supabase.rpc('guest_cancel_service_request', {
-        p_guest_id: guestId,
-        p_request_id: requestId,
-        p_resort_id: resortId,
-      });
+      // Prevent double-cancel
+      if (pendingMutations.current.has(requestId)) {
+        throw new Error('Cancel already in progress');
+      }
+      pendingMutations.current.add(requestId);
+      
+      try {
+        const { data, error } = await supabase.rpc('guest_cancel_service_request', {
+          p_guest_id: guestId,
+          p_request_id: requestId,
+          p_resort_id: resortId,
+        });
 
-      if (error) throw error;
-      if (!data) throw new Error('Failed to cancel request');
-      return data;
+        if (error) throw error;
+        if (!data) throw new Error('Failed to cancel request - it may have already been processed');
+        return data;
+      } finally {
+        pendingMutations.current.delete(requestId);
+      }
     },
     onMutate: async (requestId: string) => {
       await queryClient.cancelQueries({ queryKey });
@@ -194,7 +274,11 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       
       // Optimistic update
       queryClient.setQueryData<ServiceRequest[]>(queryKey, (old) =>
-        old?.map((r) => (r.id === requestId ? { ...r, status: 'CANCELLED' as const } : r))
+        old?.map((r) => (r.id === requestId ? { 
+          ...r, 
+          status: 'CANCELLED' as const,
+          cancelled_at: new Date().toISOString(),
+        } : r))
       );
       
       return { previous };
@@ -207,7 +291,9 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous);
       }
-      toast.error(error.message || 'Failed to cancel request');
+      toast.error('Failed to cancel request', {
+        description: error.message || 'Please try again.',
+      });
     },
   });
 

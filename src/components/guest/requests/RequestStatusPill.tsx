@@ -1,13 +1,15 @@
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, 
   CheckCircle2, 
-  Loader2, 
   XCircle, 
   UserCheck,
-  PlayCircle 
+  PlayCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInMinutes, parseISO } from 'date-fns';
 
 type RequestStatus = 'NEW' | 'ACKNOWLEDGED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
@@ -15,6 +17,9 @@ interface RequestStatusPillProps {
   status: RequestStatus;
   size?: 'sm' | 'default';
   showIcon?: boolean;
+  createdAt?: string;
+  slaMinutes?: number; // Optional SLA warning threshold
+  animate?: boolean;
 }
 
 const statusConfig: Record<RequestStatus, {
@@ -54,27 +59,63 @@ const statusConfig: Record<RequestStatus, {
   },
 };
 
-export function RequestStatusPill({ status, size = 'default', showIcon = true }: RequestStatusPillProps) {
+export function RequestStatusPill({ 
+  status, 
+  size = 'default', 
+  showIcon = true,
+  createdAt,
+  slaMinutes,
+  animate = true,
+}: RequestStatusPillProps) {
   const config = statusConfig[status] || statusConfig.NEW;
   const Icon = config.icon;
+  
+  // Check SLA breach for NEW status
+  const isSlaBreach = status === 'NEW' && createdAt && slaMinutes && 
+    differenceInMinutes(new Date(), parseISO(createdAt)) > slaMinutes;
 
-  return (
+  const content = (
     <Badge 
       variant="outline"
       className={cn(
-        'font-medium border gap-1.5 whitespace-nowrap',
-        config.className,
+        'font-medium border gap-1.5 whitespace-nowrap transition-all duration-300',
+        isSlaBreach 
+          ? 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse' 
+          : config.className,
         size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'
       )}
     >
       {showIcon && (
-        <Icon className={cn(
-          'flex-shrink-0',
-          size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5',
-          status === 'IN_PROGRESS' && 'animate-spin'
-        )} />
+        isSlaBreach ? (
+          <AlertTriangle className={cn(
+            'flex-shrink-0',
+            size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'
+          )} />
+        ) : (
+          <Icon className={cn(
+            'flex-shrink-0',
+            size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5',
+            status === 'IN_PROGRESS' && 'animate-spin'
+          )} />
+        )
       )}
-      {config.label}
+      {isSlaBreach ? 'Waiting' : config.label}
     </Badge>
+  );
+
+  if (!animate) return content;
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={status}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
+      >
+        {content}
+      </motion.div>
+    </AnimatePresence>
   );
 }

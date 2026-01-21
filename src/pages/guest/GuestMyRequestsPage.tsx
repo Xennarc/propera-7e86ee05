@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { 
   useGuestServiceRequests, 
@@ -9,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { RequestCard } from '@/components/guest/requests/RequestCard';
-import { Skeleton } from '@/components/ui/skeleton';
+import { RequestCardSkeleton } from '@/components/guest/requests/RequestCardSkeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,10 +21,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, ClipboardList, Loader2 } from 'lucide-react';
+import { Plus, ClipboardList, Loader2, Sparkles, Coffee, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type FilterType = 'active' | 'completed' | 'all';
+
+const FRIENDLY_MESSAGES = {
+  noActive: [
+    "You're all set! No pending requests.",
+    "Nothing in progress—enjoy your stay!",
+    "All caught up! Need something? We're here.",
+  ],
+  noRequests: [
+    "Need something? We're here to help!",
+    "Our team is ready to assist you.",
+    "From extra towels to room service—just ask!",
+  ],
+  noPast: [
+    "No completed requests yet.",
+    "Your request history will appear here.",
+  ],
+};
+
+function getRandomMessage(messages: string[]): string {
+  return messages[Math.floor(Math.random() * messages.length)];
+}
 
 export default function GuestMyRequestsPage() {
   const { guest } = useGuestAuth();
@@ -43,7 +65,8 @@ export default function GuestMyRequestsPage() {
 
   if (!guest) return null;
 
-  // Filter requests
+  // Filter requests - exclude optimistic entries for stable counts
+  const realRequests = requests.filter((r) => !r.id.startsWith('optimistic-'));
   const activeStatuses = ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS'];
   const completedStatuses = ['COMPLETED', 'CANCELLED'];
   
@@ -58,8 +81,8 @@ export default function GuestMyRequestsPage() {
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
   
-  const activeCount = requests.filter((r) => activeStatuses.includes(r.status)).length;
-  const completedCount = requests.filter((r) => completedStatuses.includes(r.status)).length;
+  const activeCount = realRequests.filter((r) => activeStatuses.includes(r.status)).length;
+  const completedCount = realRequests.filter((r) => completedStatuses.includes(r.status)).length;
 
   const handleCancel = async () => {
     if (!cancelDialog) return;
@@ -71,16 +94,39 @@ export default function GuestMyRequestsPage() {
     }
   };
 
+  // Determine empty state content
+  const getEmptyContent = () => {
+    if (filter === 'active') {
+      return {
+        icon: activeCount === 0 && completedCount > 0 ? PartyPopper : Coffee,
+        title: completedCount > 0 ? 'All done!' : 'No active requests',
+        description: getRandomMessage(FRIENDLY_MESSAGES.noActive),
+      };
+    }
+    if (filter === 'completed') {
+      return {
+        icon: ClipboardList,
+        title: 'No past requests',
+        description: getRandomMessage(FRIENDLY_MESSAGES.noPast),
+      };
+    }
+    return {
+      icon: Sparkles,
+      title: 'No requests yet',
+      description: getRandomMessage(FRIENDLY_MESSAGES.noRequests),
+    };
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">My Requests</h1>
           <p className="text-sm text-muted-foreground">
-            {activeCount > 0 ? `${activeCount} active` : 'Track your requests'}
+            {activeCount > 0 ? `${activeCount} active request${activeCount !== 1 ? 's' : ''}` : 'Track your requests'}
           </p>
         </div>
-        <Button size="sm" asChild className="gap-1.5">
+        <Button size="sm" asChild className="gap-1.5 shadow-sm">
           <Link to="/guest/requests">
             <Plus className="h-4 w-4" />
             New
@@ -93,68 +139,69 @@ export default function GuestMyRequestsPage() {
         {[
           { key: 'active' as const, label: 'Active', count: activeCount },
           { key: 'completed' as const, label: 'Past', count: completedCount },
-          { key: 'all' as const, label: 'All', count: requests.length },
+          { key: 'all' as const, label: 'All', count: realRequests.length },
         ].map(({ key, label, count }) => (
           <Button
             key={key}
             variant={filter === key ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              'h-8 px-3 gap-1.5 rounded-full',
+              'h-8 px-3 gap-1.5 rounded-full transition-all',
               filter === key && 'shadow-md'
             )}
             onClick={() => setFilter(key)}
           >
             {label}
-            <span className={cn(
-              'text-xs px-1.5 py-0.5 rounded-full min-w-[20px]',
-              filter === key 
-                ? 'bg-primary-foreground/20 text-primary-foreground' 
-                : 'bg-muted text-muted-foreground'
-            )}>
+            <motion.span 
+              layout
+              className={cn(
+                'text-xs px-1.5 py-0.5 rounded-full min-w-[20px] tabular-nums',
+                filter === key 
+                  ? 'bg-primary-foreground/20 text-primary-foreground' 
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
               {count}
-            </span>
+            </motion.span>
           </Button>
         ))}
       </div>
 
       {/* Loading state */}
-      {isLoading && (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-2xl" />
-          ))}
-        </div>
-      )}
+      {isLoading && <RequestCardSkeleton count={3} />}
 
       {/* Empty state */}
       {!isLoading && sortedRequests.length === 0 && (
-        <GuestEmptyState
-          icon={ClipboardList}
-          title={filter === 'active' ? 'No active requests' : 'No requests yet'}
-          description={
-            filter === 'active'
-              ? "You don't have any active requests right now."
-              : "Need something? We're here to help with anything."
-          }
-          actionLabel="Make a Request"
-          actionHref="/guest/requests"
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <GuestEmptyState
+            icon={getEmptyContent().icon}
+            title={getEmptyContent().title}
+            description={getEmptyContent().description}
+            actionLabel="Make a Request"
+            actionHref="/guest/requests"
+          />
+        </motion.div>
       )}
 
-      {/* Request list */}
+      {/* Request list with animations */}
       {!isLoading && sortedRequests.length > 0 && (
-        <div className="space-y-3">
-          {sortedRequests.map((request) => (
-            <RequestCard
-              key={request.id}
-              request={request}
-              onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
-              isCancelling={isCancelling}
-              resortTimezone={guest.resortTimezone}
-            />
-          ))}
-        </div>
+        <motion.div layout className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {sortedRequests.map((request) => (
+              <RequestCard
+                key={request.id}
+                request={request}
+                onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
+                isCancelling={isCancelling}
+                resortTimezone={guest.resortTimezone}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
 
       {/* Cancel confirmation dialog */}
@@ -163,7 +210,7 @@ export default function GuestMyRequestsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this request?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel your request for "{cancelDialog?.title}"?
+              Are you sure you want to cancel your request for "<span className="font-medium">{cancelDialog?.title}</span>"?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
