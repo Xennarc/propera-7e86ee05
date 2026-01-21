@@ -5618,12 +5618,42 @@ export type Database = {
         }
         Returns: Json
       }
+      staff_can_assign_request: {
+        Args: { _dept_key: string; _resort_id: string; _user_id: string }
+        Returns: boolean
+      }
+      staff_can_manage_request: {
+        Args: {
+          _assigned_to: string
+          _dept_key: string
+          _resort_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      staff_can_view_request: {
+        Args: {
+          _assigned_to: string
+          _dept_key: string
+          _resort_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       staff_can_write_resort: {
         Args: {
           _resort_id: string
           _roles: Database["public"]["Enums"]["resort_role"][]
           _user_id: string
         }
+        Returns: boolean
+      }
+      staff_dept_role: {
+        Args: { _dept_key: string; _resort_id: string; _user_id: string }
+        Returns: string
+      }
+      staff_has_dept_access: {
+        Args: { _resort_id: string; _user_id: string }
         Returns: boolean
       }
       staff_has_resort_access: {
