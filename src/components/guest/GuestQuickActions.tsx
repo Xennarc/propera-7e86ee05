@@ -6,7 +6,7 @@ import {
   IconBookings,
   IconFeedback,
 } from '@/components/icons/ProperaIcons';
-import { Compass, Heart, Star } from 'lucide-react';
+import { Bell } from 'lucide-react';
 
 interface QuickAction {
   icon: React.ElementType;
@@ -43,12 +43,12 @@ const quickActions: QuickAction[] = [
     description: 'View & manage',
   },
   {
-    icon: Compass,
-    label: 'Explore',
-    href: '/guest/activities',
-    colorClass: 'text-primary',
-    bgClass: 'bg-primary/10',
-    description: 'Discover more',
+    icon: Bell,
+    label: 'Requests',
+    href: '/guest/requests',
+    colorClass: 'text-cyan-500',
+    bgClass: 'bg-cyan-500/10',
+    description: 'Room service & more',
   },
 ];
 
