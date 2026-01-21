@@ -84,6 +84,7 @@ const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTi
 const ResortDirectoryPage = lazy(() => import("./pages/settings/ResortDirectoryPage"));
 const PrearrivalSettingsPage = lazy(() => import("./pages/settings/PrearrivalSettingsPage"));
 const AccessManagementPage = lazy(() => import("./pages/settings/AccessManagementPage"));
+const RequestsSettingsPage = lazy(() => import("./pages/settings/RequestsSettingsPage"));
 
 // Super Admin pages
 const SuperAdminLayout = lazy(() => import("./components/superadmin/SuperAdminLayout"));
@@ -233,6 +234,7 @@ const App = () => (
                   <Route path="settings/directory" element={<ResortDirectoryPage />} />
                   <Route path="settings/prearrival" element={<PrearrivalSettingsPage />} />
                   <Route path="settings/access" element={<AccessManagementPage />} />
+                  <Route path="settings/requests" element={<RequestsSettingsPage />} />
                   <Route path="onboarding" element={<ResortOnboardingPage />} />
                   <Route path="demo-onboarding" element={<DemoOnboardingPage />} />
                   <Route path="notifications" element={<NotificationsPage />} />
