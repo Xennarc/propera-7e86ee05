@@ -4877,6 +4877,7 @@ export type Database = {
         Args: { p_new_password: string; p_user_id: string }
         Returns: Json
       }
+      archive_closed_requests: { Args: never; Returns: Json }
       assign_user_role: {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
@@ -5053,6 +5054,13 @@ export type Database = {
         Returns: Json
       }
       get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
+      get_effective_retention: {
+        Args: { _dept_key: string; _resort_id: string }
+        Returns: {
+          archive_after_days: number
+          delete_after_days: number
+        }[]
+      }
       get_guest_session: {
         Args: never
         Returns: {
@@ -5559,6 +5567,7 @@ export type Database = {
         Returns: undefined
       }
       now_in_resort_tz: { Args: { p_resort_id: string }; Returns: string }
+      purge_archived_requests: { Args: never; Returns: Json }
       regenerate_prearrival_link: {
         Args: { p_guest_id: string }
         Returns: Json
