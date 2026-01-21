@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { format, addHours, setHours, setMinutes, startOfDay } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { format, addHours, setHours, setMinutes, startOfDay, isBefore, addMinutes } from 'date-fns';
 import {
   Sheet,
   SheetContent,
@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -25,10 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Loader2, Minus, Plus, Clock, Zap } from 'lucide-react';
+import { CalendarIcon, Loader2, Minus, Plus, Clock, Zap, AlertCircle } from 'lucide-react';
 import { CategoryConfig, categoryConfigs } from './RequestCategoryGrid';
-import { CatalogItem, useServiceRequestMutations } from '@/hooks/useServiceRequests';
+import { CatalogItem, useServiceRequestMutations, validateScheduledTime } from '@/hooks/useServiceRequests';
 
 interface RequestCreateSheetProps {
   open: boolean;
@@ -80,17 +80,43 @@ export function RequestCreateSheet({
   
   const isOtherCategory = category?.key === 'OTHER';
   const title = selectedItem?.title || customTitle;
-  const canSubmit = title.trim().length > 0 && (!isOtherCategory || customTitle.trim());
+  
+  // Build scheduled datetime for validation
+  const scheduledDateTime = useMemo(() => {
+    if (isAsap || !scheduledDate) return undefined;
+    const [hours, minutes] = scheduledTime.split(':').map(Number);
+    return setMinutes(setHours(scheduledDate, hours), minutes).toISOString();
+  }, [isAsap, scheduledDate, scheduledTime]);
+  
+  // Validate time is not in the past
+  const timeValidationError = useMemo(() => {
+    return validateScheduledTime(scheduledDateTime, isAsap);
+  }, [scheduledDateTime, isAsap]);
+  
+  // Filter available time slots for today (only future times)
+  const availableTimeSlots = useMemo(() => {
+    if (!scheduledDate) return TIME_SLOTS;
+    
+    const now = new Date();
+    const isToday = startOfDay(scheduledDate).getTime() === startOfDay(now).getTime();
+    
+    if (!isToday) return TIME_SLOTS;
+    
+    // Filter to only future times (with 15 min buffer)
+    const bufferTime = addMinutes(now, 15);
+    return TIME_SLOTS.filter((time) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const slotTime = setMinutes(setHours(scheduledDate, hours), minutes);
+      return !isBefore(slotTime, bufferTime);
+    });
+  }, [scheduledDate]);
+  
+  const canSubmit = title.trim().length > 0 && 
+    (!isOtherCategory || customTitle.trim()) && 
+    !timeValidationError;
   
   const handleSubmit = async () => {
     if (!category || !canSubmit) return;
-    
-    let requestedForAt: string | undefined;
-    if (!isAsap && scheduledDate) {
-      const [hours, minutes] = scheduledTime.split(':').map(Number);
-      const scheduledDateTime = setMinutes(setHours(scheduledDate, hours), minutes);
-      requestedForAt = scheduledDateTime.toISOString();
-    }
     
     try {
       await createRequest({
@@ -101,7 +127,7 @@ export function RequestCreateSheet({
         notes: notes.trim() || undefined,
         quantity,
         isAsap,
-        requestedForAt,
+        requestedForAt: scheduledDateTime,
         departmentKey: selectedItem?.department_key || category.key,
         category: category.key,
       });
@@ -129,6 +155,30 @@ export function RequestCreateSheet({
     onOpenChange(value);
   };
   
+  // Auto-select first available time slot when switching to today
+  const handleDateSelect = (date: Date | undefined) => {
+    setScheduledDate(date);
+    
+    if (date) {
+      const now = new Date();
+      const isToday = startOfDay(date).getTime() === startOfDay(now).getTime();
+      
+      if (isToday) {
+        // Find first available slot
+        const bufferTime = addMinutes(now, 15);
+        const firstAvailable = TIME_SLOTS.find((time) => {
+          const [hours, minutes] = time.split(':').map(Number);
+          const slotTime = setMinutes(setHours(date, hours), minutes);
+          return !isBefore(slotTime, bufferTime);
+        });
+        
+        if (firstAvailable) {
+          setScheduledTime(firstAvailable);
+        }
+      }
+    }
+  };
+  
   if (!category) return null;
   const CategoryIcon = category.icon;
 
@@ -139,7 +189,7 @@ export function RequestCreateSheet({
           <div className="flex items-center gap-3">
             <div className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center',
-              'bg-gradient-to-br',
+              'bg-gradient-to-br shadow-sm',
               category.color
             )}>
               <CategoryIcon className="h-5 w-5 text-white" />
@@ -165,7 +215,7 @@ export function RequestCreateSheet({
                     type="button"
                     variant={selectedItem?.id === item.id ? 'default' : 'outline'}
                     className={cn(
-                      'h-auto py-3 px-3 justify-start text-left',
+                      'h-auto py-3 px-3 justify-start text-left transition-all',
                       selectedItem?.id === item.id && 'ring-2 ring-primary ring-offset-2'
                     )}
                     onClick={() => setSelectedItem(item)}
@@ -228,8 +278,8 @@ export function RequestCreateSheet({
                 type="button"
                 variant={isAsap ? 'default' : 'outline'}
                 className={cn(
-                  'flex-1 h-12 gap-2',
-                  isAsap && 'ring-2 ring-primary ring-offset-2'
+                  'flex-1 h-12 gap-2 transition-all',
+                  isAsap && 'ring-2 ring-primary ring-offset-2 shadow-md'
                 )}
                 onClick={() => setIsAsap(true)}
               >
@@ -240,12 +290,12 @@ export function RequestCreateSheet({
                 type="button"
                 variant={!isAsap ? 'default' : 'outline'}
                 className={cn(
-                  'flex-1 h-12 gap-2',
-                  !isAsap && 'ring-2 ring-primary ring-offset-2'
+                  'flex-1 h-12 gap-2 transition-all',
+                  !isAsap && 'ring-2 ring-primary ring-offset-2 shadow-md'
                 )}
                 onClick={() => {
                   setIsAsap(false);
-                  if (!scheduledDate) setScheduledDate(new Date());
+                  if (!scheduledDate) handleDateSelect(new Date());
                 }}
               >
                 <Clock className="h-4 w-4" />
@@ -255,51 +305,69 @@ export function RequestCreateSheet({
             
             {/* Date/Time pickers when scheduled */}
             {!isAsap && (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full h-11 justify-start text-left font-normal',
-                          !scheduledDate && 'text-muted-foreground'
+              <>
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full h-11 justify-start text-left font-normal',
+                            !scheduledDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {scheduledDate ? format(scheduledDate, 'EEE, MMM d') : 'Pick date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={scheduledDate}
+                          onSelect={handleDateSelect}
+                          disabled={(date) => date < startOfDay(new Date())}
+                          initialFocus
+                          className="p-3 pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Time</Label>
+                    <Select value={scheduledTime} onValueChange={setScheduledTime}>
+                      <SelectTrigger className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableTimeSlots.length === 0 ? (
+                          <SelectItem value="none" disabled>
+                            No slots available today
+                          </SelectItem>
+                        ) : (
+                          availableTimeSlots.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))
                         )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {scheduledDate ? format(scheduledDate, 'EEE, MMM d') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={scheduledDate}
-                        onSelect={setScheduledDate}
-                        disabled={(date) => date < startOfDay(new Date())}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Time</Label>
-                  <Select value={scheduledTime} onValueChange={setScheduledTime}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_SLOTS.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                {/* Time validation error */}
+                {timeValidationError && (
+                  <Alert variant="destructive" className="py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      {timeValidationError}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
             )}
           </div>
 
