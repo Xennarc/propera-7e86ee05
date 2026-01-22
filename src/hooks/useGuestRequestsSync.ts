@@ -1,8 +1,12 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { queryKeys } from '@/lib/query-keys';
+import { useDebouncedCallback } from './useDebouncedCallback';
+
+// Debounce delay for realtime invalidations (prevents refetch storms)
+const REALTIME_DEBOUNCE_MS = 500;
 
 interface UseGuestRequestsSyncOptions {
   guestId?: string;
@@ -20,35 +24,30 @@ export function useGuestRequestsSync({
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
 
+  // Debounced invalidation to prevent rapid refetches
+  const invalidateQueries = useDebouncedCallback((queryKey: string[]) => {
+    queryClient.invalidateQueries({ queryKey });
+  }, REALTIME_DEBOUNCE_MS);
+
   const handleRequestChange = useCallback((payload: any) => {
     const changedGuestId = payload.new?.guest_id || payload.old?.guest_id;
     const resortId = payload.new?.resort_id || payload.old?.resort_id || currentResort?.id;
     
     if (!resortId) return;
 
-    // Invalidate staff request queue
-    queryClient.invalidateQueries({ 
-      queryKey: ['guest-requests', resortId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['staff-requests', resortId] 
-    });
+    // Debounced invalidations to prevent refetch storms
+    invalidateQueries(['guest-requests', resortId]);
+    invalidateQueries(['staff-requests', resortId]);
 
     // Invalidate guest-specific request list
     if (changedGuestId) {
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.requests.guest(resortId, changedGuestId) 
-      });
+      invalidateQueries(queryKeys.requests.guest(resortId, changedGuestId));
     }
 
     // Invalidate pending approval counts
-    queryClient.invalidateQueries({ 
-      queryKey: queryKeys.requests.pendingActivities(resortId) 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: queryKeys.requests.pendingRestaurants(resortId) 
-    });
-  }, [queryClient, currentResort?.id]);
+    invalidateQueries(queryKeys.requests.pendingActivities(resortId));
+    invalidateQueries(queryKeys.requests.pendingRestaurants(resortId));
+  }, [invalidateQueries, currentResort?.id]);
 
   useEffect(() => {
     if (!enabled || !currentResort?.id) return;
@@ -89,27 +88,26 @@ export function useStaffPendingApprovalsSync({ enabled = true }: { enabled?: boo
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
 
+  // Debounced invalidation
+  const invalidateQueries = useDebouncedCallback((queryKey: string[]) => {
+    queryClient.invalidateQueries({ queryKey });
+  }, REALTIME_DEBOUNCE_MS);
+
   const handleBookingChange = useCallback((payload: any) => {
     const status = payload.new?.status;
     const resortId = payload.new?.resort_id || payload.old?.resort_id || currentResort?.id;
     
     if (!resortId) return;
 
-    // Invalidate pending requests
-    queryClient.invalidateQueries({ 
-      queryKey: ['pending-activity-requests', resortId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['pending-restaurant-requests', resortId] 
-    });
+    // Debounced invalidations
+    invalidateQueries(['pending-activity-requests', resortId]);
+    invalidateQueries(['pending-restaurant-requests', resortId]);
 
     // If status changed, also invalidate the main request lists
     if (status) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['guest-requests', resortId] 
-      });
+      invalidateQueries(['guest-requests', resortId]);
     }
-  }, [queryClient, currentResort?.id]);
+  }, [invalidateQueries, currentResort?.id]);
 
   const handleReservationChange = useCallback((payload: any) => {
     const status = payload.new?.status;
@@ -117,18 +115,14 @@ export function useStaffPendingApprovalsSync({ enabled = true }: { enabled?: boo
     
     if (!resortId) return;
 
-    // Invalidate pending requests
-    queryClient.invalidateQueries({ 
-      queryKey: ['pending-restaurant-requests', resortId] 
-    });
+    // Debounced invalidations
+    invalidateQueries(['pending-restaurant-requests', resortId]);
 
     // If status changed, also invalidate the main request lists
     if (status) {
-      queryClient.invalidateQueries({ 
-        queryKey: ['guest-requests', resortId] 
-      });
+      invalidateQueries(['guest-requests', resortId]);
     }
-  }, [queryClient, currentResort?.id]);
+  }, [invalidateQueries, currentResort?.id]);
 
   useEffect(() => {
     if (!enabled || !currentResort?.id) return;

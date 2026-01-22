@@ -32,10 +32,16 @@ import {
   Sparkles,
   Trash2,
   ArrowRight,
+  Timer,
 } from 'lucide-react';
 import { categoryConfigs } from './RequestCategoryGrid';
 import { SelectedItem } from './MultiSelectItemGrid';
 import { validateScheduledTime } from '@/hooks/useServiceRequests';
+import { useSubmitCooldown, formatCooldownTime } from '@/hooks/useSubmitCooldown';
+
+// Constants for multi-select limits
+export const MAX_BUNDLE_ITEMS = 10;
+export const MAX_TOTAL_QUANTITY = 20;
 
 interface RequestBundleSheetProps {
   open: boolean;
@@ -80,6 +86,9 @@ export function RequestBundleSheet({
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState<string>('09:00');
   const [notes, setNotes] = useState('');
+  
+  // Cooldown hook for rate limiting UI
+  const { isOnCooldown, remainingSeconds, startCooldown } = useSubmitCooldown('request_bundle', 30);
 
   const totalCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -117,7 +126,11 @@ export function RequestBundleSheet({
     });
   }, [scheduledDate]);
 
-  const canSubmit = selectedItems.length > 0 && !timeValidationError;
+  const canSubmit = selectedItems.length > 0 && 
+    selectedItems.length <= MAX_BUNDLE_ITEMS &&
+    totalCount <= MAX_TOTAL_QUANTITY &&
+    !timeValidationError &&
+    !isOnCooldown;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -132,12 +145,15 @@ export function RequestBundleSheet({
       })),
     });
     
+    // Start cooldown after successful submission
+    startCooldown(30);
+    
     // Reset form state
     setIsAsap(true);
     setScheduledDate(undefined);
     setScheduledTime('09:00');
     setNotes('');
-  }, [canSubmit, isAsap, scheduledDateTime, notes, selectedItems, onSubmit]);
+  }, [canSubmit, isAsap, scheduledDateTime, notes, selectedItems, onSubmit, startCooldown]);
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setScheduledDate(date);
@@ -168,18 +184,37 @@ export function RequestBundleSheet({
     </div>
   );
 
-  // Footer with submit button
+  // Footer with submit button (shows cooldown or limit warnings)
   const footer = (
     <div className="space-y-2">
+      {/* Limit warning */}
+      {(selectedItems.length > MAX_BUNDLE_ITEMS || totalCount > MAX_TOTAL_QUANTITY) && (
+        <Alert variant="destructive" className="py-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            {selectedItems.length > MAX_BUNDLE_ITEMS 
+              ? `Maximum ${MAX_BUNDLE_ITEMS} items per request. Please remove some items.`
+              : `Maximum ${MAX_TOTAL_QUANTITY} total items. Please reduce quantities.`}
+          </AlertDescription>
+        </Alert>
+      )}
       <Button
         onClick={handleSubmit}
         disabled={!canSubmit || isSubmitting}
-        className="w-full h-12 text-base font-semibold gap-2"
+        className={cn(
+          "w-full h-12 text-base font-semibold gap-2 transition-all",
+          isOnCooldown && "bg-muted text-muted-foreground"
+        )}
       >
         {isSubmitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Submitting...
+          </>
+        ) : isOnCooldown ? (
+          <>
+            <Timer className="h-4 w-4" />
+            Wait {formatCooldownTime(remainingSeconds)}
           </>
         ) : (
           <>
@@ -189,7 +224,7 @@ export function RequestBundleSheet({
         )}
       </Button>
       <p className="text-[10px] text-muted-foreground text-center">
-        We'll route this to the right team{departments.length > 1 ? 's' : ''}.
+        {selectedItems.length}/{MAX_BUNDLE_ITEMS} items • We'll route to the right team{departments.length > 1 ? 's' : ''}.
       </p>
     </div>
   );

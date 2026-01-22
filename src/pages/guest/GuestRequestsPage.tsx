@@ -1,14 +1,15 @@
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useRequestCatalog, useServiceRequestMutations, CatalogItem } from '@/hooks/useServiceRequests';
 import { RequestCategoryGrid, CategoryConfig } from '@/components/guest/requests/RequestCategoryGrid';
 import { RequestCreateSheet } from '@/components/guest/requests/RequestCreateSheet';
 import { MultiSelectItemGrid, SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
-import { RequestBundleSheet, BundleSubmitParams } from '@/components/guest/requests/RequestBundleSheet';
+import { RequestBundleSheet, BundleSubmitParams, MAX_BUNDLE_ITEMS, MAX_TOTAL_QUANTITY } from '@/components/guest/requests/RequestBundleSheet';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Sparkles, ListChecks, X, ArrowRight, Package } from 'lucide-react';
+import { ClipboardList, Sparkles, ListChecks, X, ArrowRight, Package, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -51,8 +52,18 @@ export default function GuestRequestsPage() {
     setSelectedItems((prev) => {
       const existing = prev.find((i) => i.catalogId === item.id);
       if (existing) {
+        // Always allow removing
         return prev.filter((i) => i.catalogId !== item.id);
       }
+      
+      // Check if adding would exceed limit
+      if (prev.length >= MAX_BUNDLE_ITEMS) {
+        toast.error(`Maximum ${MAX_BUNDLE_ITEMS} items per request`, {
+          description: 'Remove an item before adding more.',
+        });
+        return prev;
+      }
+      
       return [...prev, {
         catalogId: item.id,
         title: item.title,
@@ -64,13 +75,30 @@ export default function GuestRequestsPage() {
   }, []);
 
   const handleUpdateQuantity = useCallback((catalogId: string, delta: number) => {
-    setSelectedItems((prev) =>
-      prev.map((item) =>
+    setSelectedItems((prev) => {
+      // Calculate new total quantity
+      const currentTotal = prev.reduce((sum, item) => sum + item.quantity, 0);
+      const targetItem = prev.find((item) => item.catalogId === catalogId);
+      
+      if (!targetItem) return prev;
+      
+      const newQuantity = Math.max(1, Math.min(10, targetItem.quantity + delta));
+      const newTotal = currentTotal - targetItem.quantity + newQuantity;
+      
+      // Block increase if would exceed total limit
+      if (delta > 0 && newTotal > MAX_TOTAL_QUANTITY) {
+        toast.error(`Maximum ${MAX_TOTAL_QUANTITY} total items`, {
+          description: 'Reduce quantities elsewhere first.',
+        });
+        return prev;
+      }
+      
+      return prev.map((item) =>
         item.catalogId === catalogId
-          ? { ...item, quantity: Math.max(1, Math.min(10, item.quantity + delta)) }
+          ? { ...item, quantity: newQuantity }
           : item
-      )
-    );
+      );
+    });
   }, []);
 
   const handleRemoveItem = useCallback((catalogId: string) => {
