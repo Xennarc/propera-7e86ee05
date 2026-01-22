@@ -35,7 +35,7 @@ serve(async (req) => {
     );
 
     // Get the authenticated user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser(token);
     if (userError || !user) {
       console.error('Failed to get user:', userError);
       return new Response(
