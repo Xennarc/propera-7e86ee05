@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useTierAccess } from '@/hooks/useTierAccess';
+import { useNavAccess } from '@/hooks/useNavAccess';
 import { ResortRole } from '@/types/database';
+import { TierFeature } from '@/lib/tier-features';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -41,9 +41,7 @@ import {
   Crown,
   LogOut,
   MessageSquare,
-  User,
   Sparkles,
-  HelpCircle,
   TrendingUp,
   FileText,
   Shield,
@@ -56,6 +54,7 @@ interface NavItem {
   url: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: ResortRole[];
+  tierFeature?: TierFeature;
   badge?: string;
 }
 
@@ -76,18 +75,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   const location = useLocation();
   const { user, profile, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
-  const permissions = usePermissions();
+  const { canViewNavItem, currentRole } = useNavAccess();
 
-  const currentRole = currentResort ? getResortRole(currentResort.id) : null;
   const isAdmin = isSuperAdmin() || currentRole === 'RESORT_ADMIN';
-
-  // Check if user can view nav item
-  const canView = (roles?: ResortRole[]) => {
-    if (isSuperAdmin()) return true;
-    if (!roles) return true;
-    if (!currentRole) return false;
-    return roles.includes(currentRole);
-  };
 
   // Get role display
   const getRoleDisplay = () => {
@@ -103,7 +93,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     return currentRole ? roleMap[currentRole] : 'Staff';
   };
 
-  // Navigation structure - 3 layers: Today, Departments, Admin
+  // Navigation structure with tier-gating
   const navGroups: NavGroup[] = [
     {
       id: 'operations',
@@ -112,7 +102,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       defaultOpen: true,
       items: [
         { title: 'Dashboard', url: '/staff/dashboard', icon: Building2 },
-        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities' },
         { title: 'Team Directory', url: '/staff/team', icon: Users },
       ],
     },
@@ -122,8 +112,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       icon: Users,
       items: [
         { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-        { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'] },
-        { title: 'Requests', url: '/staff/guest-requests', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'] },
+        { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
+        { title: 'Requests', url: '/staff/guest-requests', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests' },
       ],
     },
     {
@@ -133,7 +123,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       items: [
         { title: 'Catalogue', url: '/staff/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
         { title: 'Sessions', url: '/staff/activities/sessions', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'] },
+        { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
       ],
     },
     {
@@ -150,9 +140,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       title: 'Loyalty',
       icon: Crown,
       items: [
-        { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'] },
-        { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'] },
+        { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management' },
+        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program' },
+        { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_tiers' },
       ],
     },
     {
@@ -161,25 +151,25 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       icon: BarChart3,
       items: [
         { title: 'Overview', url: '/staff/reports', icon: BarChart3, roles: ['RESORT_ADMIN', 'MANAGER'] },
-        { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'] },
-        { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'] },
-        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-        { title: 'Sales', url: '/staff/reports/sales', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER'] },
-        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: FileText, roles: ['RESORT_ADMIN', 'MANAGER'] },
-        { title: 'Stay Feedback', url: '/staff/reports/stay-feedback', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER'] },
+        { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'], tierFeature: 'reports_activities' },
+        { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'], tierFeature: 'reports_restaurants' },
+        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests' },
+        { title: 'Sales', url: '/staff/reports/sales', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_sales_performance' },
+        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: FileText, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_cancellations' },
+        { title: 'Stay Feedback', url: '/staff/reports/stay-feedback', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_feedback' },
       ],
     },
   ];
 
-  // Admin group (only for admins)
+  // Admin group with tier-gating
   const adminGroup: NavGroup = {
     id: 'admin',
     title: 'Admin',
     icon: Settings,
     items: [
-      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: Users, roles: ['RESORT_ADMIN'] },
-      { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: Plane, roles: ['RESORT_ADMIN'] },
-      { title: 'Branding', url: '/staff/settings/branding', icon: Palette, roles: ['RESORT_ADMIN'] },
+      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: Users, roles: ['RESORT_ADMIN'], tierFeature: 'settings_staff_management' },
+      { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: Plane, roles: ['RESORT_ADMIN'], tierFeature: 'pre_arrival_links' },
+      { title: 'Branding', url: '/staff/settings/branding', icon: Palette, roles: ['RESORT_ADMIN'], tierFeature: 'guest_portal_branding' },
       { title: 'Settings', url: '/staff/settings', icon: Settings, roles: ['RESORT_ADMIN'] },
       { title: 'Access Control', url: '/staff/settings/access', icon: Shield, roles: ['RESORT_ADMIN'] },
     ],
@@ -187,7 +177,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
   // Check if group has any visible items
   const groupHasVisibleItems = (group: NavGroup) => {
-    return group.items.some(item => canView(item.roles));
+    return group.items.some(item => canViewNavItem(item.roles, item.tierFeature));
   };
 
   // Check if current path is in group
@@ -312,7 +302,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
                 <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
                   {group.items.map((item) => {
-                    if (!canView(item.roles)) return null;
+                    if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
                     return (
                       <NavLink
@@ -372,7 +362,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
                 <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
                   {adminGroup.items.map((item) => {
-                    if (!canView(item.roles)) return null;
+                    if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
                     return (
                       <NavLink

@@ -1,9 +1,9 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useResort } from '@/contexts/ResortContext';
+import { useNavAccess } from '@/hooks/useNavAccess';
 import { ResortRole } from '@/types/database';
+import { TierFeature } from '@/lib/tier-features';
 import {
   Sheet,
   SheetContent,
@@ -19,6 +19,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   resortRoles: ResortRole[] | null;
+  tierFeature?: TierFeature;
 }
 
 const primaryNavItems: NavItem[] = [
@@ -30,9 +31,9 @@ const primaryNavItems: NavItem[] = [
 
 const moreNavItems: NavItem[] = [
   { label: 'Notifications', href: '/staff/notifications', icon: Bell, resortRoles: null },
-  { label: 'Pre-Arrival', href: '/staff/prearrival', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'] },
+  { label: 'Pre-Arrival', href: '/staff/prearrival', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
   { label: 'Reports', href: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { label: 'Loyalty', href: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+  { label: 'Loyalty', href: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management' },
   { label: 'Team', href: '/staff/team', icon: IconGuests, resortRoles: null },
   { label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: null },
 ];
@@ -40,24 +41,18 @@ const moreNavItems: NavItem[] = [
 export function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
-  const { isSuperAdmin, getResortRole } = useAuth();
-  const { currentResort } = useResort();
-  
-  const currentResortRole = currentResort ? getResortRole(currentResort.id) : null;
-
-  const canViewItem = (resortRoles: ResortRole[] | null) => {
-    if (isSuperAdmin()) return true;
-    if (!resortRoles) return true;
-    if (!currentResortRole) return false;
-    return resortRoles.includes(currentResortRole);
-  };
+  const { canViewNavItem } = useNavAccess();
 
   const isActive = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
   };
 
-  const visiblePrimaryItems = primaryNavItems.filter(item => canViewItem(item.resortRoles));
-  const visibleMoreItems = moreNavItems.filter(item => canViewItem(item.resortRoles));
+  const visiblePrimaryItems = primaryNavItems.filter(item => 
+    canViewNavItem(item.resortRoles, item.tierFeature)
+  );
+  const visibleMoreItems = moreNavItems.filter(item => 
+    canViewNavItem(item.resortRoles, item.tierFeature)
+  );
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-strong border-t border-border/20 safe-area-inset-bottom">
