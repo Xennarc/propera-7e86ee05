@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { RequestCard } from '@/components/guest/requests/RequestCard';
+import { RequestSubmissionCard } from '@/components/guest/requests/RequestSubmissionCard';
 import { RequestCardSkeleton } from '@/components/guest/requests/RequestCardSkeleton';
 import {
   AlertDialog,
@@ -47,6 +48,58 @@ function getRandomMessage(messages: string[]): string {
   return messages[Math.floor(Math.random() * messages.length)];
 }
 
+// Group requests by submission_id
+interface RequestGroup {
+  type: 'single' | 'bundle';
+  submissionId: string | null;
+  requests: ServiceRequest[];
+  sortDate: string; // For sorting
+}
+
+function groupRequestsBySubmission(requests: ServiceRequest[]): RequestGroup[] {
+  const groups: RequestGroup[] = [];
+  const submissionMap = new Map<string, ServiceRequest[]>();
+  const singleRequests: ServiceRequest[] = [];
+
+  // Separate bundled vs single requests
+  requests.forEach((request) => {
+    if (request.submission_id) {
+      const existing = submissionMap.get(request.submission_id) || [];
+      existing.push(request);
+      submissionMap.set(request.submission_id, existing);
+    } else {
+      singleRequests.push(request);
+    }
+  });
+
+  // Add bundle groups
+  submissionMap.forEach((reqs, submissionId) => {
+    // Sort requests within group by created_at
+    reqs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    groups.push({
+      type: 'bundle',
+      submissionId,
+      requests: reqs,
+      sortDate: reqs[0].created_at,
+    });
+  });
+
+  // Add single requests
+  singleRequests.forEach((request) => {
+    groups.push({
+      type: 'single',
+      submissionId: null,
+      requests: [request],
+      sortDate: request.created_at,
+    });
+  });
+
+  // Sort all groups by date desc
+  groups.sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
+
+  return groups;
+}
+
 export default function GuestMyRequestsPage() {
   const { guest } = useGuestAuth();
   const [filter, setFilter] = useState<FilterType>('active');
@@ -76,9 +129,10 @@ export default function GuestMyRequestsPage() {
     return true;
   });
   
-  // Sort by created_at desc
-  const sortedRequests = [...filteredRequests].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  // Group requests by submission_id
+  const groupedRequests = useMemo(() => 
+    groupRequestsBySubmission(filteredRequests),
+    [filteredRequests]
   );
   
   const activeCount = realRequests.filter((r) => activeStatuses.includes(r.status)).length;
@@ -171,7 +225,7 @@ export default function GuestMyRequestsPage() {
       {isLoading && <RequestCardSkeleton count={3} />}
 
       {/* Empty state */}
-      {!isLoading && sortedRequests.length === 0 && (
+      {!isLoading && groupedRequests.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -187,19 +241,38 @@ export default function GuestMyRequestsPage() {
         </motion.div>
       )}
 
-      {/* Request list with animations */}
-      {!isLoading && sortedRequests.length > 0 && (
+      {/* Request list with grouping */}
+      {!isLoading && groupedRequests.length > 0 && (
         <motion.div layout className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {sortedRequests.map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
-                isCancelling={isCancelling}
-                resortTimezone={guest.resortTimezone}
-              />
-            ))}
+            {groupedRequests.map((group) => {
+              if (group.type === 'bundle' && group.submissionId) {
+                return (
+                  <RequestSubmissionCard
+                    key={`bundle-${group.submissionId}`}
+                    requests={group.requests}
+                    submissionId={group.submissionId}
+                    onCancel={(requestId) => {
+                      const req = group.requests.find((r) => r.id === requestId);
+                      if (req) setCancelDialog(req);
+                    }}
+                    isCancelling={isCancelling}
+                  />
+                );
+              }
+              
+              // Single request
+              const request = group.requests[0];
+              return (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
+                  isCancelling={isCancelling}
+                  resortTimezone={guest.resortTimezone}
+                />
+              );
+            })}
           </AnimatePresence>
         </motion.div>
       )}

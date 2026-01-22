@@ -4,6 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isBefore, parseISO } from 'date-fns';
 
+export interface ServiceRequestItem {
+  id: string;
+  catalog_id: string | null;
+  title: string;
+  quantity: number;
+}
+
 export interface ServiceRequest {
   id: string;
   title: string;
@@ -20,7 +27,13 @@ export interface ServiceRequest {
   completed_at: string | null;
   cancelled_at: string | null;
   catalog_icon_key?: string | null;
+  submission_id?: string | null;
+  items?: ServiceRequestItem[];
 }
+
+export type ServiceRequestWithItems = ServiceRequest & {
+  items?: ServiceRequestItem[];
+};
 
 export interface CatalogItem {
   id: string;
@@ -55,8 +68,9 @@ export function useGuestServiceRequests({ guestId, resortId, enabled = true }: U
       });
 
       if (error) throw error;
+      
       // Map the RPC response to our interface
-      return ((data || []) as unknown[]).map((r: any) => ({
+      const requests = ((data || []) as unknown[]).map((r: any) => ({
         id: r.id,
         title: r.title,
         notes: r.notes,
@@ -72,7 +86,40 @@ export function useGuestServiceRequests({ guestId, resortId, enabled = true }: U
         completed_at: r.completed_at,
         cancelled_at: r.cancelled_at,
         catalog_icon_key: r.catalog_icon_key,
+        submission_id: r.submission_id || null,
       })) as ServiceRequest[];
+
+      // Fetch items for requests that have submission_id (multi-item requests)
+      const requestsWithSubmissions = requests.filter((r) => r.submission_id);
+      if (requestsWithSubmissions.length > 0) {
+        const requestIds = requestsWithSubmissions.map((r) => r.id);
+        const { data: itemsData } = await supabase
+          .from('service_request_items')
+          .select('request_id, id, catalog_id, title, quantity')
+          .in('request_id', requestIds);
+
+        if (itemsData) {
+          const itemsByRequest = new Map<string, ServiceRequestItem[]>();
+          itemsData.forEach((item) => {
+            const existing = itemsByRequest.get(item.request_id) || [];
+            existing.push({
+              id: item.id,
+              catalog_id: item.catalog_id,
+              title: item.title,
+              quantity: item.quantity,
+            });
+            itemsByRequest.set(item.request_id, existing);
+          });
+
+          requests.forEach((r) => {
+            if (itemsByRequest.has(r.id)) {
+              r.items = itemsByRequest.get(r.id);
+            }
+          });
+        }
+      }
+
+      return requests;
     },
     enabled: enabled && !!guestId && !!resortId,
     staleTime: 30000,
@@ -297,10 +344,63 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
     },
   });
 
+  // Bundle mutation for multi-item requests
+  const bundleMutation = useMutation({
+    mutationFn: async (params: {
+      items: Array<{ catalogId: string; quantity: number }>;
+      isAsap: boolean;
+      requestedForAt?: string;
+      guestNotes?: string;
+    }) => {
+      // Validate scheduled time
+      const validationError = validateScheduledTime(params.requestedForAt, params.isAsap);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+
+      const payload = {
+        room_number: null,
+        is_asap: params.isAsap,
+        requested_for_at: params.requestedForAt || null,
+        guest_notes: params.guestNotes || null,
+        items: params.items.map((item) => ({
+          catalog_id: item.catalogId,
+          quantity: item.quantity,
+        })),
+      };
+
+      const { data, error } = await supabase.rpc('create_service_request_bundle', {
+        payload,
+      });
+
+      if (error) throw error;
+      return data as { submission_id: string; request_ids: string[]; split_by_department: boolean };
+    },
+    onSuccess: (data) => {
+      const itemCount = data.request_ids?.length || 1;
+      toast.success(
+        itemCount > 1 
+          ? `Requests submitted to ${itemCount} departments!`
+          : 'Your request has been submitted!',
+        {
+          description: "We'll get to it as soon as possible.",
+        }
+      );
+      queryClient.invalidateQueries({ queryKey });
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to submit request', {
+        description: error.message || 'Please try again.',
+      });
+    },
+  });
+
   return {
     createRequest: createMutation.mutateAsync,
+    createBundle: bundleMutation.mutateAsync,
     cancelRequest: cancelMutation.mutateAsync,
     isCreating: createMutation.isPending,
+    isCreatingBundle: bundleMutation.isPending,
     isCancelling: cancelMutation.isPending,
   };
 }
