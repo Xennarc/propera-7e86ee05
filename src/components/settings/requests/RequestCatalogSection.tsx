@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, List, Globe, Building2, Search, Lock } from 'lucide-react';
+import { RequestIconPicker } from '@/components/ui/request-icon-picker';
+import { getRequestIcon } from '@/lib/request-icons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -47,6 +49,7 @@ export function RequestCatalogSection({ resortId }: Props) {
     department_key: 'HOUSEKEEPING',
     default_priority: 'NORMAL',
     is_billable: false,
+    icon_key: null as string | null,
   });
 
   // Split items into global (read-only) and resort-specific
@@ -75,7 +78,7 @@ export function RequestCatalogSection({ resortId }: Props) {
         title: formData.title,
         category: formData.category,
         department_key: formData.department_key,
-        icon_key: null,
+        icon_key: formData.icon_key,
         is_active: true,
         is_billable: formData.is_billable,
         default_priority: formData.default_priority,
@@ -87,6 +90,7 @@ export function RequestCatalogSection({ resortId }: Props) {
         department_key: 'HOUSEKEEPING',
         default_priority: 'NORMAL',
         is_billable: false,
+        icon_key: null,
       });
       toast({ title: 'Catalog item created' });
     } catch (err) {
@@ -124,6 +128,7 @@ export function RequestCatalogSection({ resortId }: Props) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-12">Icon</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Department</TableHead>
@@ -135,8 +140,12 @@ export function RequestCatalogSection({ resortId }: Props) {
         <TableBody>
           {filtered.map((item) => {
             const dept = departments.find((d) => d.key === item.department_key);
+            const ItemIcon = getRequestIcon(item.icon_key);
             return (
               <TableRow key={item.id} className={!item.is_active ? 'opacity-50' : undefined}>
+                <TableCell>
+                  <ItemIcon className="h-4 w-4 text-muted-foreground" />
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     {item.title}
@@ -312,13 +321,20 @@ export function RequestCatalogSection({ resortId }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-3 pt-6">
-                <Switch
-                  checked={formData.is_billable}
-                  onCheckedChange={(v) => setFormData({ ...formData, is_billable: v })}
+              <div className="space-y-2">
+                <Label>Icon</Label>
+                <RequestIconPicker
+                  value={formData.icon_key}
+                  onChange={(v) => setFormData({ ...formData, icon_key: v })}
                 />
-                <Label>Billable item</Label>
               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={formData.is_billable}
+                onCheckedChange={(v) => setFormData({ ...formData, is_billable: v })}
+              />
+              <Label>Billable item</Label>
             </div>
           </div>
           <DialogFooter>

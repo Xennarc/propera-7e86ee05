@@ -958,6 +958,45 @@ async function seedSampleServiceRequests(
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
   const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
   
+  // Helper: Generate context-aware sample note based on catalog item
+  const getSampleNote = (item: any, department: string): string => {
+    const title = (item.title || '').toLowerCase();
+    
+    // Minibar-specific notes
+    if (department === 'MINIBAR') {
+      if (title.includes('water')) return '2 bottles of still water please';
+      if (title.includes('wine') || title.includes('champagne')) return 'Could we have a bottle chilled for tonight?';
+      if (title.includes('refill')) return 'Full minibar restock please';
+      return `Could we get some ${item.title} please?`;
+    }
+    
+    // Housekeeping-specific notes
+    if (department === 'HOUSEKEEPING') {
+      if (title.includes('towel')) return 'Extra bath towels for 4 guests please';
+      if (title.includes('linen') || title.includes('sheet')) return 'Fresh linens would be appreciated';
+      if (title.includes('turndown')) return 'Turndown service at 7pm please';
+      if (title.includes('cleaning') || title.includes('clean')) return 'Room cleaning when convenient';
+      return 'Thank you!';
+    }
+    
+    // Engineering/Maintenance-specific notes
+    if (department === 'ENGINEERING') {
+      if (title.includes('ac') || title.includes('air con')) return 'The AC seems to be making a strange noise';
+      if (title.includes('light')) return 'The bathroom light is flickering';
+      if (title.includes('tv')) return 'TV remote is not working';
+      if (title.includes('wifi') || title.includes('internet')) return 'WiFi connection keeps dropping';
+      if (title.includes('plumb') || title.includes('water') || title.includes('drain')) return 'Shower drain is slow';
+      return `Issue with ${item.title} - needs attention`;
+    }
+    
+    // Concierge
+    if (department === 'CONCIERGE') {
+      return 'Could you help arrange this for us?';
+    }
+    
+    return 'Thank you for your assistance!';
+  };
+
   // Sample requests with different statuses
   const sampleRequests = [
     {
@@ -967,7 +1006,7 @@ async function seedSampleServiceRequests(
       catalog_id: minibarItem.id,
       title: minibarItem.title,
       department_key: minibarItem.department_key,
-      notes: "Could we get 2 bottles please?",
+      notes: getSampleNote(minibarItem, minibarItem.department_key),
       is_asap: true,
       priority: "NORMAL",
       status: "NEW",
@@ -980,7 +1019,7 @@ async function seedSampleServiceRequests(
       catalog_id: housekeepingItem.id,
       title: housekeepingItem.title,
       department_key: housekeepingItem.department_key,
-      notes: "Thank you!",
+      notes: getSampleNote(housekeepingItem, housekeepingItem.department_key),
       is_asap: true,
       priority: "NORMAL",
       status: "IN_PROGRESS",
@@ -995,8 +1034,8 @@ async function seedSampleServiceRequests(
       catalog_id: engineeringItem.id,
       title: engineeringItem.title,
       department_key: engineeringItem.department_key,
-      notes: "The bathroom light was flickering",
-      internal_notes: "Replaced bulb, all working now",
+      notes: getSampleNote(engineeringItem, engineeringItem.department_key),
+      internal_notes: "Issue resolved, all working now",
       is_asap: false,
       requested_for_at: new Date(fourHoursAgo.getTime() + 60 * 60 * 1000).toISOString(),
       priority: "HIGH",
