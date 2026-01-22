@@ -232,28 +232,27 @@ serve(async (req) => {
     // Create resort membership if provided (not for SUPER_ADMIN only accounts)
     let membershipId = null;
     if (resort_id && resort_role) {
-      const { data: membership, error: membershipError } = await supabaseAdmin
-        .from('resort_memberships')
-        .insert({
-          user_id: authData.user.id,
-          resort_id: resort_id,
-          resort_role: resort_role,
-          department: department || null
-        })
-        .select('id')
-        .single();
+      // Use the user's client to call the audited RPC
+      // This preserves auth.uid() context for the security checks in the trigger
+      const { data: membership, error: membershipError } = await supabaseUser
+        .rpc('admin_add_resort_member', {
+          p_resort_id: resort_id,
+          p_user_id: authData.user.id,
+          p_role: resort_role,
+          p_department: department || null
+        });
 
       if (membershipError) {
         console.error('Membership error:', membershipError);
-        // Clean up
+        // Clean up the auth user we just created
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         return new Response(
-          JSON.stringify({ success: false, error: 'Failed to create resort membership' }),
+          JSON.stringify({ success: false, error: membershipError.message || 'Failed to create resort membership' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         );
       }
 
-      membershipId = membership?.id;
+      membershipId = membership;
     }
 
     // Log the action for audit
