@@ -3,6 +3,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isBefore, parseISO } from 'date-fns';
+import { useDebouncedCallback } from './useDebouncedCallback';
 
 export interface ServiceRequestItem {
   id: string;
@@ -125,6 +126,11 @@ export function useGuestServiceRequests({ guestId, resortId, enabled = true }: U
     staleTime: 30000,
   });
 
+  // Debounced invalidation for realtime updates
+  const debouncedInvalidate = useDebouncedCallback(() => {
+    queryClient.invalidateQueries({ queryKey });
+  }, 500);
+
   // Real-time subscription
   useEffect(() => {
     if (!enabled || !guestId || !resortId) return;
@@ -140,7 +146,8 @@ export function useGuestServiceRequests({ guestId, resortId, enabled = true }: U
           filter: `guest_id=eq.${guestId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey });
+          // Use debounced invalidation to prevent rapid refetches
+          debouncedInvalidate();
         }
       )
       .subscribe();
@@ -148,7 +155,7 @@ export function useGuestServiceRequests({ guestId, resortId, enabled = true }: U
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, guestId, resortId, queryClient, queryKey]);
+  }, [enabled, guestId, resortId, debouncedInvalidate]);
 
   return {
     requests: data || [],

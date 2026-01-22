@@ -19,8 +19,9 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Loader2, Minus, Plus, Clock, Zap, AlertCircle } from 'lucide-react';
+import { CalendarIcon, Loader2, Minus, Plus, Clock, Zap, AlertCircle, Timer } from 'lucide-react';
 import { CategoryConfig, categoryConfigs } from './RequestCategoryGrid';
+import { useSubmitCooldown, formatCooldownTime } from '@/hooks/useSubmitCooldown';
 import { CatalogItem, useServiceRequestMutations, validateScheduledTime } from '@/hooks/useServiceRequests';
 
 interface RequestCreateSheetProps {
@@ -55,6 +56,7 @@ export function RequestCreateSheet({
   resortId,
 }: RequestCreateSheetProps) {
   const { createRequest, isCreating } = useServiceRequestMutations(guestId, resortId);
+  const { isOnCooldown, remainingSeconds, startCooldown } = useSubmitCooldown('request_single', 30);
   
   // Form state
   const [selectedItem, setSelectedItem] = useState<CatalogItem | null>(null);
@@ -108,7 +110,7 @@ export function RequestCreateSheet({
     !timeValidationError;
   
   const handleSubmit = useCallback(async () => {
-    if (!category || !canSubmit) return;
+    if (!category || !canSubmit || isOnCooldown) return;
     
     try {
       await createRequest({
@@ -124,13 +126,15 @@ export function RequestCreateSheet({
         category: category.key,
       });
       
+      // Start cooldown after successful submission
+      startCooldown(30);
       // Reset and close
       resetForm();
       onOpenChange(false);
     } catch {
       // Error handled by mutation
     }
-  }, [category, canSubmit, createRequest, guestId, resortId, selectedItem, title, notes, quantity, isAsap, scheduledDateTime, onOpenChange]);
+  }, [category, canSubmit, isOnCooldown, createRequest, guestId, resortId, selectedItem, title, notes, quantity, isAsap, scheduledDateTime, onOpenChange, startCooldown]);
   
   const resetForm = useCallback(() => {
     setSelectedItem(null);
@@ -185,17 +189,25 @@ export function RequestCreateSheet({
     </div>
   );
 
-  // Footer with submit button
+  // Footer with submit button (shows cooldown when active)
   const footer = (
     <Button
       onClick={handleSubmit}
-      disabled={!canSubmit || isCreating}
-      className="w-full h-12 text-base font-semibold"
+      disabled={!canSubmit || isCreating || isOnCooldown}
+      className={cn(
+        "w-full h-12 text-base font-semibold transition-all",
+        isOnCooldown && "bg-muted text-muted-foreground"
+      )}
     >
       {isCreating ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Submitting...
+        </>
+      ) : isOnCooldown ? (
+        <>
+          <Timer className="mr-2 h-4 w-4" />
+          Wait {formatCooldownTime(remainingSeconds)}
         </>
       ) : (
         'Submit Request'
