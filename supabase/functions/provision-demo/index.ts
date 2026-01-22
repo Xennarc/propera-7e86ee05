@@ -911,6 +911,114 @@ async function refreshDemoData(supabase: any, resortId: string): Promise<void> {
   console.log("Demo data refresh complete");
 }
 
+// Seed sample service requests for demo guests
+async function seedSampleServiceRequests(
+  supabase: any,
+  resortId: string,
+  guestId: string,
+  roomNumber: string
+): Promise<void> {
+  console.log("Checking for existing sample service requests...");
+  
+  // Check if sample requests already exist for this guest
+  const { count } = await supabase
+    .from("service_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("guest_id", guestId);
+  
+  if (count && count > 0) {
+    console.log(`Found ${count} existing service requests, skipping seeding`);
+    return;
+  }
+  
+  // Fetch catalog items for seeding
+  const { data: catalogItems } = await supabase
+    .from("request_catalog")
+    .select("id, title, department_key, description")
+    .eq("resort_id", resortId)
+    .limit(10);
+  
+  if (!catalogItems || catalogItems.length < 3) {
+    console.log("Not enough catalog items for seeding, skipping");
+    return;
+  }
+  
+  // Find specific catalog items for realistic requests
+  const housekeepingItem = catalogItems.find((c: any) => c.department_key === "HOUSEKEEPING");
+  const minibarItem = catalogItems.find((c: any) => c.department_key === "MINIBAR");
+  const engineeringItem = catalogItems.find((c: any) => c.department_key === "ENGINEERING") || catalogItems[2];
+  
+  if (!housekeepingItem || !minibarItem) {
+    console.log("Required catalog items not found, skipping service request seeding");
+    return;
+  }
+  
+  const now = new Date();
+  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  
+  // Sample requests with different statuses
+  const sampleRequests = [
+    {
+      // NEW - Just submitted, unacknowledged
+      resort_id: resortId,
+      guest_id: guestId,
+      catalog_id: minibarItem.id,
+      title: minibarItem.title,
+      department_key: minibarItem.department_key,
+      notes: "Could we get 2 bottles please?",
+      is_asap: true,
+      priority: "NORMAL",
+      status: "NEW",
+      created_at: thirtyMinAgo.toISOString(),
+    },
+    {
+      // IN_PROGRESS - Assigned and being worked on
+      resort_id: resortId,
+      guest_id: guestId,
+      catalog_id: housekeepingItem.id,
+      title: housekeepingItem.title,
+      department_key: housekeepingItem.department_key,
+      notes: "Thank you!",
+      is_asap: true,
+      priority: "NORMAL",
+      status: "IN_PROGRESS",
+      created_at: twoHoursAgo.toISOString(),
+      acknowledged_at: new Date(twoHoursAgo.getTime() + 5 * 60 * 1000).toISOString(),
+      assigned_at: new Date(twoHoursAgo.getTime() + 10 * 60 * 1000).toISOString(),
+    },
+    {
+      // COMPLETED - Finished request
+      resort_id: resortId,
+      guest_id: guestId,
+      catalog_id: engineeringItem.id,
+      title: engineeringItem.title,
+      department_key: engineeringItem.department_key,
+      notes: "The bathroom light was flickering",
+      internal_notes: "Replaced bulb, all working now",
+      is_asap: false,
+      requested_for_at: new Date(fourHoursAgo.getTime() + 60 * 60 * 1000).toISOString(),
+      priority: "HIGH",
+      status: "COMPLETED",
+      created_at: fourHoursAgo.toISOString(),
+      acknowledged_at: new Date(fourHoursAgo.getTime() + 3 * 60 * 1000).toISOString(),
+      assigned_at: new Date(fourHoursAgo.getTime() + 5 * 60 * 1000).toISOString(),
+      completed_at: new Date(fourHoursAgo.getTime() + 45 * 60 * 1000).toISOString(),
+    },
+  ];
+  
+  const { error } = await supabase
+    .from("service_requests")
+    .insert(sampleRequests);
+  
+  if (error) {
+    console.error("Failed to seed sample service requests:", error);
+  } else {
+    console.log(`Seeded ${sampleRequests.length} sample service requests for demo guest`);
+  }
+}
+
 // Shared Golden Demo Resort Constants
 const DEMO_RESORT_CODE = "DEMO";
 const DEMO_RESORT_NAME = "Propera Demo Resort";
@@ -1222,6 +1330,16 @@ serve(async (req) => {
         sharedWorkspace.guest_id = demoGuest.id;
         sharedWorkspace.guest_room = demoGuest.room_number;
         sharedWorkspace.guest_last_name = nameParts[nameParts.length - 1];
+      }
+
+      // 5b. Seed sample service requests for demo guest (idempotent)
+      if (demoGuest) {
+        await seedSampleServiceRequests(
+          supabaseAdmin,
+          demoResort.id,
+          demoGuest.id,
+          demoGuest.room_number
+        );
       }
 
       // 6. Generate short-lived tokens (15 min TTL, reusable within window)
