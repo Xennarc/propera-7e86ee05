@@ -6,14 +6,10 @@ import {
   Sparkles,
   Wrench,
   Utensils,
-  BedDouble,
-  ShowerHead,
+  Droplets,
   Package,
   MessageSquarePlus,
   Shirt,
-  Scissors,
-  Droplets,
-  Baby,
   LucideIcon,
 } from 'lucide-react';
 
@@ -22,66 +18,66 @@ export interface CategoryConfig {
   label: string;
   icon: LucideIcon;
   description?: string;
-  color: string;
+  ringColor: string;
 }
 
-// Category configurations with premium feel
+// Category configurations with minimal ring styling
 const categoryConfigs: CategoryConfig[] = [
   {
     key: 'HOUSEKEEPING',
     label: 'Housekeeping',
     icon: Sparkles,
     description: 'Room cleaning & fresh towels',
-    color: 'from-cyan-500 to-teal-500',
+    ringColor: 'border-cyan-400 text-cyan-400',
   },
   {
     key: 'MINIBAR',
     label: 'Minibar',
     icon: Wine,
     description: 'Drinks & snack refill',
-    color: 'from-purple-500 to-pink-500',
+    ringColor: 'border-red-400 text-red-400',
   },
   {
     key: 'TOILETRIES',
     label: 'Toiletries',
     icon: Droplets,
     description: 'Bathroom essentials',
-    color: 'from-sky-500 to-blue-500',
+    ringColor: 'border-teal-400 text-teal-400',
   },
   {
     key: 'LAUNDRY',
     label: 'Laundry',
     icon: Shirt,
     description: 'Cleaning & pressing',
-    color: 'from-indigo-500 to-violet-500',
+    ringColor: 'border-purple-400 text-purple-400',
   },
   {
     key: 'ENGINEERING',
     label: 'Maintenance',
     icon: Wrench,
     description: 'Repairs & fixes',
-    color: 'from-orange-500 to-amber-500',
+    ringColor: 'border-green-400 text-green-400',
   },
   {
     key: 'ROOM_SERVICE',
     label: 'In-Room Dining',
     icon: Utensils,
     description: 'Food & beverages',
-    color: 'from-rose-500 to-red-500',
+    ringColor: 'border-pink-400 text-pink-400',
   },
   {
     key: 'AMENITIES',
     label: 'Amenities',
     icon: Package,
     description: 'Extra pillows, blankets',
-    color: 'from-emerald-500 to-green-500',
+    ringColor: 'border-lime-400 text-lime-400',
   },
   {
     key: 'OTHER',
     label: 'Other Request',
     icon: MessageSquarePlus,
     description: 'Anything else',
-    color: 'from-slate-500 to-gray-500',
+    ringColor: 'border-rose-400 text-rose-400',
   },
 ];
 
@@ -105,19 +101,13 @@ const CategoryTile = memo(({ category, onSelect }: {
       )}
       onClick={onSelect}
     >
-      {/* Gradient background on hover */}
-      <div className={cn(
-        'absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-300',
-        category.color
-      )} />
-      
       <CardContent className="p-4 flex flex-col items-center text-center gap-3">
         <div className={cn(
-          'w-12 h-12 rounded-2xl flex items-center justify-center',
-          'bg-gradient-to-br shadow-lg',
-          category.color
+          'w-14 h-14 rounded-full flex items-center justify-center',
+          'border-2 bg-transparent',
+          category.ringColor
         )}>
-          <Icon className="h-6 w-6 text-white" />
+          <Icon className="h-6 w-6" />
         </div>
         
         <div className="space-y-0.5">
