@@ -1,178 +1,98 @@
 
 
-# Guest Request Rate Limiting & System Performance Protection Plan
+# Minimal Icon Styling Update for Guest Requests Page
 
-## Problem Statement
-The Guest Portal allows guests to submit service requests, book activities, and make reservations without sufficient throttling. A malicious actor or a simple rapid-clicking user could overwhelm the system, causing slowdowns for all users.
+## Goal
+Update the category icons to match the reference image's clean, minimal aesthetic: circular ring borders with colored line icons instead of filled gradient backgrounds.
 
-## Audit Results: Performance Risks Identified
+## Current vs Target
 
-### 1. **Unprotected Creation RPCs** (HIGH PRIORITY)
-These guest-initiated write operations lack rate limiting:
+| Aspect | Current | Target (Reference) |
+|--------|---------|-------------------|
+| Container shape | `rounded-2xl` (rounded square) | `rounded-full` (circle) |
+| Container fill | Solid gradient background | Transparent with colored ring border |
+| Icon color | White | Same color as the ring |
+| Border | None | 2px colored ring |
 
-| RPC | Current Limit | Risk |
-|-----|--------------|------|
-| `guest_create_service_request` | None | Guests can spam unlimited requests |
-| `create_service_request_bundle` | None | Multi-item bundles with no throttle |
-| `guest_create_activity_booking` | None | Could reserve all session capacity |
-| `guest_create_restaurant_reservation` | None | Could block dining slots |
-| `guest_submit_feedback` | Check for duplicate only | No submission frequency limit |
+## Color Mapping
 
-### 2. **Client-Side Gaps** (MEDIUM PRIORITY)
-- No visible cooldown timer after submitting requests
-- Double-click prevention exists but no user feedback
-- Multi-select allows unlimited item selection
+The reference uses distinct ring colors per category:
+- Housekeeping: Cyan/teal ring
+- Minibar: Red ring
+- Toiletries: Teal ring
+- Laundry: Purple ring
+- Maintenance: Green ring
+- In-Room Dining: Pink/magenta ring
+- Amenities: Yellow/lime ring
+- Other: Pink ring
 
-### 3. **Query Performance Concerns** (LOW PRIORITY)
-- `useServiceRequests` hook performs a secondary query for items (N+1 pattern)
-- Realtime subscriptions work well but trigger refetches on every change
+## Technical Changes
 
----
+### File: `src/components/guest/requests/RequestCategoryGrid.tsx`
 
-## Implementation Plan
-
-### Phase 1: Server-Side Rate Limiting (Database Migration)
-
-Add `check_rate_limit` calls to all unprotected guest RPCs:
-
-```text
-Proposed Limits:
-┌────────────────────────────────────┬──────────────┬────────────────┐
-│ RPC Function                       │ Max Attempts │ Window (mins)  │
-├────────────────────────────────────┼──────────────┼────────────────┤
-│ guest_create_service_request       │ 20           │ 60             │
-│ create_service_request_bundle      │ 10           │ 60             │
-│ guest_create_activity_booking      │ 10           │ 60             │
-│ guest_create_restaurant_reservation│ 10           │ 60             │
-│ guest_submit_feedback              │ 5            │ 60             │
-│ guest_cancel_service_request       │ 10           │ 60             │
-└────────────────────────────────────┴──────────────┴────────────────┘
-```
-
-**SQL Pattern** (applied to each RPC):
-```sql
--- Add at the start of each function body
-PERFORM check_rate_limit(
-  'guest_create_service_request',
-  p_guest_id::TEXT,
-  20,  -- max attempts
-  60   -- window in minutes
-);
-```
-
-### Phase 2: Client-Side Cooldown UI
-
-Create a reusable `useSubmitCooldown` hook:
-
+1. **Update CategoryConfig interface** - Change `color` from gradient class to border/text color classes:
 ```typescript
-// src/hooks/useSubmitCooldown.ts
-interface CooldownState {
-  isOnCooldown: boolean;
-  remainingSeconds: number;
-  startCooldown: (durationSec?: number) => void;
+interface CategoryConfig {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  description?: string;
+  ringColor: string;  // e.g., 'border-cyan-400 text-cyan-400'
 }
 ```
 
-**Features:**
-- 30-second default cooldown after successful submission
-- Visible countdown timer on submit button
-- Persists to localStorage to survive page refresh
-- Scoped per action type (e.g., `request_submit`, `booking_create`)
-
-**UI Integration:**
-- Submit button shows countdown: "Submit (27s)"
-- Button disabled during cooldown with subtle animation
-- Toast message explains cooldown on first trigger
-
-### Phase 3: Multi-Select Guardrails
-
-Add client-side limits to the multi-select flow:
-
-| Limit | Value | Rationale |
-|-------|-------|-----------|
-| Max items per bundle | 10 | Prevents overwhelming staff queue |
-| Max total quantity | 20 | Limits total items across selections |
-| Max bundles per hour | 5 | Matches server-side limit |
-
-**UI Feedback:**
-- Show remaining selection slots: "8/10 items selected"
-- Disable "Add" when limit reached
-- Toast explaining limit: "Maximum 10 items per request"
-
-### Phase 4: Performance Optimizations
-
-#### 4.1 Fix N+1 Query Pattern
-Update `guest_get_service_requests` RPC to include items in a single query using lateral joins or JSON aggregation:
-
-```sql
--- Return items embedded in the response
-SELECT 
-  sr.*,
-  COALESCE(
-    json_agg(json_build_object(
-      'id', sri.id,
-      'title', sri.title,
-      'quantity', sri.quantity
-    )) FILTER (WHERE sri.id IS NOT NULL),
-    '[]'
-  ) AS items
-FROM service_requests sr
-LEFT JOIN service_request_items sri ON sri.request_id = sr.id
-WHERE sr.guest_id = p_guest_id
-GROUP BY sr.id
-```
-
-#### 4.2 Realtime Debouncing
-Add debounce to realtime invalidation handlers to prevent rapid refetch storms:
-
+2. **Update categoryConfigs** - Replace gradient colors with ring/icon color classes:
 ```typescript
-// In useGuestRequestsSync
-const debouncedInvalidate = useDebouncedCallback(
-  () => queryClient.invalidateQueries({ queryKey }),
-  500 // 500ms debounce
-);
+{
+  key: 'HOUSEKEEPING',
+  label: 'Housekeeping',
+  icon: Sparkles,
+  description: 'Room cleaning & fresh towels',
+  ringColor: 'border-cyan-400 text-cyan-400',
+},
+// ... similar for all categories
 ```
 
----
+3. **Update CategoryTile icon container styling**:
+```typescript
+// FROM:
+<div className={cn(
+  'w-12 h-12 rounded-2xl flex items-center justify-center',
+  'bg-gradient-to-br shadow-lg',
+  category.color
+)}>
+  <Icon className="h-6 w-6 text-white" />
+</div>
 
-## Files to Create/Modify
+// TO:
+<div className={cn(
+  'w-14 h-14 rounded-full flex items-center justify-center',
+  'border-2 bg-transparent',
+  category.ringColor
+)}>
+  <Icon className="h-6 w-6" />
+</div>
+```
 
-### New Files
-1. `src/hooks/useSubmitCooldown.ts` - Reusable cooldown timer hook
-2. `supabase/migrations/TIMESTAMP_add_guest_rate_limits.sql` - Rate limit updates
+4. **Simplify hover effect** - Remove gradient overlay on hover, keep subtle scale effect
 
-### Modified Files
-1. `src/hooks/useServiceRequests.ts` - Add cooldown integration
-2. `src/components/guest/requests/RequestCreateSheet.tsx` - Display cooldown on button
-3. `src/components/guest/requests/RequestBundleSheet.tsx` - Display cooldown + item limits
-4. `src/pages/guest/GuestRequestsPage.tsx` - Add selection limits
-5. `src/components/guest/requests/MultiSelectItemGrid.tsx` - Enforce max items
-6. `src/hooks/useGuestRequestsSync.ts` - Add debounced invalidation
+## Visual Result
 
-### Database Updates (Migration)
-- Update `guest_create_service_request` with rate limit
-- Update `create_service_request_bundle` with rate limit
-- Update `guest_create_activity_booking` with rate limit
-- Update `guest_create_restaurant_reservation` with rate limit
-- Update `guest_cancel_service_request` with rate limit
-- Update `guest_submit_feedback` with rate limit
+Each category tile will display:
+- A clean circular ring in the category's accent color
+- A line-style icon inside in matching color
+- Card background remains the same dark surface
+- Minimal, premium look matching the app's theme
 
----
+## Files Modified
 
-## Success Criteria
+| File | Change |
+|------|--------|
+| `src/components/guest/requests/RequestCategoryGrid.tsx` | Update icon styling from gradient fill to ring border |
 
-1. **Guests cannot submit more than 20 requests per hour** (enforced server-side)
-2. **UI shows a 30-second cooldown** after each submission
-3. **Multi-select limited to 10 items per bundle**
-4. **No breaking changes** to existing flows
-5. **Graceful error handling** when rate limit is hit (friendly message, not a crash)
+## No Breaking Changes
 
----
-
-## Technical Notes
-
-- The existing `check_rate_limit` helper already exists and is battle-tested on login/cancellation flows
-- All limits are configurable per-function and can be adjusted later
-- Cooldown state uses localStorage to persist across page refreshes
-- Server-side is the source of truth; client-side is UX enhancement only
+- The `CategoryConfig` interface keeps the same shape (just rename `color` -> `ringColor`)
+- All other components using `categoryConfigs` will continue to work
+- The click handlers and grid layout remain unchanged
 
