@@ -3986,6 +3986,144 @@ export type Database = {
           },
         ]
       }
+      service_request_items: {
+        Row: {
+          catalog_id: string | null
+          created_at: string
+          id: string
+          quantity: number
+          request_id: string
+          resort_id: string
+          title: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          created_at?: string
+          id?: string
+          quantity?: number
+          request_id: string
+          resort_id: string
+          title: string
+        }
+        Update: {
+          catalog_id?: string | null
+          created_at?: string
+          id?: string
+          quantity?: number
+          request_id?: string
+          resort_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_items_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "request_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_items_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_request_items_archive: {
+        Row: {
+          catalog_id: string | null
+          created_at: string
+          id: string
+          quantity: number
+          request_archive_id: string
+          resort_id: string
+          title: string
+        }
+        Insert: {
+          catalog_id?: string | null
+          created_at: string
+          id?: string
+          quantity?: number
+          request_archive_id: string
+          resort_id: string
+          title: string
+        }
+        Update: {
+          catalog_id?: string | null
+          created_at?: string
+          id?: string
+          quantity?: number
+          request_archive_id?: string
+          resort_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_items_archive_request_archive_id_fkey"
+            columns: ["request_archive_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests_archive"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_request_submissions: {
+        Row: {
+          created_at: string
+          guest_id: string
+          guest_notes: string | null
+          id: string
+          is_asap: boolean
+          requested_for_at: string | null
+          resort_id: string
+          room_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          guest_notes?: string | null
+          id?: string
+          is_asap?: boolean
+          requested_for_at?: string | null
+          resort_id: string
+          room_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          guest_notes?: string | null
+          id?: string
+          is_asap?: boolean
+          requested_for_at?: string | null
+          resort_id?: string
+          room_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_submissions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_submissions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           acknowledged_at: string | null
@@ -4012,6 +4150,7 @@ export type Database = {
           resort_id: string
           room_id: string | null
           status: string
+          submission_id: string | null
           title: string
         }
         Insert: {
@@ -4039,6 +4178,7 @@ export type Database = {
           resort_id: string
           room_id?: string | null
           status?: string
+          submission_id?: string | null
           title: string
         }
         Update: {
@@ -4066,6 +4206,7 @@ export type Database = {
           resort_id?: string
           room_id?: string | null
           status?: string
+          submission_id?: string | null
           title?: string
         }
         Relationships: [
@@ -4088,6 +4229,13 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "service_request_submissions"
             referencedColumns: ["id"]
           },
         ]
@@ -4120,6 +4268,7 @@ export type Database = {
           resort_id: string
           room_id: string | null
           status: string
+          submission_id: string | null
           title: string
         }
         Insert: {
@@ -4149,6 +4298,7 @@ export type Database = {
           resort_id: string
           room_id?: string | null
           status: string
+          submission_id?: string | null
           title: string
         }
         Update: {
@@ -4178,6 +4328,7 @@ export type Database = {
           resort_id?: string
           room_id?: string | null
           status?: string
+          submission_id?: string | null
           title?: string
         }
         Relationships: []
