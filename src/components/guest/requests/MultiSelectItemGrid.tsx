@@ -72,12 +72,12 @@ const ItemTile = memo(function ItemTile({
           <div className="flex items-start gap-2">
             <div
               className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                'bg-gradient-to-br',
-                category.color
+                'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                'border-2 bg-transparent',
+                category.ringColor
               )}
             >
-              <category.icon className="h-4 w-4 text-white" />
+              <category.icon className="h-4 w-4" />
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm text-foreground truncate">

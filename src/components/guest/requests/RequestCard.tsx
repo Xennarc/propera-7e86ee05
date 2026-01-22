@@ -75,12 +75,12 @@ export const RequestCard = memo(function RequestCard({
             <motion.div
               whileHover={{ scale: 1.05 }}
               className={cn(
-                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-                'bg-gradient-to-br shadow-sm',
-                category.color
+                'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
+                'border-2 bg-transparent',
+                category.ringColor
               )}
             >
-              <CategoryIcon className="h-5 w-5 text-white" />
+              <CategoryIcon className="h-5 w-5" />
             </motion.div>
             
             {/* Content */}

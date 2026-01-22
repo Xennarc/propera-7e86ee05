@@ -176,11 +176,11 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
                           className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
                         >
                           <div className={cn(
-                            'w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0',
-                            'bg-gradient-to-br',
-                            category.color
+                            'w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0',
+                            'border-2 bg-transparent',
+                            category.ringColor
                           )}>
-                            <CategoryIcon className="h-3.5 w-3.5 text-white" />
+                            <CategoryIcon className="h-3.5 w-3.5" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs truncate">{request.title}</p>

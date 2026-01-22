@@ -181,11 +181,11 @@ export function RequestCreateSheet({
   // Header icon for drawer
   const headerIcon = (
     <div className={cn(
-      'w-10 h-10 rounded-xl flex items-center justify-center',
-      'bg-gradient-to-br shadow-sm',
-      category.color
+      'w-10 h-10 rounded-full flex items-center justify-center',
+      'border-2 bg-transparent',
+      category.ringColor
     )}>
-      <CategoryIcon className="h-5 w-5 text-white" />
+      <CategoryIcon className="h-5 w-5" />
     </div>
   );
 
