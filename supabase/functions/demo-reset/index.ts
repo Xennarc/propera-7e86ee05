@@ -143,7 +143,7 @@ serve(async (req) => {
       deleted: { activity_bookings: 0, restaurant_reservations: 0, guest_requests: 0, booking_attendees: 0 },
       freshness: { guests_updated: 0 },
       availability: { sessions_created: 0, slots_created: 0, sessions_archived: 0, slots_archived: 0 },
-      seeded: { activity_bookings: 0, restaurant_reservations: 0 },
+      seeded: { activity_bookings: 0, restaurant_reservations: 0, service_requests: 0 },
     };
 
     const today = new Date();
@@ -530,7 +530,115 @@ serve(async (req) => {
       }
     }
 
-    console.log(`Seeded:`, results.seeded);
+    console.log(`Seeded bookings:`, results.seeded);
+
+    // ============================================================
+    // PASS 6: SERVICE REQUESTS - Ensure sample requests exist
+    // ============================================================
+    console.log("Pass 6: Auto-healing sample service requests...");
+
+    // Count existing seed service requests
+    const { count: seedRequestsCount } = await supabase
+      .from("service_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("resort_id", demoResortId)
+      .eq("origin", "seed");
+
+    const needsRequests = (seedRequestsCount || 0) < 3;
+
+    if (needsRequests && !isDryRun) {
+      // Get an in-house guest for requests
+      const { data: demoGuest } = await supabase
+        .from("guests")
+        .select("id, room_number")
+        .eq("resort_id", demoResortId)
+        .lte("check_in_date", todayStr)
+        .gte("check_out_date", todayStr)
+        .limit(1)
+        .single();
+
+      if (demoGuest) {
+        // Get catalog items
+        const { data: catalogItems } = await supabase
+          .from("request_catalog")
+          .select("id, title, department_key")
+          .eq("resort_id", demoResortId)
+          .limit(10);
+
+        if (catalogItems?.length && catalogItems.length >= 3) {
+          const housekeepingItem = catalogItems.find(c => c.department_key === "HOUSEKEEPING");
+          const minibarItem = catalogItems.find(c => c.department_key === "MINIBAR");
+          const engineeringItem = catalogItems.find(c => c.department_key === "ENGINEERING") || catalogItems[2];
+
+          if (housekeepingItem && minibarItem) {
+            const now = new Date();
+            const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000);
+            const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+            const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+
+            const sampleRequests = [
+              {
+                resort_id: demoResortId,
+                guest_id: demoGuest.id,
+                catalog_id: minibarItem.id,
+                title: minibarItem.title,
+                department_key: minibarItem.department_key,
+                notes: "Could we get 2 bottles please?",
+                is_asap: true,
+                priority: "NORMAL",
+                status: "NEW",
+                origin: "seed",
+                created_at: thirtyMinAgo.toISOString(),
+              },
+              {
+                resort_id: demoResortId,
+                guest_id: demoGuest.id,
+                catalog_id: housekeepingItem.id,
+                title: housekeepingItem.title,
+                department_key: housekeepingItem.department_key,
+                notes: "Thank you!",
+                is_asap: true,
+                priority: "NORMAL",
+                status: "IN_PROGRESS",
+                origin: "seed",
+                created_at: twoHoursAgo.toISOString(),
+                acknowledged_at: new Date(twoHoursAgo.getTime() + 5 * 60 * 1000).toISOString(),
+                assigned_at: new Date(twoHoursAgo.getTime() + 10 * 60 * 1000).toISOString(),
+              },
+              {
+                resort_id: demoResortId,
+                guest_id: demoGuest.id,
+                catalog_id: engineeringItem.id,
+                title: engineeringItem.title,
+                department_key: engineeringItem.department_key,
+                notes: "The bathroom light was flickering",
+                internal_notes: "Replaced bulb, all working now",
+                is_asap: false,
+                requested_for_at: new Date(fourHoursAgo.getTime() + 60 * 60 * 1000).toISOString(),
+                priority: "HIGH",
+                status: "COMPLETED",
+                origin: "seed",
+                created_at: fourHoursAgo.toISOString(),
+                acknowledged_at: new Date(fourHoursAgo.getTime() + 3 * 60 * 1000).toISOString(),
+                completed_at: new Date(fourHoursAgo.getTime() + 45 * 60 * 1000).toISOString(),
+              },
+            ];
+
+            const { error } = await supabase
+              .from("service_requests")
+              .insert(sampleRequests);
+
+            if (!error) {
+              results.seeded.service_requests = sampleRequests.length;
+            } else {
+              console.error("Failed to seed service requests:", error);
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`Service requests seeded: ${results.seeded.service_requests}`);
 
     // Update log entry with results
     const duration = Date.now() - startTime;
