@@ -47,6 +47,7 @@ import {
   RefreshCw,
   Building2,
   ChevronRight,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -93,6 +94,7 @@ function StaffRequestsInboxContent() {
   const [departmentFilter, setDepartmentFilter] = useState<string>('__all__');
   const [priorityFilter, setPriorityFilter] = useState<StaffRequestPriority | 'all'>('all');
   const [assignedFilter, setAssignedFilter] = useState<string>('__all__');
+  const [multiItemFilter, setMultiItemFilter] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<StaffServiceRequest | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -118,6 +120,7 @@ function StaffRequestsInboxContent() {
     const f: StaffRequestFilters = {
       search: searchQuery || undefined,
       priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+      hasMultipleItems: multiItemFilter || undefined,
     };
 
     // Tab-based status filter
@@ -148,7 +151,7 @@ function StaffRequestsInboxContent() {
     }
 
     return f;
-  }, [activeTab, searchQuery, departmentFilter, priorityFilter, assignedFilter, accessibleDepartments, userId]);
+  }, [activeTab, searchQuery, departmentFilter, priorityFilter, assignedFilter, multiItemFilter, accessibleDepartments, userId]);
 
   const { requests, isLoading, refetch } = useStaffServiceRequests({ filters });
 
@@ -312,6 +315,17 @@ function StaffRequestsInboxContent() {
             </SelectContent>
           </Select>
         )}
+
+        {/* Multi-item filter toggle */}
+        <Button
+          variant={multiItemFilter ? 'default' : 'outline'}
+          size="sm"
+          className="h-10 gap-1.5"
+          onClick={() => setMultiItemFilter(!multiItemFilter)}
+        >
+          <Layers className="h-4 w-4" />
+          <span className="hidden sm:inline">Multi-item</span>
+        </Button>
       </div>
 
       {/* Requests List */}
@@ -378,7 +392,20 @@ function StaffRequestsInboxContent() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h4 className="font-medium text-foreground truncate">{request.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-foreground truncate">{request.title}</h4>
+                            {request.item_count > 1 && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                                {request.item_count} items
+                              </Badge>
+                            )}
+                          </div>
+                          {/* Item preview for multi-item requests */}
+                          {request.item_preview && (
+                            <p className="text-xs text-muted-foreground/80 mt-0.5 truncate">
+                              {request.item_preview}
+                            </p>
+                          )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <User className="h-3.5 w-3.5" />
