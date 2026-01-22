@@ -460,8 +460,8 @@ serve(async (req) => {
         .gte("check_out_date", todayStr);
 
       if (inHouseGuests?.length) {
-        // Prioritize room 201 (demo portal guest) for all seed bookings
-        const demoPortalGuest = inHouseGuests.find(g => g.room_number === "201") || inHouseGuests[0];
+        // Prioritize room 101 (demo portal guest - James Wilson) for all seed bookings
+        const demoPortalGuest = inHouseGuests.find(g => g.room_number === "101") || inHouseGuests[0];
 
         // Create seed activity bookings with category diversity
         if (needsBookings) {
@@ -587,14 +587,14 @@ serve(async (req) => {
     const needsRequests = (seedRequestsCount || 0) < 3;
 
     if (needsRequests && !isDryRun) {
-      // Get an in-house guest for requests
+      // Get room 101 guest (James Wilson - demo portal guest) for requests
       const { data: demoGuest } = await supabase
         .from("guests")
         .select("id, room_number")
         .eq("resort_id", demoResortId)
+        .eq("room_number", "101")
         .lte("check_in_date", todayStr)
         .gte("check_out_date", todayStr)
-        .limit(1)
         .single();
 
       if (demoGuest) {
