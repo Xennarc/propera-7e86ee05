@@ -1,129 +1,81 @@
 
+# Fix Demo Seeding to Target Room 101 (James Wilson)
 
-# Seed Demo Bookings for Guest Portal "My Bookings"
+## Problem
 
-## Problem Analysis
+The demo guest portal auto-login uses **Room 101 (James Wilson)** as defined in both:
+- `src/lib/demoSingleton.ts` line 13: `DEMO_GUEST_ROOM = "101"`
+- `supabase/functions/provision-demo/index.ts` line 1067: `DEMO_GUEST_ROOM = "101"`
 
-The demo guest portal's "My Bookings" page is empty because:
+However, the recent seeding implementation I added incorrectly targets **Room 201 (Emma Miller)**, causing:
+- Activity bookings to be assigned to the wrong guest
+- Restaurant reservations to be assigned to the wrong guest
+- Service requests seeding to grab a random first guest (inconsistent)
 
-1. **Wrong Guest Priority**: The current seeding distributes bookings round-robin across all in-house guests, but the demo portal specifically logs in as the guest in **room 201** (Emma Miller)
-2. **No Origin Tracking**: Existing bookings have `origin: null` (manually created), so the auto-heal logic doesn't recognize them as "seed" data
-3. **Limited Variety**: Current seeding only creates 3 activities and 2 reservations, with no variety across categories
+This means when you log into the demo portal as James Wilson (101), your "My Bookings" and "My Requests" pages are empty.
 
-## Solution Overview
+## Solution
 
-Update the demo seeding logic to:
-1. **Prioritize room 201** - ensure the demo portal guest always has bookings
-2. **Increase variety** - seed diverse activities (SPA, DIVE, WATERSPORT, EXCURSION) and multiple restaurants
-3. **Showcase different statuses** - include CONFIRMED, PENDING, and past bookings
-4. **Match activities to realistic times** - use activity-specific time slots (Sunrise Yoga in morning, Night Fishing at sunset)
-
-## Data to Seed for Demo Guest (Room 201)
-
-### Activity Bookings (5 total)
-| Activity | Category | Status | When | Purpose |
-|----------|----------|--------|------|---------|
-| Sunrise Yoga | SPA | CONFIRMED | Today, 06:00 | Morning activity highlight |
-| House Reef Snorkel | WATERSPORT | CONFIRMED | Tomorrow, 10:30 | Upcoming adventure |
-| Sunset Dolphin Cruise | EXCURSION | CONFIRMED | Day +2, 17:00 | Premium excursion |
-| Deep Tissue Massage | SPA | CONFIRMED | Day +3, 14:00 | Relaxation booking |
-| Night Fishing | EXCURSION | PENDING | Day +4, 17:30 | Shows approval workflow |
-
-### Restaurant Reservations (3 total)
-| Restaurant | Status | When | Purpose |
-|------------|--------|------|---------|
-| Lagoon Restaurant | CONFIRMED | Today, 19:00 | Tonight's dinner |
-| Sunset Grill | CONFIRMED | Tomorrow, 20:30 | Future reservation |
-| The Teppanyaki | CONFIRMED | Day +3, 19:00 | Specialty dining |
+Update all seeding logic to explicitly target **Room 101** for consistency with the demo login configuration.
 
 ## Technical Changes
 
 ### File 1: `supabase/functions/demo-reset/index.ts`
 
-**Update Pass 5 - Focus on Room 201 Guest:**
-
+**Change 1 - Line 464: Fix activity/restaurant seeding guest priority**
 ```typescript
-// Current: Distributes across all in-house guests
-const guest = inHouseGuests[i % inHouseGuests.length];
+// FROM:
+const demoPortalGuest = inHouseGuests.find(g => g.room_number === "201") || inHouseGuests[0];
 
-// New: Prioritize room 201 (demo portal guest)
-const demoPortalGuest = inHouseGuests.find(g => g.room_number === '201') || inHouseGuests[0];
-
-// Create all bookings for this single guest
+// TO:
+const demoPortalGuest = inHouseGuests.find(g => g.room_number === "101") || inHouseGuests[0];
 ```
 
-**Increase Booking Variety:**
-
-1. Change threshold from 3 activities to 5
-2. Change threshold from 2 reservations to 3
-3. Add category-aware session selection (pull from different categories)
-4. Include one PENDING booking to showcase approval flow
-
-**New Seeding Logic:**
+**Change 2 - Lines 591-598: Fix service requests to use the same room**
 ```typescript
-// Get sessions grouped by activity category for variety
-const { data: allSessions } = await supabase
-  .from("activity_sessions")
-  .select(`
-    id, activity_id, date, start_time,
-    activities(name, category, default_price_per_person)
-  `)
+// FROM (grabs random first guest):
+const { data: demoGuest } = await supabase
+  .from("guests")
+  .select("id, room_number")
   .eq("resort_id", demoResortId)
-  .eq("status", "SCHEDULED")
-  .gte("date", todayStr)
-  .lte("date", next7Days)
-  .order("date", { ascending: true });
+  .lte("check_in_date", todayStr)
+  .gte("check_out_date", todayStr)
+  .limit(1)
+  .single();
 
-// Pick diverse activities (one per category if possible)
-const categoryPicks = new Map<string, any>();
-for (const session of allSessions) {
-  const cat = session.activities?.category;
-  if (!categoryPicks.has(cat)) {
-    categoryPicks.set(cat, session);
-  }
-}
-
-// Create 5 bookings with variety
+// TO (explicitly targets room 101):
+const { data: demoGuest } = await supabase
+  .from("guests")
+  .select("id, room_number")
+  .eq("resort_id", demoResortId)
+  .eq("room_number", "101")
+  .lte("check_in_date", todayStr)
+  .gte("check_out_date", todayStr)
+  .single();
 ```
 
-### File 2: `supabase/functions/provision-demo/index.ts`
+### File 2: `supabase/functions/provision-demo/index.ts` 
 
-**Update Initial Demo Seeding (if applicable):**
-
-Apply same logic during initial demo provisioning to ensure consistency. The `refreshDemoData` function should also seed demo bookings for room 201.
-
-## Implementation Steps
-
-1. **Update demo-reset threshold check**: Change from `seedBookingsCount < 3` to `seedBookingsCount < 5` for activities and `< 3` for reservations
-
-2. **Add room 201 prioritization**: Find the demo portal guest first, fall back to any in-house guest
-
-3. **Implement category-diverse selection**: Query sessions with activity category, pick one from each category
-
-4. **Add variety in booking statuses**: Create 4 CONFIRMED + 1 PENDING for activity bookings
-
-5. **Add variety in restaurants**: Seed reservations across different restaurants (Lagoon, Sunset Grill, Teppanyaki)
-
-6. **Populate staff dashboard**: Since seeded bookings have `origin: 'seed'`, they'll also appear on staff Activity and Dining pages
+Apply the same fix if `refreshDemoData` contains similar prioritization logic targeting room 201.
 
 ## Files Modified
 
-| File | Changes |
-|------|---------|
-| `supabase/functions/demo-reset/index.ts` | Update Pass 5 with room 201 priority, increased variety, category-diverse sessions |
-| `supabase/functions/provision-demo/index.ts` | Update `refreshDemoData` to seed initial bookings consistently |
+| File | Line(s) | Change |
+|------|---------|--------|
+| `supabase/functions/demo-reset/index.ts` | 464 | Change `"201"` to `"101"` |
+| `supabase/functions/demo-reset/index.ts` | 591-598 | Add `.eq("room_number", "101")` filter |
+| `supabase/functions/provision-demo/index.ts` | (if applicable) | Same room 101 prioritization |
 
 ## Expected Result
 
-After implementation:
-- **Guest Portal "My Bookings"**: Shows 5 activities + 3 dining reservations across multiple days
-- **Staff Activity Page**: Shows upcoming bookings with guest names and room numbers
-- **Staff Dining Page**: Shows table reservations for demo guests
-- **Demo Reset**: Automatically replenishes to 5+3 bookings if count drops
+After this fix:
+- Demo portal login (Room 101 / James Wilson) will show pre-seeded activity bookings
+- Demo portal "My Bookings" will display 5 activities + 3 dining reservations
+- Demo portal "My Requests" will show 3 sample service requests
+- Staff portal will show the same bookings with guest name "James Wilson" and room "101"
 
 ## No Breaking Changes
 
-- Uses existing `origin: 'seed'` tagging for tracking
-- Existing manual bookings (origin: null) are unaffected
-- Auto-heal only triggers when seed count drops below threshold
-
+- Simply corrects room number from 201 to 101
+- All other seeding logic remains identical
+- Aligns with existing demo configuration constants
