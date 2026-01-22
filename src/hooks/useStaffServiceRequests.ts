@@ -8,6 +8,13 @@ import { useAuth } from '@/contexts/AuthContext';
 export type StaffRequestStatus = 'NEW' | 'ACKNOWLEDGED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type StaffRequestPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
+export interface StaffRequestItem {
+  id: string;
+  catalog_id: string | null;
+  title: string;
+  quantity: number;
+}
+
 export interface StaffServiceRequest {
   id: string;
   guest_id: string;
@@ -33,6 +40,10 @@ export interface StaffServiceRequest {
   completed_at: string | null;
   cancelled_at: string | null;
   updated_at: string;
+  // Multi-item support
+  submission_id: string | null;
+  item_count: number;
+  item_preview: string | null; // First 2-3 item titles for inbox preview
 }
 
 export interface RequestEvent {
@@ -55,6 +66,7 @@ export interface StaffRequestFilters {
   dateTo?: string;
   search?: string;
   includeArchived?: boolean;
+  hasMultipleItems?: boolean;
 }
 
 interface UseStaffServiceRequestsOptions {
@@ -98,9 +110,11 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
           completed_at,
           cancelled_at,
           updated_at,
+          submission_id,
           guest:guests!service_requests_guest_id_fkey(full_name, room_number),
           catalog:request_catalog(title, icon_key),
-          assignee:profiles!service_requests_assigned_to_fkey(full_name)
+          assignee:profiles!service_requests_assigned_to_fkey(full_name),
+          items:service_request_items(id, catalog_id, title, quantity)
         `)
         .eq('resort_id', resortId)
         .order('created_at', { ascending: false });
@@ -138,33 +152,59 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
 
       if (error) throw error;
 
-      // Map to our interface
-      return (data || []).map((r: any) => ({
-        id: r.id,
-        guest_id: r.guest_id,
-        guest_name: r.guest?.full_name || 'Unknown',
-        room_number: r.guest?.room_number || '',
-        catalog_id: r.catalog_id,
-        catalog_title: r.catalog?.title || null,
-        catalog_icon_key: r.catalog?.icon_key || null,
-        title: r.title,
-        notes: r.notes,
-        internal_notes: r.internal_notes,
-        quantity: r.quantity,
-        is_asap: r.is_asap,
-        requested_for_at: r.requested_for_at,
-        department_key: r.department_key,
-        category: r.category,
-        priority: r.priority,
-        status: r.status,
-        assigned_to: r.assigned_to,
-        assigned_to_name: r.assignee?.full_name || null,
-        created_at: r.created_at,
-        acknowledged_at: r.acknowledged_at,
-        completed_at: r.completed_at,
-        cancelled_at: r.cancelled_at,
-        updated_at: r.updated_at,
-      })) as StaffServiceRequest[];
+      // Map to our interface with multi-item support
+      let mappedData = (data || []).map((r: any) => {
+        const items = r.items || [];
+        const itemCount = items.length;
+        
+        // Build item preview (first 2 titles)
+        let itemPreview: string | null = null;
+        if (itemCount > 0) {
+          const previewTitles = items.slice(0, 2).map((i: any) => i.title);
+          if (itemCount > 2) {
+            itemPreview = `${previewTitles.join(' • ')} …`;
+          } else {
+            itemPreview = previewTitles.join(' • ');
+          }
+        }
+
+        return {
+          id: r.id,
+          guest_id: r.guest_id,
+          guest_name: r.guest?.full_name || 'Unknown',
+          room_number: r.guest?.room_number || '',
+          catalog_id: r.catalog_id,
+          catalog_title: r.catalog?.title || null,
+          catalog_icon_key: r.catalog?.icon_key || null,
+          title: r.title,
+          notes: r.notes,
+          internal_notes: r.internal_notes,
+          quantity: r.quantity,
+          is_asap: r.is_asap,
+          requested_for_at: r.requested_for_at,
+          department_key: r.department_key,
+          category: r.category,
+          priority: r.priority,
+          status: r.status,
+          assigned_to: r.assigned_to,
+          assigned_to_name: r.assignee?.full_name || null,
+          created_at: r.created_at,
+          acknowledged_at: r.acknowledged_at,
+          completed_at: r.completed_at,
+          cancelled_at: r.cancelled_at,
+          updated_at: r.updated_at,
+          submission_id: r.submission_id,
+          item_count: itemCount,
+          item_preview: itemPreview,
+        };
+      }) as StaffServiceRequest[];
+
+      // Apply client-side filter for multiple items
+      if (filters.hasMultipleItems) {
+        mappedData = mappedData.filter((r) => r.item_count > 1);
+      }
+
+      return mappedData;
     },
     enabled: enabled && !!resortId && isStaff,
     staleTime: 30000,
@@ -213,6 +253,33 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
     error,
     refetch,
   };
+}
+
+/**
+ * Hook for fetching request items (line items for multi-item requests)
+ */
+export function useRequestItems(requestId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['request-items', requestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_request_items')
+        .select('id, catalog_id, title, quantity')
+        .eq('request_id', requestId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        catalog_id: item.catalog_id,
+        title: item.title,
+        quantity: item.quantity,
+      })) as StaffRequestItem[];
+    },
+    enabled: enabled && !!requestId,
+    staleTime: 60000,
+  });
 }
 
 /**

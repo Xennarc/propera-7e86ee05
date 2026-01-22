@@ -33,6 +33,7 @@ import { RequestStatusPill } from '@/components/guest/requests/RequestStatusPill
 import {
   StaffServiceRequest,
   useRequestEvents,
+  useRequestItems,
   useStaffDepartmentMembers,
   useStaffRequestMutations,
   useStaffRequestPermissions,
@@ -57,6 +58,7 @@ import {
   Flag,
   Eye,
   Lock,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -112,10 +114,14 @@ export function RequestDetailDrawer({ request, open, onOpenChange }: RequestDeta
   const { resortId, userId } = useResortScope();
   const { canAssign, canManage, canChangePriority } = useStaffRequestPermissions();
   const { data: events = [], isLoading: eventsLoading } = useRequestEvents(request?.id || '', open && !!request);
+  const { data: items = [], isLoading: itemsLoading } = useRequestItems(request?.id || '', open && !!request);
   const { data: departmentMembers = [] } = useStaffDepartmentMembers(
     resortId || '',
     request?.department_key
   );
+  
+  // Determine if this is a multi-item request
+  const hasItems = items.length > 0 || request?.item_count > 0;
 
   const {
     acknowledge,
@@ -321,6 +327,61 @@ export function RequestDetailDrawer({ request, open, onOpenChange }: RequestDeta
                     </div>
                   )}
                 </div>
+
+                {/* Requested Items Section */}
+                {itemsLoading ? (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-3">
+                      <Package className="h-4 w-4" />
+                      Requested Items
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                    </div>
+                  </div>
+                ) : hasItems && items.length > 0 ? (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-3">
+                      <Package className="h-4 w-4" />
+                      Requested Items
+                      <Badge variant="secondary" className="text-[10px] ml-auto">
+                        {items.length} {items.length === 1 ? 'item' : 'items'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50"
+                        >
+                          <span className="text-sm">{item.title}</span>
+                          {item.quantity > 1 && (
+                            <Badge variant="outline" className="text-[10px]">
+                              ×{item.quantity}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : !hasItems && request.catalog_title ? (
+                  // Fallback: show single catalog item for backward compatibility
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
+                    <div className="flex items-center gap-2 text-sm font-medium mb-3">
+                      <Package className="h-4 w-4" />
+                      Requested Item
+                    </div>
+                    <div className="flex items-center justify-between py-1.5 px-2 rounded bg-background/50">
+                      <span className="text-sm">{request.catalog_title}</span>
+                      {request.quantity > 1 && (
+                        <Badge variant="outline" className="text-[10px]">
+                          ×{request.quantity}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Guest Notes */}
                 {request.notes && (
