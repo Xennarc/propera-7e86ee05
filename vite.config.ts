@@ -15,4 +15,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Consolidate small chunks to reduce critical request chains
+        manualChunks: {
+          // Bundle all Lucide icons together to prevent individual icon chunks
+          'lucide-icons': ['lucide-react'],
+          // Bundle React core together
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
+  },
 }));

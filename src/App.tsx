@@ -25,10 +25,12 @@ function LegacyRedirect({ to }: { to: string }) {
   return <Navigate to={targetPath + location.search} replace />;
 }
 
-// Lazy load context providers and layouts for code-splitting
-const AuthProvider = lazy(() => import("@/contexts/AuthContext").then(m => ({ default: m.AuthProvider })));
-const ResortProvider = lazy(() => import("@/contexts/ResortContext").then(m => ({ default: m.ResortProvider })));
-const GuestAuthProvider = lazy(() => import("@/contexts/GuestAuthContext").then(m => ({ default: m.GuestAuthProvider })));
+// Context providers loaded eagerly (always needed, eliminates request chain)
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ResortProvider } from "@/contexts/ResortContext";
+import { GuestAuthProvider } from "@/contexts/GuestAuthContext";
+
+// Layouts lazy loaded (only needed for specific routes)
 const StaffShell = lazy(() => import("@/components/staff/StaffShell").then(m => ({ default: m.StaffShell })));
 const GuestLayout = lazy(() => import("@/components/guest/GuestLayout").then(m => ({ default: m.GuestLayout })));
 
