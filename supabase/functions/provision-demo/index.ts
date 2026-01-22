@@ -2840,19 +2840,68 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     }).eq("id", demoGuest.id);
   }
 
-  // Create sample activity bookings
+  // Create sample activity bookings - prioritize room 201 guest with category diversity
   if (guests?.length && allSessions?.length) {
-    const bookingStatuses = ["CONFIRMED", "CONFIRMED", "CONFIRMED", "COMPLETED", "CANCELLED"];
-    const activityBookings: any[] = [];
-    
     const todayStr = formatDate(today);
     const futureSessions = allSessions.filter((s: any) => s.date >= todayStr);
     
-    for (let i = 0; i < Math.min(8, futureSessions.length, guests.length * 2); i++) {
-      const session = futureSessions[i % futureSessions.length];
-      const guest = guests[i % guests.length];
-      const status = bookingStatuses[i % bookingStatuses.length];
-      const note = SAMPLE_BOOKING_NOTES[i % SAMPLE_BOOKING_NOTES.length];
+    // Prioritize room 201 (demo portal guest) for bookings
+    const demoPortalGuest = guests.find((g: any) => g.room_number === "201") || guests[0];
+    
+    // Get activity details for category-aware selection
+    const { data: activityDetails } = await supabase
+      .from("activities")
+      .select("id, category")
+      .eq("resort_id", resortId);
+    
+    const activityCategoryMap = new Map<string, string>();
+    activityDetails?.forEach((a: any) => activityCategoryMap.set(a.id, a.category));
+    
+    // Pick sessions from different categories for variety
+    const categoryPicks = new Map<string, any>();
+    const extraSessions: any[] = [];
+    
+    for (const session of futureSessions) {
+      const cat = activityCategoryMap.get(session.activity_id);
+      if (!cat) continue;
+      
+      if (!categoryPicks.has(cat)) {
+        categoryPicks.set(cat, session);
+      } else if (extraSessions.length < 2) {
+        extraSessions.push(session);
+      }
+    }
+    
+    // Combine for 5 total bookings on demo portal guest
+    const sessionsForDemoGuest = [...categoryPicks.values(), ...extraSessions].slice(0, 5);
+    const activityBookings: any[] = [];
+    
+    // Create 4 CONFIRMED + 1 PENDING for demo portal guest
+    for (let i = 0; i < sessionsForDemoGuest.length; i++) {
+      const session = sessionsForDemoGuest[i];
+      const isLastOne = i === sessionsForDemoGuest.length - 1;
+      
+      activityBookings.push({
+        resort_id: resortId,
+        session_id: session.id,
+        guest_id: demoPortalGuest.id,
+        room_number: demoPortalGuest.room_number,
+        num_adults: 2,
+        num_children: 0,
+        status: isLastOne ? "PENDING" : "CONFIRMED",
+        source: "STAFF_FRONT_DESK",
+        origin: "seed",
+        notes: SAMPLE_BOOKING_NOTES[i % SAMPLE_BOOKING_NOTES.length],
+        price_per_person: 50,
+        total_amount: 100,
+      });
+    }
+    
+    // Add a few bookings for other guests too (for staff dashboard variety)
+    const otherGuests = guests.filter((g: any) => g.room_number !== demoPortalGuest.room_number);
+    for (let i = 0; i < Math.min(3, futureSessions.length, otherGuests.length); i++) {
+      const session = futureSessions[(i + 5) % futureSessions.length];
+      const guest = otherGuests[i % otherGuests.length];
       
       activityBookings.push({
         resort_id: resortId,
@@ -2861,10 +2910,10 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
         room_number: guest.room_number,
         num_adults: Math.floor(Math.random() * 2) + 1,
         num_children: Math.floor(Math.random() * 2),
-        status: status,
+        status: "CONFIRMED",
         source: "STAFF_FRONT_DESK",
         origin: "seed",
-        notes: note,
+        notes: SAMPLE_BOOKING_NOTES[(i + 5) % SAMPLE_BOOKING_NOTES.length],
         price_per_person: 50,
         total_amount: 50 * (Math.floor(Math.random() * 2) + 1),
       });
@@ -2873,24 +2922,55 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
     if (activityBookings.length) {
       const { error: bookingError } = await supabase.from("activity_bookings").insert(activityBookings);
       if (bookingError) console.error("Error creating activity bookings:", bookingError);
-      else console.log("Created", activityBookings.length, "sample activity bookings");
+      else console.log("Created", activityBookings.length, "sample activity bookings (5 for demo portal guest)");
     }
   }
 
-  // Create sample restaurant reservations
+  // Create sample restaurant reservations - prioritize room 201 guest
   if (guests?.length && allSlots?.length) {
-    const reservationStatuses = ["CONFIRMED", "CONFIRMED", "CONFIRMED", "COMPLETED", "CANCELLED"];
-    const specialRequests = ["Anniversary dinner - please arrange flowers", "Window table if possible", "High chair needed for infant", "Birthday celebration, cake requested", "Vegetarian menu required", null, null];
-    const reservations: any[] = [];
-    
     const todayStr = formatDate(today);
     const futureSlots = allSlots.filter((s: any) => s.date >= todayStr);
     
-    for (let i = 0; i < Math.min(7, futureSlots.length, guests.length * 2); i++) {
-      const slot = futureSlots[i % futureSlots.length];
-      const guest = guests[i % guests.length];
-      const status = reservationStatuses[i % reservationStatuses.length];
-      const request = specialRequests[i % specialRequests.length];
+    // Prioritize room 201 (demo portal guest)
+    const demoPortalGuest = guests.find((g: any) => g.room_number === "201") || guests[0];
+    
+    // Get restaurant variety
+    const restaurantPicks = new Map<string, any>();
+    for (const slot of futureSlots) {
+      const key = `${slot.restaurant_id}-${restaurantPicks.size}`;
+      if (!restaurantPicks.has(slot.restaurant_id)) {
+        restaurantPicks.set(slot.restaurant_id, slot);
+      }
+      if (restaurantPicks.size >= 3) break;
+    }
+    
+    const slotsForDemoGuest = [...restaurantPicks.values()].slice(0, 3);
+    const reservations: any[] = [];
+    const specialRequests = ["Anniversary dinner - please arrange flowers", "Window table if possible", null];
+    
+    // Create 3 reservations for demo portal guest
+    for (let i = 0; i < slotsForDemoGuest.length; i++) {
+      const slot = slotsForDemoGuest[i];
+      
+      reservations.push({
+        resort_id: resortId,
+        restaurant_slot_id: slot.id,
+        guest_id: demoPortalGuest.id,
+        room_number: demoPortalGuest.room_number,
+        num_adults: 2,
+        num_children: 0,
+        status: "CONFIRMED",
+        source: "STAFF_FRONT_DESK",
+        origin: "seed",
+        special_requests: specialRequests[i],
+      });
+    }
+    
+    // Add a few for other guests (staff dashboard variety)
+    const otherGuests = guests.filter((g: any) => g.room_number !== demoPortalGuest.room_number);
+    for (let i = 0; i < Math.min(4, futureSlots.length, otherGuests.length); i++) {
+      const slot = futureSlots[(i + 3) % futureSlots.length];
+      const guest = otherGuests[i % otherGuests.length];
       
       reservations.push({
         resort_id: resortId,
@@ -2899,17 +2979,17 @@ async function seedDemoData(supabase: any, resortId: string, departments: string
         room_number: guest.room_number,
         num_adults: Math.floor(Math.random() * 3) + 1,
         num_children: Math.floor(Math.random() * 2),
-        status: status,
+        status: "CONFIRMED",
         source: "STAFF_FRONT_DESK",
         origin: "seed",
-        special_requests: request,
+        special_requests: null,
       });
     }
 
     if (reservations.length) {
       const { error: resError } = await supabase.from("restaurant_reservations").insert(reservations);
       if (resError) console.error("Error creating restaurant reservations:", resError);
-      else console.log("Created", reservations.length, "sample restaurant reservations");
+      else console.log("Created", reservations.length, "sample restaurant reservations (3 for demo portal guest)");
     }
   }
 

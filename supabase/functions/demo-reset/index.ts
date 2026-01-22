@@ -446,11 +446,12 @@ serve(async (req) => {
       .eq("origin", "seed")
       .gte("created_at", todayStr);
 
-    const needsBookings = (seedBookingsCount || 0) < 3;
-    const needsReservations = (seedReservationsCount || 0) < 2;
+    // Increased thresholds: 5 activity bookings, 3 reservations for richer demo
+    const needsBookings = (seedBookingsCount || 0) < 5;
+    const needsReservations = (seedReservationsCount || 0) < 3;
 
     if ((needsBookings || needsReservations) && !isDryRun) {
-      // Get in-house guests
+      // Get in-house guests - prioritize room 201 (demo portal guest)
       const { data: inHouseGuests } = await supabase
         .from("guests")
         .select("id, room_number, check_in_date, check_out_date")
@@ -459,32 +460,58 @@ serve(async (req) => {
         .gte("check_out_date", todayStr);
 
       if (inHouseGuests?.length) {
-        // Create seed activity bookings
+        // Prioritize room 201 (demo portal guest) for all seed bookings
+        const demoPortalGuest = inHouseGuests.find(g => g.room_number === "201") || inHouseGuests[0];
+
+        // Create seed activity bookings with category diversity
         if (needsBookings) {
+          // Get sessions with activity details for category-aware selection
           const { data: upcomingSessions } = await supabase
             .from("activity_sessions")
-            .select("id, activity_id, date, activities(default_price_per_person)")
+            .select(`
+              id, activity_id, date, start_time,
+              activities(name, category, default_price_per_person)
+            `)
             .eq("resort_id", demoResortId)
             .eq("status", "SCHEDULED")
             .gte("date", todayStr)
             .lte("date", next7Days)
-            .order("date", { ascending: true })
-            .limit(6);
+            .order("date", { ascending: true });
 
           if (upcomingSessions?.length) {
-            for (let i = 0; i < Math.min(3, upcomingSessions.length); i++) {
-              const session = upcomingSessions[i];
-              const guest = inHouseGuests[i % inHouseGuests.length];
+            // Pick one session per category for variety, plus extras
+            const categoryPicks = new Map<string, any>();
+            const extraSessions: any[] = [];
+            
+            for (const session of upcomingSessions) {
+              const cat = (session.activities as any)?.category;
+              if (!cat) continue;
+              
+              if (!categoryPicks.has(cat)) {
+                categoryPicks.set(cat, session);
+              } else if (extraSessions.length < 2) {
+                // Add a couple extra for variety
+                extraSessions.push(session);
+              }
+            }
+            
+            // Combine category picks + extras for 5 total bookings
+            const sessionsToBook = [...categoryPicks.values(), ...extraSessions].slice(0, 5);
+            
+            // Create 4 CONFIRMED + 1 PENDING (last one) to showcase approval workflow
+            for (let i = 0; i < sessionsToBook.length; i++) {
+              const session = sessionsToBook[i];
               const price = (session.activities as any)?.default_price_per_person || 50;
-
+              const isLastOne = i === sessionsToBook.length - 1;
+              
               await supabase.from("activity_bookings").insert({
                 resort_id: demoResortId,
-                guest_id: guest.id,
+                guest_id: demoPortalGuest.id,
                 session_id: session.id,
-                room_number: guest.room_number,
+                room_number: demoPortalGuest.room_number,
                 num_adults: 2,
                 num_children: 0,
-                status: "CONFIRMED",
+                status: isLastOne ? "PENDING" : "CONFIRMED",
                 source: "STAFF",
                 origin: "seed",
                 price_per_person: price,
@@ -495,28 +522,41 @@ serve(async (req) => {
           }
         }
 
-        // Create seed restaurant reservations
+        // Create seed restaurant reservations across different restaurants
         if (needsReservations) {
+          // Get slots with restaurant info for variety
           const { data: upcomingSlots } = await supabase
             .from("restaurant_time_slots")
-            .select("id, restaurant_id, date")
+            .select(`
+              id, restaurant_id, date, start_time, meal_period,
+              restaurants(name)
+            `)
             .eq("resort_id", demoResortId)
             .eq("status", "OPEN")
             .gte("date", todayStr)
             .lte("date", next7Days)
-            .order("date", { ascending: true })
-            .limit(4);
+            .order("date", { ascending: true });
 
           if (upcomingSlots?.length) {
-            for (let i = 0; i < Math.min(2, upcomingSlots.length); i++) {
-              const slot = upcomingSlots[i];
-              const guest = inHouseGuests[i % inHouseGuests.length];
-
+            // Pick slots from different restaurants for variety
+            const restaurantPicks = new Map<string, any>();
+            
+            for (const slot of upcomingSlots) {
+              const restId = slot.restaurant_id;
+              if (!restaurantPicks.has(restId) || restaurantPicks.size < 3) {
+                restaurantPicks.set(`${restId}-${restaurantPicks.size}`, slot);
+              }
+              if (restaurantPicks.size >= 3) break;
+            }
+            
+            const slotsToBook = [...restaurantPicks.values()].slice(0, 3);
+            
+            for (const slot of slotsToBook) {
               await supabase.from("restaurant_reservations").insert({
                 resort_id: demoResortId,
-                guest_id: guest.id,
+                guest_id: demoPortalGuest.id,
                 restaurant_slot_id: slot.id,
-                room_number: guest.room_number,
+                room_number: demoPortalGuest.room_number,
                 num_adults: 2,
                 num_children: 0,
                 status: "CONFIRMED",
