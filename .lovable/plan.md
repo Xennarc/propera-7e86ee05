@@ -1,193 +1,264 @@
 
 
-# Fix Guest Portal "My Bookings" - Activity Bookings Column Mismatch
+# Fix Guest Portal "My Bookings" Display + Add Debug Infrastructure
 
-## Root Cause Identified (from Database Logs)
+## Current State Summary
 
-The `guest_get_room_bookings` RPC function is failing with:
+After thorough investigation:
+
+### Data Verification (PASS)
+| Item | Status | Details |
+|------|--------|---------|
+| Demo Guest | EXISTS | James Wilson, Room 101, ID: `d2addea7-...` |
+| Activity Bookings | 11 RECORDS | 10 CONFIRMED, 1 PENDING |
+| Restaurant Reservations | 6 RECORDS | 6 CONFIRMED |
+| Login Token | CORRECT | Points to correct guest_id |
+| RPC Function | JUST FIXED | Migration deployed with corrected column names |
+
+### Root Cause Analysis
+The `guest_get_room_bookings` RPC function had multiple column name mismatches that were progressively fixed:
+1. `slot_id` -> `restaurant_slot_id` (fixed)
+2. `cuisine_type`, `image_url` removed (fixed)
+3. `ab.special_requests` -> `ab.notes` (just fixed)
+
+The RPC should now work correctly after the latest migration.
+
+### Remaining Gap
+No debugging infrastructure exists to quickly diagnose similar issues in the future.
+
+---
+
+## Implementation Plan
+
+### Phase A: Debug Panel Component
+
+Create a collapsible debug panel that appears on the My Bookings page when:
+- Resort code is `DEMO`, OR
+- URL has `?debug=1` query param
+
 ```
-ERROR: column ab.special_requests does not exist
+src/components/guest/GuestDebugPanel.tsx
 ```
 
-**Schema Mismatch Analysis:**
+**Features:**
+- Shows current `guest_id` and `resort_id`
+- Displays RPC response status and error messages
+- Shows counts: activities (raw), reservations (raw), filtered counts
+- Collapsible to minimize visual intrusion
+- Only renders in debug mode
 
-| Table | RPC Uses (Wrong) | Actual Column |
-|-------|------------------|---------------|
-| `activity_bookings` | `ab.special_requests` | `ab.notes` |
-| `restaurant_reservations` | `rr.special_requests` | `rr.special_requests` ✓ |
+### Phase B: Verification Endpoint
 
-The `activity_bookings` table uses `notes` while `restaurant_reservations` uses `special_requests`. The RPC assumes both tables use `special_requests`, causing the query to fail.
+Create a secure debug endpoint callable only by demo sessions:
 
-## Solution
-
-Create a database migration to fix the RPC function by changing:
-```sql
--- BEFORE (incorrect):
-'special_requests', ab.special_requests,
-
--- AFTER (correct):
-'notes', ab.notes,
 ```
+supabase/functions/debug-bookings/index.ts
+```
+
+**Returns:**
+- Total booking counts by table
+- Counts for current guest with status breakdown
+- Sample 3 booking IDs with timestamps (no PII)
+- RPC execution result (pass/fail with error if any)
+
+**Security:**
+- Only works for DEMO resort guests
+- No sensitive data exposed
+
+### Phase C: Console Logging Guard
+
+Add guarded console logging to `GuestMyBookings.tsx`:
+
+```typescript
+const DEBUG = new URLSearchParams(window.location.search).get('debug') === '1' 
+  || guest?.resortId === DEMO_RESORT_ID;
+
+if (DEBUG) {
+  console.log('[MyBookings Debug]', {
+    guestId: guest?.guestId,
+    resortId: guest?.resortId,
+    rawActivityCount: result?.activity_bookings?.length,
+    rawReservationCount: result?.restaurant_reservations?.length,
+    error: error?.message,
+  });
+}
+```
+
+### Phase D: Seeding Integrity Check
+
+Enhance `src/lib/demo-seed.ts` to:
+1. Log seeded counts after completion
+2. Return a summary object for verification
+3. Add a platform_activity_events log entry on seed completion
+
+### Phase E: Demo Reset Enhancements
+
+Update `supabase/functions/demo-reset/index.ts` to:
+1. Verify booking counts after reset
+2. Return verification payload
+3. Log warnings if counts are unexpectedly low
+
+---
 
 ## Technical Changes
 
-### Database Migration
-
-```sql
-CREATE OR REPLACE FUNCTION public.guest_get_room_bookings(p_guest_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_guest RECORD;
-  v_room_guest_ids UUID[];
-  v_activity_bookings jsonb;
-  v_restaurant_reservations jsonb;
-BEGIN
-  -- Rate limit check (4 arguments)
-  PERFORM check_rate_limit(
-    'guest_get_room_bookings',
-    p_guest_id::TEXT,
-    100,
-    60
-  );
-
-  -- Get guest info
-  SELECT id, resort_id, room_number, check_in_date, check_out_date
-  INTO v_guest
-  FROM guests
-  WHERE id = p_guest_id;
-
-  IF v_guest IS NULL THEN
-    RETURN jsonb_build_object('error', 'Guest not found');
-  END IF;
-
-  -- Get all guest IDs in the same room
-  SELECT array_agg(id) INTO v_room_guest_ids
-  FROM guests
-  WHERE resort_id = v_guest.resort_id
-    AND room_number = v_guest.room_number
-    AND check_in_date <= v_guest.check_out_date
-    AND check_out_date >= v_guest.check_in_date;
-
-  -- Activity bookings - FIXED: use 'notes' instead of 'special_requests'
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'id', ab.id,
-      'guest_id', ab.guest_id,
-      'session_id', ab.session_id,
-      'status', ab.status,
-      'num_adults', ab.num_adults,
-      'num_children', ab.num_children,
-      'notes', ab.notes,  -- FIXED: was special_requests
-      'created_at', ab.created_at,
-      'room_number', ab.room_number,  -- Added for consistency
-      'session', jsonb_build_object(
-        'id', s.id,
-        'date', s.date,
-        'start_time', s.start_time,
-        'end_time', s.end_time,
-        'activity', jsonb_build_object(
-          'id', a.id,
-          'name', a.name,
-          'description', a.description,
-          'category', a.category,
-          'guest_can_cancel', a.guest_can_cancel,
-          'guest_cancel_cutoff_minutes', a.guest_cancel_cutoff_minutes
-        )
-      ),
-      'guest', jsonb_build_object(
-        'id', g.id,
-        'full_name', g.full_name
-      )
-    )
-  ), '[]'::jsonb)
-  INTO v_activity_bookings
-  FROM activity_bookings ab
-  JOIN activity_sessions s ON s.id = ab.session_id
-  JOIN activities a ON a.id = s.activity_id
-  JOIN guests g ON g.id = ab.guest_id
-  WHERE ab.guest_id = ANY(v_room_guest_ids)
-    AND ab.resort_id = v_guest.resort_id;
-
-  -- Restaurant reservations (already correct - uses special_requests)
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'id', rr.id,
-      'guest_id', rr.guest_id,
-      'restaurant_slot_id', rr.restaurant_slot_id,
-      'status', rr.status,
-      'num_adults', rr.num_adults,
-      'num_children', rr.num_children,
-      'special_requests', rr.special_requests,
-      'created_at', rr.created_at,
-      'room_number', rr.room_number,
-      'slot', jsonb_build_object(
-        'id', ts.id,
-        'date', ts.date,
-        'start_time', ts.start_time,
-        'end_time', ts.end_time,
-        'meal_period', ts.meal_period,
-        'restaurant', jsonb_build_object(
-          'id', r.id,
-          'name', r.name,
-          'guest_can_cancel', r.guest_can_cancel,
-          'guest_cancel_cutoff_minutes', r.guest_cancel_cutoff_minutes
-        )
-      ),
-      'guest', jsonb_build_object(
-        'id', g.id,
-        'full_name', g.full_name
-      )
-    )
-  ), '[]'::jsonb)
-  INTO v_restaurant_reservations
-  FROM restaurant_reservations rr
-  JOIN restaurant_time_slots ts ON ts.id = rr.restaurant_slot_id
-  JOIN restaurants r ON r.id = ts.restaurant_id
-  JOIN guests g ON g.id = rr.guest_id
-  WHERE rr.guest_id = ANY(v_room_guest_ids)
-    AND rr.resort_id = v_guest.resort_id;
-
-  RETURN jsonb_build_object(
-    'activity_bookings', v_activity_bookings,
-    'restaurant_reservations', v_restaurant_reservations
-  );
-END;
-$$;
-```
-
-### UI Update (GuestMyBookings.tsx)
-
-Update the activity booking mapping to use `notes` instead of `special_requests`:
+### 1. New File: `src/components/guest/GuestDebugPanel.tsx`
 
 ```typescript
-// Activity bookings mapping - use 'notes' field
-notes: b.notes || '',  // was: special_requests
+interface DebugPanelProps {
+  guestId: string | undefined;
+  resortId: string | undefined;
+  bookingsData: {
+    activity_bookings: any[];
+    restaurant_reservations: any[];
+  } | null;
+  isLoading: boolean;
+  error: Error | null;
+  filters: { upcoming: number; completed: number; cancelled: number };
+}
+
+export function GuestDebugPanel({ ... }: DebugPanelProps) {
+  // Collapsible panel showing debug info
+}
 ```
 
-## Files to Modify
+### 2. New File: `src/hooks/useGuestDebugMode.ts`
 
-| File | Change |
-|------|--------|
-| New migration | Fix RPC to use `ab.notes` for activity bookings |
-| `src/pages/guest/GuestMyBookings.tsx` | Map `notes` field correctly for activity bookings |
+```typescript
+export function useGuestDebugMode(resortCode?: string) {
+  const params = new URLSearchParams(window.location.search);
+  const isDebug = params.get('debug') === '1';
+  const isDemoResort = resortCode === 'DEMO';
+  
+  return {
+    isDebugMode: isDebug || isDemoResort,
+    showDebugPanel: isDebug, // Only show panel explicitly with ?debug=1
+    logDebug: isDebug || isDemoResort,
+  };
+}
+```
 
-## Why This Keeps Happening
+### 3. Update: `src/pages/guest/GuestMyBookings.tsx`
 
-The RPC has been modified multiple times but each fix addressed only part of the problem:
-1. First fix: `slot_id` → `restaurant_slot_id` ✓
-2. Second fix: Removed `cuisine_type`/`image_url` ✓
-3. **Missing fix**: `ab.special_requests` → `ab.notes`
+```typescript
+// Add at top
+import { GuestDebugPanel } from '@/components/guest/GuestDebugPanel';
+import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 
-This pattern suggests the RPC was written without verifying all column names against the actual schema. The solution is to carefully verify every column reference matches the real database structure.
+// Inside component
+const { isDebugMode, showDebugPanel, logDebug } = useGuestDebugMode(guest?.resortCode);
 
-## Verification
+// After RPC call
+if (logDebug) {
+  console.log('[MyBookings Debug] RPC Response:', {
+    guestId: guest?.guestId,
+    resortId: guest?.resortId,
+    activityCount: result?.activity_bookings?.length ?? 0,
+    reservationCount: result?.restaurant_reservations?.length ?? 0,
+    hasError: !!error,
+    errorMessage: error?.message,
+  });
+}
 
-After implementation:
-1. Database logs should show no "column does not exist" errors
-2. Guest portal My Bookings page loads successfully
-3. Both activity and dining bookings display correctly
+// At end of JSX (before closing fragment)
+{showDebugPanel && (
+  <GuestDebugPanel
+    guestId={guest?.guestId}
+    resortId={guest?.resortId}
+    bookingsData={bookings}
+    isLoading={isLoading}
+    error={queryError}
+    filters={{
+      upcoming: upcomingActivities.length + upcomingReservations.length,
+      completed: completedActivities.length + completedReservations.length,
+      cancelled: cancelledActivities.length + cancelledReservations.length,
+    }}
+  />
+)}
+```
+
+### 4. New File: `supabase/functions/debug-bookings/index.ts`
+
+Edge function that:
+- Accepts `guest_id` and `resort_id`
+- Validates caller is from DEMO resort
+- Returns verification payload without PII
+
+### 5. Update: `src/lib/demo-seed.ts`
+
+```typescript
+interface SeedResult {
+  activityBookings: number;
+  restaurantReservations: number;
+  guests: number;
+  sessions: number;
+  slots: number;
+}
+
+export async function seedDemoResortData(resortId: string): Promise<SeedResult> {
+  // ... existing seeding logic ...
+  
+  console.log('[Demo Seed] Completed:', {
+    activityBookings: bookings.length,
+    restaurantReservations: reservations.length,
+    guests: guests?.length ?? 0,
+    sessions: createdSessions?.length ?? 0,
+    slots: createdSlots?.length ?? 0,
+  });
+  
+  return {
+    activityBookings: bookings.length,
+    restaurantReservations: reservations.length,
+    guests: guests?.length ?? 0,
+    sessions: createdSessions?.length ?? 0,
+    slots: createdSlots?.length ?? 0,
+  };
+}
+```
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/guest/GuestDebugPanel.tsx` | CREATE | Debug panel UI |
+| `src/hooks/useGuestDebugMode.ts` | CREATE | Debug mode detection |
+| `src/pages/guest/GuestMyBookings.tsx` | MODIFY | Add debug panel + logging |
+| `supabase/functions/debug-bookings/index.ts` | CREATE | Server-side verification |
+| `src/lib/demo-seed.ts` | MODIFY | Add return value + logging |
+
+---
+
+## Security Considerations
+
+1. **Debug panel only visible with explicit `?debug=1` param**
+2. **Console logs only in demo resort context**
+3. **Server verification only for DEMO resort guests**
+4. **No PII in debug outputs** - only IDs and counts
+5. **No cross-resort data exposure**
+
+---
+
+## Acceptance Criteria
+
+1. Fresh demo via `/book-demo` -> auto-login -> My Bookings shows seeded bookings
+2. Adding `?debug=1` shows collapsible debug panel with counts
+3. Console shows debug logs only in debug mode
+4. Non-demo resorts see NO debug UI or logs
+5. Past/cancelled bookings appear in correct sections
+6. No RLS policy allows cross-resort visibility
+
+---
+
+## Immediate Verification
+
+Before implementing debug infrastructure, verify the RPC fix is working:
+
+1. Create fresh demo session via `/book-demo`
+2. Click guest portal link
+3. Navigate to My Bookings
+4. Verify bookings appear correctly
+
+If bookings still don't appear after RPC fix, debug infrastructure will help identify the remaining issue.
 
