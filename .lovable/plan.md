@@ -1,44 +1,45 @@
 
 
-# Fix RPC Column Name: guest_cancel_cutoff_hours vs guest_cancel_cutoff_minutes
+# Fix RPC Error: Multiple Column Mismatches + Rate Limit Syntax
 
-## Root Cause Identified
+## Root Cause Analysis
 
-The debug panel clearly shows the error:
+The debug panel shows:
 ```
-RPC Error: column a.guest_cancel_cutoff_minutes does not exist
+RPC Error: argument of NOT must be type boolean, not type void
 ```
 
-### Schema Mismatch
+**Database investigation confirms multiple issues in the latest migration:**
 
-| Table | RPC Uses (Wrong) | Actual Column Name |
-|-------|------------------|-------------------|
-| `activities` | `a.guest_cancel_cutoff_minutes` | `a.guest_cancel_cutoff_hours` |
-| `restaurants` | `r.guest_cancel_cutoff_minutes` | `r.guest_cancel_cutoff_minutes` (correct) |
+### Issue 1: Rate Limit Function Call Syntax (CRITICAL)
+The `check_rate_limit` function returns `void`, not `boolean`:
 
-The two tables use different time units for cancellation cutoffs:
-- **Activities**: Uses `hours` (e.g., "cancel 24 hours before")
-- **Restaurants**: Uses `minutes` (e.g., "cancel 60 minutes before")
+| Migration | Syntax | Status |
+|-----------|--------|--------|
+| Previous (working) | `PERFORM check_rate_limit(...)` | ✅ Correct |
+| Latest (broken) | `IF NOT public.check_rate_limit(...) THEN` | ❌ Breaks - void cannot be used with NOT |
 
-The `guest_get_room_bookings` RPC incorrectly references `guest_cancel_cutoff_minutes` for the activities table.
+### Issue 2: Additional Column Mismatches
+
+| Table | RPC Uses (Wrong) | Actual Column |
+|-------|------------------|---------------|
+| `activity_bookings` | `ab.num_guests` | `ab.num_adults` + `ab.num_children` |
+| `activity_sessions` | `s.session_date` | `s.date` |
+| `restaurant_time_slots` | `rs.slot_date` | `rs.date` |
+
+### What Happened
+The latest migration (20260123133837) simplified/rewrote the RPC but introduced:
+1. Wrong rate limit syntax
+2. Several column name guesses that don't match the actual schema
+3. Removed guest joining logic and room-based booking aggregation
+
+---
 
 ## Solution
 
-Create a database migration to fix the RPC function by changing the column reference for activities:
-
-```sql
--- BEFORE (incorrect):
-'guest_cancel_cutoff_minutes', a.guest_cancel_cutoff_minutes
-
--- AFTER (correct):
-'guest_cancel_cutoff_hours', a.guest_cancel_cutoff_hours
-```
-
-## Technical Implementation
+Revert to the correct RPC structure from migration 20260123131709, applying ONLY the necessary fix (changing `guest_cancel_cutoff_minutes` → `guest_cancel_cutoff_hours` for activities).
 
 ### Database Migration
-
-Update the `guest_get_room_bookings` RPC function to use the correct column name for activities:
 
 ```sql
 CREATE OR REPLACE FUNCTION public.guest_get_room_bookings(p_guest_id uuid)
@@ -47,82 +48,154 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
--- ... existing declarations ...
+DECLARE
+  v_guest RECORD;
+  v_room_guest_ids UUID[];
+  v_activity_bookings jsonb;
+  v_restaurant_reservations jsonb;
 BEGIN
-  -- ... existing logic ...
+  -- Rate limit check (PERFORM, not IF NOT)
+  PERFORM check_rate_limit(
+    'guest_get_room_bookings',
+    p_guest_id::TEXT,
+    100,
+    60
+  );
 
-  -- Activity bookings section - FIX the column name:
+  -- Get guest info
+  SELECT id, resort_id, room_number, check_in_date, check_out_date
+  INTO v_guest
+  FROM guests
+  WHERE id = p_guest_id;
+
+  IF v_guest IS NULL THEN
+    RETURN jsonb_build_object('error', 'Guest not found');
+  END IF;
+
+  -- Get all guest IDs in the same room
+  SELECT array_agg(id) INTO v_room_guest_ids
+  FROM guests
+  WHERE resort_id = v_guest.resort_id
+    AND room_number = v_guest.room_number
+    AND check_in_date <= v_guest.check_out_date
+    AND check_out_date >= v_guest.check_in_date;
+
+  -- Activity bookings - using correct column names
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
-      -- ... other fields ...
-      'activity', jsonb_build_object(
-        'id', a.id,
-        'name', a.name,
-        'description', a.description,
-        'category', a.category,
-        'guest_can_cancel', a.guest_can_cancel,
-        'guest_cancel_cutoff_hours', a.guest_cancel_cutoff_hours  -- FIXED
+      'id', ab.id,
+      'guest_id', ab.guest_id,
+      'session_id', ab.session_id,
+      'status', ab.status,
+      'num_adults', ab.num_adults,
+      'num_children', ab.num_children,
+      'notes', ab.notes,
+      'created_at', ab.created_at,
+      'room_number', ab.room_number,
+      'session', jsonb_build_object(
+        'id', s.id,
+        'date', s.date,              -- Correct: 'date' not 'session_date'
+        'start_time', s.start_time,
+        'end_time', s.end_time,
+        'activity', jsonb_build_object(
+          'id', a.id,
+          'name', a.name,
+          'description', a.description,
+          'category', a.category,
+          'guest_can_cancel', a.guest_can_cancel,
+          'guest_cancel_cutoff_hours', a.guest_cancel_cutoff_hours  -- FIXED: was _minutes
+        )
+      ),
+      'guest', jsonb_build_object(
+        'id', g.id,
+        'full_name', g.full_name
       )
     )
   ), '[]'::jsonb)
   INTO v_activity_bookings
   FROM activity_bookings ab
-  -- ... rest of query ...
+  JOIN activity_sessions s ON s.id = ab.session_id
+  JOIN activities a ON a.id = s.activity_id
+  JOIN guests g ON g.id = ab.guest_id
+  WHERE ab.guest_id = ANY(v_room_guest_ids)
+    AND ab.resort_id = v_guest.resort_id;
 
-  -- Restaurant reservations section - already correct:
+  -- Restaurant reservations
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
-      -- ... other fields ...
-      'restaurant', jsonb_build_object(
-        'id', r.id,
-        'name', r.name,
-        'guest_can_cancel', r.guest_can_cancel,
-        'guest_cancel_cutoff_minutes', r.guest_cancel_cutoff_minutes  -- Already correct
+      'id', rr.id,
+      'guest_id', rr.guest_id,
+      'restaurant_slot_id', rr.restaurant_slot_id,
+      'status', rr.status,
+      'num_adults', rr.num_adults,
+      'num_children', rr.num_children,
+      'special_requests', rr.special_requests,
+      'created_at', rr.created_at,
+      'room_number', rr.room_number,
+      'slot', jsonb_build_object(
+        'id', ts.id,
+        'date', ts.date,              -- Correct: 'date' not 'slot_date'
+        'start_time', ts.start_time,
+        'end_time', ts.end_time,
+        'meal_period', ts.meal_period,
+        'restaurant', jsonb_build_object(
+          'id', r.id,
+          'name', r.name,
+          'guest_can_cancel', r.guest_can_cancel,
+          'guest_cancel_cutoff_minutes', r.guest_cancel_cutoff_minutes
+        )
+      ),
+      'guest', jsonb_build_object(
+        'id', g.id,
+        'full_name', g.full_name
       )
     )
   ), '[]'::jsonb)
   INTO v_restaurant_reservations
-  -- ... rest of query ...
+  FROM restaurant_reservations rr
+  JOIN restaurant_time_slots ts ON ts.id = rr.restaurant_slot_id
+  JOIN restaurants r ON r.id = ts.restaurant_id
+  JOIN guests g ON g.id = rr.guest_id
+  WHERE rr.guest_id = ANY(v_room_guest_ids)
+    AND rr.resort_id = v_guest.resort_id;
+
+  RETURN jsonb_build_object(
+    'activity_bookings', v_activity_bookings,
+    'restaurant_reservations', v_restaurant_reservations
+  );
 END;
 $$;
 ```
 
-### Frontend Update (if needed)
+---
 
-Check `GuestMyBookings.tsx` to ensure it handles both field names correctly when calculating cancellation eligibility:
+## Key Corrections Summary
 
-```typescript
-// For activities - use hours
-const cutoffHours = activity.guest_cancel_cutoff_hours || 24;
-const cutoffMs = cutoffHours * 60 * 60 * 1000;
+| Component | Wrong (Broken Migration) | Correct |
+|-----------|--------------------------|---------|
+| Rate limit | `IF NOT check_rate_limit(...) THEN` | `PERFORM check_rate_limit(...)` |
+| Activity cutoff | `guest_cancel_cutoff_minutes` | `guest_cancel_cutoff_hours` |
+| Session date | `s.session_date` | `s.date` |
+| Slot date | `rs.slot_date` | `rs.date` |
+| Booking guests | `ab.num_guests` | `ab.num_adults`, `ab.num_children` |
+| Guest scope | Single guest only | All room guests (v_room_guest_ids) |
 
-// For restaurants - use minutes  
-const cutoffMinutes = restaurant.guest_cancel_cutoff_minutes || 60;
-const cutoffMs = cutoffMinutes * 60 * 1000;
-```
+---
 
 ## Files to Modify
 
-| File | Change |
+| File | Action |
 |------|--------|
-| New migration | Fix RPC to use `a.guest_cancel_cutoff_hours` for activities |
-| `src/pages/guest/GuestMyBookings.tsx` | Verify cancellation logic uses correct field per booking type |
+| New migration | Fix RPC with all correct column names |
 
-## Pattern of Issues
+No frontend changes needed - the mapping in `GuestMyBookings.tsx` was already updated correctly.
 
-This is the fourth column name mismatch discovered in this RPC:
+---
 
-| # | Wrong | Correct | Fixed |
-|---|-------|---------|-------|
-| 1 | `slot_id` | `restaurant_slot_id` | Yes |
-| 2 | `cuisine_type`, `image_url` | (don't exist) | Yes |
-| 3 | `ab.special_requests` | `ab.notes` | Yes |
-| 4 | `a.guest_cancel_cutoff_minutes` | `a.guest_cancel_cutoff_hours` | **This fix** |
+## Expected Result After Fix
 
-## Expected Result
-
-After this fix:
-- RPC executes without column errors
-- Debug panel shows actual booking counts (Activities: 11+, Reservations: 6+)
-- My Bookings page displays all seeded demo bookings correctly
+1. RPC executes without errors
+2. Debug panel shows: Activities: 11+, Reservations: 6+
+3. My Bookings page displays all seeded demo bookings
+4. Room-based booking aggregation works (all guests in Room 101 see shared bookings)
 
