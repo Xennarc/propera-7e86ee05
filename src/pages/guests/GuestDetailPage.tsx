@@ -18,6 +18,7 @@ import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog'
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 import { GuestPinManager } from '@/components/guest/GuestPinManager';
+import { GuestQrLoginManager } from '@/components/guest/GuestQrLoginManager';
 import { ErrorState } from '@/components/ui/error-state';
 import { TierGate } from '@/components/tier/TierGate';
 import { usePermissions, hasWriteAccess } from '@/hooks/usePermissions';
@@ -430,6 +431,15 @@ export default function GuestDetailPage() {
           pinSetAt={guest.portal_pin_set_at || null}
           portalEnabled={guest.portal_enabled || false}
           onPinUpdated={fetchGuest}
+        />
+      )}
+
+      {/* Quick Login QR */}
+      {canEdit && (
+        <GuestQrLoginManager
+          guestId={guest.id}
+          guestName={guest.full_name}
+          roomNumber={guest.room_number || ''}
         />
       )}
 
