@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
@@ -24,7 +25,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock, Pencil, MapPin, AlertCircle, CheckCircle2, XCircle, History } from 'lucide-react';
+import { Calendar, Utensils, ChevronDown, Loader2, X, Users, Clock, Pencil, MapPin, AlertCircle, CheckCircle2, XCircle, History, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
@@ -34,11 +35,16 @@ import { EditBookingDialog } from '@/components/guest/EditBookingDialog';
 import { GuestBookingsLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
-import { Link } from 'react-router-dom';
 import { useGuestDiningSync } from '@/hooks/useDiningBookingSync';
 import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
 import { GuestDebugPanel } from '@/components/guest/GuestDebugPanel';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
+import { BookingDetailsSheet } from '@/components/guest/booking-details';
+import { 
+  BookingDisplayModel, 
+  mapActivityToDisplayModel, 
+  mapRestaurantToDisplayModel 
+} from '@/types/booking-display';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -55,6 +61,7 @@ export default function GuestMyBookings() {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showPast, setShowPast] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
   const [cancelDialog, setCancelDialog] = useState<{
@@ -72,6 +79,10 @@ export default function GuestMyBookings() {
     slot_id?: string;
     max_pax_per_booking?: number;
   } | null>(null);
+  
+  // Selected booking for details sheet
+  const [selectedBooking, setSelectedBooking] = useState<BookingDisplayModel | null>(null);
+  const [detailsSheetOpen, setDetailsSheetOpen] = useState(false);
 
   // Debug mode hook - only shows panel with ?debug=1
   const { showDebugPanel, debugLog, resortCode } = useGuestDebugMode(guest?.resortId);
@@ -453,6 +464,44 @@ export default function GuestMyBookings() {
     EVENT: { colorClass: 'text-coral', bgClass: 'bg-coral/10', label: t('dining.mealPeriods.EVENT') },
   };
 
+  // Handle opening booking details
+  const handleOpenBooking = useCallback((booking: any, type: 'activity' | 'restaurant') => {
+    const displayModel = type === 'activity' 
+      ? mapActivityToDisplayModel(booking, guest?.guestId || '')
+      : mapRestaurantToDisplayModel(booking, guest?.guestId || '');
+    setSelectedBooking(displayModel);
+    setDetailsSheetOpen(true);
+  }, [guest?.guestId]);
+
+  const handleCloseDetailsSheet = useCallback(() => {
+    setDetailsSheetOpen(false);
+    setSelectedBooking(null);
+  }, []);
+
+  const handleCancelFromSheet = useCallback(() => {
+    if (!selectedBooking) return;
+    setCancelDialog({
+      type: selectedBooking.type as 'activity' | 'restaurant',
+      id: selectedBooking.id,
+      title: selectedBooking.title,
+    });
+  }, [selectedBooking]);
+
+  const handleEditFromSheet = useCallback(() => {
+    if (!selectedBooking) return;
+    setEditDialog({
+      id: selectedBooking.id,
+      type: selectedBooking.type as 'activity' | 'restaurant',
+      title: selectedBooking.title,
+      num_adults: selectedBooking.numAdults,
+      num_children: selectedBooking.numChildren,
+      session_id: selectedBooking.sessionId,
+      slot_id: selectedBooking.slotId,
+      max_pax_per_booking: selectedBooking.maxPaxPerBooking,
+    });
+    setDetailsSheetOpen(false);
+  }, [selectedBooking]);
+
   const BookingCard = ({ 
     booking, 
     type, 
@@ -473,10 +522,13 @@ export default function GuestMyBookings() {
     const restaurantConfig = !isActivity ? (mealPeriodConfig[booking.meal_period] || mealPeriodConfig.DINNER) : null;
     
     return (
-      <Card className={cn(
-        "guest-card-interactive overflow-hidden transition-all",
-        isPast && "opacity-60"
-      )}>
+      <Card 
+        className={cn(
+          "guest-card-interactive overflow-hidden transition-all cursor-pointer",
+          isPast && "opacity-60"
+        )}
+        onClick={() => handleOpenBooking(booking, type)}
+      >
         <CardContent className="p-0">
           {/* Status bar at top */}
           <div className={cn(
@@ -492,49 +544,7 @@ export default function GuestMyBookings() {
                 {statusConfig.label}
               </span>
             </div>
-            <div className="flex items-center gap-1">
-              {canEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-muted-foreground hover:text-foreground tap-target"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditDialog({
-                      id: booking.id,
-                      type,
-                      title: isActivity ? booking.activity_name : booking.restaurant_name,
-                      num_adults: booking.num_adults,
-                      num_children: booking.num_children,
-                      session_id: booking.session_id,
-                      slot_id: booking.slot_id,
-                      max_pax_per_booking: booking.max_pax_per_booking,
-                    });
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Edit</span>
-                </Button>
-              )}
-              {canCancel && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 tap-target"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCancelDialog({
-                      type,
-                      id: booking.id,
-                      title: isActivity ? booking.activity_name : booking.restaurant_name,
-                    });
-                  }}
-                >
-                  <X className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only sm:ml-1 text-xs">Cancel</span>
-                </Button>
-              )}
-            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
           
           {/* Main content */}
@@ -937,6 +947,16 @@ export default function GuestMyBookings() {
         open={!!editDialog}
         onOpenChange={(open) => !open && setEditDialog(null)}
         booking={editDialog}
+      />
+
+      {/* Booking Details Sheet */}
+      <BookingDetailsSheet
+        open={detailsSheetOpen}
+        onOpenChange={setDetailsSheetOpen}
+        booking={selectedBooking}
+        onCancel={selectedBooking?.canCancel ? handleCancelFromSheet : undefined}
+        onEdit={selectedBooking?.canEdit ? handleEditFromSheet : undefined}
+        isCancelling={cancelActivityMutation.isPending || cancelReservationMutation.isPending}
       />
 
       {/* Debug Panel - only shown with ?debug=1 */}
