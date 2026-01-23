@@ -34,7 +34,7 @@ export function usePrefetchResortData() {
       queryFn: async () => {
         const { data } = await supabase
           .from('restaurants')
-          .select('id, name, cuisine_type, is_active, opening_time, closing_time')
+          .select('id, name, is_active, opening_time, closing_time')
           .eq('resort_id', currentResort.id)
           .eq('is_active', true)
           .order('name');
