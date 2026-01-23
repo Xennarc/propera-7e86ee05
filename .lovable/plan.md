@@ -1,81 +1,89 @@
 
-# Fix Demo Seeding to Target Room 101 (James Wilson)
+## What’s most likely happening (root cause)
+The Guest Portal “My Bookings” page depends entirely on the backend RPC `guest_get_room_bookings(p_guest_id)`.
 
-## Problem
+From the codebase, that RPC is currently **internally inconsistent with the actual database schema** in at least two ways:
 
-The demo guest portal auto-login uses **Room 101 (James Wilson)** as defined in both:
-- `src/lib/demoSingleton.ts` line 13: `DEMO_GUEST_ROOM = "101"`
-- `supabase/functions/provision-demo/index.ts` line 1067: `DEMO_GUEST_ROOM = "101"`
+1) **Rate limit call signature mismatch**
+- `guest_get_room_bookings` calls:
+  - `PERFORM check_rate_limit('guest_get_room_bookings', 100, 3600);` (3 arguments)
+- But `check_rate_limit` is defined as:
+  - `check_rate_limit(p_endpoint TEXT, p_identifier TEXT, p_max_attempts INTEGER, p_window_minutes INTEGER)` (4 arguments)
+- Result: the RPC will error at runtime before returning any data.
 
-However, the recent seeding implementation I added incorrectly targets **Room 201 (Emma Miller)**, causing:
-- Activity bookings to be assigned to the wrong guest
-- Restaurant reservations to be assigned to the wrong guest
-- Service requests seeding to grab a random first guest (inconsistent)
+2) **Restaurant reservations column mismatch**
+- The `restaurant_reservations` table uses `restaurant_slot_id`, and has `num_adults`, `num_children`.
+- But the RPC uses `rr.slot_id` and `rr.party_size`, and also joins `restaurant_time_slots ts ON ts.id = rr.slot_id`.
+- Result: the RPC will error at runtime (column does not exist), so the UI receives no bookings.
 
-This means when you log into the demo portal as James Wilson (101), your "My Bookings" and "My Requests" pages are empty.
+When the RPC errors, `GuestMyBookings.tsx` logs `Failed to fetch room bookings:` and returns `null`, which produces an empty “no bookings” experience. That would affect **both demo and live resorts** (permanent issue) because it’s a core data access function.
 
-## Solution
+## Goal
+Fix the issue permanently so:
+- Guest Portal “My Bookings” works for demo and live resorts.
+- Demo seeding actually appears (once RPC is fixed, the seeded data will show).
+- The UI provides a clear error state if the RPC fails in the future (no silent empty page).
 
-Update all seeding logic to explicitly target **Room 101** for consistency with the demo login configuration.
+## Implementation plan (approved changes to be done in default mode)
 
-## Technical Changes
+### 1) Create a database migration to correct `guest_get_room_bookings`
+Create a new migration that:
+- Replaces the RPC with a correct version that:
+  - Calls `check_rate_limit` with the correct 4-arg signature, using `p_guest_id::text` (or `v_guest.id::text`) as identifier.
+  - Uses correct restaurant reservation columns:
+    - `rr.restaurant_slot_id` (not `rr.slot_id`)
+    - `rr.num_adults`, `rr.num_children` (not `rr.party_size`)
+  - Joins:
+    - `JOIN restaurant_time_slots ts ON ts.id = rr.restaurant_slot_id`
+  - Returns JSON payload fields consistent with the UI mapping:
+    - For restaurant objects, include `num_adults` and `num_children` (or include `party_size` computed as `rr.num_adults + rr.num_children` but we’ll standardize to actual columns to reduce confusion).
+- Keeps SECURITY DEFINER + `GRANT EXECUTE` to anon/authenticated as it currently does.
 
-### File 1: `supabase/functions/demo-reset/index.ts`
+This step is the “permanent fix” for both demo and live.
 
-**Change 1 - Line 464: Fix activity/restaurant seeding guest priority**
-```typescript
-// FROM:
-const demoPortalGuest = inHouseGuests.find(g => g.room_number === "201") || inHouseGuests[0];
+### 2) Make `GuestMyBookings.tsx` handle RPC failures explicitly (UI resilience)
+Update the query logic so that when the RPC errors:
+- We show a visible error state on the page (banner/card) with a “Retry” button (calls `refetch`).
+- Also keep console logging for debugging.
+This prevents the “empty page that looks like no data” problem.
 
-// TO:
-const demoPortalGuest = inHouseGuests.find(g => g.room_number === "101") || inHouseGuests[0];
-```
+Additionally, align the restaurant mapping in `GuestMyBookings.tsx` to whatever we return:
+- If RPC returns `num_adults`/`num_children`, the UI should use those directly (instead of `party_size || 2`).
+This prevents hiding valid data due to transformation mismatch.
 
-**Change 2 - Lines 591-598: Fix service requests to use the same room**
-```typescript
-// FROM (grabs random first guest):
-const { data: demoGuest } = await supabase
-  .from("guests")
-  .select("id, room_number")
-  .eq("resort_id", demoResortId)
-  .lte("check_in_date", todayStr)
-  .gte("check_out_date", todayStr)
-  .limit(1)
-  .single();
+### 3) Verify demo seeding + live behavior end-to-end
+After the RPC fix:
+- Demo:
+  - Confirm the demo guest (Room 101) sees:
+    - 5 activity bookings (CONFIRMED/PENDING, future dates)
+    - 3 dining reservations (CONFIRMED, future dates)
+  - Confirm staff portal pages show the same seeded bookings.
+- Live:
+  - Log in as any real guest with bookings and ensure “My Bookings” populates.
+  - Confirm cancellations/edits still work (since those call separate RPCs).
 
-// TO (explicitly targets room 101):
-const { data: demoGuest } = await supabase
-  .from("guests")
-  .select("id, room_number")
-  .eq("resort_id", demoResortId)
-  .eq("room_number", "101")
-  .lte("check_in_date", todayStr)
-  .gte("check_out_date", todayStr)
-  .single();
-```
+### 4) Optional hardening (only if needed after verification)
+If “still empty” for some users after the RPC fix, the next most likely cause is UI filtering:
+- Upcoming only shows:
+  - status in {CONFIRMED, PENDING}
+  - date >= today
+So if data is all in the past or CANCELLED/NO_SHOW, it may be hidden behind the past/cancelled sections.
+If this becomes an issue in practice, we can:
+- Improve empty-state messaging to say “No upcoming bookings” and show a button to reveal Past/Cancelled sections.
 
-### File 2: `supabase/functions/provision-demo/index.ts` 
+## Why this fixes the problem permanently
+- The core reason nothing shows is that the “single source of truth” RPC is failing due to schema/signature mismatches.
+- Fixing the RPC fixes every caller (demo + live) without needing special demo-only logic.
+- Adding explicit UI error display prevents silent failures if anything regresses later.
 
-Apply the same fix if `refreshDemoData` contains similar prioritization logic targeting room 201.
+## Files we will touch in implementation (default mode)
+- `supabase/migrations/<new_migration>.sql` (new) — fix `guest_get_room_bookings`
+- `src/pages/guest/GuestMyBookings.tsx` — improve error handling + align restaurant mapping
 
-## Files Modified
+## Quick validation checklist (what I will do right after implementing)
+- Open Guest Portal → My Bookings:
+  - See bookings list populated (demo and/or live).
+- Confirm network call to RPC succeeds (no 500/400).
+- Confirm no console errors about `guest_get_room_bookings` or missing columns.
+- Confirm demo-reset still reseeds and then the guest portal shows seeded bookings.
 
-| File | Line(s) | Change |
-|------|---------|--------|
-| `supabase/functions/demo-reset/index.ts` | 464 | Change `"201"` to `"101"` |
-| `supabase/functions/demo-reset/index.ts` | 591-598 | Add `.eq("room_number", "101")` filter |
-| `supabase/functions/provision-demo/index.ts` | (if applicable) | Same room 101 prioritization |
-
-## Expected Result
-
-After this fix:
-- Demo portal login (Room 101 / James Wilson) will show pre-seeded activity bookings
-- Demo portal "My Bookings" will display 5 activities + 3 dining reservations
-- Demo portal "My Requests" will show 3 sample service requests
-- Staff portal will show the same bookings with guest name "James Wilson" and room "101"
-
-## No Breaking Changes
-
-- Simply corrects room number from 201 to 101
-- All other seeding logic remains identical
-- Aligns with existing demo configuration constants
