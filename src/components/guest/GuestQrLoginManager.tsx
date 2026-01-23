@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, Copy, Check, Clock, AlertTriangle } from 'lucide-react';
+import { QrCode, Copy, Check, Clock, AlertTriangle, Zap, ShieldCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface GuestQrLoginManagerProps {
@@ -22,7 +22,12 @@ interface TokenResult {
   error?: string;
 }
 
-const QR_EXPIRY_MINUTES = 2;
+type TokenType = 'instant' | 'confirm';
+
+const EXPIRY_MINUTES: Record<TokenType, number> = {
+  instant: 2,
+  confirm: 2,
+};
 
 export function GuestQrLoginManager({
   guestId,
@@ -33,6 +38,7 @@ export function GuestQrLoginManager({
   const [generating, setGenerating] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [tokenType, setTokenType] = useState<TokenType>('instant');
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -62,12 +68,13 @@ export function GuestQrLoginManager({
     return () => clearInterval(interval);
   }, [expiresAt, showQrModal, toast]);
 
-  const generateQrToken = async () => {
+  const generateQrToken = async (type: TokenType) => {
     setGenerating(true);
+    setTokenType(type);
     try {
       const { data, error } = await supabase.rpc('create_guest_login_token', {
         p_guest_id: guestId,
-        p_token_type: 'confirm',
+        p_token_type: type,
       });
 
       if (error) {
@@ -93,8 +100,7 @@ export function GuestQrLoginManager({
       }
 
       setGeneratedToken(result.token || null);
-      // Override with 2 minute expiry for confirm flow
-      setExpiresAt(new Date(Date.now() + QR_EXPIRY_MINUTES * 60 * 1000));
+      setExpiresAt(new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000));
       setShowQrModal(true);
       setCopied(false);
     } catch (err) {
@@ -110,9 +116,19 @@ export function GuestQrLoginManager({
 
   const getQrUrl = () => {
     if (!generatedToken) return '';
-    // Build the full URL for the guest to scan
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/guest/qr/${generatedToken}`;
+    // Use production URL format: https://propera.cc/guest/qr?t=TOKEN
+    // For dev, use current origin
+    const baseUrl = window.location.hostname === 'localhost' 
+      ? window.location.origin 
+      : 'https://propera.cc';
+    
+    if (tokenType === 'instant') {
+      // Instant login uses query param format
+      return `${baseUrl}/guest/qr?t=${generatedToken}`;
+    } else {
+      // Confirm flow uses path param format
+      return `${baseUrl}/guest/qr/${generatedToken}`;
+    }
   };
 
   const copyLink = async () => {
@@ -162,12 +178,33 @@ export function GuestQrLoginManager({
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Generate a QR code that the guest can scan to log in instantly. The guest will need to confirm their identity before logging in.
+              Generate a QR code that the guest can scan to log in without entering credentials.
             </p>
-            <Button onClick={generateQrToken} disabled={generating}>
-              <QrCode className={`h-4 w-4 mr-2 ${generating ? 'animate-pulse' : ''}`} />
-              {generating ? 'Generating...' : 'Generate Login QR'}
-            </Button>
+            
+            {/* Two button options */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={() => generateQrToken('instant')} 
+                disabled={generating}
+                className="flex-1"
+              >
+                <Zap className={`h-4 w-4 mr-2 ${generating && tokenType === 'instant' ? 'animate-pulse' : ''}`} />
+                {generating && tokenType === 'instant' ? 'Generating...' : 'Instant Login'}
+              </Button>
+              <Button 
+                onClick={() => generateQrToken('confirm')} 
+                disabled={generating}
+                variant="outline"
+                className="flex-1"
+              >
+                <ShieldCheck className={`h-4 w-4 mr-2 ${generating && tokenType === 'confirm' ? 'animate-pulse' : ''}`} />
+                {generating && tokenType === 'confirm' ? 'Generating...' : 'With Confirmation'}
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              <strong>Instant:</strong> Guest scans and logs in immediately. <strong>With Confirmation:</strong> Guest must tap to confirm.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -176,11 +213,18 @@ export function GuestQrLoginManager({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5" />
-              Guest Login QR Code
+              {tokenType === 'instant' ? (
+                <Zap className="h-5 w-5" />
+              ) : (
+                <ShieldCheck className="h-5 w-5" />
+              )}
+              {tokenType === 'instant' ? 'Instant Login QR' : 'Confirmed Login QR'}
             </DialogTitle>
             <DialogDescription>
-              Show this QR code to {guestName} (Room {roomNumber}). They will need to confirm their identity to log in.
+              {tokenType === 'instant' 
+                ? `Show this QR code to ${guestName} (Room ${roomNumber}). They will be logged in immediately upon scanning.`
+                : `Show this QR code to ${guestName} (Room ${roomNumber}). They will need to confirm their identity to log in.`
+              }
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -217,7 +261,11 @@ export function GuestQrLoginManager({
             {/* Security Notice */}
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Security:</strong> This QR code is single-use and expires in {QR_EXPIRY_MINUTES} minutes. The guest must confirm their identity before logging in.
+                <strong>Security:</strong> This QR code is single-use and expires in {EXPIRY_MINUTES[tokenType]} minutes.
+                {tokenType === 'instant' 
+                  ? ' The guest will be logged in immediately upon scanning.'
+                  : ' The guest must confirm their identity before logging in.'
+                }
               </p>
             </div>
 
