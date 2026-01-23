@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '@/components/guest/LanguageSwitcher';
 import { supportedLanguages } from '@/i18n';
 import { ResortDirectory } from '@/components/guest/ResortDirectory';
 import { TierGate } from '@/components/tier/TierGate';
+import { GuestSessionManager } from '@/components/guest/GuestSessionManager';
 
 export default function GuestProfilePage() {
   const { guest } = useGuestAuth();
@@ -171,6 +172,9 @@ export default function GuestProfilePage() {
 
       {/* Resort Directory */}
       <ResortDirectory />
+
+      {/* Login & Devices */}
+      <GuestSessionManager />
 
       {/* Language Settings */}
       <TierGate feature="guest_portal_multi_language" fallback="hide">
