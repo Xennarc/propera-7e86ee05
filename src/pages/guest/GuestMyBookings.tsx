@@ -76,10 +76,10 @@ export default function GuestMyBookings() {
   useGuestDiningSync(guest?.guestId, guest?.resortId);
 
   // Fetch all bookings using secure RPC (works for guest sessions without JWT claims)
-  const { data: bookings, isLoading } = useQuery({
+  const { data: bookings, isLoading, isError, error: queryError, refetch } = useQuery({
     queryKey: ['guest-room-bookings', guest?.guestId],
     queryFn: async () => {
-      if (!guest?.guestId) return null;
+      if (!guest?.guestId) throw new Error('No guest ID');
       
       const { data, error } = await supabase.rpc('guest_get_room_bookings', {
         p_guest_id: guest.guestId,
@@ -87,13 +87,13 @@ export default function GuestMyBookings() {
       
       if (error) {
         console.error('Failed to fetch room bookings:', error);
-        return null;
+        throw new Error(error.message || 'Failed to fetch bookings');
       }
       
       const result = data as any;
       if (result?.error) {
         console.error('RPC error:', result.error);
-        return null;
+        throw new Error(result.error);
       }
       
       // Transform RPC response to match expected format
@@ -115,18 +115,19 @@ export default function GuestMyBookings() {
         duration_minutes: b.session?.activity?.duration_minutes,
         guest_can_cancel: b.session?.activity?.guest_can_cancel,
         guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours,
-        max_pax_per_booking: 10, // Default, not needed for display
+        max_pax_per_booking: 10,
         image_url: b.session?.activity?.image_url,
         booking_type: 'activity' as const,
       }));
 
+      // FIXED: Use num_adults/num_children directly (not party_size)
       const restaurant_reservations = (result?.restaurant_reservations || []).map((r: any) => ({
         id: r.id,
         guest_id: r.guest_id,
         booked_by: r.guest?.full_name || 'Room guest',
         is_own_booking: r.guest_id === guest.guestId,
-        num_adults: r.party_size || 2,
-        num_children: 0,
+        num_adults: r.num_adults ?? 2,
+        num_children: r.num_children ?? 0,
         status: r.status,
         special_requests: r.special_requests,
         date: r.slot?.date,
@@ -137,7 +138,7 @@ export default function GuestMyBookings() {
         restaurant_name: r.slot?.restaurant?.name,
         guest_can_cancel: r.slot?.restaurant?.guest_can_cancel,
         guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_hours ? r.slot.restaurant.guest_cancel_cutoff_hours * 60 : 60,
-        max_pax_per_booking: 10, // Default, not needed for display
+        max_pax_per_booking: 10,
         booking_type: 'restaurant' as const,
       }));
 
@@ -145,6 +146,7 @@ export default function GuestMyBookings() {
     },
     enabled: !!guest?.guestId,
     staleTime: 30000,
+    retry: 2,
   });
 
   const cancelActivityMutation = useMutation({
@@ -664,6 +666,30 @@ export default function GuestMyBookings() {
 
       {isLoading ? (
         <GuestBookingsLoading />
+      ) : isError ? (
+        <div className="flex-1 flex items-center justify-center min-h-[300px]">
+          <Card className="guest-card border-destructive/30 bg-destructive/5 w-full">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {t('bookings.errorLoadingTitle', 'Unable to load bookings')}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+                {t('bookings.errorLoadingDescription', 'There was a problem fetching your bookings. Please try again.')}
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => refetch()}
+                className="gap-2"
+              >
+                <Loader2 className="h-4 w-4" />
+                {t('common.tryAgain', 'Try Again')}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : isEmpty ? (
         <div className="flex-1 flex items-center justify-center min-h-[300px]">
           <Card className="guest-card border-dashed bg-muted/20 w-full">
