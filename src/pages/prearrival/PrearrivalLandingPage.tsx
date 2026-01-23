@@ -185,25 +185,43 @@ export default function PrearrivalLandingPage() {
 
       const validatedData = validationResult.data as ValidatedData;
       
-      // Check if guest is IN_STAY - redirect to guest portal
+      // Check if guest is IN_STAY - auto-login to guest portal
       const guestState = getGuestState(validatedData, validatedData.guest.check_in_date, validatedData.guest.check_out_date);
       
       if (guestState === 'IN_STAY') {
-        // Show toast and redirect to guest portal
+        // Build full GuestSession for seamless auto-login
+        const guestSession = {
+          guestId: validatedData.guest.id,
+          fullName: validatedData.guest.full_name,
+          roomNumber: validatedData.guest.room_number,
+          checkInDate: validatedData.guest.check_in_date,
+          checkOutDate: validatedData.guest.check_out_date,
+          resortId: validatedData.resort.id,
+          resortName: validatedData.resort.name,
+          resortLogoUrl: validatedData.resort.login_logo_url || undefined,
+          // resortTimezone will be fetched by GuestAuthContext on session restore
+        };
+        
+        // Store in same key as normal login for seamless transition
+        localStorage.setItem('propera_guest_session', JSON.stringify(guestSession));
+        
+        // Also store prearrival flag for tracking/analytics
+        localStorage.setItem('prearrival_guest_redirect', JSON.stringify({
+          resortCode: validatedData.resort.code,
+          guestId: validatedData.guest.id,
+          autoLoginAt: new Date().toISOString(),
+        }));
+        
+        // Show welcome toast
         toast({
           title: `Welcome to ${validatedData.resort.name}!`,
           description: 'Your Guest Portal is ready.',
         });
         
-        // Small delay for animation
+        // Navigate directly to guest portal (session already established)
         setTimeout(() => {
-          // Store guest info for portal login
-          localStorage.setItem('prearrival_guest_redirect', JSON.stringify({
-            resortCode: validatedData.resort.code,
-            guestId: validatedData.guest.id,
-          }));
-          navigate(`/r/${validatedData.resort.code}`);
-        }, 800);
+          navigate('/guest');
+        }, 600);
         return;
       }
       
