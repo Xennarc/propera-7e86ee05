@@ -114,7 +114,7 @@ export default function GuestMyBookings() {
         category: b.session?.activity?.category,
         duration_minutes: b.session?.activity?.duration_minutes,
         guest_can_cancel: b.session?.activity?.guest_can_cancel,
-        guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours,
+        guest_cancel_cutoff_minutes: b.session?.activity?.guest_cancel_cutoff_minutes ?? 60,
         max_pax_per_booking: 10,
         image_url: b.session?.activity?.image_url,
         booking_type: 'activity' as const,
@@ -137,7 +137,7 @@ export default function GuestMyBookings() {
         meal_period: r.slot?.meal_period,
         restaurant_name: r.slot?.restaurant?.name,
         guest_can_cancel: r.slot?.restaurant?.guest_can_cancel,
-        guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_hours ? r.slot.restaurant.guest_cancel_cutoff_hours * 60 : 60,
+        guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_minutes ?? 60,
         max_pax_per_booking: 10,
         booking_type: 'restaurant' as const,
       }));
@@ -343,7 +343,7 @@ export default function GuestMyBookings() {
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
     if (!booking.guest_can_cancel) return false;
     const sessionDateTime = new Date(`${booking.date}T${booking.start_time}`);
-    const cutoff = new Date(sessionDateTime.getTime() - booking.guest_cancel_cutoff_hours * 60 * 60 * 1000);
+    const cutoff = new Date(sessionDateTime.getTime() - (booking.guest_cancel_cutoff_minutes ?? 60) * 60 * 1000);
     return new Date() < cutoff;
   };
 
