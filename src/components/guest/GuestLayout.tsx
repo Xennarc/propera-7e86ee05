@@ -2,6 +2,7 @@ import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,13 +17,13 @@ import {
   IconLogout,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
-import { Crown, Bell } from 'lucide-react';
+import { Crown, Bell, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const baseNavItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
   { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
-  { icon: Bell, labelKey: 'nav.requests', href: '/guest/requests', key: 'guest-requests' },
+  { icon: Bell, labelKey: 'nav.requests', href: '/guest/requests', key: 'guest-requests', restrictPrearrival: true },
   { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings' },
 ];
 
@@ -32,10 +33,11 @@ const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loy
 const scrollPositions = new Map<string, number>();
 
 // Memoized nav item with unified lime indicator
-const NavItem = memo(({ item, isActive, label }: { 
+const NavItem = memo(({ item, isActive, label, isPrearrivalRestricted }: { 
   item: { icon: React.ComponentType<{ className?: string }>; href: string }; 
   isActive: boolean; 
   label: string;
+  isPrearrivalRestricted?: boolean;
 }) => {
   const Icon = item.icon;
   return (
@@ -52,10 +54,18 @@ const NavItem = memo(({ item, isActive, label }: {
       {isActive && (
         <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--lime-400))]" />
       )}
-      <Icon className={cn(
-        "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
-        isActive && "scale-110"
-      )} />
+      <div className="relative">
+        <Icon className={cn(
+          "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
+          isActive && "scale-110"
+        )} />
+        {/* Lock overlay for pre-arrival restricted items */}
+        {isPrearrivalRestricted && (
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-muted flex items-center justify-center">
+            <Lock className="h-2 w-2 text-muted-foreground" />
+          </div>
+        )}
+      </div>
       <span className={cn(
         "text-[10px] sm:text-[11px] font-medium transition-all",
         isActive && "font-bold text-primary"
@@ -69,6 +79,7 @@ NavItem.displayName = 'NavItem';
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
+  const { isPrearrival } = useIsPrearrivalGuest();
   const { t } = useTranslation();
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
@@ -231,12 +242,14 @@ export function GuestLayout() {
           {navItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href !== '/guest' && location.pathname.startsWith(item.href));
+            const itemWithRestriction = item as typeof item & { restrictPrearrival?: boolean };
             return (
               <NavItem 
                 key={item.href} 
                 item={item} 
                 isActive={isActive} 
-                label={t(item.labelKey)} 
+                label={t(item.labelKey)}
+                isPrearrivalRestricted={isPrearrival && itemWithRestriction.restrictPrearrival}
               />
             );
           })}

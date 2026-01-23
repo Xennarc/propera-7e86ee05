@@ -2,11 +2,13 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useRequestCatalog, useServiceRequestMutations, CatalogItem } from '@/hooks/useServiceRequests';
 import { RequestCategoryGrid, CategoryConfig } from '@/components/guest/requests/RequestCategoryGrid';
 import { RequestCreateSheet } from '@/components/guest/requests/RequestCreateSheet';
 import { MultiSelectItemGrid, SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
 import { RequestBundleSheet, BundleSubmitParams, MAX_BUNDLE_ITEMS, MAX_TOTAL_QUANTITY } from '@/components/guest/requests/RequestBundleSheet';
+import { PrearrivalRequestsBlockedState } from '@/components/guest/PrearrivalRequestsBlockedState';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ClipboardList, Sparkles, ListChecks, X, ArrowRight, Package, AlertCircle } from 'lucide-react';
@@ -16,6 +18,7 @@ import { cn } from '@/lib/utils';
 
 export default function GuestRequestsPage() {
   const { guest } = useGuestAuth();
+  const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
   const [selectedCategory, setSelectedCategory] = useState<CategoryConfig | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   
@@ -41,6 +44,16 @@ export default function GuestRequestsPage() {
   );
 
   if (!guest) return null;
+
+  // Show blocked state for pre-arrival guests
+  if (isPrearrival) {
+    return (
+      <PrearrivalRequestsBlockedState 
+        checkInDate={guest.checkInDate} 
+        daysUntilArrival={daysUntilArrival} 
+      />
+    );
+  }
 
   const handleCategorySelect = (category: CategoryConfig) => {
     if (multiSelectMode) return; // Don't open sheet in multi-select mode
