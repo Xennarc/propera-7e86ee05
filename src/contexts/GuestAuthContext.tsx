@@ -44,6 +44,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       const storedSession = localStorage.getItem(GUEST_SESSION_KEY);
+      
       if (storedSession) {
         try {
           const parsed = JSON.parse(storedSession) as GuestSession;
@@ -74,6 +75,22 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
           }
         } catch {
           localStorage.removeItem(GUEST_SESSION_KEY);
+        }
+      } else {
+        // No active session - clean up stale prearrival redirect data if present
+        // (This handles edge case where session was cleared but redirect data remains)
+        const prearrivalRedirect = localStorage.getItem('prearrival_guest_redirect');
+        if (prearrivalRedirect) {
+          try {
+            const redirect = JSON.parse(prearrivalRedirect);
+            // If autoLoginAt exists, session was supposed to be established
+            // but got cleared somehow - clean up stale redirect
+            if (redirect.autoLoginAt) {
+              localStorage.removeItem('prearrival_guest_redirect');
+            }
+          } catch {
+            localStorage.removeItem('prearrival_guest_redirect');
+          }
         }
       }
       setLoading(false);
