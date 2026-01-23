@@ -1,163 +1,113 @@
 
+# Fix Guest Portal "My Bookings" Display Logic
 
-# Permanent Fix: Remove Non-Existent Column References from RPC
+## Current State Analysis
 
-## Root Cause (Verified from Database Logs)
+After thorough investigation, I found that:
 
-The `guest_get_room_bookings` RPC function is failing with:
+1. **The RPC is now working correctly** - No database errors are occurring
+2. **Upcoming bookings display correctly** - The guest has 3 upcoming bookings (1 restaurant today, 2 activities future)
+3. **Past bookings exist but have wrong status** - 13 bookings from past dates still have `CONFIRMED` status (not `COMPLETED`)
+4. **No cancelled bookings exist** - Demo seeding only creates `CONFIRMED` status bookings
+
+## Root Cause
+
+The "My Bookings" page has correct filtering logic, but there are two issues:
+
+| Issue | Impact | Solution |
+|-------|--------|----------|
+| Demo seeding doesn't create `CANCELLED` or `COMPLETED` bookings | Users never see those sections with demo data | Enhance demo seeding to create realistic test data |
+| Past `CONFIRMED` bookings show in "Completed" collapsible | This is correct behavior, but section is collapsed by default | No change needed - working as designed |
+
+## Implementation Plan
+
+### 1. Enhance Demo Seeding (`src/lib/demo-seed.ts`)
+
+Add varied booking statuses to make the demo more realistic:
+
+```typescript
+// Create mix of statuses for realism
+const statuses = ['CONFIRMED', 'CONFIRMED', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
+const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
 ```
-ERROR: column r.cuisine_type does not exist
-```
 
-The migration I created earlier references columns that do not exist in the `restaurants` table:
+Create bookings with:
+- **CONFIRMED/PENDING**: For upcoming sessions
+- **COMPLETED**: For past sessions  
+- **CANCELLED**: 1-2 random bookings to demonstrate cancelled section
 
-| RPC References | Reality |
-|----------------|---------|
-| `r.cuisine_type` | Does not exist in `restaurants` table |
-| `r.image_url` | Does not exist in `restaurants` table |
-| `r.guest_cancel_cutoff_hours` | Should be `guest_cancel_cutoff_minutes` |
+### 2. Add Past Booking Seeding
 
-**Actual `restaurants` table columns:**
-`id, resort_id, name, description, total_capacity, guest_can_book, requires_approval, guest_cutoff_minutes, max_pax_per_booking, guest_can_cancel, guest_cancel_cutoff_minutes, is_active, created_at, updated_at, opening_time, closing_time`
+Create explicit past-date sessions and bookings for the "Completed" section:
+- Add 2-3 activity bookings with `COMPLETED` status for dates before today
+- Add 1-2 restaurant reservations with `COMPLETED` status
 
-## Solution
+### 3. Add Cancelled Booking Seeding
 
-Create a new migration to fix the RPC by:
-1. **Remove** `cuisine_type` reference (column doesn't exist)
-2. **Remove** `image_url` reference (column doesn't exist)  
-3. **Fix** `guest_cancel_cutoff_hours` → `guest_cancel_cutoff_minutes`
+Create 1-2 cancelled bookings to populate the "Cancelled" section:
+- 1 cancelled activity booking
+- 1 cancelled restaurant reservation
 
 ## Technical Changes
 
-### New Migration SQL
+### File: `src/lib/demo-seed.ts`
 
-```sql
-CREATE OR REPLACE FUNCTION public.guest_get_room_bookings(p_guest_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-DECLARE
-  v_guest RECORD;
-  v_room_guest_ids UUID[];
-  v_activity_bookings jsonb;
-  v_restaurant_reservations jsonb;
-BEGIN
-  -- Rate limit check
-  PERFORM check_rate_limit(
-    'guest_get_room_bookings',
-    p_guest_id::TEXT,
-    100,
-    60
-  );
-
-  -- Get guest info
-  SELECT id, resort_id, room_number, check_in_date, check_out_date
-  INTO v_guest
-  FROM guests
-  WHERE id = p_guest_id;
-
-  IF v_guest IS NULL THEN
-    RETURN jsonb_build_object('error', 'Guest not found');
-  END IF;
-
-  -- Get all guest IDs in the same room
-  SELECT array_agg(id) INTO v_room_guest_ids
-  FROM guests
-  WHERE resort_id = v_guest.resort_id
-    AND room_number = v_guest.room_number
-    AND check_in_date <= v_guest.check_out_date
-    AND check_out_date >= v_guest.check_in_date;
-
-  -- Activity bookings (unchanged - already correct)
-  SELECT COALESCE(jsonb_agg(...), '[]'::jsonb)
-  INTO v_activity_bookings
-  FROM activity_bookings ab
-  JOIN activity_sessions s ON s.id = ab.session_id
-  JOIN activities a ON a.id = s.activity_id
-  JOIN guests g ON g.id = ab.guest_id
-  WHERE ab.guest_id = ANY(v_room_guest_ids)
-    AND ab.resort_id = v_guest.resort_id;
-
-  -- Restaurant reservations - FIXED columns
-  SELECT COALESCE(jsonb_agg(
-    jsonb_build_object(
-      'id', rr.id,
-      'guest_id', rr.guest_id,
-      'restaurant_slot_id', rr.restaurant_slot_id,
-      'status', rr.status,
-      'num_adults', rr.num_adults,
-      'num_children', rr.num_children,
-      'special_requests', rr.special_requests,
-      'created_at', rr.created_at,
-      'room_number', rr.room_number,
-      'slot', jsonb_build_object(
-        'id', ts.id,
-        'date', ts.date,
-        'start_time', ts.start_time,
-        'end_time', ts.end_time,
-        'meal_period', ts.meal_period,
-        'restaurant', jsonb_build_object(
-          'id', r.id,
-          'name', r.name,
-          -- REMOVED: cuisine_type (doesn't exist)
-          -- REMOVED: image_url (doesn't exist)
-          'guest_can_cancel', r.guest_can_cancel,
-          'guest_cancel_cutoff_minutes', r.guest_cancel_cutoff_minutes  -- FIXED: was _hours
-        )
-      ),
-      'guest', jsonb_build_object(
-        'id', g.id,
-        'full_name', g.full_name
-      )
-    )
-  ), '[]'::jsonb)
-  INTO v_restaurant_reservations
-  FROM restaurant_reservations rr
-  JOIN restaurant_time_slots ts ON ts.id = rr.restaurant_slot_id
-  JOIN restaurants r ON r.id = ts.restaurant_id
-  JOIN guests g ON g.id = rr.guest_id
-  WHERE rr.guest_id = ANY(v_room_guest_ids)
-    AND rr.resort_id = v_guest.resort_id;
-
-  RETURN jsonb_build_object(
-    'activity_bookings', v_activity_bookings,
-    'restaurant_reservations', v_restaurant_reservations
-  );
-END;
-$$;
-```
-
-### UI Adjustment (GuestMyBookings.tsx)
-
-Update line 140 to use the corrected field name:
+**Modify activity booking creation (lines 221-262):**
 ```typescript
-// BEFORE:
-guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_hours 
-  ? r.slot.restaurant.guest_cancel_cutoff_hours * 60 : 60,
+// Create realistic booking mix
+confirmedGuests.forEach((guest, idx) => {
+  const guestCheckIn = new Date(guest.check_in_date);
+  const guestCheckOut = new Date(guest.check_out_date);
+  
+  const validSessions = createdSessions?.filter(s => {
+    const sessionDate = new Date(s.date);
+    return sessionDate >= guestCheckIn && sessionDate <= guestCheckOut;
+  }) || [];
 
-// AFTER:
-guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_minutes ?? 60,
+  validSessions.slice(0, 3).forEach((session, sIdx) => {
+    const sessionDate = new Date(session.date);
+    const isPast = sessionDate < today;
+    
+    // Determine status based on date and randomness
+    let status: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'PENDING' = 'CONFIRMED';
+    if (isPast) {
+      status = sIdx === 0 && idx === 0 ? 'CANCELLED' : 'COMPLETED';
+    } else if (sIdx === 0 && idx === 1) {
+      status = 'PENDING'; // One pending for approval demo
+    }
+    
+    // ... rest of booking creation
+  });
+});
 ```
+
+**Modify restaurant reservation creation (lines 264-299):**
+Apply same logic for restaurant reservations to create COMPLETED and CANCELLED examples.
+
+## Expected Results After Implementation
+
+### Demo Guest Portal "My Bookings" will show:
+
+| Section | Count | Content |
+|---------|-------|---------|
+| **Upcoming** | 3+ | Future CONFIRMED/PENDING bookings |
+| **Completed** (collapsible) | 10+ | Past sessions that were attended |
+| **Cancelled** (collapsible) | 2+ | Bookings the guest cancelled |
+
+### Visual Verification:
+- Upcoming section shows activity/dining cards with edit/cancel buttons
+- Completed section expands to show past bookings with checkmark icons
+- Cancelled section expands to show cancelled bookings with X icons
+- Filter tabs work correctly for Activities/Dining/All
 
 ## Files to Modify
 
-| File | Action |
-|------|--------|
-| New migration | Create to fix RPC column references |
-| `src/pages/guest/GuestMyBookings.tsx` | Update restaurant mapping to use `guest_cancel_cutoff_minutes` |
+| File | Changes |
+|------|---------|
+| `src/lib/demo-seed.ts` | Enhance booking creation with varied statuses (COMPLETED, CANCELLED, PENDING) |
 
-## Why This Is the Permanent Fix
+## Why This Approach
 
-1. **Schema-aligned**: RPC will only reference columns that actually exist
-2. **Validated against DB**: I queried `information_schema.columns` to verify exactly what exists
-3. **Matches UI needs**: The UI only uses `name`, `guest_can_cancel`, and `guest_cancel_cutoff_minutes` - we return exactly that
-
-## Verification Steps
-
-After implementation:
-1. Check database logs - no more "column does not exist" errors
-2. Guest portal My Bookings page loads successfully
-3. Demo and live resorts both work identically
-
+1. **No UI changes needed** - The filtering logic in `GuestMyBookings.tsx` is already correct
+2. **Demo data becomes realistic** - Users can see all three sections populate naturally
+3. **Matches real-world usage** - Actual resorts will have completed and cancelled bookings from normal operations
