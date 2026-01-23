@@ -1632,57 +1632,36 @@ export type Database = {
       }
       guest_sessions: {
         Row: {
-          browser_name: string | null
           created_at: string
-          device_fingerprint: string | null
-          device_name: string | null
-          device_type: string | null
           expires_at: string
           guest_id: string
           id: string
           ip_address: string | null
-          last_active_at: string | null
-          os_name: string | null
+          last_used_at: string | null
           resort_id: string
-          revoked_at: string | null
-          revoked_reason: string | null
-          session_token_hash: string
+          token_hash: string
           user_agent: string | null
         }
         Insert: {
-          browser_name?: string | null
           created_at?: string
-          device_fingerprint?: string | null
-          device_name?: string | null
-          device_type?: string | null
           expires_at?: string
           guest_id: string
           id?: string
           ip_address?: string | null
-          last_active_at?: string | null
-          os_name?: string | null
+          last_used_at?: string | null
           resort_id: string
-          revoked_at?: string | null
-          revoked_reason?: string | null
-          session_token_hash: string
+          token_hash: string
           user_agent?: string | null
         }
         Update: {
-          browser_name?: string | null
           created_at?: string
-          device_fingerprint?: string | null
-          device_name?: string | null
-          device_type?: string | null
           expires_at?: string
           guest_id?: string
           id?: string
           ip_address?: string | null
-          last_active_at?: string | null
-          os_name?: string | null
+          last_used_at?: string | null
           resort_id?: string
-          revoked_at?: string | null
-          revoked_reason?: string | null
-          session_token_hash?: string
+          token_hash?: string
           user_agent?: string | null
         }
         Relationships: [
@@ -5307,10 +5286,6 @@ export type Database = {
           resort_id: string
         }[]
       }
-      get_guest_sessions: {
-        Args: { p_guest_id: string; p_resort_id: string }
-        Returns: Json
-      }
       get_or_create_loyalty_member: {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: string
@@ -5815,18 +5790,6 @@ export type Database = {
         Args: { p_guest_id: string }
         Returns: Json
       }
-      register_guest_session: {
-        Args: {
-          p_browser_name?: string
-          p_device_fingerprint?: string
-          p_device_name?: string
-          p_device_type?: string
-          p_guest_id: string
-          p_os_name?: string
-          p_resort_id: string
-        }
-        Returns: Json
-      }
       remove_permission_override: {
         Args: {
           p_permission_key: string
@@ -5861,14 +5824,6 @@ export type Database = {
         Returns: string
       }
       retry_failed_events: { Args: { p_event_ids: string[] }; Returns: number }
-      revoke_all_guest_sessions: {
-        Args: { p_guest_id: string; p_reason?: string }
-        Returns: Json
-      }
-      revoke_guest_session: {
-        Args: { p_guest_id: string; p_reason?: string; p_session_id: string }
-        Returns: Json
-      }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
       seed_resort_departments: {
         Args: { p_resort_id: string }
@@ -5979,10 +5934,6 @@ export type Database = {
         Returns: string
       }
       validate_demo_login_token: { Args: { p_token: string }; Returns: Json }
-      validate_guest_session: {
-        Args: { p_session_token: string }
-        Returns: Json
-      }
       validate_prearrival_link: {
         Args: { p_last_name?: string; p_token: string }
         Returns: Json
