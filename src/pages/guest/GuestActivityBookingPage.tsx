@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
@@ -24,6 +24,8 @@ import { CategoryIcon } from '@/components/ui/category-badge';
 import { NumberStepper } from '@/components/ui/number-stepper';
 import { AttendeeSelector } from '@/components/guest/AttendeeSelector';
 import { useTravelParty } from '@/hooks/useTravelParty';
+import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils';
+import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
@@ -379,25 +381,16 @@ export default function GuestActivityBookingPage() {
     );
   }
 
-  if (!initialSession) {
+  // Check if the session exists but has already started (deep-link to past session)
+  const isInitialSessionPast = initialSession && guest?.resortTimezone && 
+    isSessionPast(initialSession.date, initialSession.start_time, guest.resortTimezone);
+
+  if (!initialSession || isInitialSessionPast) {
     return (
-      <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Activities
-        </Button>
-        <Card>
-          <CardContent className="py-8 text-center">
-            <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">
-              This activity session is no longer available for booking.
-            </p>
-            <Button className="mt-4" onClick={() => navigate(backPath)}>
-              Browse Activities
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <SessionExpiredState 
+        activityName={initialSession?.activity_name}
+        onViewOtherTimes={() => navigate(backPath)}
+      />
     );
   }
 

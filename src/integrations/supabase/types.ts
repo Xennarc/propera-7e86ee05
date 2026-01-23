@@ -5752,6 +5752,7 @@ export type Database = {
           source: string
         }[]
       }
+      resort_now: { Args: { p_resort_id: string }; Returns: string }
       resort_tz_to_utc: {
         Args: { p_local_timestamp: string; p_resort_id: string }
         Returns: string
@@ -5769,6 +5770,10 @@ export type Database = {
       seed_resort_retention_policy: {
         Args: { p_resort_id: string }
         Returns: undefined
+      }
+      session_start_timestamptz: {
+        Args: { p_date: string; p_resort_id: string; p_start_time: string }
+        Returns: string
       }
       set_permission_override: {
         Args: {
