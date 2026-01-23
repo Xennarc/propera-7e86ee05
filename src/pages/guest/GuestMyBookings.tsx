@@ -368,7 +368,9 @@ export default function GuestMyBookings() {
     if (booking.status !== 'CONFIRMED' && booking.status !== 'PENDING') return false;
     if (!booking.guest_can_cancel) return false;
     const sessionDateTime = new Date(`${booking.date}T${booking.start_time}`);
-    const cutoff = new Date(sessionDateTime.getTime() - (booking.guest_cancel_cutoff_minutes ?? 60) * 60 * 1000);
+    // Activities use hours for cutoff (guest_cancel_cutoff_hours)
+    const cutoffHours = booking.guest_cancel_cutoff_hours ?? 24;
+    const cutoff = new Date(sessionDateTime.getTime() - cutoffHours * 60 * 60 * 1000);
     return new Date() < cutoff;
   };
 
