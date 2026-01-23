@@ -1,279 +1,194 @@
 
-# Pre-arrival to In-stay Transition: Activity Availability & Request Restrictions
+# Seamless Pre-arrival to In-stay Auto-Login Implementation
 
-## Executive Summary
+## Overview
 
-The pre-arrival system has two entry points (token-based email link and Guest Portal login) that both correctly filter activities to the guest's stay dates. However, **Guest Requests are unrestricted** - pre-arrival guests can submit service requests before they've checked in, which is operationally problematic. This plan addresses the gap by adding a gating layer for requests while preserving the activity booking flow.
+This plan implements seamless auto-login for guests transitioning from pre-arrival to in-stay mode. When a guest with an active pre-arrival token visits their link after check-in begins, they will be automatically logged into the Guest Portal without needing to re-enter credentials.
 
----
+## Current Gap Analysis
 
-## Current State Analysis
-
-### What Works Correctly
-| Component | Status | Details |
-|-----------|--------|---------|
-| Activity date filtering | Working | `guest_get_available_sessions` filters by `check_in_date` to `check_out_date` |
-| Past session blocking | Working | `session_start_timestamptz` prevents viewing/booking started sessions |
-| Pre-arrival wizard | Working | Token-based check-in flow at `/prearrival/:token/checkin` |
-| Guest Portal home swap | Working | `GuestHome` renders `GuestPrearrivalHome` when `isPrearrival: true` |
-
-### What Needs Fixing
-| Issue | Impact | Priority |
-|-------|--------|----------|
-| Guest Requests accessible in pre-arrival | Guests can request room service before arriving | High |
-| Navigation unchanged for pre-arrival | "Requests" tab visible but shouldn't be functional pre-arrival | Medium |
-| Token-based booking uses hardcoded guest count | `numAdults: 2` ignores actual party size | Low |
-
----
+| Component | Current State | Issue |
+|-----------|---------------|-------|
+| `PrearrivalLandingPage` | Stores `{ resortCode, guestId }` in `prearrival_guest_redirect` | Missing full session data for auto-login |
+| `GuestAuthContext` | Only reads `propera_guest_session` | Ignores `prearrival_guest_redirect` entirely |
+| `ResortGuestLogin` | No awareness of redirect data | Cannot pre-fill or auto-login |
 
 ## Solution Architecture
 
-### Phase 1: Restrict Guest Requests to In-Stay Only
+### Approach: Enhance `PrearrivalLandingPage` to Store Full Session Data
 
-**Goal:** Prevent guests from submitting service requests until their check-in date.
-
-#### 1.1 Client-Side Gate in GuestRequestsPage
-
-Modify `src/pages/guest/GuestRequestsPage.tsx` to check arrival status:
+Instead of creating a new RPC, we leverage the existing `validate_prearrival_token` RPC which already returns all necessary guest data. The landing page will store full session data (not just IDs) when transitioning in-stay guests.
 
 ```text
-GuestRequestsPage
-  |-- useIsPrearrivalGuest() → { isPrearrival, daysUntilArrival }
-  |-- If isPrearrival:
-      |-- Render PrearrivalRequestsBlockedState (friendly message)
-      |-- Show countdown to check-in
-      |-- CTA: "View your stay details" → /guest
-  |-- If in-stay:
-      |-- Render current request flow (unchanged)
+Current Flow:
+  PrearrivalLandingPage (IN_STAY detected)
+    → Store { resortCode, guestId } in prearrival_guest_redirect
+    → Navigate to /r/{code} (login page)
+    → Guest sees login form (NOT seamless)
+
+New Flow:
+  PrearrivalLandingPage (IN_STAY detected)
+    → Store full GuestSession in propera_guest_session (same key as normal login)
+    → Navigate to /guest (portal directly)
+    → GuestAuthContext restores session on load (SEAMLESS)
 ```
-
-#### 1.2 Server-Side Enforcement (RPC Guard)
-
-Add check in request creation RPCs to reject pre-arrival submissions:
-
-```sql
--- In guest_create_service_request or equivalent RPC
-IF v_guest.check_in_date > CURRENT_DATE THEN
-  RETURN jsonb_build_object(
-    'success', false,
-    'error', 'GUEST_NOT_CHECKED_IN'
-  );
-END IF;
-```
-
-### Phase 2: Adaptive Navigation for Pre-arrival
-
-**Goal:** Visually distinguish pre-arrival state in navigation.
-
-#### 2.1 Conditional Tab Behavior
-
-In `src/components/guest/GuestLayout.tsx`:
-
-```text
-navItems computation:
-  |-- If isPrearrival:
-      |-- Requests tab: disabled OR shows "Available on check-in"
-  |-- If in-stay:
-      |-- All tabs fully enabled
-```
-
-#### 2.2 Pre-arrival Tab Indicator
-
-Add visual badge or lock icon on Requests tab for pre-arrival guests:
-
-```text
-Requests Tab (pre-arrival)
-  |-- Icon: Bell with small lock overlay
-  |-- Label: "Requests" with subtle "Check-in" subtext
-  |-- onClick: Show toast "Available after check-in" OR navigate to blocked state
-```
-
-### Phase 3: Token-Based Flow Improvements
-
-**Goal:** Ensure `/prearrival/:token/experiences` page captures correct guest count.
-
-#### 3.1 Party Size Selection in PreArrivalPage
-
-Modify `src/pages/guest/PreArrivalPage.tsx`:
-
-```text
-bookFromItinerary(item):
-  |-- Show quick dialog: "How many guests?"
-  |-- numAdults selector (1-10)
-  |-- numChildren selector (0-10)
-  |-- Then call booking mutation with actual values
-```
-
----
 
 ## Implementation Details
 
-### File Changes Summary
+### Phase 1: Modify PrearrivalLandingPage to Establish Full Session
+
+**File: `src/pages/prearrival/PrearrivalLandingPage.tsx`**
+
+Update the IN_STAY redirect logic to:
+1. Build a complete `GuestSession` object from the validated data
+2. Store it in `propera_guest_session` (same key `GuestAuthContext` uses)
+3. Navigate directly to `/guest` instead of `/r/{code}`
+
+```text
+Changes in performValidation():
+
+if (guestState === 'IN_STAY') {
+  // Build full session object
+  const session = {
+    guestId: validatedData.guest.id,
+    fullName: validatedData.guest.full_name,
+    roomNumber: validatedData.guest.room_number,
+    checkInDate: validatedData.guest.check_in_date,
+    checkOutDate: validatedData.guest.check_out_date,
+    resortId: validatedData.resort.id,
+    resortName: validatedData.resort.name,
+    resortLogoUrl: validatedData.resort.login_logo_url || undefined,
+    // resortTimezone fetched dynamically by GuestAuthContext
+  };
+  
+  // Store in same key as normal login
+  localStorage.setItem('propera_guest_session', JSON.stringify(session));
+  
+  // Also store prearrival flag for tracking (optional)
+  localStorage.setItem('prearrival_guest_redirect', JSON.stringify({
+    resortCode: validatedData.resort.code,
+    guestId: validatedData.guest.id,
+    autoLoginAt: new Date().toISOString(),
+  }));
+  
+  // Navigate directly to portal
+  navigate('/guest');
+}
+```
+
+### Phase 2: Add Fallback in GuestAuthContext (Defense in Depth)
+
+**File: `src/contexts/GuestAuthContext.tsx`**
+
+Add a secondary check for `prearrival_guest_redirect` if no `propera_guest_session` exists. This handles edge cases where the session might have been cleared but the redirect data remains.
+
+```text
+Changes in restoreSession():
+
+// First, check for normal session
+const storedSession = localStorage.getItem(GUEST_SESSION_KEY);
+
+// If no session, check for prearrival redirect (fallback)
+if (!storedSession) {
+  const prearrivalRedirect = localStorage.getItem('prearrival_guest_redirect');
+  if (prearrivalRedirect) {
+    try {
+      const redirect = JSON.parse(prearrivalRedirect);
+      // If we have autoLoginAt, the session should have been established
+      // by PrearrivalLandingPage. If it's missing, user may need to re-login.
+      if (redirect.autoLoginAt) {
+        // Session was established but got cleared somehow
+        // Clear stale redirect and let user re-login
+        localStorage.removeItem('prearrival_guest_redirect');
+      }
+    } catch {
+      localStorage.removeItem('prearrival_guest_redirect');
+    }
+  }
+}
+
+// Continue with normal session restoration...
+```
+
+### Phase 3: Update ResortGuestLogin for Pre-fill Support
+
+**File: `src/pages/guest/ResortGuestLogin.tsx`**
+
+As a UX improvement, if a guest lands on the login page with `prearrival_guest_redirect` data (fallback scenario), pre-fill the room number and last name.
+
+```text
+Changes in form initialization:
+
+const [formData, setFormData] = useState(() => {
+  // Check URL params first (existing "Find Resort" flow)
+  const roomNumber = searchParams.get('roomNumber') || '';
+  const lastName = searchParams.get('lastName') || '';
+  
+  // If no URL params, check for prearrival redirect data
+  if (!roomNumber && !lastName) {
+    const prearrivalRedirect = localStorage.getItem('prearrival_guest_redirect');
+    if (prearrivalRedirect) {
+      // Note: prearrival_guest_redirect only has guestId, not credentials
+      // This is intentional for security - guests still need PIN
+    }
+  }
+  
+  return { roomNumber, lastName, pin: '' };
+});
+```
+
+## File Changes Summary
 
 | File | Change Type | Description |
 |------|-------------|-------------|
-| `src/pages/guest/GuestRequestsPage.tsx` | Modify | Add pre-arrival gate with friendly blocked state |
-| `src/components/guest/GuestLayout.tsx` | Modify | Conditional Requests tab behavior |
-| `src/pages/guest/PreArrivalPage.tsx` | Modify | Add guest count selector before booking |
-| `src/components/guest/PrearrivalRequestsBlockedState.tsx` | Create | Friendly "not yet available" UI |
-| Database migration | Create | Add guard to request creation RPC (if exists) |
+| `src/pages/prearrival/PrearrivalLandingPage.tsx` | Modify | Build full session on IN_STAY transition, navigate to `/guest` |
+| `src/contexts/GuestAuthContext.tsx` | Modify | Add fallback check for stale `prearrival_guest_redirect` cleanup |
 
----
-
-## Detailed Component Designs
-
-### PrearrivalRequestsBlockedState Component
+## Data Flow After Implementation
 
 ```text
-src/components/guest/PrearrivalRequestsBlockedState.tsx
+Guest clicks pre-arrival email link on/after check-in date:
 
-+--------------------------------------------------+
-|                                                  |
-|        [Clock Icon with Lock Overlay]            |
-|                                                  |
-|     Requests Available After Check-in            |
-|                                                  |
-|   Service requests like room service, towels,    |
-|   and housekeeping will be available once        |
-|   you've checked in to your room.                |
-|                                                  |
-|   ┌────────────────────────────────────────┐    |
-|   │  🗓️  Check-in: Saturday, Jan 25       │    |
-|   │      3 days from now                    │    |
-|   └────────────────────────────────────────┘    |
-|                                                  |
-|   In the meantime, you can:                      |
-|                                                  |
-|   [Pre-book Activities]  [Reserve Dining]        |
-|                                                  |
-+--------------------------------------------------+
+1. /prearrival/:token loads PrearrivalLandingPage
+2. validate_prearrival_token RPC returns full guest data
+3. getGuestState() returns 'IN_STAY'
+4. Build GuestSession from validatedData
+5. Store in localStorage('propera_guest_session')
+6. Navigate to /guest
+7. GuestLayout mounts, GuestAuthContext restores session
+8. Guest sees portal immediately (no login required)
 ```
 
-### Navigation Tab States
+## Security Considerations
 
-```text
-Pre-arrival State:
-┌──────────────────────────────────────────────────┐
-│  Home    Activities   Requests*   Bookings       │
-│   ●                     🔒                        │
-└──────────────────────────────────────────────────┘
-* Requests tab shows lock icon, navigates to blocked state
-
-In-stay State:
-┌──────────────────────────────────────────────────┐
-│  Home    Activities   Requests    Bookings       │
-│   ●                                               │
-└──────────────────────────────────────────────────┘
-* All tabs fully functional
-```
-
----
-
-## Database Changes
-
-### Server-Side Guard (if request creation RPC exists)
-
-```sql
--- Migration: Add pre-arrival check to request creation
-
-CREATE OR REPLACE FUNCTION guest_create_service_request(...)
-RETURNS jsonb AS $$
-DECLARE
-  v_guest guests%ROWTYPE;
-BEGIN
-  -- Fetch guest
-  SELECT * INTO v_guest FROM guests WHERE id = p_guest_id;
-  
-  -- Check if guest has checked in
-  IF v_guest.check_in_date > CURRENT_DATE THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'GUEST_NOT_CHECKED_IN',
-      'message', 'Service requests are available after check-in'
-    );
-  END IF;
-  
-  -- ... rest of existing logic
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
----
+| Concern | Mitigation |
+|---------|------------|
+| Session hijacking via token | Token already validated server-side; session created only after successful validation |
+| Stale session data | `GuestAuthContext` validates `checkOutDate >= today` on restore |
+| Cross-resort leakage | Session is scoped to `resortId`; mismatch handling remains in place |
+| Token reuse after logout | Clearing `propera_guest_session` on logout is sufficient; token remains valid for re-validation |
 
 ## Acceptance Criteria
 
-| Test Case | Expected Result |
-|-----------|-----------------|
-| Pre-arrival guest taps "Requests" | Sees friendly blocked state with countdown |
-| Pre-arrival guest tries API bypass | Server rejects with `GUEST_NOT_CHECKED_IN` |
-| In-stay guest taps "Requests" | Normal request flow works |
-| Check-in day morning | Requests become available (based on date, not time) |
-| Pre-arrival Activities tab | Works normally (sessions filtered to stay dates) |
-| Pre-arrival Bookings tab | Shows any pre-booked activities/dining |
-| Token-based pre-arrival booking | Prompts for guest count before confirming |
+| Scenario | Expected Behavior |
+|----------|-------------------|
+| Guest with future check-in opens pre-arrival link | Sees pre-arrival landing page as normal |
+| Guest on check-in day opens pre-arrival link | Auto-redirected to Guest Portal, fully logged in |
+| Guest opens pre-arrival link after check-out | Sees "stay ended" error message |
+| Guest logs out and clicks pre-arrival link again | Re-validated and auto-logged in if still in-stay |
+| Guest clears browser storage | Must re-login via normal flow (PIN required) |
 
----
+## Testing Notes
 
-## Edge Cases
-
-1. **Same-day check-in**: Guest logs in on check-in day before physically arriving
-   - **Decision**: Allow requests on check-in date (operational staff can handle)
-
-2. **Timezone considerations**: Guest in different timezone than resort
-   - **Decision**: Use resort timezone for check-in date comparison
-
-3. **Early check-in**: Guest checks in day before official date
-   - **Decision**: System uses official `check_in_date` from reservation
-
----
+1. Create a demo guest with check-in date = today
+2. Generate a pre-arrival link for that guest
+3. Open the link in an incognito browser
+4. Verify: Guest lands directly in `/guest` portal without login form
+5. Check localStorage: `propera_guest_session` contains full session data
+6. Logout and re-open link: Should auto-login again
 
 ## Implementation Order
 
-1. **Create `PrearrivalRequestsBlockedState` component** - Friendly UI for blocked state
-2. **Update `GuestRequestsPage`** - Add pre-arrival gate with blocked state
-3. **Update `GuestLayout` navigation** - Add lock indicator on Requests tab
-4. **Add server-side guard** - Prevent API bypass of request restrictions
-5. **Fix `PreArrivalPage` guest count** - Add party size selector before booking
-6. **Test all flows** - Pre-arrival, check-in day, in-stay transitions
-
----
-
-## Technical Notes
-
-### Pre-arrival Detection
-Uses existing hook from `usePrearrivalData.ts`:
-```typescript
-const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
-// isPrearrival: true if checkInDate > today
-// daysUntilArrival: number of days until check-in
-```
-
-### Existing Data Flow (Unchanged)
-```text
-Guest Login → GuestAuthContext stores session
-  |-- checkInDate, checkOutDate available
-  |-- Used by all RPCs for date-range filtering
-  
-Activity Booking:
-  guest_get_available_sessions(p_guest_id)
-    → Filters: check_in_date ≤ date ≤ check_out_date
-    → Filters: session not started (timezone-aware)
-```
-
-### New Data Flow (Requests)
-```text
-Guest Requests (Current - No Restriction):
-  GuestRequestsPage → createBundle() → guest_create_service_request
-
-Guest Requests (After Fix):
-  GuestRequestsPage
-    |-- Check: isPrearrival?
-        |-- Yes: Render PrearrivalRequestsBlockedState
-        |-- No: Render normal flow → createBundle()
-    
-  Server Guard (Defense in Depth):
-    guest_create_service_request
-      |-- Check: check_in_date > CURRENT_DATE?
-          |-- Yes: Return error GUEST_NOT_CHECKED_IN
-          |-- No: Proceed with request creation
-```
+1. **Modify `PrearrivalLandingPage.tsx`** - Build and store full session on IN_STAY
+2. **Modify `GuestAuthContext.tsx`** - Add stale redirect cleanup (optional but recommended)
+3. **Test full flow** - Pre-arrival → In-stay transition
