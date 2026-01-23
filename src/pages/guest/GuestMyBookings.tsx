@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +37,8 @@ import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { Link } from 'react-router-dom';
 import { useGuestDiningSync } from '@/hooks/useDiningBookingSync';
 import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
+import { GuestDebugPanel } from '@/components/guest/GuestDebugPanel';
+import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 
 // Map server error messages to error codes
 function mapCancelErrorToCode(error: string): BookingErrorCode {
@@ -70,6 +72,9 @@ export default function GuestMyBookings() {
     slot_id?: string;
     max_pax_per_booking?: number;
   } | null>(null);
+
+  // Debug mode hook - only shows panel with ?debug=1
+  const { showDebugPanel, debugLog, resortCode } = useGuestDebugMode(guest?.resortId);
 
   // Enable real-time sync for activities and dining
   useGuestActivitySync(guest?.guestId, guest?.resortId);
@@ -333,6 +338,26 @@ export default function GuestMyBookings() {
     .filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW')
     .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
     .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+
+  // Debug logging for filtered counts
+  useEffect(() => {
+    if (bookings && !isLoading) {
+      debugLog('Data loaded', {
+        guestId: guest?.guestId,
+        resortId: guest?.resortId,
+        resortCode,
+        rawActivityCount: allActivities.length,
+        rawReservationCount: allReservations.length,
+        upcomingActivities: upcomingActivities.length,
+        upcomingReservations: upcomingReservations.length,
+        completedActivities: completedActivities.length,
+        completedReservations: completedReservations.length,
+        cancelledActivities: cancelledActivities.length,
+        cancelledReservations: cancelledReservations.length,
+        today,
+      });
+    }
+  }, [bookings, isLoading, guest?.guestId, guest?.resortId, resortCode, debugLog, today, allActivities.length, allReservations.length, upcomingActivities.length, upcomingReservations.length, completedActivities.length, completedReservations.length, cancelledActivities.length, cancelledReservations.length]);
 
   // Apply filter
   const showActivities = filter === 'all' || filter === 'activities';
@@ -911,6 +936,24 @@ export default function GuestMyBookings() {
         onOpenChange={(open) => !open && setEditDialog(null)}
         booking={editDialog}
       />
+
+      {/* Debug Panel - only shown with ?debug=1 */}
+      {showDebugPanel && (
+        <GuestDebugPanel
+          guestId={guest?.guestId}
+          resortId={guest?.resortId}
+          resortCode={resortCode}
+          roomNumber={guest?.roomNumber}
+          bookingsData={bookings}
+          isLoading={isLoading}
+          error={queryError as Error | null}
+          filters={{
+            upcoming: upcomingActivities.length + upcomingReservations.length,
+            completed: completedActivities.length + completedReservations.length,
+            cancelled: cancelledActivities.length + cancelledReservations.length,
+          }}
+        />
+      )}
     </div>
   );
 }

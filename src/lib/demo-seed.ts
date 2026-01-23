@@ -88,7 +88,15 @@ const DEMO_GUESTS = [
   { full_name: 'Marco Rossi', room_number: '402', nationality: 'Italy', daysFromNow: 2, stayLength: 5 },
 ];
 
-export async function seedDemoResortData(resortId: string): Promise<void> {
+export interface SeedResult {
+  activityBookings: number;
+  restaurantReservations: number;
+  guests: number;
+  sessions: number;
+  slots: number;
+}
+
+export async function seedDemoResortData(resortId: string): Promise<SeedResult> {
   const today = new Date();
 
   // Create activities
@@ -374,4 +382,17 @@ export async function seedDemoResortData(resortId: string): Promise<void> {
       console.error('Error seeding feedback:', feedbackError);
     }
   }
+
+  // Return seed summary
+  const result: SeedResult = {
+    activityBookings: bookings.length,
+    restaurantReservations: reservations.length,
+    guests: guests?.length ?? 0,
+    sessions: createdSessions?.length ?? 0,
+    slots: createdSlots?.length ?? 0,
+  };
+
+  console.log('[Demo Seed] Completed:', result);
+
+  return result;
 }
