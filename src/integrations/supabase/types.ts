@@ -1369,6 +1369,64 @@ export type Database = {
           },
         ]
       }
+      guest_login_tokens: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          created_by_staff_id: string | null
+          expires_at: string
+          guest_id: string
+          id: string
+          resort_id: string
+          token_hash: string
+          type: Database["public"]["Enums"]["guest_login_token_type"]
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by_staff_id?: string | null
+          expires_at: string
+          guest_id: string
+          id?: string
+          resort_id: string
+          token_hash: string
+          type: Database["public"]["Enums"]["guest_login_token_type"]
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          created_by_staff_id?: string | null
+          expires_at?: string
+          guest_id?: string
+          id?: string
+          resort_id?: string
+          token_hash?: string
+          type?: Database["public"]["Enums"]["guest_login_token_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_login_tokens_created_by_staff_id_fkey"
+            columns: ["created_by_staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_login_tokens_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_login_tokens_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_outbound_messages: {
         Row: {
           body_preview: string | null
@@ -5104,6 +5162,10 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_guest_login_token: {
+        Args: { p_raw_token: string }
+        Returns: Json
+      }
       create_activity_booking_idempotent: {
         Args: {
           p_created_by_user_id?: string
@@ -5130,6 +5192,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      create_guest_login_token: {
+        Args: { p_guest_id: string; p_token_type: string }
+        Returns: Json
       }
       create_guest_notification: {
         Args: {
@@ -5906,6 +5972,7 @@ export type Database = {
         | "COMPLETED"
       feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
+      guest_login_token_type: "instant" | "confirm" | "pairing"
       guest_request_source: "ACTIVITY" | "RESTAURANT"
       guest_request_status: "OPEN" | "IN_PROGRESS" | "COMPLETED"
       lead_status:
@@ -6123,6 +6190,7 @@ export const Constants = {
       ],
       feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
+      guest_login_token_type: ["instant", "confirm", "pairing"],
       guest_request_source: ["ACTIVITY", "RESTAURANT"],
       guest_request_status: ["OPEN", "IN_PROGRESS", "COMPLETED"],
       lead_status: [
