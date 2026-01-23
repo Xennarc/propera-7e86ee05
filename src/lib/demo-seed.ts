@@ -218,37 +218,64 @@ export async function seedDemoResortData(resortId: string): Promise<void> {
     throw guestsError;
   }
 
-  // Create some activity bookings for realism
+  // Create some activity bookings for realism with varied statuses
   const bookings: any[] = [];
   const confirmedGuests = guests?.slice(0, 5) || [];
   
-  confirmedGuests.forEach((guest, idx) => {
-    // Find a session in the guest's stay period
+  confirmedGuests.forEach((guest, guestIdx) => {
     const guestCheckIn = new Date(guest.check_in_date);
     const guestCheckOut = new Date(guest.check_out_date);
     
-    const validSessions = createdSessions?.filter(s => {
+    // Separate past and future sessions
+    const pastSessions = createdSessions?.filter(s => {
       const sessionDate = new Date(s.date);
-      return sessionDate >= guestCheckIn && sessionDate <= guestCheckOut;
+      return sessionDate >= guestCheckIn && sessionDate < today;
+    }) || [];
+    
+    const futureSessions = createdSessions?.filter(s => {
+      const sessionDate = new Date(s.date);
+      return sessionDate >= today && sessionDate <= guestCheckOut;
     }) || [];
 
-    if (validSessions.length > 0) {
-      const session = validSessions[idx % validSessions.length];
+    // Create past bookings with COMPLETED or CANCELLED status
+    pastSessions.slice(0, 2).forEach((session, sIdx) => {
       const activity = activities?.find(a => a.id === session.activity_id);
+      // First guest gets one cancelled past booking for demo
+      const status = (guestIdx === 0 && sIdx === 0) ? 'CANCELLED' : 'COMPLETED';
       
       bookings.push({
         resort_id: resortId,
         guest_id: guest.id,
         session_id: session.id,
         room_number: guest.room_number,
-        status: 'CONFIRMED',
+        status,
         source: 'GUEST_PORTAL',
         num_adults: Math.floor(Math.random() * 2) + 1,
         num_children: Math.random() > 0.7 ? 1 : 0,
         price_per_person: activity?.default_price_per_person || 50,
         total_amount: (activity?.default_price_per_person || 50) * (Math.floor(Math.random() * 2) + 1),
       });
-    }
+    });
+
+    // Create future bookings with CONFIRMED or PENDING status
+    futureSessions.slice(0, 2).forEach((session, sIdx) => {
+      const activity = activities?.find(a => a.id === session.activity_id);
+      // One pending booking for approval demo (second guest, first session)
+      const status = (guestIdx === 1 && sIdx === 0) ? 'PENDING' : 'CONFIRMED';
+      
+      bookings.push({
+        resort_id: resortId,
+        guest_id: guest.id,
+        session_id: session.id,
+        room_number: guest.room_number,
+        status,
+        source: 'GUEST_PORTAL',
+        num_adults: Math.floor(Math.random() * 2) + 1,
+        num_children: Math.random() > 0.7 ? 1 : 0,
+        price_per_person: activity?.default_price_per_person || 50,
+        total_amount: (activity?.default_price_per_person || 50) * (Math.floor(Math.random() * 2) + 1),
+      });
+    });
   });
 
   if (bookings.length > 0) {
@@ -261,20 +288,42 @@ export async function seedDemoResortData(resortId: string): Promise<void> {
     }
   }
 
-  // Create some restaurant reservations
+  // Create some restaurant reservations with varied statuses
   const reservations: any[] = [];
-  confirmedGuests.forEach((guest, idx) => {
+  confirmedGuests.forEach((guest, guestIdx) => {
     const guestCheckIn = new Date(guest.check_in_date);
     const guestCheckOut = new Date(guest.check_out_date);
     
-    const validSlots = createdSlots?.filter(s => {
+    // Separate past and future slots
+    const pastSlots = createdSlots?.filter(s => {
       const slotDate = new Date(s.date);
-      return slotDate >= guestCheckIn && slotDate <= guestCheckOut;
+      return slotDate >= guestCheckIn && slotDate < today;
+    }) || [];
+    
+    const futureSlots = createdSlots?.filter(s => {
+      const slotDate = new Date(s.date);
+      return slotDate >= today && slotDate <= guestCheckOut;
     }) || [];
 
-    if (validSlots.length > 0) {
-      const slot = validSlots[idx % validSlots.length];
+    // Create past reservations with COMPLETED or CANCELLED status
+    pastSlots.slice(0, 1).forEach((slot, sIdx) => {
+      // First guest gets one cancelled past reservation for demo
+      const status = (guestIdx === 0 && sIdx === 0) ? 'CANCELLED' : 'COMPLETED';
       
+      reservations.push({
+        resort_id: resortId,
+        guest_id: guest.id,
+        restaurant_slot_id: slot.id,
+        room_number: guest.room_number,
+        status,
+        source: 'GUEST_PORTAL',
+        num_adults: Math.floor(Math.random() * 2) + 1,
+        num_children: Math.random() > 0.8 ? 1 : 0,
+      });
+    });
+
+    // Create future reservations with CONFIRMED status
+    futureSlots.slice(0, 1).forEach((slot) => {
       reservations.push({
         resort_id: resortId,
         guest_id: guest.id,
@@ -285,7 +334,7 @@ export async function seedDemoResortData(resortId: string): Promise<void> {
         num_adults: Math.floor(Math.random() * 2) + 1,
         num_children: Math.random() > 0.8 ? 1 : 0,
       });
-    }
+    });
   });
 
   if (reservations.length > 0) {
