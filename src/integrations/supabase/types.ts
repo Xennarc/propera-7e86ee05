@@ -5229,6 +5229,14 @@ export type Database = {
         }
         Returns: string
       }
+      create_guest_pairing_token: {
+        Args: {
+          p_guest_id: string
+          p_resort_id: string
+          p_session_token: string
+        }
+        Returns: Json
+      }
       create_restaurant_reservation_idempotent: {
         Args: {
           p_created_by_user_id?: string
