@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { getDeviceInfo } from '@/lib/device-info';
 
 export interface GuestSession {
   guestId: string;
@@ -12,6 +12,8 @@ export interface GuestSession {
   resortName?: string;
   resortLogoUrl?: string;
   resortTimezone?: string;
+  sessionId?: string;
+  sessionToken?: string;
 }
 
 // Re-export for backward compatibility - branding now fetched dynamically via useResortBranding hook
@@ -37,6 +39,75 @@ async function hashPin(pin: string): Promise<string> {
 
 const GUEST_SESSION_KEY = 'propera_guest_session';
 
+interface SessionRegistrationResult {
+  success: boolean;
+  session_id?: string;
+  session_token?: string;
+  error?: string;
+}
+
+interface SessionValidationResult {
+  success: boolean;
+  session_id?: string;
+  guest_id?: string;
+  resort_id?: string;
+  error?: string;
+  reason?: string;
+}
+
+// Register a new session with device info
+async function registerSession(guestId: string, resortId: string): Promise<{ sessionId?: string; sessionToken?: string }> {
+  try {
+    const deviceInfo = await getDeviceInfo();
+    
+    const { data, error } = await supabase.rpc('register_guest_session', {
+      p_guest_id: guestId,
+      p_resort_id: resortId,
+      p_device_fingerprint: deviceInfo.fingerprint,
+      p_device_name: deviceInfo.deviceName,
+      p_device_type: deviceInfo.deviceType,
+      p_browser_name: deviceInfo.browserName,
+      p_os_name: deviceInfo.osName,
+    });
+
+    if (error) {
+      console.error('Failed to register session:', error);
+      return {};
+    }
+
+    const result = data as unknown as SessionRegistrationResult;
+    if (result.success) {
+      return {
+        sessionId: result.session_id,
+        sessionToken: result.session_token,
+      };
+    }
+    return {};
+  } catch (err) {
+    console.error('Error registering session:', err);
+    return {};
+  }
+}
+
+// Validate an existing session token
+async function validateSession(sessionToken: string): Promise<SessionValidationResult> {
+  try {
+    const { data, error } = await supabase.rpc('validate_guest_session', {
+      p_session_token: sessionToken,
+    });
+
+    if (error) {
+      console.error('Failed to validate session:', error);
+      return { success: false, error: 'VALIDATION_ERROR' };
+    }
+
+    return data as unknown as SessionValidationResult;
+  } catch (err) {
+    console.error('Error validating session:', err);
+    return { success: false, error: 'VALIDATION_ERROR' };
+  }
+}
+
 export function GuestAuthProvider({ children }: { children: ReactNode }) {
   const [guest, setGuest] = useState<GuestSession | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,9 +119,21 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       if (storedSession) {
         try {
           const parsed = JSON.parse(storedSession) as GuestSession;
-          // Check if stay is still valid
+          // Check if stay is still valid (basic check)
           const today = new Date().toISOString().split('T')[0];
           if (parsed.checkOutDate >= today) {
+            // If we have a session token, validate it
+            if (parsed.sessionToken) {
+              const validation = await validateSession(parsed.sessionToken);
+              if (!validation.success) {
+                // Session revoked or invalid - clear and logout
+                console.log('Session invalid or revoked:', validation.error, validation.reason);
+                localStorage.removeItem(GUEST_SESSION_KEY);
+                setLoading(false);
+                return;
+              }
+            }
+
             // If resortName or resortLogoUrl is missing, fetch them
             if ((!parsed.resortName || parsed.resortLogoUrl === undefined || !parsed.resortTimezone) && parsed.resortId) {
               try {
@@ -158,6 +241,9 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Ignore error, resort info is optional
       }
+
+      // Register a session for this device
+      const { sessionId, sessionToken } = await registerSession(guestData.guest_id, guestData.resort_id);
       
       const session: GuestSession = {
         guestId: guestData.guest_id,
@@ -169,6 +255,8 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
         resortName,
         resortLogoUrl,
         resortTimezone,
+        sessionId,
+        sessionToken,
       };
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
@@ -181,10 +269,26 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    // Revoke the current session if we have a token
+    const storedSession = localStorage.getItem(GUEST_SESSION_KEY);
+    if (storedSession) {
+      try {
+        const parsed = JSON.parse(storedSession) as GuestSession;
+        if (parsed.sessionId && parsed.guestId) {
+          // Fire and forget - don't wait for revocation
+          void supabase.rpc('revoke_guest_session', {
+            p_session_id: parsed.sessionId,
+            p_guest_id: parsed.guestId,
+            p_reason: 'user_logout',
+          });
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
     localStorage.removeItem(GUEST_SESSION_KEY);
     setGuest(null);
-    // Note: If you need to invalidate branding cache on logout, 
-    // use queryClient.invalidateQueries from the component
   };
 
   return (
