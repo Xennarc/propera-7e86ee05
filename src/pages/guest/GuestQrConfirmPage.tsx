@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { QrCode, User, DoorOpen, ShieldCheck, AlertTriangle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getDeviceInfo } from '@/lib/device-info';
 
 interface TokenValidationResult {
   success: boolean;
@@ -110,6 +111,29 @@ export default function GuestQrConfirmPage() {
 
       // Build session and store it
       if (result.guest && result.resort) {
+        // Register a session for this device
+        let sessionId: string | undefined;
+        let sessionToken: string | undefined;
+        try {
+          const deviceInfo = await getDeviceInfo();
+          const { data: sessionData } = await supabase.rpc('register_guest_session', {
+            p_guest_id: result.guest.id,
+            p_resort_id: result.resort.id,
+            p_device_fingerprint: deviceInfo.fingerprint,
+            p_device_name: deviceInfo.deviceName,
+            p_device_type: deviceInfo.deviceType,
+            p_browser_name: deviceInfo.browserName,
+            p_os_name: deviceInfo.osName,
+          });
+          const sessionResult = sessionData as unknown as { success: boolean; session_id?: string; session_token?: string };
+          if (sessionResult.success) {
+            sessionId = sessionResult.session_id;
+            sessionToken = sessionResult.session_token;
+          }
+        } catch {
+          // Session registration is optional
+        }
+
         const session: GuestSession = {
           guestId: result.guest.id,
           fullName: result.guest.full_name,
@@ -120,9 +144,10 @@ export default function GuestQrConfirmPage() {
           resortName: result.resort.name,
           resortLogoUrl: result.resort.logo_url,
           resortTimezone: result.resort.timezone,
+          sessionId,
+          sessionToken,
         };
 
-        // Store session (same key as normal login)
         localStorage.setItem('propera_guest_session', JSON.stringify(session));
 
         toast({
@@ -130,7 +155,6 @@ export default function GuestQrConfirmPage() {
           description: `Logged in as ${result.guest.full_name}`,
         });
 
-        // Reload to pick up the new session in GuestAuthContext
         window.location.href = '/guest';
       }
     } catch (err) {
