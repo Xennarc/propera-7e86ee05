@@ -1,470 +1,279 @@
 
+# Pre-arrival to In-stay Transition: Activity Availability & Request Restrictions
 
-# Booking Hub: Premium Guest Portal My Bookings Upgrade
+## Executive Summary
 
-## Overview
-
-Transform the existing `GuestMyBookings.tsx` page into a premium "Booking Hub" experience with rich details on tap, clear status messaging, and a unified UI for all booking types. This upgrade maintains full backward compatibility with existing data, APIs, and cancellation flows.
+The pre-arrival system has two entry points (token-based email link and Guest Portal login) that both correctly filter activities to the guest's stay dates. However, **Guest Requests are unrestricted** - pre-arrival guests can submit service requests before they've checked in, which is operationally problematic. This plan addresses the gap by adding a gating layer for requests while preserving the activity booking flow.
 
 ---
 
 ## Current State Analysis
 
-### Existing Components
-| Component | Purpose | Status |
-|-----------|---------|--------|
-| `GuestMyBookings.tsx` | Main page with list + filters | Working, ~960 lines |
-| `GuestBookingCard.tsx` | Card component | Working, ~230 lines |
-| `EditBookingDialog.tsx` | Edit guest count | Working |
-| `KeyboardSafeDrawer.tsx` | Mobile-safe bottom sheet | Working |
-| `GuestEmptyState.tsx` | Empty state component | Reusable |
-| `GuestSectionHeader.tsx` | Section headers | Reusable |
+### What Works Correctly
+| Component | Status | Details |
+|-----------|--------|---------|
+| Activity date filtering | Working | `guest_get_available_sessions` filters by `check_in_date` to `check_out_date` |
+| Past session blocking | Working | `session_start_timestamptz` prevents viewing/booking started sessions |
+| Pre-arrival wizard | Working | Token-based check-in flow at `/prearrival/:token/checkin` |
+| Guest Portal home swap | Working | `GuestHome` renders `GuestPrearrivalHome` when `isPrearrival: true` |
 
-### Data Available from RPC
-The `guest_get_room_bookings` RPC returns:
-
-**Activity Bookings:**
-- `id`, `guest_id`, `session_id`, `status`, `num_adults`, `num_children`, `notes`, `created_at`
-- Session: `id`, `date`, `start_time`, `end_time`
-- Activity: `id`, `name`, `description`, `category`, `guest_can_cancel`, `guest_cancel_cutoff_hours`
-
-**Restaurant Reservations:**
-- `id`, `guest_id`, `restaurant_slot_id`, `status`, `num_adults`, `num_children`, `special_requests`, `created_at`
-- Slot: `id`, `date`, `start_time`, `end_time`, `meal_period`
-- Restaurant: `id`, `name`, `guest_can_cancel`, `guest_cancel_cutoff_minutes`
-
-### Schema Fields NOT in Current RPC (Available for Lazy-Load)
-From `activities` table (rich content):
-- `short_description`, `full_description`, `difficulty_level`
-- `age_min`, `max_age`, `is_swimming_required`, `suitable_for_non_swimmers`
-- `highlights` (JSONB), `includes`, `health_and_safety_notes`
-- `cancellation_policy_text`, `faq` (JSONB), `image_url`, `icon_key`
-- `default_price_per_person`, `duration_minutes`
-
-From `activity_sessions` table:
-- `resource_id` (linked boat/van), `lead_staff_id`, `notes`
-
-From `activity_bookings` table:
-- `price_per_person`, `discount_amount`, `total_amount`, `source`
+### What Needs Fixing
+| Issue | Impact | Priority |
+|-------|--------|----------|
+| Guest Requests accessible in pre-arrival | Guests can request room service before arriving | High |
+| Navigation unchanged for pre-arrival | "Requests" tab visible but shouldn't be functional pre-arrival | Medium |
+| Token-based booking uses hardcoded guest count | `numAdults: 2` ignores actual party size | Low |
 
 ---
 
-## Architecture Design
+## Solution Architecture
 
-### 1. Unified Booking Display Model
+### Phase 1: Restrict Guest Requests to In-Stay Only
 
-Create a type-safe normalized model that works for all booking types:
+**Goal:** Prevent guests from submitting service requests until their check-in date.
+
+#### 1.1 Client-Side Gate in GuestRequestsPage
+
+Modify `src/pages/guest/GuestRequestsPage.tsx` to check arrival status:
 
 ```text
-src/types/booking-display.ts
-
-BookingDisplayModel {
-  // Identity
-  id: string
-  type: 'activity' | 'restaurant' | 'spa' | 'transfer'
-  
-  // Display
-  title: string
-  subtitle?: string
-  category?: string
-  imageUrl?: string
-  iconKey?: string
-  
-  // Timing
-  date: string
-  startTime: string
-  endTime?: string
-  durationMinutes?: number
-  timezone: string
-  
-  // Status
-  status: BookingStatus
-  statusMessage: string  // "You're all set. Arrive 10 minutes early."
-  
-  // Participants
-  numAdults: number
-  numChildren: number
-  bookedBy?: string
-  isOwnBooking: boolean
-  
-  // Location
-  venueName?: string
-  meetingPoint?: string
-  coordinates?: { lat: number; lng: number }
-  
-  // Pricing (optional)
-  pricePerPerson?: number
-  totalAmount?: number
-  currency?: string
-  
-  // Cancellation
-  canCancel: boolean
-  cancelCutoffTime?: Date
-  cancellationPolicy?: string
-  
-  // Notes
-  guestNotes?: string
-  resortNotes?: string
-  
-  // Timestamps for timeline
-  createdAt: string
-  confirmedAt?: string
-  cancelledAt?: string
-  completedAt?: string
-}
+GuestRequestsPage
+  |-- useIsPrearrivalGuest() → { isPrearrival, daysUntilArrival }
+  |-- If isPrearrival:
+      |-- Render PrearrivalRequestsBlockedState (friendly message)
+      |-- Show countdown to check-in
+      |-- CTA: "View your stay details" → /guest
+  |-- If in-stay:
+      |-- Render current request flow (unchanged)
 ```
 
-### 2. Component Architecture
+#### 1.2 Server-Side Enforcement (RPC Guard)
 
-```text
-src/pages/guest/GuestMyBookings.tsx
-  |-- Updated to use URL state for open booking
-  |-- Renders tabs: Upcoming / Past / Cancelled
-  |-- Renders BookingCard list
-  |-- Opens BookingDetailsSheet when booking selected
+Add check in request creation RPCs to reject pre-arrival submissions:
 
-src/components/guest/booking-details/
-  |-- BookingDetailsSheet.tsx (main container)
-  |-- BookingDetailsHero.tsx (header with status)
-  |-- BookingDetailsQuickActions.tsx (calendar, directions, contact, cancel)
-  |-- BookingDetailsInfo.tsx (key details grid)
-  |-- BookingDetailsLocation.tsx (venue + map link)
-  |-- BookingDetailsItems.tsx (accordion for includes/add-ons)
-  |-- BookingDetailsPolicies.tsx (cancellation, no-show)
-  |-- BookingDetailsPricing.tsx (price breakdown if available)
-  |-- BookingDetailsTimeline.tsx (status stepper)
-  |-- BookingDetailsContact.tsx (support actions)
-
-src/lib/calendar-utils.ts
-  |-- generateICSEvent() - creates downloadable .ics file
-  |-- getGoogleCalendarUrl() - returns Google Calendar link
-  |-- getOutlookCalendarUrl() - returns Outlook link
-
-src/hooks/useBookingDetails.ts
-  |-- Lazy-loads full details when sheet opens
-  |-- Calls new RPC: guest_get_booking_details(booking_id, booking_type)
-```
-
----
-
-## Implementation Phases
-
-### Phase 1: List UI Upgrade (No Data Changes)
-
-**Files Modified:**
-- `src/pages/guest/GuestMyBookings.tsx`
-
-**Changes:**
-1. Replace filter tabs with segmented tabs: `Upcoming | Past | Cancelled`
-2. Upgrade `BookingCard` internal component with enhanced styling:
-   - Add chevron indicator (clickable affordance)
-   - Improve status bar visual hierarchy
-   - Add "Pending approval" vs "Confirmed" micro-copy
-3. Add premium empty state micro-copy:
-   - "No upcoming bookings - time to treat yourself"
-4. Add sorting logic:
-   - Upcoming: soonest first (already implemented)
-   - Past: most recent first (already implemented)
-
-**Tabs Structure:**
-```typescript
-const [activeTab, setActiveTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
-```
-
----
-
-### Phase 2: Booking Details Sheet UI
-
-**Files Created:**
-- `src/components/guest/booking-details/BookingDetailsSheet.tsx`
-- `src/components/guest/booking-details/index.ts` (barrel export)
-- `src/types/booking-display.ts`
-
-**BookingDetailsSheet Features:**
-
-1. **Hero Header**
-   - Large status badge with icon
-   - Booking title + type icon
-   - Date/time prominently displayed
-   - "What's next" contextual message based on status
-
-2. **Quick Actions Row**
-   - "Add to Calendar" button (ICS download)
-   - "Get Directions" (if coordinates exist)
-   - "Cancel" (if allowed per policy)
-   - Actions use icon buttons with labels below
-
-3. **Key Details Section**
-   - Two-column grid on desktop, stacked on mobile
-   - Booking reference, room number, guests, duration
-   - Graceful fallbacks for missing fields
-
-4. **Skeleton Loading**
-   - Sheet opens immediately with skeleton
-   - Details populated after lazy fetch
-
-**Sheet Props:**
-```typescript
-interface BookingDetailsSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  booking: BookingDisplayModel | null;
-  onCancel?: () => void;
-  onEdit?: () => void;
-}
-```
-
----
-
-### Phase 3: Lazy Details Fetch
-
-**Files Created:**
-- `src/hooks/useBookingDetails.ts`
-
-**Files Modified (DB Migration):**
-- Create new RPC: `guest_get_booking_details(p_guest_id, p_booking_id, p_booking_type)`
-
-**RPC Returns (additive - no schema changes):**
 ```sql
--- For activities, joins:
--- activity_bookings -> activity_sessions -> activities
--- Optionally: resources (for boat/van name), profiles (for lead staff name)
-
--- Returns extended fields not in list query:
--- activity.full_description, activity.includes, activity.highlights
--- activity.health_and_safety_notes, activity.cancellation_policy_text
--- activity.image_url, activity.difficulty_level
--- session.notes (staff notes), session.resource.name
--- booking.price_per_person, booking.total_amount, booking.created_at
+-- In guest_create_service_request or equivalent RPC
+IF v_guest.check_in_date > CURRENT_DATE THEN
+  RETURN jsonb_build_object(
+    'success', false,
+    'error', 'GUEST_NOT_CHECKED_IN'
+  );
+END IF;
 ```
 
-**Hook Interface:**
-```typescript
-function useBookingDetails(
-  bookingId: string | null,
-  bookingType: 'activity' | 'restaurant' | null
-) {
-  // Returns { data, isLoading, error }
-  // Only fetches when bookingId is provided
-}
+### Phase 2: Adaptive Navigation for Pre-arrival
+
+**Goal:** Visually distinguish pre-arrival state in navigation.
+
+#### 2.1 Conditional Tab Behavior
+
+In `src/components/guest/GuestLayout.tsx`:
+
+```text
+navItems computation:
+  |-- If isPrearrival:
+      |-- Requests tab: disabled OR shows "Available on check-in"
+  |-- If in-stay:
+      |-- All tabs fully enabled
 ```
 
----
+#### 2.2 Pre-arrival Tab Indicator
 
-### Phase 4: Calendar Integration
+Add visual badge or lock icon on Requests tab for pre-arrival guests:
 
-**Files Created:**
-- `src/lib/calendar-utils.ts`
+```text
+Requests Tab (pre-arrival)
+  |-- Icon: Bell with small lock overlay
+  |-- Label: "Requests" with subtle "Check-in" subtext
+  |-- onClick: Show toast "Available after check-in" OR navigate to blocked state
+```
 
-**Implementation (frontend-only, no dependencies):**
+### Phase 3: Token-Based Flow Improvements
 
-```typescript
-interface CalendarEvent {
-  title: string;
-  description?: string;
-  location?: string;
-  startTime: Date;
-  endTime: Date;
-}
+**Goal:** Ensure `/prearrival/:token/experiences` page captures correct guest count.
 
-// Generate ICS file content
-function generateICSContent(event: CalendarEvent): string {
-  // VCALENDAR format with VEVENT
-}
+#### 3.1 Party Size Selection in PreArrivalPage
 
-// Download ICS file
-function downloadICSFile(event: CalendarEvent): void {
-  const content = generateICSContent(event);
-  const blob = new Blob([content], { type: 'text/calendar' });
-  const url = URL.createObjectURL(blob);
-  // Create download link and click
-}
+Modify `src/pages/guest/PreArrivalPage.tsx`:
 
-// Generate Google Calendar URL
-function getGoogleCalendarUrl(event: CalendarEvent): string {
-  // https://calendar.google.com/calendar/render?action=TEMPLATE&...
-}
+```text
+bookFromItinerary(item):
+  |-- Show quick dialog: "How many guests?"
+  |-- numAdults selector (1-10)
+  |-- numChildren selector (0-10)
+  |-- Then call booking mutation with actual values
 ```
 
 ---
 
-### Phase 5: URL Deep-Linking
+## Implementation Details
 
-**Files Modified:**
-- `src/pages/guest/GuestMyBookings.tsx`
+### File Changes Summary
 
-**URL State Pattern:**
-```typescript
-// Read booking ID from URL
-const [searchParams, setSearchParams] = useSearchParams();
-const openBookingId = searchParams.get('open');
-const openBookingType = searchParams.get('type');
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `src/pages/guest/GuestRequestsPage.tsx` | Modify | Add pre-arrival gate with friendly blocked state |
+| `src/components/guest/GuestLayout.tsx` | Modify | Conditional Requests tab behavior |
+| `src/pages/guest/PreArrivalPage.tsx` | Modify | Add guest count selector before booking |
+| `src/components/guest/PrearrivalRequestsBlockedState.tsx` | Create | Friendly "not yet available" UI |
+| Database migration | Create | Add guard to request creation RPC (if exists) |
 
-// Find booking and open sheet
-useEffect(() => {
-  if (openBookingId && openBookingType && bookings) {
-    const booking = findBooking(openBookingId, openBookingType);
-    if (booking) setSelectedBooking(booking);
-  }
-}, [openBookingId, openBookingType, bookings]);
+---
 
-// Update URL when sheet opens/closes
-const handleOpenBooking = (booking: BookingDisplayModel) => {
-  setSearchParams({ open: booking.id, type: booking.type });
-  setSelectedBooking(booking);
-};
+## Detailed Component Designs
 
-const handleCloseSheet = () => {
-  setSearchParams({});
-  setSelectedBooking(null);
-};
+### PrearrivalRequestsBlockedState Component
+
+```text
+src/components/guest/PrearrivalRequestsBlockedState.tsx
+
++--------------------------------------------------+
+|                                                  |
+|        [Clock Icon with Lock Overlay]            |
+|                                                  |
+|     Requests Available After Check-in            |
+|                                                  |
+|   Service requests like room service, towels,    |
+|   and housekeeping will be available once        |
+|   you've checked in to your room.                |
+|                                                  |
+|   ┌────────────────────────────────────────┐    |
+|   │  🗓️  Check-in: Saturday, Jan 25       │    |
+|   │      3 days from now                    │    |
+|   └────────────────────────────────────────┘    |
+|                                                  |
+|   In the meantime, you can:                      |
+|                                                  |
+|   [Pre-book Activities]  [Reserve Dining]        |
+|                                                  |
++--------------------------------------------------+
+```
+
+### Navigation Tab States
+
+```text
+Pre-arrival State:
+┌──────────────────────────────────────────────────┐
+│  Home    Activities   Requests*   Bookings       │
+│   ●                     🔒                        │
+└──────────────────────────────────────────────────┘
+* Requests tab shows lock icon, navigates to blocked state
+
+In-stay State:
+┌──────────────────────────────────────────────────┐
+│  Home    Activities   Requests    Bookings       │
+│   ●                                               │
+└──────────────────────────────────────────────────┘
+* All tabs fully functional
 ```
 
 ---
 
-### Phase 6: Timeline, Policies, Contact (Conditional)
+## Database Changes
 
-**Components Added:**
-- `BookingDetailsTimeline.tsx`
-- `BookingDetailsPolicies.tsx`
-- `BookingDetailsContact.tsx`
+### Server-Side Guard (if request creation RPC exists)
 
-**Timeline Logic:**
-```typescript
-// Derive timeline from available timestamps
-const timelineSteps = [
-  { label: 'Booked', timestamp: booking.createdAt, status: 'complete' },
-  { label: 'Confirmed', timestamp: booking.confirmedAt, status: booking.status === 'CONFIRMED' ? 'complete' : 'pending' },
-  { label: 'Completed', timestamp: booking.completedAt, status: booking.status === 'COMPLETED' ? 'complete' : 'upcoming' },
-];
-// Only show if we have at least createdAt
+```sql
+-- Migration: Add pre-arrival check to request creation
+
+CREATE OR REPLACE FUNCTION guest_create_service_request(...)
+RETURNS jsonb AS $$
+DECLARE
+  v_guest guests%ROWTYPE;
+BEGIN
+  -- Fetch guest
+  SELECT * INTO v_guest FROM guests WHERE id = p_guest_id;
+  
+  -- Check if guest has checked in
+  IF v_guest.check_in_date > CURRENT_DATE THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'GUEST_NOT_CHECKED_IN',
+      'message', 'Service requests are available after check-in'
+    );
+  END IF;
+  
+  -- ... rest of existing logic
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
-
-**Policies Rendering:**
-```typescript
-// Use activity.cancellation_policy_text if available
-// Otherwise show generic: "Free cancellation until X hours before"
-// If no policy data exists, hide section entirely
-```
-
-**Contact Actions:**
-```typescript
-// Only show if resort has contact info configured
-// Check resort.contact_phone, resort.contact_whatsapp
-// Fallback: hide entire section
-```
-
----
-
-## File Changes Summary
-
-### New Files (Create)
-| File | Purpose |
-|------|---------|
-| `src/types/booking-display.ts` | Unified booking display model |
-| `src/components/guest/booking-details/BookingDetailsSheet.tsx` | Main details sheet |
-| `src/components/guest/booking-details/BookingDetailsHero.tsx` | Header with status |
-| `src/components/guest/booking-details/BookingDetailsQuickActions.tsx` | Action buttons |
-| `src/components/guest/booking-details/BookingDetailsInfo.tsx` | Key details grid |
-| `src/components/guest/booking-details/BookingDetailsPolicies.tsx` | Cancellation policy |
-| `src/components/guest/booking-details/BookingDetailsTimeline.tsx` | Status stepper |
-| `src/components/guest/booking-details/index.ts` | Barrel export |
-| `src/lib/calendar-utils.ts` | ICS generation |
-| `src/hooks/useBookingDetails.ts` | Lazy fetch hook |
-
-### Modified Files
-| File | Changes |
-|------|---------|
-| `src/pages/guest/GuestMyBookings.tsx` | Add tabs, URL state, sheet integration |
-| `supabase/migrations/xxx.sql` | Add `guest_get_booking_details` RPC |
-
-### Unchanged (No Modifications)
-| File | Reason |
-|------|--------|
-| `src/components/guest/GuestBookingCard.tsx` | May enhance later but not required |
-| `guest_get_room_bookings` RPC | Keep list query lean |
-| `EditBookingDialog.tsx` | Already working |
-| Existing RLS policies | No changes needed |
-
----
-
-## Security Considerations
-
-1. **RLS Enforcement:**
-   - New `guest_get_booking_details` RPC is `SECURITY DEFINER`
-   - Validates `p_guest_id` owns the booking before returning data
-   - Scopes all queries by `resort_id`
-
-2. **No Cross-Guest Visibility:**
-   - Details fetch validates ownership
-   - URL deep-link only works for logged-in guest's own bookings
-
-3. **Defensive Rendering:**
-   - All UI fields use optional chaining (`?.`)
-   - Missing fields render graceful fallbacks or are hidden
-   - No errors for incomplete data
 
 ---
 
 ## Acceptance Criteria
 
-| Test | Expected Result |
-|------|-----------------|
-| Demo guest sees upcoming bookings | List shows seeded activity + restaurant bookings |
-| Tap booking opens details sheet | Sheet slides up with skeleton, then content |
-| Sheet shows correct status badge | CONFIRMED = green, PENDING = amber, etc. |
-| "Add to Calendar" downloads .ics | File downloads with correct event details |
-| Missing fields gracefully hidden | No broken layouts for incomplete data |
-| Cancel button respects policy | Only shows when within cancellation window |
-| URL deep-link works | `/guest/bookings?open=<id>&type=activity` opens sheet |
-| Mobile keyboard doesn't cover CTA | Sheet footer stays above keyboard |
-| Past bookings are read-only | No edit/cancel buttons on completed bookings |
+| Test Case | Expected Result |
+|-----------|-----------------|
+| Pre-arrival guest taps "Requests" | Sees friendly blocked state with countdown |
+| Pre-arrival guest tries API bypass | Server rejects with `GUEST_NOT_CHECKED_IN` |
+| In-stay guest taps "Requests" | Normal request flow works |
+| Check-in day morning | Requests become available (based on date, not time) |
+| Pre-arrival Activities tab | Works normally (sessions filtered to stay dates) |
+| Pre-arrival Bookings tab | Shows any pre-booked activities/dining |
+| Token-based pre-arrival booking | Prompts for guest count before confirming |
 
 ---
 
-## Technical Considerations
+## Edge Cases
 
-### Performance
-- List query unchanged (fast initial load)
-- Details fetched lazily only when sheet opens
-- Sheet uses skeleton loading (no layout shift)
-- `staleTime: 5 * 60 * 1000` for details cache
+1. **Same-day check-in**: Guest logs in on check-in day before physically arriving
+   - **Decision**: Allow requests on check-in date (operational staff can handle)
 
-### Backward Compatibility
-- Existing booking data works without changes
-- Missing optional fields render gracefully
-- No schema migrations that break existing rows
-- Demo seeding continues to work
+2. **Timezone considerations**: Guest in different timezone than resort
+   - **Decision**: Use resort timezone for check-in date comparison
 
-### Mobile UX
-- Uses existing `KeyboardSafeDrawer` pattern
-- Sheet height: `90vh` with scrollable body
-- Action buttons use `tap-target` (48px min)
-- Footer CTA stays above keyboard
+3. **Early check-in**: Guest checks in day before official date
+   - **Decision**: System uses official `check_in_date` from reservation
 
 ---
 
 ## Implementation Order
 
-1. **Phase 1:** List UI tabs upgrade (no new files)
-2. **Phase 2:** Create `BookingDetailsSheet` with static content
-3. **Phase 3:** Add `useBookingDetails` hook + RPC
-4. **Phase 4:** Add calendar utils + download
-5. **Phase 5:** URL deep-linking with `useSearchParams`
-6. **Phase 6:** Conditional timeline/policies/contact sections
-7. **Polish:** Animations, empty states, accessibility
+1. **Create `PrearrivalRequestsBlockedState` component** - Friendly UI for blocked state
+2. **Update `GuestRequestsPage`** - Add pre-arrival gate with blocked state
+3. **Update `GuestLayout` navigation** - Add lock indicator on Requests tab
+4. **Add server-side guard** - Prevent API bypass of request restrictions
+5. **Fix `PreArrivalPage` guest count** - Add party size selector before booking
+6. **Test all flows** - Pre-arrival, check-in day, in-stay transitions
 
 ---
 
-## Estimated Scope
+## Technical Notes
 
-| Phase | New Lines | Modified Lines |
-|-------|-----------|----------------|
-| Phase 1 | 0 | ~100 |
-| Phase 2 | ~400 | ~50 |
-| Phase 3 | ~150 | ~30 (RPC) |
-| Phase 4 | ~100 | 0 |
-| Phase 5 | 0 | ~50 |
-| Phase 6 | ~200 | 0 |
-| **Total** | ~850 | ~230 |
+### Pre-arrival Detection
+Uses existing hook from `usePrearrivalData.ts`:
+```typescript
+const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
+// isPrearrival: true if checkInDate > today
+// daysUntilArrival: number of days until check-in
+```
 
+### Existing Data Flow (Unchanged)
+```text
+Guest Login → GuestAuthContext stores session
+  |-- checkInDate, checkOutDate available
+  |-- Used by all RPCs for date-range filtering
+  
+Activity Booking:
+  guest_get_available_sessions(p_guest_id)
+    → Filters: check_in_date ≤ date ≤ check_out_date
+    → Filters: session not started (timezone-aware)
+```
+
+### New Data Flow (Requests)
+```text
+Guest Requests (Current - No Restriction):
+  GuestRequestsPage → createBundle() → guest_create_service_request
+
+Guest Requests (After Fix):
+  GuestRequestsPage
+    |-- Check: isPrearrival?
+        |-- Yes: Render PrearrivalRequestsBlockedState
+        |-- No: Render normal flow → createBundle()
+    
+  Server Guard (Defense in Depth):
+    guest_create_service_request
+      |-- Check: check_in_date > CURRENT_DATE?
+          |-- Yes: Return error GUEST_NOT_CHECKED_IN
+          |-- No: Proceed with request creation
+```
