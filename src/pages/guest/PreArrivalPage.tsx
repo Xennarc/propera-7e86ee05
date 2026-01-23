@@ -14,6 +14,7 @@ import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons
 import { createActivityBookingFromPreArrival, createRestaurantReservationFromPreArrival } from '@/lib/booking-source-helpers';
 import { getBookingErrorMessage } from '@/lib/booking-errors';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { GuestCountDialog } from '@/components/guest/GuestCountDialog';
 
 interface TokenData {
   id: string;
@@ -90,6 +91,10 @@ export default function PreArrivalPage() {
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
+  
+  // Guest count dialog state
+  const [guestCountDialogOpen, setGuestCountDialogOpen] = useState(false);
+  const [pendingBookingItem, setPendingBookingItem] = useState<ItineraryItem | null>(null);
 
   // Load itinerary from localStorage
   useEffect(() => {
@@ -321,20 +326,40 @@ export default function PreArrivalPage() {
     return itinerary.some(item => item.sessionId === sessionId);
   };
 
-  const bookFromItinerary = (item: ItineraryItem) => {
-    if (item.type === 'activity') {
+  // Open guest count dialog for booking from itinerary
+  const openBookingDialog = (item: ItineraryItem) => {
+    setPendingBookingItem(item);
+    setGuestCountDialogOpen(true);
+  };
+
+  const bookFromItinerary = (numAdults: number, numChildren: number) => {
+    if (!pendingBookingItem) return;
+    
+    if (pendingBookingItem.type === 'activity') {
       bookActivityMutation.mutate({
-        sessionId: item.sessionId,
-        numAdults: 2, // Default for pre-arrival
-        numChildren: 0,
+        sessionId: pendingBookingItem.sessionId,
+        numAdults,
+        numChildren,
       });
     } else {
       bookRestaurantMutation.mutate({
-        slotId: item.sessionId,
-        numAdults: 2, // Default for pre-arrival
-        numChildren: 0,
+        slotId: pendingBookingItem.sessionId,
+        numAdults,
+        numChildren,
       });
     }
+    
+    setGuestCountDialogOpen(false);
+    setPendingBookingItem(null);
+  };
+
+  // Direct booking with guest count dialog
+  const openDirectBookingDialog = (item: Omit<ItineraryItem, 'status'>) => {
+    // First add to itinerary, then open dialog
+    const newItem = { ...item, status: 'planned' as const };
+    setItinerary(prev => [...prev, newItem]);
+    setPendingBookingItem(newItem);
+    setGuestCountDialogOpen(true);
   };
 
   // Group itinerary by date
@@ -510,22 +535,15 @@ export default function PreArrivalPage() {
                                 <Button
                                   size="sm"
                                   className="flex-1"
-                                  onClick={() => {
-                                    addToItinerary({
-                                      type: 'activity',
-                                      id: activity.activity_id,
-                                      sessionId: activity.id,
-                                      name: activity.activity_name,
-                                      date: activity.date,
-                                      time: activity.start_time.slice(0, 5),
-                                      details: activity.category,
-                                    });
-                                    bookActivityMutation.mutate({
-                                      sessionId: activity.id,
-                                      numAdults: 2,
-                                      numChildren: 0,
-                                    });
-                                  }}
+                                  onClick={() => openDirectBookingDialog({
+                                    type: 'activity',
+                                    id: activity.activity_id,
+                                    sessionId: activity.id,
+                                    name: activity.activity_name,
+                                    date: activity.date,
+                                    time: activity.start_time.slice(0, 5),
+                                    details: activity.category,
+                                  })}
                                   disabled={bookActivityMutation.isPending}
                                 >
                                   Book now
@@ -628,22 +646,15 @@ export default function PreArrivalPage() {
                                 <Button
                                   size="sm"
                                   className="flex-1"
-                                  onClick={() => {
-                                    addToItinerary({
-                                      type: 'restaurant',
-                                      id: slot.restaurant_id,
-                                      sessionId: slot.id,
-                                      name: slot.restaurant_name,
-                                      date: slot.date,
-                                      time: slot.start_time.slice(0, 5),
-                                      details: slot.meal_period,
-                                    });
-                                    bookRestaurantMutation.mutate({
-                                      slotId: slot.id,
-                                      numAdults: 2,
-                                      numChildren: 0,
-                                    });
-                                  }}
+                                  onClick={() => openDirectBookingDialog({
+                                    type: 'restaurant',
+                                    id: slot.restaurant_id,
+                                    sessionId: slot.id,
+                                    name: slot.restaurant_name,
+                                    date: slot.date,
+                                    time: slot.start_time.slice(0, 5),
+                                    details: slot.meal_period,
+                                  })}
                                   disabled={bookRestaurantMutation.isPending}
                                 >
                                   Reserve now
@@ -734,7 +745,7 @@ export default function PreArrivalPage() {
                                     <Button
                                       size="sm"
                                       className="w-full text-xs h-7"
-                                      onClick={() => bookFromItinerary(item)}
+                                      onClick={() => openBookingDialog(item)}
                                       disabled={bookActivityMutation.isPending || bookRestaurantMutation.isPending}
                                     >
                                       {item.type === 'activity' ? 'Book this activity' : 'Reserve this table'}
@@ -754,6 +765,19 @@ export default function PreArrivalPage() {
           </div>
         </div>
       </main>
+
+      {/* Guest count dialog for booking */}
+      <GuestCountDialog
+        open={guestCountDialogOpen}
+        onOpenChange={(open) => {
+          setGuestCountDialogOpen(open);
+          if (!open) setPendingBookingItem(null);
+        }}
+        onConfirm={bookFromItinerary}
+        title={pendingBookingItem?.type === 'restaurant' ? 'Party size' : 'Guest count'}
+        description={`How many guests for ${pendingBookingItem?.name || 'this booking'}?`}
+        isLoading={bookActivityMutation.isPending || bookRestaurantMutation.isPending}
+      />
     </div>
   );
 }
