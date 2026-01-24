@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Star, Crown, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Calendar, Utensils, Phone, Mail, User, MessageSquareHeart, Star, Crown, FileText, Eye, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { isBefore, startOfDay } from 'date-fns';
 import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
@@ -32,6 +32,7 @@ import { GuestStayPanel } from '@/components/staff/GuestStayPanel';
 import { PreArrivalSubmissionCard } from '@/components/staff/PreArrivalSubmissionCard';
 import { StaffTravelPartyCard } from '@/components/staff/StaffTravelPartyCard';
 import { StaffGuestPreferencesCard } from '@/components/staff/StaffGuestPreferencesCard';
+import { StaffBookingPreviewSheet } from '@/components/staff/StaffBookingPreviewSheet';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -40,11 +41,17 @@ interface ActivityBookingWithSession {
   num_adults: number;
   num_children: number;
   booking_source?: string | null;
+  notes?: string | null;
+  room_number?: string;
   session: {
     id: string;
     date: string;
     start_time: string;
-    activity: { name: string } | null;
+    end_time?: string;
+    activity: { 
+      name: string;
+      cancellation_policy_text?: string | null;
+    } | null;
   } | null;
 }
 
@@ -54,10 +61,13 @@ interface ReservationWithSlot {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
   num_adults: number;
   num_children: number;
+  special_requests?: string | null;
+  room_number?: string;
   slot: {
     id: string;
     date: string;
     start_time: string;
+    end_time?: string;
     meal_period: string;
     restaurant: { name: string } | null;
   } | null;
@@ -89,6 +99,11 @@ export default function GuestDetailPage() {
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [previewBooking, setPreviewBooking] = useState<{
+    type: 'activity' | 'restaurant';
+    booking: ActivityBookingWithSession | null;
+    reservation: ReservationWithSlot | null;
+  } | null>(null);
 
   // Fetch pre-arrival data
   const { data: prearrivalData, isLoading: prearrivalLoading } = useStaffPrearrivalData({
@@ -142,14 +157,14 @@ export default function GuestDetailPage() {
 
       setGuest(guestData as Guest);
 
-    // Fetch activity bookings
+    // Fetch activity bookings with additional fields for preview
     const { data: bookingsData } = await supabase
       .from('activity_bookings')
       .select(`
-        id, guest_id, status, num_adults, num_children, booking_source,
+        id, guest_id, status, num_adults, num_children, booking_source, notes, room_number,
         session:activity_sessions(
-          id, date, start_time,
-          activity:activities(name)
+          id, date, start_time, end_time,
+          activity:activities(name, cancellation_policy_text)
         )
       `)
       .eq('guest_id', id)
@@ -159,13 +174,13 @@ export default function GuestDetailPage() {
       setActivityBookings(bookingsData as any[]);
     }
 
-    // Fetch restaurant reservations
+    // Fetch restaurant reservations with additional fields for preview
     const { data: reservationsData } = await supabase
       .from('restaurant_reservations')
       .select(`
-        id, guest_id, status, num_adults, num_children,
+        id, guest_id, status, num_adults, num_children, special_requests, room_number,
         slot:restaurant_time_slots(
-          id, date, start_time, meal_period,
+          id, date, start_time, end_time, meal_period,
           restaurant:restaurants(name)
         )
       `)
@@ -622,15 +637,12 @@ export default function GuestDetailPage() {
                           <TableHead>Pax</TableHead>
                           <TableHead>Source</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-20"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {upcomingActivityBookings.map((booking) => (
-                          <TableRow 
-                            key={booking.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => booking.session?.id && navigate(`/staff/activities/sessions/${booking.session.id}`)}
-                          >
+                          <TableRow key={booking.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">{booking.session?.activity?.name || 'Unknown Activity'}</TableCell>
                             <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
                             <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
@@ -645,6 +657,31 @@ export default function GuestDetailPage() {
                               )}
                             </TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewBooking({ type: 'activity', booking, reservation: null });
+                                  }}
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => booking.session?.id && navigate(`/staff/activities/sessions/${booking.session.id}`)}
+                                  title="View Session"
+                                >
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -665,16 +702,42 @@ export default function GuestDetailPage() {
                           <TableHead>Time</TableHead>
                           <TableHead>Pax</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-20"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pastActivityBookings.map((booking) => (
-                          <TableRow key={booking.id}>
+                          <TableRow key={booking.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">{booking.session?.activity?.name || 'Unknown Activity'}</TableCell>
                             <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
                             <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewBooking({ type: 'activity', booking, reservation: null });
+                                  }}
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => booking.session?.id && navigate(`/staff/activities/sessions/${booking.session.id}`)}
+                                  title="View Session"
+                                >
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -718,21 +781,43 @@ export default function GuestDetailPage() {
                           <TableHead>Meal</TableHead>
                           <TableHead>Pax</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-20"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {upcomingReservations.map((reservation) => (
-                          <TableRow 
-                            key={reservation.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => reservation.slot?.id && navigate(`/staff/restaurants/slots/${reservation.slot.id}`)}
-                          >
+                          <TableRow key={reservation.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">{reservation.slot?.restaurant?.name || 'Unknown Restaurant'}</TableCell>
                             <TableCell>{reservation.slot?.date ? safeFormatDate(reservation.slot.date, 'EEE, MMM d') : '-'}</TableCell>
                             <TableCell>{reservation.slot?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot?.meal_period || '-'}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
                             <TableCell><StatusBadge status={reservation.status} /></TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewBooking({ type: 'restaurant', booking: null, reservation });
+                                  }}
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => reservation.slot?.id && navigate(`/staff/restaurants/slots/${reservation.slot.id}`)}
+                                  title="View Slot"
+                                >
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -754,17 +839,43 @@ export default function GuestDetailPage() {
                           <TableHead>Meal</TableHead>
                           <TableHead>Pax</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="w-20"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pastReservations.map((reservation) => (
-                          <TableRow key={reservation.id}>
+                          <TableRow key={reservation.id} className="hover:bg-muted/50">
                             <TableCell className="font-medium">{reservation.slot?.restaurant?.name || 'Unknown Restaurant'}</TableCell>
                             <TableCell>{reservation.slot?.date ? safeFormatDate(reservation.slot.date, 'EEE, MMM d') : '-'}</TableCell>
                             <TableCell>{reservation.slot?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot?.meal_period || '-'}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
                             <TableCell><StatusBadge status={reservation.status} /></TableCell>
+                            <TableCell>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewBooking({ type: 'restaurant', booking: null, reservation });
+                                  }}
+                                  title="Preview"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => reservation.slot?.id && navigate(`/staff/restaurants/slots/${reservation.slot.id}`)}
+                                  title="View Slot"
+                                >
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -819,6 +930,25 @@ export default function GuestDetailPage() {
         onOpenChange={setLoyaltyDialogOpen}
         guest={guest}
         onSuccess={fetchGuest}
+      />
+
+      {/* Booking Preview Sheet */}
+      <StaffBookingPreviewSheet
+        open={!!previewBooking}
+        onOpenChange={(open) => !open && setPreviewBooking(null)}
+        activityBooking={previewBooking?.type === 'activity' ? previewBooking.booking : null}
+        restaurantReservation={previewBooking?.type === 'restaurant' ? previewBooking.reservation : null}
+        guestName={guest.full_name}
+        onNavigateToDetail={() => {
+          if (previewBooking?.type === 'activity' && previewBooking.booking?.session?.id) {
+            navigate(`/staff/activities/sessions/${previewBooking.booking.session.id}`);
+          } else if (previewBooking?.type === 'restaurant' && previewBooking.reservation?.slot?.id) {
+            navigate(`/staff/restaurants/slots/${previewBooking.reservation.slot.id}`);
+          }
+          setPreviewBooking(null);
+        }}
+        onRefresh={fetchGuest}
+        canCancel={canEdit}
       />
     </div>
   );
