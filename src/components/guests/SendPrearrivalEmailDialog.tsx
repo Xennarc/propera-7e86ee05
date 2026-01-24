@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { getPrearrivalUrl } from '@/lib/url-utils';
+import { getPrearrivalUrl, getGuestAccessUrl } from '@/lib/url-utils';
 import { Guest } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -67,25 +67,46 @@ export function SendPrearrivalEmailDialog({
     enabled: open && !!currentResort,
   });
 
-  // Generate or get existing prearrival link
+  // Generate or get existing prearrival link (tries new system first, falls back to legacy)
   const generateLinkMutation = useMutation({
-    mutationFn: async (guestId: string) => {
-      const { data, error } = await supabase.rpc('generate_prearrival_token', {
-        p_guest_id: guestId,
-      });
-      if (error) throw error;
-      const result = data as { success: boolean; token?: string; error?: string };
-      if (!result.success) throw new Error(result.error || 'Failed to generate link');
-      return result.token;
+    mutationFn: async (guest: Guest): Promise<string> => {
+      // First, check if guest has a stay record for the new system
+      const { data: stay } = await supabase
+        .from('guest_stays')
+        .select('id')
+        .eq('guest_id', guest.id)
+        .eq('resort_id', currentResort?.id)
+        .order('arrival_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (stay) {
+        // Use new stay-based system
+        const { data, error } = await supabase.rpc('create_guest_access_link', {
+          p_stay_id: stay.id,
+        });
+        if (error) throw error;
+        const result = data as { success: boolean; raw_token?: string; error?: string };
+        if (!result.success) throw new Error(result.error || 'Failed to generate link');
+        return getGuestAccessUrl(result.raw_token!);
+      } else {
+        // Fall back to legacy system
+        const { data, error } = await supabase.rpc('generate_prearrival_token', {
+          p_guest_id: guest.id,
+        });
+        if (error) throw error;
+        const result = data as { success: boolean; token?: string; error?: string };
+        if (!result.success) throw new Error(result.error || 'Failed to generate link');
+        return getPrearrivalUrl(result.token!);
+      }
     },
   });
 
   // Send email mutation
   const sendEmailMutation = useMutation({
     mutationFn: async ({ guest, email }: { guest: Guest; email: string }) => {
-      // First generate/get the prearrival link
-      const token = await generateLinkMutation.mutateAsync(guest.id);
-      const prearrivalLink = getPrearrivalUrl(token);
+      // Generate or get the link (uses new system if available)
+      const prearrivalLink = await generateLinkMutation.mutateAsync(guest);
 
       // Send via edge function
       const { data, error } = await supabase.functions.invoke('send-prearrival-link', {
@@ -108,6 +129,8 @@ export function SendPrearrivalEmailDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages'] });
+      queryClient.invalidateQueries({ queryKey: ['prearrival-link'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-guest-stay'] });
     },
   });
 
@@ -184,8 +207,7 @@ export function SendPrearrivalEmailDialog({
   const handleCopyLink = async () => {
     if (!singleGuest) return;
     try {
-      const token = await generateLinkMutation.mutateAsync(singleGuest.id);
-      const link = getPrearrivalUrl(token);
+      const link = await generateLinkMutation.mutateAsync(singleGuest);
       await navigator.clipboard.writeText(link);
       toast({ title: 'Link copied!', description: 'Pre-arrival link copied to clipboard' });
     } catch (error: any) {

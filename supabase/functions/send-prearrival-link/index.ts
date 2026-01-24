@@ -24,28 +24,36 @@ interface SendPrearrivalEmailRequest {
   resortPrimaryColor?: string;
 }
 
-// Extract token from any prearrival link and build production URL
-function getPrearrivalProductionUrl(linkOrToken: string): string {
-  // If it's already just a token (no slashes), use it directly
-  if (!linkOrToken.includes('/')) {
-    return `${PRODUCTION_URL}/prearrival/${linkOrToken}`;
+// Extract token from any prearrival/guest-access link and build production URL
+// Supports both legacy /prearrival/:token and new /guest/access?t=:token formats
+function getProductionUrl(linkOrToken: string): string {
+  // Handle new /guest/access?t= format
+  const accessMatch = linkOrToken.match(/[?&]t=([^&]+)/);
+  if (accessMatch && accessMatch[1]) {
+    return `${PRODUCTION_URL}/guest/access?t=${accessMatch[1]}`;
   }
   
-  // Extract token from URL path (handles any domain)
-  const match = linkOrToken.match(/\/prearrival\/([^/?#]+)/);
-  if (match && match[1]) {
-    return `${PRODUCTION_URL}/prearrival/${match[1]}`;
+  // If it's already just a token (no slashes), default to new format
+  if (!linkOrToken.includes('/')) {
+    return `${PRODUCTION_URL}/guest/access?t=${linkOrToken}`;
+  }
+  
+  // Handle legacy /prearrival/:token format
+  const prearrivalMatch = linkOrToken.match(/\/prearrival\/([^/?#]+)/);
+  if (prearrivalMatch && prearrivalMatch[1]) {
+    // Keep legacy format for backward compatibility
+    return `${PRODUCTION_URL}/prearrival/${prearrivalMatch[1]}`;
   }
   
   // Fallback: try to get the last path segment
   const urlParts = linkOrToken.split('/');
   const token = urlParts[urlParts.length - 1];
   if (token) {
-    return `${PRODUCTION_URL}/prearrival/${token}`;
+    return `${PRODUCTION_URL}/guest/access?t=${token}`;
   }
   
-  // Last resort: return production URL with the original (should not happen)
-  console.warn('Could not extract token from prearrival link:', linkOrToken);
+  // Last resort: return the link as-is
+  console.warn('Could not extract token from link:', linkOrToken);
   return linkOrToken;
 }
 
@@ -101,9 +109,9 @@ const handler = async (req: Request): Promise<Response> => {
     });
     
     // ALWAYS use production URL for emails - extract token and rebuild
-    const productionPrearrivalLink = getPrearrivalProductionUrl(prearrivalLink);
+    const productionLink = getProductionUrl(prearrivalLink);
     console.log('Original link:', prearrivalLink);
-    console.log('Production link:', productionPrearrivalLink);
+    console.log('Production link:', productionLink);
     
     const primaryColor = resortPrimaryColor || '#0891b2';
     const subject = `Your stay at ${resortName} — complete online check-in`;
@@ -182,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
               <table role="presentation" style="width: 100%; margin: 0 0 32px;">
                 <tr>
                   <td align="center">
-                    <a href="${productionPrearrivalLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; box-shadow: 0 2px 8px ${primaryColor}40;">
+                    <a href="${productionLink}" style="display: inline-block; background-color: ${primaryColor}; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; box-shadow: 0 2px 8px ${primaryColor}40;">
                       Complete Your Check-in
                     </a>
                   </td>
@@ -268,7 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
                 If the button above doesn't work, copy and paste this link into your browser:
               </p>
               <p style="font-size: 11px; color: #cbd5e1; margin: 0; word-break: break-all; line-height: 1.5; background-color: #f8fafc; padding: 12px; border-radius: 6px;">
-                ${productionPrearrivalLink}
+                ${productionLink}
               </p>
             </td>
           </tr>
