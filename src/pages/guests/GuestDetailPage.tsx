@@ -15,6 +15,7 @@ import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
 import { StatusBadge } from '@/components/bookings/StatusBadge';
 import { GuestDialog } from './GuestDialog';
 import { ActivityBookingDialog } from '@/pages/activities/ActivityBookingDialog';
+import { RestaurantReservationDialog } from '@/pages/restaurants/RestaurantReservationDialog';
 import { StayFeedbackDialog } from '@/components/feedback/StayFeedbackDialog';
 import { LoyaltyEditDialog } from '@/components/guest/LoyaltyEditDialog';
 import { GuestPinManager } from '@/components/guest/GuestPinManager';
@@ -83,6 +84,7 @@ export default function GuestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activityBookingDialogOpen, setActivityBookingDialogOpen] = useState(false);
+  const [restaurantReservationDialogOpen, setRestaurantReservationDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState<any[]>([]);
@@ -692,6 +694,11 @@ export default function GuestDetailPage() {
             <Utensils className="h-5 w-5" />
             Restaurant Reservations
           </CardTitle>
+          {canEdit && (
+            <Button onClick={() => setRestaurantReservationDialogOpen(true)}>
+              Make Reservation
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {restaurantReservations.length === 0 ? (
@@ -785,6 +792,14 @@ export default function GuestDetailPage() {
       <ActivityBookingDialog
         open={activityBookingDialogOpen}
         onOpenChange={setActivityBookingDialogOpen}
+        guest={guest}
+        onSuccess={fetchGuest}
+      />
+
+      {/* Restaurant Reservation Dialog */}
+      <RestaurantReservationDialog
+        open={restaurantReservationDialogOpen}
+        onOpenChange={setRestaurantReservationDialogOpen}
         guest={guest}
         onSuccess={fetchGuest}
       />
