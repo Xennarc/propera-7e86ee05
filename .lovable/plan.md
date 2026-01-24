@@ -1,164 +1,140 @@
 
-# Fix: GuestDetailPage Null Safety for Nested Booking Data
+# Fix: GuestDetailPage ErrorBoundary Crash on Production
 
-## Problem
+## Problem Summary
 
-The Guest Detail page at `/staff/guests/{id}` crashes with an ErrorBoundary error when:
-- An `activity_booking` has a null `session` (orphaned booking, deleted session, or RLS restriction)
-- A `restaurant_reservation` has a null `slot` (same causes)
+The Guest Detail page (`/staff/guests/{id}`) is crashing with an ErrorBoundary error on the **published (production) site** for **all guests**. This started recently and does not occur in the preview environment.
 
-The filter logic correctly excludes records with null nested data, but the TypeScript types claim `session` and `slot` are always present, which masks the issue and allows unsafe property access without compiler warnings.
+## Root Cause Analysis
 
----
+The crash is caused by **unhandled date parsing** in the `GuestAtAGlanceChips` component and inline date comparisons in `GuestDetailPage`:
 
-## Root Cause
+| Location | Line | Issue |
+|----------|------|-------|
+| `GuestAtAGlanceChips.tsx` | 18-19 | Uses `parseISO(checkInDate)` directly without error handling |
+| `GuestDetailPage.tsx` | 351 | Uses `new Date(guest.check_in_date) > new Date()` without validation |
 
-**Type mismatch between interface and Supabase reality:**
+When `parseISO()` from `date-fns` receives an unexpected or malformed value, or when JavaScript's `Date` constructor fails to parse a value, it can cause rendering crashes that propagate to the ErrorBoundary.
 
-```typescript
-// Current interface (lines 30-42)
-interface ActivityBookingWithSession {
-  session: {                    // Required - but Supabase can return null!
-    id: string;
-    date: string;
-    activity: { name: string };
-  };
-}
-```
-
-When Supabase returns `session: null` for an orphaned booking, accessing `booking.session.id` throws a TypeError.
-
----
+**Why production only?** 
+- Production may have edge cases in date formats or data
+- Production database may have data that preview doesn't
+- Build optimization differences between environments
 
 ## Solution
 
-1. **Update type interfaces** to make `session` and `slot` optional (nullable)
-2. **Add optional chaining** to all property accesses on these nested objects
-3. **Fix navigation paths** that are missing the `/staff` prefix
-
----
+Add defensive date handling to:
+1. `GuestAtAGlanceChips` component - wrap date parsing in try-catch and use `safeParseDateISO`
+2. `GuestDetailPage` - add defensive checks for date comparisons
+3. Ensure all date parsing uses the existing `safeParseDateISO` utility
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/guests/GuestDetailPage.tsx` | Update types + add optional chaining + fix navigation paths |
+| `src/components/prearrival/GuestAtAGlanceChips.tsx` | Add safe date parsing with fallback |
+| `src/pages/guests/GuestDetailPage.tsx` | Add defensive date comparison |
 
 ---
 
 ## Technical Changes
 
-### 1. Update Type Interfaces (lines 30-57)
+### 1. GuestAtAGlanceChips.tsx
+
+Replace raw `parseISO` calls with safe parsing that handles errors:
 
 ```typescript
-// Line 36: Make session optional
-interface ActivityBookingWithSession {
-  id: string;
-  guest_id: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
-  num_adults: number;
-  num_children: number;
-  session: {                          // Keep as-is for now, filter guards handle nulls
-    id: string;
-    date: string;
-    start_time: string;
-    activity: { name: string } | null;  // Make activity nullable
-  } | null;                            // Make session nullable
-}
+// Current unsafe code (lines 17-19):
+const today = startOfDay(new Date());
+const checkIn = parseISO(checkInDate);
+const checkOut = parseISO(checkOutDate);
 
-// Line 50: Make slot optional  
-interface ReservationWithSlot {
-  id: string;
-  guest_id: string;
-  status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
-  num_adults: number;
-  num_children: number;
-  slot: {
-    id: string;
-    date: string;
-    start_time: string;
-    meal_period: string;
-    restaurant: { name: string } | null;  // Make restaurant nullable
-  } | null;                              // Make slot nullable
-}
+// Replace with:
+import { safeParseDateISO } from '@/lib/safe-date-format';
+
+const today = startOfDay(new Date());
+const checkIn = safeParseDateISO(checkInDate);
+const checkOut = safeParseDateISO(checkOutDate);
+
+// And update getStayStatus() to handle null dates:
+const getStayStatus = () => {
+  // If dates are invalid, return a safe fallback
+  if (!checkIn || !checkOut) {
+    return {
+      label: 'Invalid dates',
+      icon: Home,
+      className: 'bg-muted text-muted-foreground border-muted-foreground/20',
+    };
+  }
+  
+  if (isBefore(today, checkIn)) {
+    // ... existing logic
+  }
+  // ... rest of existing logic
+};
 ```
 
-### 2. Add Optional Chaining to Rendering (lines 575-700)
+### 2. GuestDetailPage.tsx
 
-**Activity Bookings - Upcoming (lines 579-586):**
+Add defensive date check for the pre-arrival card rendering (line 351):
+
 ```typescript
-<TableRow 
-  key={booking.id}
-  className="cursor-pointer hover:bg-muted/50"
-  onClick={() => booking.session?.id && navigate(`/staff/activities/sessions/${booking.session.id}`)}
->
-  <TableCell className="font-medium">{booking.session?.activity?.name || 'Unknown Activity'}</TableCell>
-  <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
-  <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
-  <TableCell>{booking.num_adults + booking.num_children}</TableCell>
-  <TableCell><StatusBadge status={booking.status} /></TableCell>
-</TableRow>
+// Current unsafe code (line 351):
+{new Date(guest.check_in_date) > new Date(new Date().toDateString()) && (
+  <PrearrivalProfileCard ... />
+)}
+
+// Replace with:
+{(() => {
+  const checkInDate = safeParseDateISO(guest.check_in_date);
+  return checkInDate && checkInDate > new Date(new Date().toDateString());
+})() && (
+  <PrearrivalProfileCard ... />
+)}
+
+// Or more cleanly:
+const isPreArrival = (() => {
+  const checkIn = safeParseDateISO(guest.check_in_date);
+  return checkIn && checkIn > startOfDay(new Date());
+})();
+
+// Then in JSX:
+{isPreArrival && (
+  <PrearrivalProfileCard ... />
+)}
 ```
 
-**Activity Bookings - Past (lines 609-616):** Same pattern
-
-**Restaurant Reservations - Upcoming (lines 657-670):**
+Also add import at the top of the file if not already present:
 ```typescript
-<TableRow 
-  key={reservation.id}
-  className="cursor-pointer hover:bg-muted/50"
-  onClick={() => reservation.slot?.id && navigate(`/staff/restaurants/slots/${reservation.slot.id}`)}
->
-  <TableCell className="font-medium">{reservation.slot?.restaurant?.name || 'Unknown Restaurant'}</TableCell>
-  <TableCell>{reservation.slot?.date ? safeFormatDate(reservation.slot.date, 'EEE, MMM d') : '-'}</TableCell>
-  <TableCell>{reservation.slot?.start_time?.slice(0, 5) || '-'}</TableCell>
-  <TableCell><Badge variant="outline">{reservation.slot?.meal_period || '-'}</Badge></TableCell>
-  <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
-  <TableCell><StatusBadge status={reservation.status} /></TableCell>
-</TableRow>
+import { safeParseDateISO } from '@/lib/safe-date-format';
 ```
-
-**Restaurant Reservations - Past (lines 693-701):** Same pattern
-
-### 3. Fix Navigation Paths
-
-| Line | Current | Fixed |
-|------|---------|-------|
-| 579 | `/activities/sessions/${...}` | `/staff/activities/sessions/${...}` |
-| 661 | `/restaurants/slots/${...}` | `/staff/restaurants/slots/${...}` |
 
 ---
 
-## Summary of All Changes
+## Summary of Changes
 
-| Location | Change |
-|----------|--------|
-| Lines 36-42 | Make `session` and `session.activity` nullable in type |
-| Lines 50-57 | Make `slot` and `slot.restaurant` nullable in type |
-| Line 579 | Add `?.id` check + fix navigation path |
-| Lines 581-583 | Add `?.` to all `booking.session` property accesses |
-| Lines 611-613 | Add `?.` to all `booking.session` property accesses (past section) |
-| Line 661 | Add `?.id` check + fix navigation path |
-| Lines 663-666 | Add `?.` to all `reservation.slot` property accesses |
-| Lines 695-698 | Add `?.` to all `reservation.slot` property accesses (past section) |
+| File | Lines | Change Description |
+|------|-------|-------------------|
+| `GuestAtAGlanceChips.tsx` | 2, 17-44 | Import and use `safeParseDateISO`, add null handling |
+| `GuestDetailPage.tsx` | 14, 351 | Add import, wrap date comparison in safe check |
 
 ---
 
 ## Impact
 
-- **Fixes crash**: Guest Detail page will no longer crash when bookings have null session/slot
-- **Better types**: TypeScript now correctly reflects that nested data can be null
-- **Fixed navigation**: Row clicks now navigate to correct `/staff/...` paths
-- **No data loss**: Filter logic still excludes invalid records; fallbacks show clear "Unknown" text
-- **No database changes required**
+- **Fixes crash**: Guest Detail page will no longer crash on invalid/unexpected date formats
+- **Graceful degradation**: Shows "Invalid dates" badge if dates can't be parsed
+- **Consistent**: Uses the existing `safeParseDateISO` utility that's already used elsewhere in the codebase
+- **No data loss**: No changes to database or data handling
+- **No breaking changes**: Behavior is identical when dates are valid
 
 ---
 
 ## Testing
 
 After implementation:
-1. Navigate to `/staff/guests/{guest-id}?debug=1`
-2. Verify the page loads without errors
-3. Check Error Log section in debug panel - should be empty
-4. Click on an activity booking row - should navigate to `/staff/activities/sessions/{id}`
-5. Click on a restaurant reservation row - should navigate to `/staff/restaurants/slots/{id}`
+1. Navigate to `/staff/guests/{any-guest-id}?debug=1` on **production**
+2. Verify the page loads without the ErrorBoundary crash
+3. Verify the "At a glance" chips display correctly (Arriving/In-house/Checked out)
+4. Verify the Pre-Arrival Profile Card appears correctly for future check-ins
+5. Check Error Log in debug panel - should be empty
