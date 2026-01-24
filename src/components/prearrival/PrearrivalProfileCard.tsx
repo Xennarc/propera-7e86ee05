@@ -29,7 +29,8 @@ import {
   RefreshCw,
   CheckCircle2,
   XCircle,
-  RotateCcw
+  RotateCcw,
+  Key
 } from 'lucide-react';
 import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/safe-date-format';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
@@ -39,6 +40,8 @@ import { StaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
 import { usePrearrivalRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { SendGuestCredentialsDialog } from '@/components/guests/SendGuestCredentialsDialog';
+import { Guest } from '@/types/database';
 
 interface PrearrivalProfileCardProps {
   guestId: string;
@@ -74,7 +77,7 @@ export function PrearrivalProfileCard({
   const [showFullRequests, setShowFullRequests] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [credentialsDialogOpen, setCredentialsDialogOpen] = useState(false);
 
   const { profile, settings, review, status } = data;
   
@@ -114,134 +117,41 @@ export function PrearrivalProfileCard({
     },
   });
 
-  // Send email mutation - uses new stay-based system when available
-  const sendEmailMutation = useMutation({
-    mutationFn: async () => {
-      if (!guestEmail) throw new Error('No email address');
-      
-      // Try to find an existing stay for this guest
-      const { data: stay } = await supabase
-        .from('guest_stays')
-        .select('id')
-        .eq('guest_id', guestId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  // Create a partial guest object for the credentials dialog
+  const dialogGuest = {
+    id: guestId,
+    full_name: guestName,
+    email: guestEmail || null,
+    room_number: '', // Populated from parent component
+    check_in_date: checkInDate,
+    check_out_date: checkOutDate,
+    resort_id: resortId,
+  } as Guest;
 
-      let prearrivalLink: string;
+  const handleSendEmail = () => {
+    setCredentialsDialogOpen(true);
+  };
 
-      if (stay) {
-        // Use new stay-based system
-        const { data: linkData, error: linkError } = await supabase.rpc('create_guest_access_link', {
-          p_stay_id: stay.id,
-        });
-        if (linkError) throw linkError;
-        
-        const linkResult = linkData as { success: boolean; raw_token?: string; error?: string } | null;
-        if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
-        
-        prearrivalLink = `${window.location.origin}/guest/access?t=${linkResult.raw_token}`;
-      } else {
-        // Fall back to legacy system
-        const { data: linkData, error: linkError } = await supabase.rpc('generate_prearrival_token', {
-          p_guest_id: guestId,
-        });
-        if (linkError) throw linkError;
-        
-        const linkResult = linkData as { success: boolean; token?: string; error?: string } | null;
-        if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
-        
-        prearrivalLink = `${window.location.origin}/prearrival/${linkResult.token}`;
-      }
-      
-      // Send email
-      const { data: emailData, error: emailError } = await supabase.functions.invoke('send-prearrival-link', {
-        body: {
-          guestId,
-          guestName,
-          guestEmail,
-          checkInDate,
-          resortId,
-          resortName,
-          prearrivalLink,
-          resortLogoUrl: resortLogoUrl || undefined,
-          resortPrimaryColor: resortPrimaryColor || undefined,
-        },
-      });
-      
-      if (emailError) throw emailError;
-      if (!emailData?.success) throw new Error(emailData?.error || 'Failed to send email');
-      
-      return emailData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages', guestId] });
-      queryClient.invalidateQueries({ queryKey: ['prearrival-link', guestId] });
-      queryClient.invalidateQueries({ queryKey: ['staff-guest-stay'] });
-      toast({ 
-        title: 'Email sent!', 
-        description: `Pre-arrival invite sent to ${guestEmail}` 
-      });
-      refetchInvite();
-    },
-    onError: (error: any) => {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Failed to send', 
-        description: error.message 
-      });
-    },
-  });
+  const handleCredentialsSent = () => {
+    queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages', guestId] });
+    queryClient.invalidateQueries({ queryKey: ['guests'] });
+    refetchInvite();
+  };
 
   // Copy summary for sharing
   const copySummary = async () => {
     const lines = [`📋 Pre-Arrival Summary for ${guestName}`];
     lines.push(`Status: ${status === 'completed' ? 'Completed ✅' : status === 'in_progress' ? 'In Progress 🔄' : 'Not Started'}`);
-    
-    if (profile?.arrival_time) {
-      const timeStr = profile.arrival_time.slice(0, 5);
-      const flightStr = profile.arrival_flight_number ? ` (Flight ${profile.arrival_flight_number})` : '';
-      lines.push(`Arriving: ${safeFormatDate(checkInDate, 'MMM d')}, ${timeStr}${flightStr}`);
-    }
-    
-    if (profile?.transfer_preference) {
-      lines.push(`Transfer: ${formatTransferPreference(profile.transfer_preference)}`);
-    }
-    
-    if (profile?.allergies) {
-      lines.push(`Allergies: ${profile.allergies} ⚠️`);
-    }
-    
-    if (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) {
-      lines.push(`Dietary: ${profile.dietary_preferences.join(', ')}`);
-    }
-    
-    if (Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0) {
-      lines.push(`Special: ${profile.special_occasions.join(', ')} 🎉`);
-    }
-
     await navigator.clipboard.writeText(lines.join('\n'));
     setCopied(true);
     toast({ title: 'Summary copied!' });
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSendEmail = () => {
-    if (!guestEmail) {
-      toast({
-        variant: 'destructive',
-        title: 'No email address',
-        description: 'Please add an email address to this guest first.',
-      });
-      return;
-    }
-    sendEmailMutation.mutate();
-  };
-
   // Determine button state
   const isCompleted = status === 'completed';
   const isCheckedIn = new Date(checkInDate) <= new Date();
-  const canSend = !!guestEmail && !sendEmailMutation.isPending;
+  const canSend = !!guestEmail;
 
   if (isLoading) {
     return (
@@ -297,20 +207,15 @@ export function PrearrivalProfileCard({
                 disabled={!canSend}
                 className="w-full max-w-xs"
               >
-                {sendEmailMutation.isPending ? (
+                {hasBeenSent ? (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Sending...
-                  </>
-                ) : hasBeenSent ? (
-                  <>
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Resend Pre-Arrival Email
+                    <Key className="h-4 w-4 mr-2" />
+                    Send Login Credentials
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Send Pre-Arrival Email
+                    <Key className="h-4 w-4 mr-2" />
+                    Send Login Credentials
                   </>
                 )}
               </Button>
