@@ -36,6 +36,7 @@ interface ActivityBookingWithSession {
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
   num_adults: number;
   num_children: number;
+  booking_source?: string | null;
   session: {
     id: string;
     date: string;
@@ -141,7 +142,7 @@ export default function GuestDetailPage() {
     const { data: bookingsData } = await supabase
       .from('activity_bookings')
       .select(`
-        id, guest_id, status, num_adults, num_children,
+        id, guest_id, status, num_adults, num_children, booking_source,
         session:activity_sessions(
           id, date, start_time,
           activity:activities(name)
@@ -602,6 +603,7 @@ export default function GuestDetailPage() {
                           <TableHead>Date</TableHead>
                           <TableHead>Time</TableHead>
                           <TableHead>Pax</TableHead>
+                          <TableHead>Source</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -616,6 +618,15 @@ export default function GuestDetailPage() {
                             <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
                             <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
+                            <TableCell>
+                              {booking.booking_source === 'PRE_STAY' ? (
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                                  Pre-arrival
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">In-house</span>
+                              )}
+                            </TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
                           </TableRow>
                         ))}
