@@ -29,6 +29,7 @@ import { PrearrivalProfileCard } from '@/components/prearrival/PrearrivalProfile
 import { useStaffGuestStay } from '@/hooks/useStaffGuestStay';
 import { GuestStayPanel } from '@/components/staff/GuestStayPanel';
 import { PreArrivalSubmissionCard } from '@/components/staff/PreArrivalSubmissionCard';
+import { StaffTravelPartyCard } from '@/components/staff/StaffTravelPartyCard';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -359,6 +360,13 @@ export default function GuestDetailPage() {
           </dl>
         </CardContent>
       </Card>
+
+      {/* Travel Party (Optional) */}
+      <StaffTravelPartyCard
+        guestId={guest.id}
+        guestName={guest.full_name}
+        resortId={guest.resort_id}
+      />
 
       {/* Stay Panel (New Architecture) */}
       <GuestStayPanel
