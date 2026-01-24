@@ -143,6 +143,13 @@ export const queryKeys = {
     staff: (userId: string) => 
       ['staff-notifications', userId],
   },
+
+  // ==================== TRAVEL PARTY ====================
+  travelParty: {
+    // Staff-facing travel party for a guest
+    staffParty: (resortId: string, guestId: string) => 
+      ['staff-travel-party', resortId, guestId],
+  },
 };
 
 /**
