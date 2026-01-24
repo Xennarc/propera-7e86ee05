@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getPrearrivalUrl } from '@/lib/url-utils';
+import { getGuestAccessUrl, getPrearrivalUrl } from '@/lib/url-utils';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -28,26 +28,53 @@ export function GeneratePreArrivalLinkDialog({
 }: GeneratePreArrivalLinkDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const generateLink = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('generate_prearrival_token', {
-        p_guest_id: guest.id,
-      });
+      // Try to find an existing stay for this guest
+      const { data: stay } = await supabase
+        .from('guest_stays')
+        .select('id')
+        .eq('guest_id', guest.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (stay) {
+        // Use new stay-based system
+        const { data, error } = await supabase.rpc('create_guest_access_link', {
+          p_stay_id: stay.id,
+        });
 
-      const result = data as any;
-      if (!result?.success) {
-        throw new Error(result?.error || 'Failed to generate link');
+        if (error) throw error;
+
+        const result = data as { success: boolean; raw_token?: string; expires_at?: string; error?: string };
+        if (!result?.success) {
+          throw new Error(result?.error || 'Failed to generate link');
+        }
+
+        setGeneratedUrl(getGuestAccessUrl(result.raw_token!));
+        setExpiresAt(result.expires_at || null);
+      } else {
+        // Fall back to legacy system for guests without stays
+        const { data, error } = await supabase.rpc('generate_prearrival_token', {
+          p_guest_id: guest.id,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; token?: string; expires_at?: string; error?: string };
+        if (!result?.success) {
+          throw new Error(result?.error || 'Failed to generate link');
+        }
+
+        setGeneratedUrl(getPrearrivalUrl(result.token!));
+        setExpiresAt(result.expires_at || null);
       }
-
-      setToken(result.token);
-      setExpiresAt(result.expires_at);
       
       toast({
         title: 'Link generated',
@@ -65,9 +92,8 @@ export function GeneratePreArrivalLinkDialog({
   };
 
   const copyLink = () => {
-    if (!token) return;
-    const url = getPrearrivalUrl(token);
-    navigator.clipboard.writeText(url);
+    if (!generatedUrl) return;
+    navigator.clipboard.writeText(generatedUrl);
     setCopied(true);
     toast({
       title: 'Copied!',
@@ -78,7 +104,7 @@ export function GeneratePreArrivalLinkDialog({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      setToken(null);
+      setGeneratedUrl(null);
       setExpiresAt(null);
       setCopied(false);
     }
@@ -117,7 +143,7 @@ export function GeneratePreArrivalLinkDialog({
             </div>
           </div>
 
-          {!token ? (
+          {!generatedUrl ? (
             <div className="text-center py-6">
               <p className="text-sm text-muted-foreground mb-4">
                 Click below to generate a unique pre-arrival link for this guest.
@@ -133,7 +159,7 @@ export function GeneratePreArrivalLinkDialog({
                 <div className="flex gap-2 mt-1.5">
                   <Input
                     id="link"
-                    value={getPrearrivalUrl(token)}
+                    value={generatedUrl}
                     readOnly
                     className="font-mono text-xs"
                   />
@@ -154,7 +180,7 @@ export function GeneratePreArrivalLinkDialog({
 
               {expiresAt && (
                 <p className="text-xs text-muted-foreground">
-                  This link expires on {format(parseISO(expiresAt), 'MMM d, yyyy')} (3 days after checkout).
+                  This link expires on {format(parseISO(expiresAt), 'MMM d, yyyy')}.
                 </p>
               )}
 
