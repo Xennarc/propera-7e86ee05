@@ -1,101 +1,209 @@
 
-# Pre-Arrival Migration Backfill Execution Plan
+# Legacy Pre-Arrival Code Cleanup Plan
 
-## Current State Summary
+## Executive Summary
 
-| Table | Count | Status |
-|-------|-------|--------|
-| `guests` | 49 | Source data |
-| `guest_stays` | 0 | **Needs backfill** |
-| `prearrival_profiles` | 7 | Source data |
-| `pre_arrival_submissions` | 0 | **Needs backfill** |
-| `prearrival_tokens` (active) | 3 | Source data |
-| `guest_access_links` | 0 | **Needs backfill** |
-
-## What This Migration Will Do
-
-### Step 1: Backfill Guest Stays
-Execute `backfill_guest_stays_from_guests()` to create `guest_stays` records for all 49 guests based on their check-in/check-out dates. Each stay will have:
-- `status`: 'pre_arrival', 'in_house', or 'checked_out' based on current date vs. stay dates
-- `room_number`: Copied from the guest record
-- `arrival_date` / `departure_date`: From guest check-in/check-out
-
-### Step 2: Backfill Pre-Arrival Submissions
-Execute `backfill_submissions_from_profiles()` to migrate the 7 existing `prearrival_profiles` records to the new `pre_arrival_submissions` table, converting their data to the new JSONB payload format.
-
-### Step 3: Link Legacy Tokens
-Execute `link_legacy_tokens_to_stays()` to create `guest_access_links` records for the 3 active legacy tokens, linking them to the corresponding `guest_stays` and storing a reference to the legacy token.
-
-### Step 4: Verify Results
-Query the new tables to confirm successful backfill with expected counts.
+Following the successful migration to the stay-based pre-arrival system, this plan identifies legacy code that can be safely removed while being **extremely cautious** to preserve any components still in active use.
 
 ---
 
-## Technical Implementation
+## Analysis Summary
 
-### Database Migration
+### Components Classification
 
-Create a new migration that executes the three backfill functions in sequence and logs results:
+| Category | Status | Action |
+|----------|--------|--------|
+| **Legacy Routes** (`/prearrival/:token/*`) | Routes active but should redirect | Replace with `LegacyPrearrivalRedirect` |
+| **Legacy Pages** (PrearrivalLandingPage, PrearrivalCheckinWizard, PreArrivalPage) | Still handling legacy token URLs | Keep for backward compat, mark as deprecated |
+| **Legacy Link Manager** (PrearrivalLinkManager) | Used by PrearrivalProfileCard | Keep until PrearrivalProfileCard is retired |
+| **PrearrivalProfileCard** | Used on GuestDetailPage | Keep - still primary staff view |
+| **Helper Components** (OperationalFlags, GuestAtAGlanceChips, PrearrivalStatusBadge, PrearrivalHistoryTimeline) | Actively used in staff portal | **KEEP** - shared utility components |
+| **URL Utility** (`getPrearrivalUrl`) | Used by multiple components | Keep but mark deprecated |
+| **Demo redirect pages** | Already redirecting to new routes | Safe to simplify |
 
-```sql
--- Execute backfill in correct order
-DO $$
-DECLARE
-  v_stays_result json;
-  v_submissions_result json;
-  v_links_result json;
-BEGIN
-  -- Step 1: Create guest_stays from guests
-  SELECT public.backfill_guest_stays_from_guests() INTO v_stays_result;
-  RAISE NOTICE 'Backfill guest_stays: %', v_stays_result;
-  
-  -- Step 2: Migrate prearrival_profiles to pre_arrival_submissions
-  SELECT public.backfill_submissions_from_profiles() INTO v_submissions_result;
-  RAISE NOTICE 'Backfill submissions: %', v_submissions_result;
-  
-  -- Step 3: Link active legacy tokens to guest_access_links
-  SELECT public.link_legacy_tokens_to_stays() INTO v_links_result;
-  RAISE NOTICE 'Link legacy tokens: %', v_links_result;
-END $$;
+---
+
+## What Can Be Safely Cleaned Up
+
+### Phase 1: Safe Immediate Cleanup (Low Risk)
+
+#### 1.1 Replace Legacy Routes with Redirects
+Instead of deleting the legacy pages immediately, replace the route definitions with the `LegacyPrearrivalRedirect` component. This preserves user experience for anyone with old links while not serving the complex legacy pages.
+
+**File: `src/App.tsx`**
+- Change routes at lines 300-303 from lazy-loading legacy pages to using `LegacyPrearrivalRedirect`
+
+```typescript
+// Before:
+<Route path="/prearrival/:token" element={<PrearrivalLandingPage />} />
+<Route path="/prearrival/:token/checkin" element={<PrearrivalCheckinWizard />} />
+<Route path="/prearrival/:token/experiences" element={<PreArrivalPage />} />
+
+// After:
+<Route path="/prearrival/:token" element={<LegacyPrearrivalRedirect />} />
+<Route path="/prearrival/:token/checkin" element={<LegacyPrearrivalRedirect />} />
+<Route path="/prearrival/:token/experiences" element={<LegacyPrearrivalRedirect />} />
 ```
 
----
+#### 1.2 Remove Lazy Imports for Legacy Pages
+Remove the lazy import statements for pages that are no longer directly rendered:
 
-## Post-Migration Verification
+```typescript
+// Remove these lazy imports:
+const PrearrivalLandingPage = lazy(() => import('./pages/prearrival/PrearrivalLandingPage'));
+const PrearrivalCheckinWizard = lazy(() => import('./pages/prearrival/PrearrivalCheckinWizard'));
+const PreArrivalPage = lazy(() => import('./pages/guest/PreArrivalPage'));
+```
 
-After the migration runs, verify:
+#### 1.3 Delete Legacy Page Files
+After routes are redirected, these files can be deleted:
 
-1. **guest_stays count** ≈ 49 (one per guest with valid dates)
-2. **pre_arrival_submissions count** = 7 (matching prearrival_profiles with data)
-3. **guest_access_links count** = 3 (matching active legacy tokens)
+| File | Lines | Reason |
+|------|-------|--------|
+| `src/pages/prearrival/PrearrivalLandingPage.tsx` | 586 | Replaced by unified guest portal |
+| `src/pages/prearrival/PrearrivalCheckinWizard.tsx` | ~991 | Replaced by `PrearrivalWizard` in guest portal |
+| `src/pages/guest/PreArrivalPage.tsx` | 783 | Replaced by unified booking flow |
 
----
-
-## What This Enables
-
-Once the backfill completes:
-
-1. **Staff Console**: The new `GuestStayPanel` and `PreArrivalSubmissionCard` will show real data for all guests
-2. **Guest Portal**: `useActiveStay` hook will return valid stay records, enabling pre-arrival booking with `stay_id`
-3. **Unified Reads**: `get_prearrival_data_unified` will return data from the new system instead of falling back to legacy
-4. **Dual-Write Active**: New guest submissions will write to both systems during transition
-
----
-
-## Implementation Order
-
-1. Create database migration with backfill execution
-2. Verify counts match expectations
-3. Test guest portal flow with pre-arrival guest
-4. Test staff console stay panel display
+**Total: ~2,360 lines removed**
 
 ---
 
-## Future Steps (After Backfill)
+### Phase 2: Consolidate Link Generation (Medium Risk)
 
-Once backfill is verified:
+#### 2.1 Update `GeneratePreArrivalLinkDialog` to Use New System
+This dialog still uses the legacy `generate_prearrival_token` RPC. Update it to use the stay-based system:
 
-1. **Monitor dual-write success** - Ensure new submissions appear in both systems
-2. **Transition staff to new links** - Update `SendPrearrivalEmailDialog` to use new system by default
-3. **Add telemetry** - Track legacy vs. new system access patterns
-4. **Deprecate legacy routes** - Replace `/prearrival/:token` with `LegacyPrearrivalRedirect` when usage drops
+**File: `src/components/guest/GeneratePreArrivalLinkDialog.tsx`**
+- Change from `generate_prearrival_token` to `create_guest_access_link`
+- Use `getGuestAccessUrl` instead of `getPrearrivalUrl`
+
+#### 2.2 Update `PrearrivalProfileCard` Send Email Logic
+The card's email mutation at line 131 hardcodes the legacy URL format.
+
+**File: `src/components/prearrival/PrearrivalProfileCard.tsx`**
+- Update to prefer new stay-based links (similar to `SendPrearrivalEmailDialog`)
+
+---
+
+### Phase 3: Future Cleanup (After Monitoring)
+
+These should **NOT** be removed yet. Wait until telemetry confirms zero legacy usage:
+
+| Component | Reason to Keep |
+|-----------|----------------|
+| `PrearrivalLinkManager.tsx` | Still embedded in `PrearrivalProfileCard` |
+| `SharePrearrivalLinkDialog.tsx` | Used by `PrearrivalLinkManager` |
+| `PrearrivalProfileCard.tsx` | Primary staff view for pre-arrival data |
+| `getPrearrivalUrl()` | Fallback in `SendPrearrivalEmailDialog` |
+| Legacy RPCs (`generate_prearrival_token`, etc.) | Database functions - keep for transition |
+
+---
+
+## What Must NOT Be Removed
+
+### Critical Keep List
+
+| Component | Location | Reason |
+|-----------|----------|--------|
+| `LegacyPrearrivalRedirect` | `src/components/prearrival/` | Needed for graceful legacy link handling |
+| `ExpiredLinkScreen` | `src/components/prearrival/` | Used by both legacy and new systems |
+| `GuestAtAGlanceChips` | `src/components/prearrival/` | Used on GuestDetailPage |
+| `OperationalFlags` | `src/components/prearrival/` | Used on GuestDetailPage |
+| `PrearrivalStatusBadge` | `src/components/prearrival/` | Used across staff portal |
+| `PrearrivalHistoryTimeline` | `src/components/prearrival/` | Used in PrearrivalProfileCard |
+| `PrearrivalProfileCard` | `src/components/prearrival/` | Primary staff pre-arrival view |
+| Guest Portal Prearrival Components | `src/components/guest/prearrival/` | **NEW SYSTEM** - actively used |
+| Demo auto-login redirects | `src/pages/guest/DemoGuestAutoLoginPage.tsx` | Backward compat for demo links |
+
+---
+
+## Implementation Details
+
+### Files to Delete (Phase 1)
+
+```text
+src/pages/prearrival/
+├── PrearrivalLandingPage.tsx    (DELETE - 586 lines)
+└── PrearrivalCheckinWizard.tsx  (DELETE - 991 lines)
+
+src/pages/guest/
+└── PreArrivalPage.tsx           (DELETE - 783 lines)
+```
+
+### Files to Modify (Phase 1)
+
+**`src/App.tsx`:**
+1. Remove lazy imports for deleted pages
+2. Update routes to use `LegacyPrearrivalRedirect`
+
+### Files to Modify (Phase 2)
+
+**`src/components/guest/GeneratePreArrivalLinkDialog.tsx`:**
+1. Check for `guest_stays` record first
+2. Use `create_guest_access_link` RPC if available
+3. Fall back to legacy only for guests without stays
+4. Use `getGuestAccessUrl` for new links
+
+**`src/components/prearrival/PrearrivalProfileCard.tsx`:**
+1. Update `sendEmailMutation` to prefer new system
+2. Use `getGuestAccessUrl` when stay exists
+
+---
+
+## Code Size Impact
+
+| Action | Lines Removed | Lines Added |
+|--------|---------------|-------------|
+| Delete legacy pages | ~2,360 | 0 |
+| Update App.tsx routes | ~3 | ~3 |
+| Update GeneratePreArrivalLinkDialog | 0 | ~20 |
+| Update PrearrivalProfileCard | ~5 | ~15 |
+| **Net Impact** | **~2,330 lines removed** | |
+
+---
+
+## Risk Assessment
+
+| Risk | Mitigation |
+|------|------------|
+| Breaking old bookmarked links | `LegacyPrearrivalRedirect` provides graceful UX |
+| Staff confusion | PrearrivalProfileCard unchanged in this phase |
+| Missing data for some guests | Dual-write already active; backfill complete |
+| Demo links breaking | `DemoGuestAutoLoginPage` already redirects properly |
+
+---
+
+## Testing Checklist
+
+After cleanup:
+- [ ] Visit `/prearrival/any-token` → Should show redirect screen
+- [ ] Guest Detail page still shows pre-arrival data
+- [ ] `OperationalFlags` render correctly
+- [ ] `SendPrearrivalEmailDialog` sends emails successfully
+- [ ] New guest access links (`/guest/access?t=...`) work
+- [ ] Staff can still generate and share links
+- [ ] Demo auto-login still works
+
+---
+
+## Recommended Execution Order
+
+1. **Update `App.tsx`** - Replace routes with redirects
+2. **Delete legacy page files** - Remove the 3 large page files
+3. **Update `GeneratePreArrivalLinkDialog`** - Use new system
+4. **Update `PrearrivalProfileCard`** - Use new system for emails
+5. **Verify** - Test all staff and guest flows
+6. **Monitor** - Track any errors in console/network logs
+
+---
+
+## Summary
+
+This cleanup removes approximately **2,330 lines** of legacy code while:
+- Preserving all active staff portal functionality
+- Maintaining backward compatibility via redirects
+- Keeping shared utility components (`OperationalFlags`, `GuestAtAGlanceChips`, etc.)
+- Not touching the new guest portal prearrival components
+- Avoiding database changes (RPCs remain for fallback)
+
+The approach is deliberately conservative - we only remove pages that are no longer routed to, while keeping all components that might still be referenced.
