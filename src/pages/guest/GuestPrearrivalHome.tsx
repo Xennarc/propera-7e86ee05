@@ -11,12 +11,18 @@ import { PrearrivalCountdown } from '@/components/guest/prearrival/PrearrivalCou
 import { PrearrivalChecklist } from '@/components/guest/prearrival/PrearrivalChecklist';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 import { PrearrivalSummaryCard } from '@/components/guest/prearrival/PrearrivalSummaryCard';
+import { PrearrivalActivitiesPreview } from '@/components/guest/prearrival/PrearrivalActivitiesPreview';
 import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { Plane, Sparkles, ChevronRight } from 'lucide-react';
 import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Button } from '@/components/ui/button';
+import type { ActiveStay } from '@/hooks/useActiveStay';
 
-export default function GuestPrearrivalHome() {
+interface GuestPrearrivalHomeProps {
+  activeStay?: ActiveStay | null;
+}
+
+export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeProps) {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -144,6 +150,11 @@ export default function GuestPrearrivalHome() {
           activityBookingsCount={bookingCounts?.activities || 0}
           diningBookingsCount={bookingCounts?.dining || 0}
         />
+      )}
+
+      {/* Activities Preview with Day Chips */}
+      {settings?.allow_activity_bookings && (
+        <PrearrivalActivitiesPreview />
       )}
 
       {/* Quick Actions */}

@@ -14,6 +14,7 @@ export interface GuestSession {
   resortTimezone?: string;
   sessionId?: string;
   sessionToken?: string;
+  stayId?: string; // Links to guest_stays table for unified stay tracking
 }
 
 // Re-export for backward compatibility - branding now fetched dynamically via useResortBranding hook
