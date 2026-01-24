@@ -434,7 +434,7 @@ function ActivitySessionsPageContent() {
                 },
                 {
                   header: 'Activity',
-                  accessor: (session) => session.activity?.name,
+                  accessor: (session) => session.activity?.name || 'Unknown Activity',
                 },
                 {
                   header: 'Capacity',
