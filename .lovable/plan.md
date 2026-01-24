@@ -1,105 +1,166 @@
 
-# Fix GuestDetailPage Error Boundary Crash
 
-## Problem Identified
+# Fix GuestDetailPage Crash + Improve Error Capture
 
-The `GuestDetailPage` crashes when the `ErrorBoundary` catches an error from unsafe date parsing. Several components use `date-fns`'s `parseISO()` directly without the safe wrapper function (`safeParseDateISO` / `safeFormatDate`). When malformed date strings are encountered, `parseISO` returns an "Invalid Date" object, and subsequent calls to `format()` or `formatDistanceToNow()` throw exceptions.
+## Problem Analysis
 
-## Components Requiring Fixes
+The `GuestDetailPage` crashes for **some guests** due to remaining unsafe `date-fns` calls that bypass the safe wrappers. Additionally, the debug console shows `{}` instead of actual error messages because `JSON.stringify()` doesn't capture non-enumerable `Error` properties.
 
-| File | Line(s) | Unsafe Code | Fix |
-|------|---------|-------------|-----|
-| `PrearrivalProfileCard.tsx` | 559 | `format(parseISO(review.reviewed_at), ...)` | Use `safeFormatDate` |
-| `PrearrivalProfileCard.tsx` | 706-708 | `formatDistanceToNow(parseISO(invite.sent_at/created_at), ...)` | Create safe wrapper |
-| `PrearrivalHistoryTimeline.tsx` | 109, 157, 159 | `parseISO(event.created_at)` used in format calls | Use safe wrappers |
-| `PrearrivalLinkManager.tsx` | 270 | `format(parseISO(existingLink.last_opened_at), ...)` | Use `safeFormatDate` |
-| `StayAccessLinkManager.tsx` | 76, 125, 129 | `parseISO` in date comparisons and formatting | Use safe wrappers |
+---
+
+## Root Causes
+
+### Issue 1: Unsafe Date Parsing (Crash Source)
+
+| File | Line | Unsafe Code |
+|------|------|-------------|
+| `PrearrivalProfileCard.tsx` | 205 | `format(parseISO(checkInDate), 'MMM d')` |
+| `GuestPrearrivalQuickFlags.tsx` | 144 | `formatDistanceToNow(parseISO(status.lastUpdatedAt), ...)` |
+| `SharePrearrivalLinkDialog.tsx` | 46 | `format(parseISO(guest.check_in_date), 'MMMM d, yyyy')` |
+
+These cause the ErrorBoundary crash when a guest has malformed or null date data.
+
+### Issue 2: Empty Error Messages in Debug Console
+
+In `debug-error-capture.ts:58-60`:
+```typescript
+const message = args.map(arg => 
+  typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+).join(' ');
+```
+
+`JSON.stringify(error)` returns `{}` for native `Error` objects because `message` and `stack` are non-enumerable.
+
+---
 
 ## Solution
 
-### 1. Add Safe Date Formatting Helpers
+### Part 1: Fix Remaining Unsafe Date Parsing
 
-Extend `src/lib/safe-date-format.ts` with a new function for safely computing relative time:
+**File: `src/components/prearrival/PrearrivalProfileCard.tsx`**
+
+Line 205 - Replace:
+```typescript
+lines.push(`Arriving: ${format(parseISO(checkInDate), 'MMM d')}, ${timeStr}${flightStr}`);
+```
+With:
+```typescript
+lines.push(`Arriving: ${safeFormatDate(checkInDate, 'MMM d')}, ${timeStr}${flightStr}`);
+```
+
+Also update imports to remove unused `format`/`parseISO` from `date-fns` and ensure `safeFormatDate` is imported.
+
+---
+
+**File: `src/components/guests/GuestPrearrivalQuickFlags.tsx`**
+
+Line 144 - Replace:
+```typescript
+<span>{formatDistanceToNow(parseISO(status.lastUpdatedAt), { addSuffix: true })}</span>
+```
+With:
+```typescript
+<span>{safeFormatDistanceToNow(status.lastUpdatedAt, { addSuffix: true })}</span>
+```
+
+Update imports accordingly.
+
+---
+
+**File: `src/components/prearrival/SharePrearrivalLinkDialog.tsx`**
+
+Line 46 - Replace:
+```typescript
+const checkInFormatted = format(parseISO(guest.check_in_date), 'MMMM d, yyyy');
+```
+With:
+```typescript
+const checkInFormatted = safeFormatDate(guest.check_in_date, 'MMMM d, yyyy') || 'your arrival date';
+```
+
+Update imports accordingly.
+
+---
+
+### Part 2: Fix Debug Console Error Serialization
+
+**File: `src/lib/debug-error-capture.ts`**
+
+Update the console.error interceptor to properly handle Error objects:
 
 ```typescript
-/**
- * Safely format a relative time string, returning a fallback if the date is invalid.
- */
-export function safeFormatDistanceToNow(
-  dateStr: string | null | undefined,
-  options?: { addSuffix?: boolean },
-  fallback: string = 'Unknown time'
-): string {
-  const date = safeParseDateISO(dateStr);
-  if (!date) return fallback;
+// Capture console.error calls
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const message = args.map(arg => {
+    // Handle Error objects specially - they don't serialize with JSON.stringify
+    if (arg instanceof Error) {
+      return `${arg.name}: ${arg.message}`;
+    }
+    if (typeof arg === 'object' && arg !== null) {
+      try {
+        return JSON.stringify(arg, null, 2);
+      } catch {
+        return String(arg);
+      }
+    }
+    return String(arg);
+  }).join(' ');
   
-  try {
-    return formatDistanceToNow(date, options);
-  } catch {
-    return fallback;
-  }
-}
+  // Also capture stack trace from any Error in args
+  const errorArg = args.find(arg => arg instanceof Error);
+  const stack = errorArg?.stack;
+  
+  captureError(message, 'error', stack);
+  originalConsoleError.apply(console, args);
+};
+```
 
-/**
- * Safely check if a date is in the past.
- */
-export function safeIsBeforeNow(dateStr: string | null | undefined): boolean {
-  const date = safeParseDateISO(dateStr);
-  if (!date) return true; // Treat invalid dates as expired
-  return isBefore(date, new Date());
+Also update the `captureError` function signature to accept an optional stack parameter:
+
+```typescript
+export function captureError(
+  error: Error | string, 
+  type: CapturedError['type'] = 'error',
+  explicitStack?: string
+): void {
+  const captured: CapturedError = {
+    timestamp: new Date(),
+    message: typeof error === 'string' ? error : error.message,
+    stack: explicitStack || (typeof error === 'object' ? error.stack : undefined),
+    type,
+  };
+  
+  errors = [captured, ...errors].slice(0, MAX_ERRORS);
 }
 ```
 
-### 2. Update Components
+---
 
-**PrearrivalProfileCard.tsx:**
-- Line 559: Replace `format(parseISO(review.reviewed_at), 'MMM d, h:mm a')` with `safeFormatDate(review.reviewed_at, 'MMM d, h:mm a')`
-- Lines 706-708 (InviteActivityLine): Replace `formatDistanceToNow(parseISO(...))` with `safeFormatDistanceToNow(...)`
+## Files to Modify
 
-**PrearrivalHistoryTimeline.tsx:**
-- Line 109: Use `safeParseDateISO` with null check
-- Lines 157, 159: Use `safeFormatDistanceToNow` and `safeFormatDate`
+| File | Changes |
+|------|---------|
+| `src/components/prearrival/PrearrivalProfileCard.tsx` | Use `safeFormatDate` at line 205 |
+| `src/components/guests/GuestPrearrivalQuickFlags.tsx` | Use `safeFormatDistanceToNow` at line 144 |
+| `src/components/prearrival/SharePrearrivalLinkDialog.tsx` | Use `safeFormatDate` at line 46 |
+| `src/lib/debug-error-capture.ts` | Fix Error serialization in console.error interceptor |
 
-**PrearrivalLinkManager.tsx:**
-- Line 270: Replace with `safeFormatDate(existingLink.last_opened_at, 'MMM d')`
-
-**StayAccessLinkManager.tsx:**
-- Line 76: Use `safeIsBeforeNow(latestLink.expiresAt)` or similar safe check
-- Lines 125, 129: Use `safeFormatDistanceToNow`
-
-## Technical Details
-
-### File: `src/lib/safe-date-format.ts`
-Add two new exported functions:
-1. `safeFormatDistanceToNow` - safely formats relative time
-2. `safeIsBeforeNow` - safely checks if a date is before now
-
-### File: `src/components/prearrival/PrearrivalProfileCard.tsx`
-1. Import new safe functions
-2. Update line 559: staff review timestamp
-3. Update InviteActivityLine component (lines 700-720)
-
-### File: `src/components/prearrival/PrearrivalHistoryTimeline.tsx`
-1. Import safe date functions
-2. Update HistoryEventItem to handle null dates gracefully
-
-### File: `src/components/prearrival/PrearrivalLinkManager.tsx`
-1. Import `safeFormatDate`
-2. Update line 270 for last opened date
-
-### File: `src/components/staff/StayAccessLinkManager.tsx`
-1. Import safe date functions
-2. Update lines 76, 125, 129 for expiry checks and time formatting
+---
 
 ## Impact
-- Prevents ErrorBoundary crashes from malformed timestamps
-- Gracefully displays "Invalid date" or "Unknown time" for bad data
-- No visual changes for valid data
-- Maintains existing functionality
+
+- **Crash prevention**: No more ErrorBoundary crashes from malformed guest dates
+- **Graceful fallbacks**: Invalid dates show "Invalid date" or contextual fallback text
+- **Better debugging**: Error messages in debug panel will show actual error text instead of `{}`
+
+---
 
 ## Testing
+
 After implementation:
-- Navigate to GuestDetailPage for any guest
-- Verify no crash occurs
-- Check that dates display correctly for guests with valid data
-- If a guest has malformed data, verify fallback text displays instead of crash
+1. Navigate to GuestDetailPage for guests that were previously crashing
+2. Verify the page loads without errors
+3. Trigger an intentional error and check the debug panel shows the full message
+4. Verify date formatting still works correctly for valid data
+
