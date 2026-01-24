@@ -1,13 +1,15 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
+import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
 import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   IconStay,
@@ -19,6 +21,8 @@ import {
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
 import { Crown, Bell, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { initErrorCapture } from '@/lib/debug-error-capture';
+import { initQueryTracker } from '@/lib/debug-query-tracker';
 
 const baseNavItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
@@ -80,11 +84,26 @@ NavItem.displayName = 'NavItem';
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
   const { isPrearrival } = useIsPrearrivalGuest();
+  const { showDebugPanel, isDebugMode } = useGuestDebugMode(guest?.resortId);
   const { t } = useTranslation();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const mainRef = useRef<HTMLElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize debug trackers when debug mode is active
+  useEffect(() => {
+    if (!isDebugMode) return;
+    
+    const cleanupErrors = initErrorCapture();
+    const cleanupQueries = initQueryTracker(queryClient);
+    
+    return () => {
+      cleanupErrors();
+      cleanupQueries();
+    };
+  }, [isDebugMode, queryClient]);
 
   // Set initialized once loading completes (prevents flash)
   useEffect(() => {
@@ -255,6 +274,9 @@ export function GuestLayout() {
           })}
         </div>
       </nav>
+
+      {/* Debug Console - only shown with ?debug=1 */}
+      {showDebugPanel && <GuestDebugConsole />}
     </div>
   );
 }
