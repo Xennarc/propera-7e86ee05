@@ -75,10 +75,10 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
     profile.arrival_time ||
     profile.arrival_flight_number ||
     profile.transfer_preference ||
-    (profile.dietary_preferences && profile.dietary_preferences.length > 0) ||
+    (Array.isArray(profile.dietary_preferences) && profile.dietary_preferences.length > 0) ||
     profile.allergies ||
     profile.water_comfort_level ||
-    (profile.special_occasions && profile.special_occasions.length > 0) ||
+    (Array.isArray(profile.special_occasions) && profile.special_occasions.length > 0) ||
     profile.special_requests
   );
 
