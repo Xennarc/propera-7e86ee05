@@ -1369,6 +1369,64 @@ export type Database = {
           },
         ]
       }
+      guest_access_links: {
+        Row: {
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          guest_id: string
+          id: string
+          purpose: string
+          resort_id: string
+          stay_id: string
+          token_hash: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          guest_id: string
+          id?: string
+          purpose?: string
+          resort_id: string
+          stay_id: string
+          token_hash: string
+        }
+        Update: {
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          guest_id?: string
+          id?: string
+          purpose?: string
+          resort_id?: string
+          stay_id?: string
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_access_links_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_access_links_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_access_links_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "guest_stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_login_tokens: {
         Row: {
           consumed_at: string | null
@@ -1695,6 +1753,57 @@ export type Database = {
           },
           {
             foreignKeyName: "guest_sessions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_stays: {
+        Row: {
+          arrival_date: string
+          created_at: string
+          departure_date: string
+          guest_id: string
+          id: string
+          resort_id: string
+          room_number: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          arrival_date: string
+          created_at?: string
+          departure_date: string
+          guest_id: string
+          id?: string
+          resort_id: string
+          room_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          arrival_date?: string
+          created_at?: string
+          departure_date?: string
+          guest_id?: string
+          id?: string
+          resort_id?: string
+          room_number?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_stays_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_stays_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
@@ -2647,6 +2756,58 @@ export type Database = {
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pre_arrival_submissions: {
+        Row: {
+          completed_at: string | null
+          guest_id: string
+          id: string
+          payload: Json
+          resort_id: string
+          stay_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          guest_id: string
+          id?: string
+          payload?: Json
+          resort_id: string
+          stay_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          guest_id?: string
+          id?: string
+          payload?: Json
+          resort_id?: string
+          stay_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_arrival_submissions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_arrival_submissions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_arrival_submissions_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "guest_stays"
             referencedColumns: ["id"]
           },
         ]
@@ -5183,6 +5344,10 @@ export type Database = {
         }
         Returns: Json
       }
+      consume_guest_access_link: {
+        Args: { p_raw_token: string }
+        Returns: Json
+      }
       consume_guest_login_token: {
         Args: { p_raw_token: string }
         Returns: Json
@@ -5214,6 +5379,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_guest_access_link: { Args: { p_stay_id: string }; Returns: Json }
       create_guest_login_token: {
         Args: { p_guest_id: string; p_token_type: string }
         Returns: Json
