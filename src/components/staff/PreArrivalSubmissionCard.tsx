@@ -163,7 +163,7 @@ export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSu
                 <span className="font-medium text-amber-700">Allergies: {payload.allergies}</span>
               </div>
             )}
-            {payload.dietary_preferences && payload.dietary_preferences.length > 0 && (
+            {Array.isArray(payload.dietary_preferences) && payload.dietary_preferences.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {payload.dietary_preferences.map((pref) => (
                   <Badge key={pref} variant="secondary" className="text-xs">

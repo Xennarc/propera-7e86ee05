@@ -51,7 +51,7 @@ export function GuestPrearrivalQuickFlags({
   }
 
   // Dietary flag
-  if (status.hasDietaryPreferences && status.dietaryPreferences.length > 0) {
+  if (status.hasDietaryPreferences && Array.isArray(status.dietaryPreferences) && status.dietaryPreferences.length > 0) {
     flags.push({
       key: 'dietary',
       icon: UtensilsCrossed,
@@ -87,7 +87,7 @@ export function GuestPrearrivalQuickFlags({
   }
 
   // Special occasion
-  if (status.hasSpecialOccasions && status.specialOccasions.length > 0) {
+  if (status.hasSpecialOccasions && Array.isArray(status.specialOccasions) && status.specialOccasions.length > 0) {
     flags.push({
       key: 'occasion',
       icon: PartyPopper,
