@@ -1,4 +1,3 @@
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import { ChevronDown, ChevronUp, Clock, User, Bot, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import {
   PrearrivalHistoryEvent 
 } from '@/hooks/usePrearrivalHistory';
 import { cn } from '@/lib/utils';
+import { safeFormatDate, safeFormatDistanceToNow, safeParseDateISO } from '@/lib/safe-date-format';
 
 interface PrearrivalHistoryTimelineProps {
   guestId: string;
@@ -106,7 +106,7 @@ function HistoryEventItem({ event, isLast }: HistoryEventItemProps) {
   const ActorIcon = event.actor === 'staff' ? UserCheck : 
                     event.actor === 'system' ? Bot : User;
   
-  const eventTime = parseISO(event.created_at);
+  const eventTime = safeParseDateISO(event.created_at);
   const changedFieldsList = Object.entries(event.changed_fields);
 
   return (
@@ -154,9 +154,9 @@ function HistoryEventItem({ event, isLast }: HistoryEventItemProps) {
         {/* Timestamp */}
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <Clock className="h-2.5 w-2.5" />
-          {formatDistanceToNow(eventTime, { addSuffix: true })}
+          {safeFormatDistanceToNow(event.created_at, { addSuffix: true })}
           <span className="text-muted-foreground/50">•</span>
-          {format(eventTime, 'MMM d, h:mm a')}
+          {safeFormatDate(event.created_at, 'MMM d, h:mm a')}
         </div>
       </div>
     </div>

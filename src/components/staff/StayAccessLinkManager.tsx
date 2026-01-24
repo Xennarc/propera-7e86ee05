@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Copy, QrCode, RefreshCw, Link2, Check, Clock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow, isBefore, parseISO } from 'date-fns';
+import { safeFormatDistanceToNow, safeIsBeforeNow } from '@/lib/safe-date-format';
 import { QRCodeSVG } from 'qrcode.react';
 import { StaffAccessLink } from '@/hooks/useStaffGuestStay';
 
@@ -73,7 +73,7 @@ export function StayAccessLinkManager({
   });
 
   const latestLink = accessLinks[0];
-  const isExpired = latestLink && isBefore(parseISO(latestLink.expiresAt), new Date());
+  const isExpired = latestLink && safeIsBeforeNow(latestLink.expiresAt);
   const isConsumed = latestLink && latestLink.consumedAt;
   const isActive = latestLink && !isExpired && !isConsumed;
 
@@ -122,11 +122,11 @@ export function StayAccessLinkManager({
         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              Created {formatDistanceToNow(parseISO(latestLink.createdAt), { addSuffix: true })}
+              Created {safeFormatDistanceToNow(latestLink.createdAt, { addSuffix: true })}
             </span>
             {!isExpired && !isConsumed && (
               <span className="text-muted-foreground">
-                Expires {formatDistanceToNow(parseISO(latestLink.expiresAt), { addSuffix: true })}
+                Expires {safeFormatDistanceToNow(latestLink.expiresAt, { addSuffix: true })}
               </span>
             )}
           </div>

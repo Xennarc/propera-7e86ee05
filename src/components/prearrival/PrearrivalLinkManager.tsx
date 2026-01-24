@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { safeFormatDate } from '@/lib/safe-date-format';
 import { Link as LinkIcon, Copy, RefreshCw, Ban, Share2, MoreHorizontal, Check, ExternalLink, Eye, Mail, Loader2 } from 'lucide-react';
 import { SharePrearrivalLinkDialog } from './SharePrearrivalLinkDialog';
 
@@ -267,7 +267,7 @@ export function PrearrivalLinkManager({
         {existingLink.last_opened_at && !existingLink.completed_at && (
           <span className="text-xs text-muted-foreground flex items-center gap-1">
             <Eye className="h-3 w-3" />
-            Opened {format(parseISO(existingLink.last_opened_at), 'MMM d')}
+            Opened {safeFormatDate(existingLink.last_opened_at, 'MMM d')}
           </span>
         )}
 
