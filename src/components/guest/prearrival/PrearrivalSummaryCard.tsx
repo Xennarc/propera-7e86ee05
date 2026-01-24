@@ -58,10 +58,10 @@ export function PrearrivalSummaryCard({
     profile.arrival_time ||
     profile.arrival_flight_number ||
     profile.transfer_preference ||
-    (profile.dietary_preferences && profile.dietary_preferences.length > 0) ||
+    (Array.isArray(profile.dietary_preferences) && profile.dietary_preferences.length > 0) ||
     profile.allergies ||
     profile.water_comfort_level ||
-    (profile.special_occasions && profile.special_occasions.length > 0) ||
+    (Array.isArray(profile.special_occasions) && profile.special_occasions.length > 0) ||
     profile.special_requests
   );
 
@@ -131,7 +131,7 @@ export function PrearrivalSummaryCard({
 
         {/* Preferences */}
         {settings.show_preferences && (
-          (profile?.dietary_preferences && profile.dietary_preferences.length > 0) ||
+          (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) ||
           profile?.allergies ||
           profile?.water_comfort_level
         ) && (
@@ -164,12 +164,12 @@ export function PrearrivalSummaryCard({
 
         {/* Special Occasions */}
         {settings.show_special_occasions && (
-          (profile?.special_occasions && profile.special_occasions.length > 0) ||
+          (Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0) ||
           profile?.special_requests
         ) && (
           <Section title="Special Occasions" icon={PartyPopper}>
             <div className="space-y-2">
-              {profile?.special_occasions && profile.special_occasions.length > 0 && (
+              {Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {profile.special_occasions.map((occ: string) => (
                     <Badge key={occ} className="bg-primary/10 text-primary border-primary/20 text-xs">

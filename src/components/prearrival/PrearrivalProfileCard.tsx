@@ -212,11 +212,11 @@ export function PrearrivalProfileCard({
       lines.push(`Allergies: ${profile.allergies} ⚠️`);
     }
     
-    if (profile?.dietary_preferences && profile.dietary_preferences.length > 0) {
+    if (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) {
       lines.push(`Dietary: ${profile.dietary_preferences.join(', ')}`);
     }
     
-    if (profile?.special_occasions && profile.special_occasions.length > 0) {
+    if (Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0) {
       lines.push(`Special: ${profile.special_occasions.join(', ')} 🎉`);
     }
 
@@ -462,7 +462,7 @@ export function PrearrivalProfileCard({
         {/* Dietary & Allergies */}
         {settings?.show_preferences !== false && (
           <Section title="Dietary & Allergies" icon={UtensilsCrossed}>
-            {(profile.dietary_preferences && profile.dietary_preferences.length > 0) || profile.allergies ? (
+            {(Array.isArray(profile.dietary_preferences) && profile.dietary_preferences.length > 0) || profile.allergies ? (
               <div className="space-y-2">
                 {profile.allergies && (
                   <div className="flex items-start gap-2">
