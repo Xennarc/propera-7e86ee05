@@ -1,7 +1,8 @@
 import { Badge } from '@/components/ui/badge';
-import { differenceInDays, parseISO, isAfter, isBefore, startOfDay } from 'date-fns';
+import { differenceInDays, isAfter, isBefore, startOfDay } from 'date-fns';
+import { safeParseDateISO } from '@/lib/safe-date-format';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
-import { Plane, Home, LogOut } from 'lucide-react';
+import { Plane, Home, LogOut, AlertCircle } from 'lucide-react';
 
 interface GuestAtAGlanceChipsProps {
   checkInDate: string;
@@ -15,10 +16,19 @@ export function GuestAtAGlanceChips({
   prearrivalStatus 
 }: GuestAtAGlanceChipsProps) {
   const today = startOfDay(new Date());
-  const checkIn = parseISO(checkInDate);
-  const checkOut = parseISO(checkOutDate);
+  const checkIn = safeParseDateISO(checkInDate);
+  const checkOut = safeParseDateISO(checkOutDate);
 
   const getStayStatus = () => {
+    // Handle invalid/unparseable dates gracefully
+    if (!checkIn || !checkOut) {
+      return {
+        label: 'Invalid dates',
+        icon: AlertCircle,
+        className: 'bg-destructive/10 text-destructive border-destructive/20',
+      };
+    }
+
     if (isBefore(today, checkIn)) {
       const daysUntil = differenceInDays(checkIn, today);
       return {
