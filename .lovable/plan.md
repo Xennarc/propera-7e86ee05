@@ -1,332 +1,55 @@
 
-
-# Unified Pre-Arrival Login Entry Implementation
+# Enhanced Staff Console: Guest Stay & Pre-Arrival Info
 
 ## Overview
 
-This plan adds a new `/guest/access` route that consumes the new `guest_access_links` tokens (created in the stay-based architecture) and authenticates guests into the same `/guest` portal used for in-house stays. The guest home screen becomes context-aware, showing either the pre-arrival experience or the in-house experience based on the active stay's status.
+This plan enhances the Staff Console guest details page with:
+1. A new "Stay" panel showing arrival/departure, status, room, and access link management for the new `guest_stays` architecture
+2. A "Pre-Arrival Info" section displaying submissions from `pre_arrival_submissions` for the active stay
+3. Dual-write capability in the guest portal checklist to write to both the old `prearrival_profiles` and the new `pre_arrival_submissions` table
 
 ---
 
-## Architecture Flow
+## Architecture Summary
 
 ```text
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                        UNIFIED GUEST ACCESS FLOW                               │
-├────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                │
-│  Staff generates link → /guest/access?t=TOKEN                                  │
-│                              │                                                 │
-│                              ▼                                                 │
-│         ┌─────────────────────────────────────────────┐                        │
-│         │   GuestAccessLoginPage.tsx (NEW)            │                        │
-│         │   - Read ?t query param                     │                        │
-│         │   - Call consume_guest_access_link RPC      │                        │
-│         │   - Build GuestSession + store stay_id      │                        │
-│         │   - Register device session                 │                        │
-│         │   - Redirect to /guest                      │                        │
-│         └─────────────────────────────────────────────┘                        │
-│                              │                                                 │
-│                              ▼                                                 │
-│         ┌─────────────────────────────────────────────┐                        │
-│         │   GuestHome.tsx (MODIFIED)                  │                        │
-│         │   - Resolve active stay from guest_stays    │                        │
-│         │   - Priority: in_house > pre_arrival > next │                        │
-│         │   - If pre_arrival → show PrearrivalHome    │                        │
-│         │   - If in_house → show InStay home          │                        │
-│         └─────────────────────────────────────────────┘                        │
-│                                                                                │
-└────────────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Database Changes
-
-### 1. Enhance `consume_guest_access_link` RPC
-
-**Current Return Format:**
-```json
-{
-  "success": true,
-  "guest_id": "uuid",
-  "resort_id": "uuid",
-  "stay_id": "uuid"
-}
-```
-
-**New Return Format (matches existing login flow):**
-```json
-{
-  "success": true,
-  "guest": {
-    "id": "uuid",
-    "full_name": "John Doe",
-    "room_number": "101",
-    "check_in_date": "2026-02-01",
-    "check_out_date": "2026-02-07"
-  },
-  "resort": {
-    "id": "uuid",
-    "name": "Beach Resort",
-    "logo_url": "https://...",
-    "timezone": "Indian/Maldives"
-  },
-  "stay_id": "uuid"
-}
-```
-
-**SQL Migration:**
-```sql
-CREATE OR REPLACE FUNCTION public.consume_guest_access_link(p_raw_token text)
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_token_hash TEXT;
-  v_link guest_access_links%ROWTYPE;
-  v_guest RECORD;
-  v_resort RECORD;
-BEGIN
-  -- Hash the incoming token
-  v_token_hash := encode(extensions.digest(p_raw_token::bytea, 'sha256'), 'hex');
-  
-  -- Find matching link
-  SELECT * INTO v_link
-  FROM guest_access_links
-  WHERE token_hash = v_token_hash;
-  
-  IF NOT FOUND THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_NOT_FOUND');
-  END IF;
-  
-  -- Check if already consumed
-  IF v_link.consumed_at IS NOT NULL THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_ALREADY_USED');
-  END IF;
-  
-  -- Check if expired
-  IF v_link.expires_at < NOW() THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_EXPIRED');
-  END IF;
-  
-  -- Fetch guest data
-  SELECT id, full_name, room_number, check_in_date, check_out_date
-  INTO v_guest
-  FROM guests
-  WHERE id = v_link.guest_id;
-  
-  IF NOT FOUND THEN
-    RETURN json_build_object('success', false, 'error', 'GUEST_NOT_FOUND');
-  END IF;
-  
-  -- Fetch resort data
-  SELECT id, name, login_logo_url, timezone
-  INTO v_resort
-  FROM resorts
-  WHERE id = v_link.resort_id;
-  
-  -- Mark as consumed
-  UPDATE guest_access_links
-  SET consumed_at = NOW()
-  WHERE id = v_link.id;
-  
-  -- Return full session data
-  RETURN json_build_object(
-    'success', true,
-    'guest', json_build_object(
-      'id', v_guest.id,
-      'full_name', v_guest.full_name,
-      'room_number', v_guest.room_number,
-      'check_in_date', v_guest.check_in_date,
-      'check_out_date', v_guest.check_out_date
-    ),
-    'resort', json_build_object(
-      'id', v_resort.id,
-      'name', v_resort.name,
-      'logo_url', v_resort.login_logo_url,
-      'timezone', v_resort.timezone
-    ),
-    'stay_id', v_link.stay_id
-  );
-END;
-$$;
-```
-
----
-
-## Frontend Changes
-
-### 1. New Route: `/guest/access`
-
-**File: `src/pages/guest/GuestAccessLoginPage.tsx`**
-
-A new page that:
-1. Reads the `t` query parameter from the URL
-2. Calls `consume_guest_access_link(token)` RPC
-3. On success: builds `GuestSession` object (same structure as PIN login)
-4. Stores `stay_id` in session for context-aware rendering
-5. Registers device session via `register_guest_session` RPC
-6. Stores session in `localStorage` (same key: `propera_guest_session`)
-7. Redirects to `/guest`
-
-UI States:
-- **Loading**: Spinner with "Logging you in..."
-- **Error**: Error card with message and "Use Room Number & PIN Instead" fallback
-- **Desktop Detection**: Shows QR code for mobile scanning (same pattern as `GuestQrLoginPage`)
-
-### 2. Update `GuestSession` Interface
-
-**File: `src/contexts/GuestAuthContext.tsx`**
-
-Add optional `stayId` field:
-
-```typescript
-export interface GuestSession {
-  guestId: string;
-  fullName: string;
-  roomNumber: string;
-  checkInDate: string;
-  checkOutDate: string;
-  resortId: string;
-  resortName?: string;
-  resortLogoUrl?: string;
-  resortTimezone?: string;
-  sessionId?: string;
-  sessionToken?: string;
-  stayId?: string;  // NEW - links to guest_stays table
-}
-```
-
-### 3. Create `useActiveStay` Hook
-
-**File: `src/hooks/useActiveStay.ts`**
-
-Hook to resolve the active stay for the current guest:
-
-```typescript
-interface ActiveStay {
-  id: string;
-  status: 'pre_arrival' | 'in_house' | 'checked_out';
-  arrivalDate: string;
-  departureDate: string;
-  roomNumber: string | null;
-}
-
-function useActiveStay(): {
-  activeStay: ActiveStay | null;
-  isLoading: boolean;
-}
-```
-
-**Resolution Logic:**
-1. If `guest.stayId` is set, fetch that specific stay
-2. Otherwise, query `guest_stays` for the guest ordered by priority:
-   - `status = 'in_house'` (highest priority)
-   - `status = 'pre_arrival'` (second priority)
-   - Next upcoming stay by `arrival_date`
-3. Cache for 60 seconds
-
-### 4. Update `GuestHome.tsx` - Context-Aware Rendering
-
-**File: `src/pages/guest/GuestHome.tsx`**
-
-Modify the existing logic to use the new `useActiveStay` hook alongside the existing `useIsPrearrivalGuest`:
-
-```typescript
-export default function GuestHome() {
-  const { guest } = useGuestAuth();
-  const { activeStay, isLoading: stayLoading } = useActiveStay();
-  const { isPrearrival } = useIsPrearrivalGuest();
-  
-  // If stay is loading, show skeleton
-  if (stayLoading) {
-    return <GuestHomeLoading />;
-  }
-  
-  // Use active stay status OR fall back to date-based check
-  const showPrearrival = activeStay?.status === 'pre_arrival' || isPrearrival;
-  
-  if (showPrearrival) {
-    return <GuestPrearrivalHome activeStay={activeStay} />;
-  }
-  
-  // ... existing in-house home logic
-}
-```
-
-### 5. Enhanced `GuestPrearrivalHome.tsx`
-
-**File: `src/pages/guest/GuestPrearrivalHome.tsx`**
-
-Add "Browse activities during your stay" module with day chips:
-
-1. Add an activities preview section showing the first few available activities
-2. Integrate `GuestDatePicker` component for day-by-day browsing
-3. Show bookings preview or empty states
-4. Link to full activities browser
-
-```typescript
-interface GuestPrearrivalHomeProps {
-  activeStay?: ActiveStay | null;
-}
-
-export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeProps) {
-  // ... existing code
-  
-  // NEW: Activities preview with day chips
-  return (
-    <div className="space-y-6">
-      {/* Welcome Banner - existing */}
-      
-      {/* Countdown - existing */}
-      
-      {/* Pre-arrival Checklist - existing */}
-      
-      {/* NEW: Browse Activities Module */}
-      <Card className="guest-card">
-        <CardHeader>
-          <CardTitle className="text-lg">Plan your activities</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <GuestDatePicker
-            value={selectedDate}
-            onChange={setSelectedDate}
-            minDate={guest.checkInDate}
-            maxDate={guest.checkOutDate}
-            compact={true}
-          />
-          <ActivityPreviewList date={selectedDate} />
-        </CardContent>
-      </Card>
-      
-      {/* Quick Actions - existing */}
-      
-      {/* Pre-booked Activities Preview */}
-      <PrearrivalBookingsPreview />
-    </div>
-  );
-}
-```
-
-### 6. Add Route to `App.tsx`
-
-**File: `src/App.tsx`**
-
-Add the new route before the existing guest routes:
-
-```typescript
-// Guest access login (new unified entry)
-<Route path="/guest/access" element={<GuestAccessLoginPage />} />
-
-// Existing routes remain unchanged
-<Route path="/guest/qr/:token" element={<GuestQrConfirmPage />} />
-<Route path="/guest/qr" element={<GuestQrLoginPage />} />
-<Route path="/guest" element={<GuestLayout />}>
-  ...
-</Route>
+┌────────────────────────────────────────────────────────────────────────────┐
+│                     STAFF GUEST DETAIL PAGE LAYOUT                         │
+├────────────────────────────────────────────────────────────────────────────┤
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  GUEST HEADER (existing - name, badges, at-a-glance chips)          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  STAY PANEL (NEW)                                                   │   │
+│  │  • Arrival/Departure dates + status badge                           │   │
+│  │  • Room number                                                      │   │
+│  │  • Generate Pre-Arrival Access Link button                          │   │
+│  │  • Link state (last generated, expires_at, copy, QR)                │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  PRE-ARRIVAL INFO (NEW - from pre_arrival_submissions)              │   │
+│  │  • Structured payload rendering                                     │   │
+│  │  • Arrival time, flight, transfer preference                        │   │
+│  │  • Dietary preferences, allergies                                   │   │
+│  │  • Special occasions, requests                                      │   │
+│  │  • completed_at / updated_at timestamps                             │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  EXISTING PREARRIVAL PROFILE CARD (unchanged - for transition)      │   │
+│  │  • Legacy prearrival_profiles data                                  │   │
+│  │  • Email/link management (existing system)                          │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │  REMAINING CARDS (unchanged)                                        │   │
+│  │  • Guest Info, Loyalty, PIN, QR, Feedback, Bookings                 │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -335,8 +58,10 @@ Add the new route before the existing guest routes:
 
 | File | Purpose |
 |------|---------|
-| `src/pages/guest/GuestAccessLoginPage.tsx` | New unified access login page |
-| `src/hooks/useActiveStay.ts` | Hook to resolve active stay from `guest_stays` |
+| `src/hooks/useStaffGuestStay.ts` | Hook to fetch guest_stays + guest_access_links + pre_arrival_submissions for staff view |
+| `src/components/staff/GuestStayPanel.tsx` | New "Stay" panel component |
+| `src/components/staff/StayAccessLinkManager.tsx` | Generate/manage access links for stays |
+| `src/components/staff/PreArrivalSubmissionCard.tsx` | Display pre_arrival_submissions payload |
 
 ---
 
@@ -344,23 +69,393 @@ Add the new route before the existing guest routes:
 
 | File | Changes |
 |------|---------|
-| `src/App.tsx` | Add `/guest/access` route |
-| `src/contexts/GuestAuthContext.tsx` | Add `stayId` to `GuestSession` interface |
-| `src/pages/guest/GuestHome.tsx` | Add `useActiveStay` integration |
-| `src/pages/guest/GuestPrearrivalHome.tsx` | Add activities browser module with day chips |
-| Migration SQL file | Enhance `consume_guest_access_link` RPC |
+| `src/pages/guests/GuestDetailPage.tsx` | Add Stay panel and Pre-Arrival Info section |
+| `src/hooks/usePrearrivalData.ts` | Add dual-write to pre_arrival_submissions in `useUpdatePrearrivalProfile` |
+
+---
+
+## Technical Implementation
+
+### 1. New Hook: `useStaffGuestStay`
+
+Fetches the active stay, access links, and pre-arrival submissions for a guest:
+
+```typescript
+interface StaffGuestStay {
+  id: string;
+  status: 'pre_arrival' | 'in_house' | 'checked_out';
+  arrivalDate: string;
+  departureDate: string;
+  roomNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface StaffAccessLink {
+  id: string;
+  tokenHint: string; // last 8 chars of token for display
+  expiresAt: string;
+  consumedAt: string | null;
+  createdAt: string;
+}
+
+interface PreArrivalSubmission {
+  id: string;
+  payload: {
+    arrival_time?: string;
+    arrival_flight_number?: string;
+    transfer_preference?: string;
+    dietary_preferences?: string[];
+    allergies?: string;
+    water_comfort_level?: string;
+    special_occasions?: string[];
+    special_requests?: string;
+    // ... other fields
+  };
+  completedAt: string | null;
+  updatedAt: string;
+}
+
+interface StaffGuestStayData {
+  stay: StaffGuestStay | null;
+  accessLinks: StaffAccessLink[];
+  submission: PreArrivalSubmission | null;
+  isLoading: boolean;
+}
+
+export function useStaffGuestStay(guestId: string, resortId: string): StaffGuestStayData
+```
+
+**Query Logic:**
+1. Fetch stays for the guest, prioritizing `pre_arrival` > `in_house` > most recent
+2. For the active stay, fetch associated `guest_access_links` ordered by created_at DESC
+3. Fetch `pre_arrival_submissions` for the active stay
+
+### 2. GuestStayPanel Component
+
+A card that displays:
+- Arrival/departure dates with visual formatting
+- Stay status badge (Pre-Arrival / In-House / Checked Out)
+- Room number (or "Not assigned" placeholder)
+- `StayAccessLinkManager` component for link generation
+
+```typescript
+interface GuestStayPanelProps {
+  guestId: string;
+  guestName: string;
+  resortId: string;
+  stay: StaffGuestStay | null;
+  accessLinks: StaffAccessLink[];
+  isLoading: boolean;
+  onLinkGenerated?: () => void;
+}
+```
+
+### 3. StayAccessLinkManager Component
+
+Manages access links for the new stay-based system:
+
+```typescript
+interface StayAccessLinkManagerProps {
+  stayId: string;
+  guestName: string;
+  accessLinks: StaffAccessLink[];
+  onLinkGenerated?: () => void;
+}
+```
+
+**Features:**
+- "Generate Access Link" button (calls `create_guest_access_link` RPC)
+- Display latest link status (active, expired, consumed)
+- Copy link to clipboard
+- Show QR code dialog
+- Expiry countdown/timestamp
+
+### 4. PreArrivalSubmissionCard Component
+
+Renders the `pre_arrival_submissions.payload` in a structured format:
+
+```typescript
+interface PreArrivalSubmissionCardProps {
+  submission: PreArrivalSubmission | null;
+  isLoading: boolean;
+}
+```
+
+**Display Sections:**
+- Arrival Details (time, flight, transfer)
+- Dietary & Allergies (preferences list, allergy warnings)
+- Special Occasions & Requests
+- Timestamps (completed_at, updated_at)
+
+If no submission exists, shows a muted empty state: "No pre-arrival information submitted yet."
+
+### 5. GuestDetailPage Updates
+
+Add the new components between existing sections:
+
+```typescript
+// After Guest Info card, before existing PrearrivalProfileCard
+
+// New: Staff Guest Stay data hook
+const { 
+  stay: activeStay, 
+  accessLinks, 
+  submission, 
+  isLoading: stayLoading 
+} = useStaffGuestStay(guest.id, guest.resort_id);
+
+// Render Stay Panel
+<GuestStayPanel
+  guestId={guest.id}
+  guestName={guest.full_name}
+  resortId={guest.resort_id}
+  stay={activeStay}
+  accessLinks={accessLinks}
+  isLoading={stayLoading}
+/>
+
+// Render Pre-Arrival Info (only if stay exists and is pre_arrival or in_house)
+{activeStay && activeStay.status !== 'checked_out' && (
+  <PreArrivalSubmissionCard
+    submission={submission}
+    isLoading={stayLoading}
+  />
+)}
+
+// Existing PrearrivalProfileCard remains for transition period
+```
+
+### 6. Dual-Write in Guest Portal
+
+Modify `useUpdatePrearrivalProfile` in `src/hooks/usePrearrivalData.ts` to also write to `pre_arrival_submissions`:
+
+```typescript
+export function useUpdatePrearrivalProfile() {
+  const { guest } = useGuestAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (updates: Partial<PrearrivalUpdates>) => {
+      if (!guest) throw new Error('Not authenticated');
+
+      // 1. Call existing RPC (unchanged)
+      const { data, error } = await supabase.rpc('guest_update_prearrival_profile', {
+        p_guest_id: guest.guestId,
+        // ... existing params
+      });
+      if (error) throw error;
+
+      // 2. DUAL-WRITE: If guest has a stayId, also update pre_arrival_submissions
+      if (guest.stayId) {
+        const payload = {
+          arrival_time: updates.arrival_time || null,
+          arrival_flight_number: updates.arrival_flight_number || null,
+          transfer_preference: updates.transfer_preference || null,
+          dietary_preferences: updates.dietary_preferences || [],
+          allergies: updates.allergies || null,
+          water_comfort_level: updates.water_comfort_level || null,
+          special_occasions: updates.special_occasions || [],
+          special_requests: updates.special_requests || null,
+          custom_answers_json: updates.custom_answers_json || {},
+        };
+
+        // Upsert to pre_arrival_submissions
+        await supabase.rpc('guest_upsert_prearrival_submission', {
+          p_stay_id: guest.stayId,
+          p_payload: JSON.stringify(payload),
+          p_mark_completed: true,
+        });
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prearrival-data'] });
+      queryClient.invalidateQueries({ queryKey: ['active-stay'] });
+    },
+  });
+}
+```
+
+### 7. New RPC: `guest_upsert_prearrival_submission`
+
+A SECURITY DEFINER function that allows guests to write to their own submission:
+
+```sql
+CREATE OR REPLACE FUNCTION public.guest_upsert_prearrival_submission(
+  p_stay_id uuid,
+  p_payload jsonb,
+  p_mark_completed boolean DEFAULT false
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_stay guest_stays%ROWTYPE;
+  v_submission_id uuid;
+BEGIN
+  -- Get the stay
+  SELECT * INTO v_stay FROM guest_stays WHERE id = p_stay_id;
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'STAY_NOT_FOUND');
+  END IF;
+
+  -- Upsert the submission
+  INSERT INTO pre_arrival_submissions (resort_id, stay_id, guest_id, payload, completed_at, updated_at)
+  VALUES (
+    v_stay.resort_id,
+    p_stay_id,
+    v_stay.guest_id,
+    p_payload,
+    CASE WHEN p_mark_completed THEN NOW() ELSE NULL END,
+    NOW()
+  )
+  ON CONFLICT (stay_id) 
+  DO UPDATE SET
+    payload = EXCLUDED.payload,
+    completed_at = CASE WHEN p_mark_completed THEN NOW() ELSE pre_arrival_submissions.completed_at END,
+    updated_at = NOW()
+  RETURNING id INTO v_submission_id;
+
+  RETURN json_build_object('success', true, 'submission_id', v_submission_id);
+END;
+$$;
+
+-- Grant execute to anon for guest portal access
+GRANT EXECUTE ON FUNCTION public.guest_upsert_prearrival_submission(uuid, jsonb, boolean) TO anon, authenticated;
+```
+
+**Note:** We need a unique constraint on `stay_id` for the upsert. Add this to the migration:
+```sql
+ALTER TABLE pre_arrival_submissions ADD CONSTRAINT pre_arrival_submissions_stay_id_unique UNIQUE (stay_id);
+```
+
+---
+
+## UI Design Details
+
+### Stay Panel Layout
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│  📅 Current Stay                                [Pre-Arrival] │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  Arrival         Departure        Room                        │
+│  Feb 15, 2026    Feb 22, 2026    Ocean Villa 12              │
+│                                                               │
+│  ─────────────────────────────────────────────────────────── │
+│                                                               │
+│  Pre-Arrival Access Link                                      │
+│  ┌──────────────────────────────────────────────────────────┐│
+│  │  [Active]  Expires Feb 14  •  Created 2 days ago         ││
+│  │                                                          ││
+│  │  [📋 Copy]  [📱 QR]  [🔄 Regenerate]                     ││
+│  └──────────────────────────────────────────────────────────┘│
+│                                                               │
+│  OR (if no link):                                             │
+│                                                               │
+│  [Generate Pre-Arrival Access Link]                           │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+```
+
+### Pre-Arrival Info Card Layout
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│  📝 Pre-Arrival Submission              Completed Feb 12, 2026 │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│  ARRIVAL DETAILS                                              │
+│  ─────────────────────────────                                │
+│  Arrival Time: 14:30                                          │
+│  Flight: SQ422                                                │
+│  Transfer: Seaplane                                           │
+│                                                               │
+│  DIETARY & ALLERGIES                                          │
+│  ─────────────────────────────                                │
+│  ⚠️ Allergies: Shellfish                                      │
+│  Preferences: Vegetarian, Gluten-free                         │
+│                                                               │
+│  SPECIAL OCCASIONS                                            │
+│  ─────────────────────────────                                │
+│  🎉 Honeymoon, Birthday                                       │
+│  Requests: "Please arrange a sunset dinner on the beach"      │
+│                                                               │
+│  ─────────────────────────────────────────────────────────── │
+│  Last updated: Feb 12, 2026 at 3:45 PM                        │
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Database Migration
+
+Add a unique constraint and the new RPC function:
+
+```sql
+-- Add unique constraint for upsert capability
+ALTER TABLE public.pre_arrival_submissions 
+ADD CONSTRAINT pre_arrival_submissions_stay_id_unique UNIQUE (stay_id);
+
+-- RPC for guest portal dual-write
+CREATE OR REPLACE FUNCTION public.guest_upsert_prearrival_submission(
+  p_stay_id uuid,
+  p_payload jsonb,
+  p_mark_completed boolean DEFAULT false
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_stay guest_stays%ROWTYPE;
+  v_submission_id uuid;
+BEGIN
+  SELECT * INTO v_stay FROM guest_stays WHERE id = p_stay_id;
+  IF NOT FOUND THEN
+    RETURN json_build_object('success', false, 'error', 'STAY_NOT_FOUND');
+  END IF;
+
+  INSERT INTO pre_arrival_submissions (resort_id, stay_id, guest_id, payload, completed_at, updated_at)
+  VALUES (
+    v_stay.resort_id,
+    p_stay_id,
+    v_stay.guest_id,
+    p_payload,
+    CASE WHEN p_mark_completed THEN NOW() ELSE NULL END,
+    NOW()
+  )
+  ON CONFLICT (stay_id) 
+  DO UPDATE SET
+    payload = EXCLUDED.payload,
+    completed_at = CASE WHEN p_mark_completed THEN NOW() ELSE pre_arrival_submissions.completed_at END,
+    updated_at = NOW()
+  RETURNING id INTO v_submission_id;
+
+  RETURN json_build_object('success', true, 'submission_id', v_submission_id);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.guest_upsert_prearrival_submission(uuid, jsonb, boolean) TO anon, authenticated;
+```
 
 ---
 
 ## Implementation Order
 
-1. **Database Migration** - Update `consume_guest_access_link` to return full guest/resort data
-2. **Create `useActiveStay` hook** - For resolving active stay context
-3. **Create `GuestAccessLoginPage.tsx`** - New access entry point
-4. **Update `GuestAuthContext`** - Add `stayId` field
-5. **Update `App.tsx`** - Add new route
-6. **Update `GuestHome.tsx`** - Integrate stay-aware rendering
-7. **Enhance `GuestPrearrivalHome.tsx`** - Add activities browser module
+1. **Database Migration** - Add unique constraint and guest RPC
+2. **Create `useStaffGuestStay` hook** - Data fetching for staff
+3. **Create `StayAccessLinkManager` component** - Link generation UI
+4. **Create `GuestStayPanel` component** - Stay overview card
+5. **Create `PreArrivalSubmissionCard` component** - Submission display
+6. **Update `GuestDetailPage`** - Integrate new components
+7. **Update `usePrearrivalData`** - Add dual-write logic
 
 ---
 
@@ -368,33 +463,21 @@ Add the new route before the existing guest routes:
 
 | Component | Status |
 |-----------|--------|
-| PIN login flow (`/guest/login`, `/resort/:code/guest/login`) | Unchanged |
-| QR login flow (`/guest/qr`, `/guest/qr/:token`) | Unchanged |
-| Existing pre-arrival token system | Unchanged |
-| `GuestLayout` navigation | Unchanged |
-| In-house home experience | Unchanged |
-| Activity/restaurant booking flows | Unchanged |
-
----
-
-## Technical Notes
-
-1. **Session Compatibility**: The new login stores the same `propera_guest_session` structure, ensuring `GuestAuthContext` restoration works identically.
-
-2. **Stay Resolution Fallback**: If no `guest_stays` record exists (legacy guests), the system falls back to the existing date-based `useIsPrearrivalGuest` logic.
-
-3. **Mobile-First**: `GuestAccessLoginPage` follows the same patterns as `GuestQrLoginPage` including desktop QR display and mobile-optimized flows.
-
-4. **Performance**: The `useActiveStay` hook uses React Query with 60-second stale time to minimize database calls.
+| Existing `PrearrivalProfileCard` | Unchanged - continues showing legacy data |
+| Existing `PrearrivalLinkManager` | Unchanged - manages legacy prearrival_tokens |
+| PIN login flow | Unchanged |
+| QR login flow | Unchanged |
+| Guest portal home/wizard | Unchanged (except dual-write addition) |
+| Staff dashboard and other pages | Unchanged |
 
 ---
 
 ## Testing Scenarios
 
-1. **Staff generates access link** → Guest opens `/guest/access?t=TOKEN` on mobile → Session created → Redirected to `/guest` → Shows pre-arrival home
-2. **Guest with pre_arrival stay** → Home shows countdown, checklist, activities browser
-3. **Guest with in_house stay** → Home shows existing in-stay experience
-4. **Token expired** → Error screen with PIN login fallback
-5. **Desktop access** → QR code displayed for mobile scanning
-6. **Existing PIN login** → Works unchanged
-
+1. **Guest with stay record** → Stay panel shows dates, status, link manager
+2. **Guest without stay record** → Stay panel shows "No stay record" empty state
+3. **Generate access link** → Creates link, displays token hint, copy/QR work
+4. **View submission** → Renders payload structure correctly
+5. **Guest submits wizard** → Data appears in both old profiles AND new submissions
+6. **Link expired** → Shows expired badge, offers regeneration
+7. **Multiple stays** → Shows active/upcoming stay prioritized
