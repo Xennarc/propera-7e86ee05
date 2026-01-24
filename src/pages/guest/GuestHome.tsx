@@ -36,6 +36,7 @@ import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions'
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
 import { TravelPartyCard } from '@/components/guest/TravelPartyCard';
 import { useIsPrearrivalGuest, usePrearrivalData } from '@/hooks/usePrearrivalData';
+import { useActiveStay } from '@/hooks/useActiveStay';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 
@@ -46,6 +47,7 @@ export default function GuestHome() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { isPrearrival } = useIsPrearrivalGuest();
+  const { activeStay, isLoading: stayLoading } = useActiveStay();
   const { data: prearrivalData } = usePrearrivalData();
 
   // Pre-arrival nudge state
@@ -53,8 +55,11 @@ export default function GuestHome() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   // Show pre-arrival home if guest hasn't checked in yet
-  if (isPrearrival) {
-    return <GuestPrearrivalHome />;
+  // Use active stay status OR fall back to date-based check
+  const showPrearrival = activeStay?.status === 'pre_arrival' || isPrearrival;
+
+  if (showPrearrival) {
+    return <GuestPrearrivalHome activeStay={activeStay} />;
   }
 
   interface BookingItem {

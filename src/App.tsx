@@ -141,6 +141,7 @@ const GuestMyRequestsPage = lazy(() => import("./pages/guest/GuestMyRequestsPage
 const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
 const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage"));
 const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
+const GuestAccessLoginPage = lazy(() => import("./pages/guest/GuestAccessLoginPage"));
 const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
 
 // Lazy loaded pages - Public
@@ -304,6 +305,7 @@ const App = () => (
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
                 <Route path="/guest/find" element={<GuestFindResort />} />
+                <Route path="/guest/access" element={<GuestAccessLoginPage />} />
                 <Route path="/guest/qr/:token" element={<GuestQrConfirmPage />} />
                 <Route path="/guest/qr" element={<GuestQrLoginPage />} />
                 <Route path="/guest" element={<GuestLayout />}>
