@@ -1,123 +1,105 @@
 
-# Update Debug Console to Show Full Error Messages
+# Fix GuestDetailPage Error Boundary Crash
 
-## Current State
+## Problem Identified
 
-The Staff Debug Panel displays errors with the following limitations:
-- Error messages are truncated to 2 lines via `line-clamp-2` CSS class
-- Stack traces are captured but **not displayed**
-- Only the first 5 errors are shown (others are captured but hidden)
-- No way to expand an individual error for more detail
+The `GuestDetailPage` crashes when the `ErrorBoundary` catches an error from unsafe date parsing. Several components use `date-fns`'s `parseISO()` directly without the safe wrapper function (`safeParseDateISO` / `safeFormatDate`). When malformed date strings are encountered, `parseISO` returns an "Invalid Date" object, and subsequent calls to `format()` or `formatDistanceToNow()` throw exceptions.
 
-## Proposed Changes
+## Components Requiring Fixes
 
-### 1. Add Expandable Error Details
+| File | Line(s) | Unsafe Code | Fix |
+|------|---------|-------------|-----|
+| `PrearrivalProfileCard.tsx` | 559 | `format(parseISO(review.reviewed_at), ...)` | Use `safeFormatDate` |
+| `PrearrivalProfileCard.tsx` | 706-708 | `formatDistanceToNow(parseISO(invite.sent_at/created_at), ...)` | Create safe wrapper |
+| `PrearrivalHistoryTimeline.tsx` | 109, 157, 159 | `parseISO(event.created_at)` used in format calls | Use safe wrappers |
+| `PrearrivalLinkManager.tsx` | 270 | `format(parseISO(existingLink.last_opened_at), ...)` | Use `safeFormatDate` |
+| `StayAccessLinkManager.tsx` | 76, 125, 129 | `parseISO` in date comparisons and formatting | Use safe wrappers |
 
-Replace the current static error display with an expandable view that shows:
-- **Collapsed view**: Type badge, timestamp, and first line of error (current behavior)
-- **Expanded view**: Full error message + stack trace (if available)
+## Solution
 
-### 2. Implementation Details
+### 1. Add Safe Date Formatting Helpers
 
-**File: `src/components/staff/StaffDebugPanel.tsx`**
-
-Create a new `ErrorRow` component with expand/collapse functionality:
+Extend `src/lib/safe-date-format.ts` with a new function for safely computing relative time:
 
 ```typescript
-function ErrorRow({ error, index }: { error: CapturedError; index: number }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+/**
+ * Safely format a relative time string, returning a fallback if the date is invalid.
+ */
+export function safeFormatDistanceToNow(
+  dateStr: string | null | undefined,
+  options?: { addSuffix?: boolean },
+  fallback: string = 'Unknown time'
+): string {
+  const date = safeParseDateISO(dateStr);
+  if (!date) return fallback;
   
-  return (
-    <div className="py-1.5 border-b border-border/30 last:border-0">
-      <button 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full text-left"
-      >
-        <div className="flex items-center gap-1.5">
-          {isExpanded ? <ChevronDown /> : <ChevronRight />}
-          <Badge>{error.type}</Badge>
-          <span className="text-muted-foreground">{timestamp}</span>
-        </div>
-        {!isExpanded && (
-          <p className="text-[11px] font-mono mt-1 line-clamp-1">
-            {error.message}
-          </p>
-        )}
-      </button>
-      {isExpanded && (
-        <div className="mt-2 space-y-2">
-          {/* Full message in scrollable container */}
-          <div className="bg-muted/50 rounded p-2 max-h-32 overflow-auto">
-            <pre className="text-[10px] font-mono whitespace-pre-wrap break-words">
-              {error.message}
-            </pre>
-          </div>
-          {/* Stack trace if available */}
-          {error.stack && (
-            <div className="bg-red-500/10 rounded p-2 max-h-40 overflow-auto">
-              <pre className="text-[9px] font-mono whitespace-pre-wrap text-red-400">
-                {error.stack}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  try {
+    return formatDistanceToNow(date, options);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Safely check if a date is in the past.
+ */
+export function safeIsBeforeNow(dateStr: string | null | undefined): boolean {
+  const date = safeParseDateISO(dateStr);
+  if (!date) return true; // Treat invalid dates as expired
+  return isBefore(date, new Date());
 }
 ```
 
-### 3. Additional Improvements
+### 2. Update Components
 
-| Feature | Change |
-|---------|--------|
-| Show more errors | Increase from 5 to 10 visible errors |
-| Copy error button | Add clipboard copy for full error + stack |
-| Visual hierarchy | Indent stack trace, use darker background for context |
+**PrearrivalProfileCard.tsx:**
+- Line 559: Replace `format(parseISO(review.reviewed_at), 'MMM d, h:mm a')` with `safeFormatDate(review.reviewed_at, 'MMM d, h:mm a')`
+- Lines 706-708 (InviteActivityLine): Replace `formatDistanceToNow(parseISO(...))` with `safeFormatDistanceToNow(...)`
 
-### 4. Type Import
+**PrearrivalHistoryTimeline.tsx:**
+- Line 109: Use `safeParseDateISO` with null check
+- Lines 157, 159: Use `safeFormatDistanceToNow` and `safeFormatDate`
 
-The `CapturedError` interface needs to be exported from `debug-error-capture.ts` and imported into `StaffDebugPanel.tsx` so the `ErrorRow` component can be properly typed.
+**PrearrivalLinkManager.tsx:**
+- Line 270: Replace with `safeFormatDate(existingLink.last_opened_at, 'MMM d')`
 
----
+**StayAccessLinkManager.tsx:**
+- Line 76: Use `safeIsBeforeNow(latestLink.expiresAt)` or similar safe check
+- Lines 125, 129: Use `safeFormatDistanceToNow`
 
-## Files to Modify
+## Technical Details
 
-| File | Changes |
-|------|---------|
-| `src/lib/debug-error-capture.ts` | Export the `CapturedError` interface |
-| `src/components/staff/StaffDebugPanel.tsx` | Add `ErrorRow` component with expand/collapse, show stack traces, increase visible error count, add copy button |
+### File: `src/lib/safe-date-format.ts`
+Add two new exported functions:
+1. `safeFormatDistanceToNow` - safely formats relative time
+2. `safeIsBeforeNow` - safely checks if a date is before now
 
----
+### File: `src/components/prearrival/PrearrivalProfileCard.tsx`
+1. Import new safe functions
+2. Update line 559: staff review timestamp
+3. Update InviteActivityLine component (lines 700-720)
 
-## Visual Mockup
+### File: `src/components/prearrival/PrearrivalHistoryTimeline.tsx`
+1. Import safe date functions
+2. Update HistoryEventItem to handle null dates gracefully
 
-```text
-┌─────────────────────────────────────────┐
-│ ▶ [error]  10:45:32 AM                  │  ← Collapsed
-│   Cannot read property 'id' of undef... │
-├─────────────────────────────────────────┤
-│ ▼ [unhandled]  10:44:18 AM         [📋] │  ← Expanded
-│ ┌─────────────────────────────────────┐ │
-│ │ Cannot read property 'id' of       │ │
-│ │ undefined. This occurred when      │ │
-│ │ trying to access guest.id in the   │ │
-│ │ booking confirmation flow.         │ │
-│ └─────────────────────────────────────┘ │
-│ Stack Trace:                            │
-│ ┌─────────────────────────────────────┐ │
-│ │ at GuestBookingPage (GuestBook...  │ │
-│ │ at renderWithHooks (react-dom...   │ │
-│ │ at updateFunctionComponent (...    │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-```
+### File: `src/components/prearrival/PrearrivalLinkManager.tsx`
+1. Import `safeFormatDate`
+2. Update line 270 for last opened date
 
----
+### File: `src/components/staff/StayAccessLinkManager.tsx`
+1. Import safe date functions
+2. Update lines 76, 125, 129 for expiry checks and time formatting
 
-## Benefits
+## Impact
+- Prevents ErrorBoundary crashes from malformed timestamps
+- Gracefully displays "Invalid date" or "Unknown time" for bad data
+- No visual changes for valid data
+- Maintains existing functionality
 
-1. **Full visibility**: Developers can see complete error messages without browser console
-2. **Stack trace access**: Quickly identify error source locations
-3. **Copy functionality**: Easy to share errors for debugging
-4. **Preserved UX**: Collapsed by default keeps panel compact
+## Testing
+After implementation:
+- Navigate to GuestDetailPage for any guest
+- Verify no crash occurs
+- Check that dates display correctly for guests with valid data
+- If a guest has malformed data, verify fallback text displays instead of crash
