@@ -348,7 +348,10 @@ export default function GuestDetailPage() {
       </Card>
 
       {/* Pre-Arrival Profile Card - Only show for pre-arrival guests (check-in date is in the future) */}
-      {new Date(guest.check_in_date) > new Date(new Date().toDateString()) && (
+      {(() => {
+        const checkIn = safeParseDateISO(guest.check_in_date);
+        return checkIn && checkIn > startOfDay(new Date());
+      })() && (
         <PrearrivalProfileCard
           guestId={guest.id}
           guestName={guest.full_name}
