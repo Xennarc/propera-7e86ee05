@@ -272,7 +272,7 @@ export function GuestDebugConsole() {
   if (isMinimized) {
     return (
       <div 
-        className="fixed bottom-[calc(var(--guest-nav-h)+8px)] right-2 z-50 flex items-center gap-2 px-3 py-2 rounded-full bg-background/95 border border-border shadow-lg backdrop-blur-sm cursor-pointer"
+        className="fixed bottom-[calc(var(--guest-nav-h)+8px)] right-2 z-[9999] flex items-center gap-2 px-3 py-2 rounded-full bg-background/95 border border-border shadow-lg backdrop-blur-sm cursor-pointer"
         onClick={() => setIsMinimized(false)}
       >
         <Bug className="h-4 w-4 text-primary" />
@@ -292,7 +292,7 @@ export function GuestDebugConsole() {
   }
   
   return (
-    <div className="fixed bottom-[calc(var(--guest-nav-h)+8px)] right-2 z-50 w-[min(90vw,380px)] max-h-[70vh] flex flex-col rounded-xl bg-background/95 border border-border shadow-2xl backdrop-blur-sm overflow-hidden">
+    <div className="fixed bottom-[calc(var(--guest-nav-h)+8px)] right-2 z-[9999] w-[min(90vw,380px)] max-h-[70vh] flex flex-col rounded-xl bg-background/95 border border-border shadow-2xl backdrop-blur-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
         <div className="flex items-center gap-2">

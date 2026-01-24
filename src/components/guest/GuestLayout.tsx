@@ -92,9 +92,11 @@ export function GuestLayout() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize debug trackers when debug mode is active
+  // Initialize debug trackers when debug mode is active (check URL directly to work during loading)
   useEffect(() => {
-    if (!isDebugMode) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugEnabled = urlParams.get('debug') === '1';
+    if (!debugEnabled) return;
     
     const cleanupErrors = initErrorCapture();
     const cleanupQueries = initQueryTracker(queryClient);
@@ -103,7 +105,7 @@ export function GuestLayout() {
       cleanupErrors();
       cleanupQueries();
     };
-  }, [isDebugMode, queryClient]);
+  }, [queryClient]);
 
   // Set initialized once loading completes (prevents flash)
   useEffect(() => {
@@ -178,14 +180,22 @@ export function GuestLayout() {
 
   if (loading || !isInitialized) {
     return (
-      <div className="flex min-h-screen items-center justify-center hero-pattern">
-        <ProperaLoader size={64} text="Loading your experience..." />
-      </div>
+      <>
+        <div className="flex min-h-screen items-center justify-center hero-pattern">
+          <ProperaLoader size={64} text="Loading your experience..." />
+        </div>
+        {showDebugPanel && <GuestDebugConsole />}
+      </>
     );
   }
 
   if (!guest) {
-    return <Navigate to="/guest/login" replace />;
+    return (
+      <>
+        {showDebugPanel && <GuestDebugConsole />}
+        <Navigate to="/guest/login" replace />
+      </>
+    );
   }
 
   return (
