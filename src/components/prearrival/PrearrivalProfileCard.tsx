@@ -297,14 +297,8 @@ export function PrearrivalProfileCard({
                 onClick={handleSendEmail}
                 disabled={!canSend}
               >
-                {sendEmailMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <RotateCcw className="h-3 w-3 mr-1.5" />
-                    Resend
-                  </>
-                )}
+                <RotateCcw className="h-3 w-3 mr-1.5" />
+                Resend
               </Button>
             ) : isCheckedIn ? (
               <Badge variant="secondary" className="text-xs">
@@ -316,9 +310,7 @@ export function PrearrivalProfileCard({
                 onClick={handleSendEmail}
                 disabled={!canSend}
               >
-                {sendEmailMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : hasBeenSent ? (
+                {hasBeenSent ? (
                   <>
                     <RotateCcw className="h-3 w-3 mr-1.5" />
                     Resend Email
