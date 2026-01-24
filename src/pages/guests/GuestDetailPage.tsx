@@ -37,8 +37,8 @@ interface ActivityBookingWithSession {
     id: string;
     date: string;
     start_time: string;
-    activity: { name: string };
-  };
+    activity: { name: string } | null;
+  } | null;
 }
 
 interface ReservationWithSlot {
@@ -52,8 +52,8 @@ interface ReservationWithSlot {
     date: string;
     start_time: string;
     meal_period: string;
-    restaurant: { name: string };
-  };
+    restaurant: { name: string } | null;
+  } | null;
 }
 
 // Helper to check if arrival is late (after 20:00)
@@ -576,11 +576,11 @@ export default function GuestDetailPage() {
                           <TableRow 
                             key={booking.id}
                             className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate(`/activities/sessions/${booking.session.id}`)}
+                            onClick={() => booking.session?.id && navigate(`/staff/activities/sessions/${booking.session.id}`)}
                           >
-                            <TableCell className="font-medium">{booking.session.activity?.name || 'Unknown Activity'}</TableCell>
-                            <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
-                            <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
+                            <TableCell className="font-medium">{booking.session?.activity?.name || 'Unknown Activity'}</TableCell>
+                            <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
+                            <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
                           </TableRow>
@@ -608,9 +608,9 @@ export default function GuestDetailPage() {
                       <TableBody>
                         {pastActivityBookings.map((booking) => (
                           <TableRow key={booking.id}>
-                            <TableCell className="font-medium">{booking.session.activity?.name || 'Unknown Activity'}</TableCell>
-                            <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
-                            <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
+                            <TableCell className="font-medium">{booking.session?.activity?.name || 'Unknown Activity'}</TableCell>
+                            <TableCell>{booking.session?.date ? safeFormatDate(booking.session.date, 'EEE, MMM d') : '-'}</TableCell>
+                            <TableCell>{booking.session?.start_time?.slice(0, 5) || '-'}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
                             <TableCell><StatusBadge status={booking.status} /></TableCell>
                           </TableRow>
@@ -658,12 +658,12 @@ export default function GuestDetailPage() {
                           <TableRow 
                             key={reservation.id}
                             className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => navigate(`/restaurants/slots/${reservation.slot.id}`)}
+                            onClick={() => reservation.slot?.id && navigate(`/staff/restaurants/slots/${reservation.slot.id}`)}
                           >
-                            <TableCell className="font-medium">{reservation.slot.restaurant?.name || 'Unknown Restaurant'}</TableCell>
-                            <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
-                            <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
-                            <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
+                            <TableCell className="font-medium">{reservation.slot?.restaurant?.name || 'Unknown Restaurant'}</TableCell>
+                            <TableCell>{reservation.slot?.date ? safeFormatDate(reservation.slot.date, 'EEE, MMM d') : '-'}</TableCell>
+                            <TableCell>{reservation.slot?.start_time?.slice(0, 5) || '-'}</TableCell>
+                            <TableCell><Badge variant="outline">{reservation.slot?.meal_period || '-'}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
                             <TableCell><StatusBadge status={reservation.status} /></TableCell>
                           </TableRow>
@@ -692,10 +692,10 @@ export default function GuestDetailPage() {
                       <TableBody>
                         {pastReservations.map((reservation) => (
                           <TableRow key={reservation.id}>
-                            <TableCell className="font-medium">{reservation.slot.restaurant?.name || 'Unknown Restaurant'}</TableCell>
-                            <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
-                            <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
-                            <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
+                            <TableCell className="font-medium">{reservation.slot?.restaurant?.name || 'Unknown Restaurant'}</TableCell>
+                            <TableCell>{reservation.slot?.date ? safeFormatDate(reservation.slot.date, 'EEE, MMM d') : '-'}</TableCell>
+                            <TableCell>{reservation.slot?.start_time?.slice(0, 5) || '-'}</TableCell>
+                            <TableCell><Badge variant="outline">{reservation.slot?.meal_period || '-'}</Badge></TableCell>
                             <TableCell>{reservation.num_adults + reservation.num_children}</TableCell>
                             <TableCell><StatusBadge status={reservation.status} /></TableCell>
                           </TableRow>
