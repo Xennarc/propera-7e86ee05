@@ -93,6 +93,7 @@ export function useUpdatePrearrivalProfile() {
     }>) => {
       if (!guest) throw new Error('Not authenticated');
 
+      // 1. Call existing RPC for legacy prearrival_profiles (unchanged)
       const { data, error } = await supabase.rpc('guest_update_prearrival_profile', {
         p_guest_id: guest.guestId,
         p_arrival_date: updates.arrival_date || null,
@@ -109,10 +110,41 @@ export function useUpdatePrearrivalProfile() {
       });
 
       if (error) throw error;
+
+      // 2. DUAL-WRITE: If guest has a stayId, also update pre_arrival_submissions
+      if (guest.stayId) {
+        const payload = {
+          arrival_time: updates.arrival_time || null,
+          arrival_flight_number: updates.arrival_flight_number || null,
+          transfer_preference: updates.transfer_preference || null,
+          dietary_preferences: updates.dietary_preferences || [],
+          allergies: updates.allergies || null,
+          room_preferences: (updates.room_preferences || {}) as Record<string, string | number | boolean | null>,
+          water_comfort_level: updates.water_comfort_level || null,
+          special_occasions: updates.special_occasions || [],
+          special_requests: updates.special_requests || null,
+          custom_answers_json: (updates.custom_answers_json || {}) as Record<string, string | number | boolean | null>,
+        };
+
+        // Upsert to pre_arrival_submissions via new RPC
+        const { error: submissionError } = await supabase.rpc('guest_upsert_prearrival_submission', {
+          p_stay_id: guest.stayId,
+          p_payload: JSON.stringify(payload),
+          p_mark_completed: true,
+        });
+
+        if (submissionError) {
+          console.error('Dual-write to pre_arrival_submissions failed:', submissionError);
+          // Don't throw - the primary write succeeded
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prearrival-data'] });
+      queryClient.invalidateQueries({ queryKey: ['active-stay'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-guest-stay'] });
     },
   });
 }
