@@ -26,6 +26,9 @@ import { useStaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
 import { GuestAtAGlanceChips } from '@/components/prearrival/GuestAtAGlanceChips';
 import { OperationalFlags } from '@/components/prearrival/OperationalFlags';
 import { PrearrivalProfileCard } from '@/components/prearrival/PrearrivalProfileCard';
+import { useStaffGuestStay } from '@/hooks/useStaffGuestStay';
+import { GuestStayPanel } from '@/components/staff/GuestStayPanel';
+import { PreArrivalSubmissionCard } from '@/components/staff/PreArrivalSubmissionCard';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -88,6 +91,15 @@ export default function GuestDetailPage() {
     resortId: guest?.resort_id || currentResort?.id || '',
     enabled: !!id && !!(guest?.resort_id || currentResort?.id),
   });
+
+  // Fetch stay-based data (new architecture)
+  const { 
+    stay: activeStay, 
+    accessLinks, 
+    submission, 
+    isLoading: stayLoading,
+    refetch: refetchStay 
+  } = useStaffGuestStay(id || '', guest?.resort_id || currentResort?.id || '');
 
   // Allow RESORT_ADMIN, MANAGER, FRONT_OFFICE, RESERVATIONS to edit guests and manage PINs
   const canEdit = hasWriteAccess(canAccessGuests);
@@ -347,7 +359,26 @@ export default function GuestDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Pre-Arrival Profile Card - Only show for pre-arrival guests (check-in date is in the future) */}
+      {/* Stay Panel (New Architecture) */}
+      <GuestStayPanel
+        guestId={guest.id}
+        guestName={guest.full_name}
+        resortId={guest.resort_id}
+        stay={activeStay}
+        accessLinks={accessLinks}
+        isLoading={stayLoading}
+        onLinkGenerated={refetchStay}
+      />
+
+      {/* Pre-Arrival Submission (New Architecture) - show if stay exists and not checked out */}
+      {activeStay && activeStay.status !== 'checked_out' && (
+        <PreArrivalSubmissionCard
+          submission={submission}
+          isLoading={stayLoading}
+        />
+      )}
+
+      {/* Legacy Pre-Arrival Profile Card - Only show for pre-arrival guests (check-in date is in the future) */}
       {(() => {
         const checkIn = safeParseDateISO(guest.check_in_date);
         return checkIn && checkIn > startOfDay(new Date());

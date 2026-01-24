@@ -2806,7 +2806,7 @@ export type Database = {
           {
             foreignKeyName: "pre_arrival_submissions_stay_id_fkey"
             columns: ["stay_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "guest_stays"
             referencedColumns: ["id"]
           },
@@ -5869,6 +5869,10 @@ export type Database = {
           p_water_comfort_level?: string
         }
         Returns: boolean
+      }
+      guest_upsert_prearrival_submission: {
+        Args: { p_mark_completed?: boolean; p_payload: Json; p_stay_id: string }
+        Returns: Json
       }
       has_any_role: {
         Args: {
