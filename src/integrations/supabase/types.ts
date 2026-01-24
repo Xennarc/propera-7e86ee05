@@ -5622,6 +5622,15 @@ export type Database = {
         }
         Returns: Json
       }
+      guest_login_with_pin: {
+        Args: {
+          p_last_name: string
+          p_pin: string
+          p_resort_id: string
+          p_room_number: string
+        }
+        Returns: Json
+      }
       guest_mark_all_notifications_read: {
         Args: { p_guest_id: string }
         Returns: number
