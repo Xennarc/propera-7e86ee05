@@ -114,21 +114,45 @@ export function PrearrivalProfileCard({
     },
   });
 
-  // Send email mutation
+  // Send email mutation - uses new stay-based system when available
   const sendEmailMutation = useMutation({
     mutationFn: async () => {
       if (!guestEmail) throw new Error('No email address');
       
-      // First generate link if needed
-      const { data: linkData, error: linkError } = await supabase.rpc('generate_prearrival_token', {
-        p_guest_id: guestId,
-      });
-      if (linkError) throw linkError;
-      
-      const linkResult = linkData as { success: boolean; token?: string; error?: string } | null;
-      if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
-      
-      const prearrivalLink = `${window.location.origin}/prearrival/${linkResult.token}`;
+      // Try to find an existing stay for this guest
+      const { data: stay } = await supabase
+        .from('guest_stays')
+        .select('id')
+        .eq('guest_id', guestId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let prearrivalLink: string;
+
+      if (stay) {
+        // Use new stay-based system
+        const { data: linkData, error: linkError } = await supabase.rpc('create_guest_access_link', {
+          p_stay_id: stay.id,
+        });
+        if (linkError) throw linkError;
+        
+        const linkResult = linkData as { success: boolean; raw_token?: string; error?: string } | null;
+        if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
+        
+        prearrivalLink = `${window.location.origin}/guest/access?t=${linkResult.raw_token}`;
+      } else {
+        // Fall back to legacy system
+        const { data: linkData, error: linkError } = await supabase.rpc('generate_prearrival_token', {
+          p_guest_id: guestId,
+        });
+        if (linkError) throw linkError;
+        
+        const linkResult = linkData as { success: boolean; token?: string; error?: string } | null;
+        if (!linkResult?.success) throw new Error(linkResult?.error || 'Failed to generate link');
+        
+        prearrivalLink = `${window.location.origin}/prearrival/${linkResult.token}`;
+      }
       
       // Send email
       const { data: emailData, error: emailError } = await supabase.functions.invoke('send-prearrival-link', {
@@ -153,6 +177,7 @@ export function PrearrivalProfileCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages', guestId] });
       queryClient.invalidateQueries({ queryKey: ['prearrival-link', guestId] });
+      queryClient.invalidateQueries({ queryKey: ['staff-guest-stay'] });
       toast({ 
         title: 'Email sent!', 
         description: `Pre-arrival invite sent to ${guestEmail}` 

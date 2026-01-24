@@ -131,9 +131,6 @@ const GuestActivityExplorer = lazy(() => import("./pages/guest/GuestActivityExpl
 const GuestActivityDetailPage = lazy(() => import("./pages/guest/GuestActivityDetailPage"));
 const GuestProfilePage = lazy(() => import("./pages/guest/GuestProfilePage"));
 const GuestNotificationsPage = lazy(() => import("./pages/guest/GuestNotificationsPage"));
-const PreArrivalPage = lazy(() => import("./pages/guest/PreArrivalPage"));
-const PrearrivalLandingPage = lazy(() => import("./pages/prearrival/PrearrivalLandingPage"));
-const PrearrivalCheckinWizard = lazy(() => import("./pages/prearrival/PrearrivalCheckinWizard"));
 const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPage"));
 const GuestRequestsCatalogPage = lazy(() => import("./pages/guest/GuestRequestsPage"));
@@ -143,6 +140,9 @@ const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage")
 const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
 const GuestAccessLoginPage = lazy(() => import("./pages/guest/GuestAccessLoginPage"));
 const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
+
+// Legacy redirect component for deprecated pre-arrival routes
+import { LegacyPrearrivalRedirect } from "./components/prearrival/LegacyPrearrivalRedirect";
 
 // Lazy loaded pages - Public
 const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
@@ -297,10 +297,10 @@ const App = () => (
                   <Route path="activities/book/:sessionId" element={<GuestActivityBookingPage />} />
                 </Route>
                 
-                {/* Pre-arrival routes (token-based, no auth required) */}
-                <Route path="/prearrival/:token" element={<PrearrivalLandingPage />} />
-                <Route path="/prearrival/:token/checkin" element={<PrearrivalCheckinWizard />} />
-                <Route path="/prearrival/:token/experiences" element={<PreArrivalPage />} />
+                {/* Legacy pre-arrival routes - redirect to guest login */}
+                <Route path="/prearrival/:token" element={<LegacyPrearrivalRedirect />} />
+                <Route path="/prearrival/:token/checkin" element={<LegacyPrearrivalRedirect />} />
+                <Route path="/prearrival/:token/experiences" element={<LegacyPrearrivalRedirect />} />
                 
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
