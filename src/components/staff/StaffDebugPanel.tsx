@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getErrors, clearErrors, initErrorCapture } from '@/lib/debug-error-capture';
+import { getErrors, clearErrors, initErrorCapture, CapturedError } from '@/lib/debug-error-capture';
 import {
   initQueryTracker,
   getPendingQueries,
@@ -41,7 +41,9 @@ import {
   Activity,
   CheckCircle2,
   XCircle,
-  Minimize2
+  Minimize2,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface SectionProps {
@@ -122,6 +124,86 @@ function CompletedQueryRow({ query }: { query: TrackedQuery }) {
       <span className={`text-[10px] font-mono ${getTimingColorClass(query.duration || 0)}`}>
         {formatDuration(query.duration || 0)}
       </span>
+    </div>
+  );
+}
+
+function ErrorRow({ error }: { error: CapturedError }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `${error.type.toUpperCase()}: ${error.message}${error.stack ? `\n\nStack Trace:\n${error.stack}` : ''}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [error]);
+
+  return (
+    <div className="py-1.5 border-b border-border/30 last:border-0">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full text-left"
+      >
+        <div className="flex items-center gap-1.5">
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3 flex-shrink-0" />
+          ) : (
+            <ChevronRight className="h-3 w-3 flex-shrink-0" />
+          )}
+          <Badge
+            variant="outline"
+            className={`text-[9px] px-1 py-0 ${
+              error.type === 'network'
+                ? 'border-cyan-500/50 text-cyan-500'
+                : error.type === 'unhandled'
+                ? 'border-red-500/50 text-red-500'
+                : 'border-amber-500/50 text-amber-500'
+            }`}
+          >
+            {error.type}
+          </Badge>
+          <span className="text-[10px] text-muted-foreground flex-1">
+            {error.timestamp.toLocaleTimeString()}
+          </span>
+          <button
+            onClick={handleCopy}
+            className="p-0.5 hover:bg-muted rounded transition-colors"
+            title="Copy error"
+          >
+            {copied ? (
+              <Check className="h-3 w-3 text-green-500" />
+            ) : (
+              <Copy className="h-3 w-3 text-muted-foreground" />
+            )}
+          </button>
+        </div>
+        {!isExpanded && (
+          <p className="text-[11px] font-mono mt-1 text-foreground/90 line-clamp-1 pl-5">
+            {error.message}
+          </p>
+        )}
+      </button>
+      {isExpanded && (
+        <div className="mt-2 space-y-2 pl-5">
+          {/* Full message */}
+          <div className="bg-muted/50 rounded p-2 max-h-32 overflow-auto">
+            <pre className="text-[10px] font-mono whitespace-pre-wrap break-words text-foreground">
+              {error.message}
+            </pre>
+          </div>
+          {/* Stack trace if available */}
+          {error.stack && (
+            <div className="bg-red-500/10 rounded p-2 max-h-40 overflow-auto">
+              <p className="text-[9px] text-muted-foreground font-medium mb-1">Stack Trace:</p>
+              <pre className="text-[9px] font-mono whitespace-pre-wrap break-words text-red-400">
+                {error.stack}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -501,6 +583,7 @@ export function StaffDebugPanel() {
           <DebugSection 
             title={`Error Log (${errors.length})`} 
             icon={<AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
+            defaultOpen={errors.length > 0}
             badge={
               errors.length > 0 ? (
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-red-500/50 text-red-500">
@@ -513,27 +596,8 @@ export function StaffDebugPanel() {
               <p className="text-muted-foreground py-2">No errors captured</p>
             ) : (
               <>
-                {errors.slice(0, 5).map((err, i) => (
-                  <div key={i} className="py-1.5 border-b border-border/30 last:border-0">
-                    <div className="flex items-center gap-1.5">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-[9px] px-1 py-0 ${
-                          err.type === 'network' ? 'border-cyan-500/50 text-cyan-500' :
-                          err.type === 'unhandled' ? 'border-red-500/50 text-red-500' :
-                          'border-amber-500/50 text-amber-500'
-                        }`}
-                      >
-                        {err.type}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">
-                        {err.timestamp.toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-mono mt-1 text-foreground/90 line-clamp-2">
-                      {err.message}
-                    </p>
-                  </div>
+                {errors.slice(0, 10).map((err, i) => (
+                  <ErrorRow key={`${err.timestamp.getTime()}-${i}`} error={err} />
                 ))}
                 <div className="pt-2">
                   <Button 

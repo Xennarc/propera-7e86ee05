@@ -1,6 +1,6 @@
 // In-memory error capture for debug panel display
 
-interface CapturedError {
+export interface CapturedError {
   timestamp: Date;
   message: string;
   stack?: string;
