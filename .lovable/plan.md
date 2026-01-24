@@ -1,286 +1,125 @@
 
-# Add Defensive Rendering Guards to Guest Portal Components
+# Add Comprehensive Debug Console to Guest Portal
 
-## Problem
+## Overview
 
-React error #300 ("Objects are not valid as a React child") occurs when an object, Date instance, or array is rendered directly in JSX instead of a string or number. This can happen when:
-- Database returns unexpected data shapes
-- Date objects are not formatted before rendering
-- JSONB arrays are rendered directly
-- Null/undefined values propagate through to JSX
+Create a new `GuestDebugConsole` component that provides deep diagnostics for the guest portal, modeled after the staff debug panel but tailored for guest-specific context. This will be accessible via `?debug=1` query parameter and help diagnose issues like the recent React error #300.
 
 ---
 
-## Solution: Multi-Layer Defense Strategy
+## Architecture
 
-The fix applies **three layers of defense**:
-
-1. **Data Normalization Layer**: Ensure all values entering components are primitives
-2. **Render-Time Guards**: Add `String()` coercion and fallbacks at render points
-3. **Safe Formatting Utilities**: Use existing `safe-date-format.ts` utilities consistently
-
----
-
-## Implementation Plan
-
-### 1. Create Safe Rendering Utility
-
-**File:** `src/lib/safe-render.ts`
-
-A small utility module for safely rendering values in JSX:
-
-```typescript
-/**
- * Safely convert any value to a renderable string.
- * Prevents React error #300 by ensuring objects/arrays are stringified.
- */
-export function safeRenderValue(
-  value: unknown,
-  fallback: string = ''
-): string {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'boolean') return String(value);
-  if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(String).join(', ');
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return fallback;
-    }
-  }
-  return String(value);
-}
-
-/**
- * Safe string coercion with fallback.
- */
-export function safeString(
-  value: unknown,
-  fallback: string = ''
-): string {
-  if (typeof value === 'string') return value;
-  if (value === null || value === undefined) return fallback;
-  return String(value);
-}
-
-/**
- * Safe number extraction with fallback.
- */
-export function safeNumber(
-  value: unknown,
-  fallback: number = 0
-): number {
-  if (typeof value === 'number' && !isNaN(value)) return value;
-  if (typeof value === 'string') {
-    const parsed = parseFloat(value);
-    return isNaN(parsed) ? fallback : parsed;
-  }
-  return fallback;
-}
-```
+The guest debug console will integrate:
+- **Existing utilities**: `debug-error-capture.ts` (error log) and `debug-query-tracker.ts` (query performance)
+- **Existing hook**: `useGuestDebugMode` (controls visibility via `?debug=1`)
+- **Guest-specific context**: `GuestAuthContext` session data, localStorage inspection
 
 ---
 
-### 2. Harden GuestAuthContext Session Creation
+## Implementation
 
-**File:** `src/contexts/GuestAuthContext.tsx`
+### 1. Create GuestDebugConsole Component
 
-Add explicit type coercion when creating the session object from RPC response:
+**File:** `src/components/guest/GuestDebugConsole.tsx`
 
-**Lines 249-261 - Session creation:**
-```typescript
-const session: GuestSession = {
-  guestId: String(guestData.guest_id ?? ''),
-  fullName: String(guestData.full_name ?? 'Guest'),
-  roomNumber: String(guestData.room_number ?? ''),
-  checkInDate: String(guestData.check_in_date ?? ''),
-  checkOutDate: String(guestData.check_out_date ?? ''),
-  resortId: String(guestData.resort_id ?? ''),
-  resortName: resortName ?? undefined,
-  resortLogoUrl: resortLogoUrl ?? undefined,
-  resortTimezone: resortTimezone ?? 'UTC',
-  sessionId,
-  sessionToken,
-};
-```
+A mobile-optimized debug panel with collapsible sections:
 
-**Lines 122 - Session restoration:**
-Add validation after JSON.parse to ensure all fields are strings.
+| Section | Content |
+|---------|---------|
+| **Active Queries** | Live React Query requests with timing indicators |
+| **Query Performance** | Avg response time, slow query count, recent queries list |
+| **Guest Session** | guestId, fullName, roomNumber, resortId, checkIn/checkOut dates, sessionId |
+| **LocalStorage Inspection** | Raw `propera_guest_session` value with JSON validation |
+| **Error Log** | Captured console.error, unhandled exceptions, with stack traces |
+| **Page Diagnostics** | Current route, search params, render timestamp |
 
----
+Key features:
+- Fixed position (bottom-right), mobile-friendly width (90vw max 400px)
+- Minimize/close controls
+- Collapsible sections to manage height
+- Copy buttons for error details
+- Clear actions for errors and query history
 
-### 3. Harden GuestLayout Component
+### 2. Integrate into GuestLayout
 
 **File:** `src/components/guest/GuestLayout.tsx`
 
-**Lines 188-205 - Header rendering:**
-```typescript
-<h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
-  {String(branding.name || guest?.resortName || 'Guest Portal')}
-</h1>
-<p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-  Room {String(guest?.roomNumber || '')}
-</p>
+Add conditional rendering of `GuestDebugConsole` when `showDebugPanel` is true:
+
+```text
+Changes:
+- Import useGuestDebugMode hook
+- Import GuestDebugConsole component
+- Call useGuestDebugMode(guest?.resortId) to get showDebugPanel
+- Render <GuestDebugConsole /> after the nav element when showDebugPanel is true
+```
+
+### 3. Initialize Trackers in GuestLayout
+
+The debug console requires error capture and query tracking to be initialized:
+
+```text
+Changes to GuestLayout.tsx:
+- Import initErrorCapture from debug-error-capture.ts
+- Import initQueryTracker from debug-query-tracker.ts
+- Import useQueryClient from @tanstack/react-query
+- Add useEffect to initialize trackers when debug mode is active
+- Clean up on unmount
 ```
 
 ---
 
-### 4. Harden GuestHome Component
+## Component Structure
 
-**File:** `src/pages/guest/GuestHome.tsx`
-
-**Line 136 - firstName derivation:**
-```typescript
-const firstName = String(guest?.fullName ?? 'Guest').split(' ')[0] || 'Guest';
-```
-
-**Lines 315-316 - Greeting render:**
-```typescript
-<h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-  {String(greeting.text)}, {firstName}!
-</h1>
-```
-
-**Lines 318-321 - Schedule count:**
-```typescript
-<p className="text-sm text-muted-foreground">
-  {todaySchedule.length > 0 
-    ? t('home.eventsToday', { count: Number(todaySchedule.length) })
-    : String(t('home.whatToDo'))}
-</p>
+```text
+GuestDebugConsole
+├── Sticky Header (title, minimize, close buttons)
+├── ScrollArea (sections container)
+│   ├── DebugSection: Active Queries (live pending queries)
+│   ├── DebugSection: Query Performance (stats + recent history)
+│   ├── DebugSection: Guest Session (context inspection)
+│   ├── DebugSection: LocalStorage (raw session data)
+│   ├── DebugSection: Error Log (captured errors)
+│   └── DebugSection: Page Diagnostics (route, params, time)
+└── Sticky Footer (hint to remove ?debug=1)
 ```
 
 ---
 
-### 5. Harden GuestStayProgress Component
+## Technical Details
 
-**File:** `src/components/guest/GuestStayProgress.tsx`
+### Guest Session Section
+Displays all fields from `GuestSession` interface:
+- `guestId` (truncated UUID)
+- `fullName`
+- `roomNumber`
+- `checkInDate` / `checkOutDate`
+- `resortId` (truncated UUID)
+- `resortName`
+- `resortTimezone`
+- `sessionId` (truncated)
+- `sessionToken` (truncated, security masked)
 
-**Lines 18-19 - Date parsing:**
-Replace `parseISO` with `safeParseDateISO` and add fallbacks:
+### LocalStorage Inspection
+Critical for debugging React error #300:
+- Shows raw JSON from `localStorage.getItem('propera_guest_session')`
+- Validates JSON parse success
+- Highlights if session contains non-string values (potential cause of render errors)
+- "Clear Session" button for recovery
 
-```typescript
-import { safeParseDateISO, safeFormatDate } from '@/lib/safe-date-format';
+### Error Log
+Uses `initErrorCapture()` and `getErrors()`:
+- Real-time capture of `console.error`, `window.onerror`, `unhandledrejection`
+- Expandable error details with full message and stack trace
+- Copy button for each error
+- Clear button to reset error list
 
-// ...
-
-const checkIn = safeParseDateISO(checkInDate);
-const checkOut = safeParseDateISO(checkOutDate);
-
-// If dates are invalid, show fallback UI
-if (!checkIn || !checkOut) {
-  return (
-    <div className={cn("text-sm text-muted-foreground", className)}>
-      Stay dates unavailable
-    </div>
-  );
-}
-```
-
-**Lines 36, 66, 78, 107 - Date formatting:**
-```typescript
-{safeFormatDate(checkInDate, 'MMM d', 'N/A')} – {safeFormatDate(checkOutDate, 'MMM d', 'N/A')}
-```
-
----
-
-### 6. Harden PrearrivalCountdown Component
-
-**File:** `src/components/guest/prearrival/PrearrivalCountdown.tsx`
-
-**Lines 24-27 - Date handling:**
-```typescript
-import { safeParseDateISO, safeFormatDate } from '@/lib/safe-date-format';
-
-const checkIn = safeParseDateISO(checkInDate);
-const checkOut = safeParseDateISO(checkOutDate);
-
-// Fallback if dates are invalid
-if (!checkIn || !checkOut) {
-  return null;
-}
-
-const daysUntil = differenceInDays(checkIn, today);
-const stayNights = differenceInDays(checkOut, checkIn);
-```
-
-**Lines 66, 78 - Date display:**
-```typescript
-<p className="font-semibold text-foreground">
-  {safeFormatDate(checkInDate, 'EEE, MMM d', 'TBD')}
-</p>
-```
-
----
-
-### 7. Harden GuestBookingCard Component
-
-**File:** `src/components/guest/GuestBookingCard.tsx`
-
-**Line 57 - Total guests calculation:**
-```typescript
-const totalGuests = Number(booking.num_adults || 0) + Number(booking.num_children || 0);
-```
-
-**Line 104 - Title rendering:**
-```typescript
-<p className="text-sm font-semibold text-foreground truncate">
-  {String(booking.title || 'Booking')}
-</p>
-```
-
-**Lines 173-177 - Date formatting with safe fallback:**
-```typescript
-import { safeFormatDate } from '@/lib/safe-date-format';
-
-{showDate && (
-  <span className="flex items-center gap-1">
-    <Clock className="h-3.5 w-3.5" />
-    {safeFormatDate(booking.date, 'EEE, MMM d', 'Date unavailable')}
-  </span>
-)}
-```
-
----
-
-### 8. Harden GuestPrearrivalHome Component
-
-**File:** `src/pages/guest/GuestPrearrivalHome.tsx`
-
-**Line 69 - firstName derivation:**
-```typescript
-const firstName = String(guest?.fullName ?? 'Guest').split(' ')[0] || 'Guest';
-```
-
----
-
-### 9. Harden GuestTodayTimeline Component
-
-**File:** `src/components/guest/GuestTodayTimeline.tsx`
-
-**Lines 81-82 - Item rendering:**
-```typescript
-<span className="font-mono">{String(item.time || '').slice(0, 5)}</span>
-<span className="max-w-[100px] truncate">{String(item.title || 'Event')}</span>
-```
-
----
-
-### 10. Harden TravelPartyCard Component
-
-**File:** `src/components/guest/TravelPartyCard.tsx`
-
-**Lines 40-50 - Count rendering:**
-```typescript
-<p className="text-sm text-muted-foreground">
-  {Number(adultsCount) || 0} adult{adultsCount !== 1 ? 's' : ''}
-  {childrenCount > 0 && `, ${Number(childrenCount) || 0} child${childrenCount !== 1 ? 'ren' : ''}`}
-  {roomsCount > 1 && ` · ${Number(roomsCount) || 0} rooms`}
-</p>
-```
+### Query Performance
+Uses `initQueryTracker()`, `getPendingQueries()`, `getRecentQueries()`, `getQueryStats()`:
+- Live pending queries with duration and slow indicator
+- Performance stats (avg, slow count, total)
+- Recent query history with status icons
+- Color-coded timing (green <300ms, amber <500ms, red >500ms)
 
 ---
 
@@ -288,42 +127,46 @@ const firstName = String(guest?.fullName ?? 'Guest').split(' ')[0] || 'Guest';
 
 | File | Purpose |
 |------|---------|
-| `src/lib/safe-render.ts` | Utility functions for safe value rendering |
+| `src/components/guest/GuestDebugConsole.tsx` | Main debug console component |
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/contexts/GuestAuthContext.tsx` | Add String() coercion to session fields |
-| `src/components/guest/GuestLayout.tsx` | Safe render branding and room |
-| `src/pages/guest/GuestHome.tsx` | Safe render greeting and counts |
-| `src/components/guest/GuestStayProgress.tsx` | Use safe date utilities |
-| `src/components/guest/prearrival/PrearrivalCountdown.tsx` | Use safe date utilities |
-| `src/components/guest/GuestBookingCard.tsx` | Safe render title, guests, dates |
-| `src/pages/guest/GuestPrearrivalHome.tsx` | Safe firstName derivation |
-| `src/components/guest/GuestTodayTimeline.tsx` | Safe render item properties |
-| `src/components/guest/TravelPartyCard.tsx` | Safe number coercion |
+| `src/components/guest/GuestLayout.tsx` | Import and render GuestDebugConsole when `?debug=1` |
 
 ---
 
-## Key Patterns Applied
+## Mobile Optimization
 
-| Pattern | Example | Purpose |
-|---------|---------|---------|
-| String coercion | `String(value ?? '')` | Prevent object rendering |
-| Number coercion | `Number(value) \|\| 0` | Safe numeric display |
-| Safe date formatting | `safeFormatDate(date, format, fallback)` | Prevent Date object rendering |
-| Null check + fallback | `value ?? 'default'` | Handle missing data |
-| Array safety | `Array.isArray(x) ? x.join(', ') : ''` | Prevent array rendering |
+The console is designed for mobile-first guest portal:
+- Width: `min(90vw, 400px)` to fit phone screens
+- Max height: `70vh` with scroll area
+- Touch-friendly tap targets (44px minimum)
+- Bottom-right positioning with safe area inset awareness
+- Minimize mode shows compact indicator with error/query counts
+
+---
+
+## Activation
+
+Access the debug console by appending `?debug=1` to any guest portal URL:
+- `/guest?debug=1`
+- `/guest/bookings?debug=1`
+- `/guest/activities?debug=1`
+
+For DEMO resort guests, debug logging is always enabled but the panel only appears with explicit `?debug=1`.
 
 ---
 
 ## Testing Checklist
 
-1. Clear localStorage (`propera_guest_session`)
-2. Navigate to `/resort/DEMO/guest/login`
-3. Login with valid credentials
-4. Verify home page loads without React error #300
-5. Navigate through all guest portal tabs (Activities, Requests, Bookings)
-6. Verify pre-arrival flow works for guests with future check-in dates
-7. Check browser console for any remaining "Objects are not valid" errors
+1. Navigate to `/guest?debug=1` after login
+2. Verify debug console appears in bottom-right
+3. Check Guest Session section shows correct data
+4. Trigger a console.error and verify it appears in Error Log
+5. Navigate between tabs and verify Active Queries updates
+6. Test minimize and close functionality
+7. Verify mobile responsiveness on narrow viewport
+8. Test "Clear Session" action in LocalStorage section
+9. Verify console hides when `?debug=1` is removed
