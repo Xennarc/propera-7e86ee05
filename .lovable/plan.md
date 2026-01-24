@@ -1,138 +1,98 @@
 
+# Fix Remaining special_occasions.map Crash
 
-# Fix GuestDetailPage Crash + Improve Error Capture
+## Problem
+The `GuestDetailPage` still crashes for some guests because several files call `.map()` or `.join()` on `special_occasions` (and `dietary_preferences`) without `Array.isArray()` guards. The database may store these as strings instead of arrays for some guests, causing `TypeError: x.map is not a function`.
 
-## Problem Analysis
-
-The `GuestDetailPage` crashes for **some guests** due to remaining unsafe `date-fns` calls that bypass the safe wrappers. Additionally, the debug console shows `{}` instead of actual error messages because `JSON.stringify()` doesn't capture non-enumerable `Error` properties.
-
----
-
-## Root Causes
-
-### Issue 1: Unsafe Date Parsing (Crash Source)
+## Root Cause Locations
 
 | File | Line | Unsafe Code |
 |------|------|-------------|
-| `PrearrivalProfileCard.tsx` | 205 | `format(parseISO(checkInDate), 'MMM d')` |
-| `GuestPrearrivalQuickFlags.tsx` | 144 | `formatDistanceToNow(parseISO(status.lastUpdatedAt), ...)` |
-| `SharePrearrivalLinkDialog.tsx` | 46 | `format(parseISO(guest.check_in_date), 'MMMM d, yyyy')` |
-
-These cause the ErrorBoundary crash when a guest has malformed or null date data.
-
-### Issue 2: Empty Error Messages in Debug Console
-
-In `debug-error-capture.ts:58-60`:
-```typescript
-const message = args.map(arg => 
-  typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-).join(' ');
-```
-
-`JSON.stringify(error)` returns `{}` for native `Error` objects because `message` and `stack` are non-enumerable.
-
----
+| `PrearrivalChecklist.tsx` | 56 | `profile.dietary_preferences.length` without Array check |
+| `PrearrivalChecklist.tsx` | 72, 77 | `profile.special_occasions.length` and `.join()` |
+| `PrearrivalSummaryCard.tsx` | 172-174 | `profile.special_occasions.length` and `.map()` |
+| `PrearrivalProfileCard.tsx` | 215-216 | `profile.dietary_preferences.join()` |
+| `PrearrivalProfileCard.tsx` | 219-220 | `profile.special_occasions.join()` |
+| `PreArrivalSubmissionCard.tsx` | 127-128 | `payload.dietary_preferences.length` and `payload.special_occasions.length` |
+| `PreArrivalSubmissionCard.tsx` | 189 | `payload.special_occasions!.map()` |
+| `usePrearrivalStatus.ts` | 110-111, 113-114 | Unsafe casts to `string[]` without validation |
 
 ## Solution
 
-### Part 1: Fix Remaining Unsafe Date Parsing
-
-**File: `src/components/prearrival/PrearrivalProfileCard.tsx`**
-
-Line 205 - Replace:
-```typescript
-lines.push(`Arriving: ${format(parseISO(checkInDate), 'MMM d')}, ${timeStr}${flightStr}`);
-```
-With:
-```typescript
-lines.push(`Arriving: ${safeFormatDate(checkInDate, 'MMM d')}, ${timeStr}${flightStr}`);
-```
-
-Also update imports to remove unused `format`/`parseISO` from `date-fns` and ensure `safeFormatDate` is imported.
+Add `Array.isArray()` guards before every `.length`, `.map()`, or `.join()` call on these array fields.
 
 ---
 
-**File: `src/components/guests/GuestPrearrivalQuickFlags.tsx`**
+## Technical Changes
 
-Line 144 - Replace:
+### File 1: `src/components/guest/prearrival/PrearrivalChecklist.tsx`
+
+**Line 55-57** - Add Array guard for dietary_preferences:
 ```typescript
-<span>{formatDistanceToNow(parseISO(status.lastUpdatedAt), { addSuffix: true })}</span>
-```
-With:
-```typescript
-<span>{safeFormatDistanceToNow(status.lastUpdatedAt, { addSuffix: true })}</span>
+const hasPreferences = !!(
+  (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) ||
+  profile?.allergies
+);
 ```
 
-Update imports accordingly.
+**Line 72** - Add Array guard for special_occasions:
+```typescript
+const hasOccasions = Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0;
+```
+
+**Line 77** - Already safe because `hasOccasions` is a boolean gate, but the `.join()` is now safe.
 
 ---
 
-**File: `src/components/prearrival/SharePrearrivalLinkDialog.tsx`**
+### File 2: `src/components/guest/prearrival/PrearrivalSummaryCard.tsx`
 
-Line 46 - Replace:
+**Line 172** - Add Array guard:
 ```typescript
-const checkInFormatted = format(parseISO(guest.check_in_date), 'MMMM d, yyyy');
+{Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0 && (
 ```
-With:
-```typescript
-const checkInFormatted = safeFormatDate(guest.check_in_date, 'MMMM d, yyyy') || 'your arrival date';
-```
-
-Update imports accordingly.
 
 ---
 
-### Part 2: Fix Debug Console Error Serialization
+### File 3: `src/components/prearrival/PrearrivalProfileCard.tsx`
 
-**File: `src/lib/debug-error-capture.ts`**
-
-Update the console.error interceptor to properly handle Error objects:
-
+**Line 215** - Add Array guard for dietary_preferences:
 ```typescript
-// Capture console.error calls
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  const message = args.map(arg => {
-    // Handle Error objects specially - they don't serialize with JSON.stringify
-    if (arg instanceof Error) {
-      return `${arg.name}: ${arg.message}`;
-    }
-    if (typeof arg === 'object' && arg !== null) {
-      try {
-        return JSON.stringify(arg, null, 2);
-      } catch {
-        return String(arg);
-      }
-    }
-    return String(arg);
-  }).join(' ');
-  
-  // Also capture stack trace from any Error in args
-  const errorArg = args.find(arg => arg instanceof Error);
-  const stack = errorArg?.stack;
-  
-  captureError(message, 'error', stack);
-  originalConsoleError.apply(console, args);
-};
+if (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) {
 ```
 
-Also update the `captureError` function signature to accept an optional stack parameter:
-
+**Line 219** - Add Array guard for special_occasions:
 ```typescript
-export function captureError(
-  error: Error | string, 
-  type: CapturedError['type'] = 'error',
-  explicitStack?: string
-): void {
-  const captured: CapturedError = {
-    timestamp: new Date(),
-    message: typeof error === 'string' ? error : error.message,
-    stack: explicitStack || (typeof error === 'object' ? error.stack : undefined),
-    type,
-  };
-  
-  errors = [captured, ...errors].slice(0, MAX_ERRORS);
-}
+if (Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0) {
+```
+
+---
+
+### File 4: `src/components/staff/PreArrivalSubmissionCard.tsx`
+
+**Line 127** - Add Array guard:
+```typescript
+const hasDietaryInfo = (Array.isArray(payload.dietary_preferences) && payload.dietary_preferences.length > 0) || payload.allergies;
+```
+
+**Line 128** - Add Array guard:
+```typescript
+const hasOccasions = Array.isArray(payload.special_occasions) && payload.special_occasions.length > 0;
+```
+
+---
+
+### File 5: `src/hooks/usePrearrivalStatus.ts`
+
+**Lines 110-111** - Safe array normalization for dietaryPreferences:
+```typescript
+hasDietaryPreferences: !!(Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0),
+dietaryPreferences: Array.isArray(profile?.dietary_preferences) ? profile.dietary_preferences : [],
+```
+
+**Lines 113-114** - Safe array normalization for specialOccasions:
+```typescript
+hasSpecialOccasions: !!(Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0),
+specialOccasions: Array.isArray(profile?.special_occasions) ? profile.special_occasions : [],
 ```
 
 ---
@@ -141,26 +101,21 @@ export function captureError(
 
 | File | Changes |
 |------|---------|
-| `src/components/prearrival/PrearrivalProfileCard.tsx` | Use `safeFormatDate` at line 205 |
-| `src/components/guests/GuestPrearrivalQuickFlags.tsx` | Use `safeFormatDistanceToNow` at line 144 |
-| `src/components/prearrival/SharePrearrivalLinkDialog.tsx` | Use `safeFormatDate` at line 46 |
-| `src/lib/debug-error-capture.ts` | Fix Error serialization in console.error interceptor |
+| `src/components/guest/prearrival/PrearrivalChecklist.tsx` | Add Array.isArray guards at lines 56 and 72 |
+| `src/components/guest/prearrival/PrearrivalSummaryCard.tsx` | Add Array.isArray guard at line 172 |
+| `src/components/prearrival/PrearrivalProfileCard.tsx` | Add Array.isArray guards at lines 215 and 219 |
+| `src/components/staff/PreArrivalSubmissionCard.tsx` | Add Array.isArray guards at lines 127 and 128 |
+| `src/hooks/usePrearrivalStatus.ts` | Safe array normalization at lines 110-114 |
 
 ---
 
 ## Impact
-
-- **Crash prevention**: No more ErrorBoundary crashes from malformed guest dates
-- **Graceful fallbacks**: Invalid dates show "Invalid date" or contextual fallback text
-- **Better debugging**: Error messages in debug panel will show actual error text instead of `{}`
-
----
+- Prevents ErrorBoundary crashes when array fields contain strings or null
+- No visual changes for guests with properly formatted data
+- Graceful handling returns empty arrays or skips rendering for malformed data
 
 ## Testing
-
 After implementation:
 1. Navigate to GuestDetailPage for guests that were previously crashing
-2. Verify the page loads without errors
-3. Trigger an intentional error and check the debug panel shows the full message
-4. Verify date formatting still works correctly for valid data
-
+2. Verify no crash occurs
+3. Confirm array fields render correctly for guests with valid data
