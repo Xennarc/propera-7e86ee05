@@ -217,12 +217,32 @@ export function useGuestDetailContext({
   const hasActiveStay = stay != null && (stay.status === 'pre_arrival' || stay.status === 'in_house');
   const hasPrearrivalData = prearrivalData?.hasAnyData ?? false;
   
-  // Check if party has kids (future: integrate with travel party data)
+  // Check if party has kids from available data sources
   const hasKidsInParty = useMemo(() => {
-    // Currently checks submission payload if available
     const payload = submission?.payload;
     if (!payload) return false;
-    // Future: check travel_party_members table
+
+    // Priority 1: Check for explicit num_children in payload
+    if (typeof payload.num_children === 'number' && payload.num_children > 0) {
+      return true;
+    }
+
+    // Priority 2: Check custom_answers_json for children-related fields
+    const customAnswers = payload.custom_answers_json;
+    if (customAnswers) {
+      const childrenKeys = ['num_children', 'children_count', 'number_of_children', 'kids'];
+      for (const key of childrenKeys) {
+        const value = customAnswers[key];
+        if (typeof value === 'number' && value > 0) {
+          return true;
+        }
+        if (typeof value === 'string' && parseInt(value, 10) > 0) {
+          return true;
+        }
+      }
+    }
+
+    // Fallback: no children info available
     return false;
   }, [submission]);
 

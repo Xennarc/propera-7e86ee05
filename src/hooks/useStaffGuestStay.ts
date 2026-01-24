@@ -32,6 +32,7 @@ export interface PreArrivalSubmission {
     special_requests?: string;
     room_preferences?: Record<string, unknown>;
     custom_answers_json?: Record<string, unknown>;
+    num_children?: number;
   };
   completedAt: string | null;
   updatedAt: string;
