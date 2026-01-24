@@ -31,7 +31,8 @@ import {
   XCircle,
   RotateCcw
 } from 'lucide-react';
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/safe-date-format';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
 import { PrearrivalLinkManager } from './PrearrivalLinkManager';
 import { PrearrivalHistoryTimeline } from './PrearrivalHistoryTimeline';
@@ -376,7 +377,7 @@ export function PrearrivalProfileCard({
             {lastInvite && (
               <span className="text-xs text-muted-foreground truncate">
                 {lastInvite.status === 'sent' && lastInvite.sent_at
-                  ? `Sent ${formatDistanceToNow(parseISO(lastInvite.sent_at), { addSuffix: true })}`
+                  ? `Sent ${safeFormatDistanceToNow(lastInvite.sent_at, { addSuffix: true })}`
                   : lastInvite.status === 'failed'
                   ? 'Send failed'
                   : 'Queued'}
@@ -556,7 +557,7 @@ export function PrearrivalProfileCard({
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <UserCheck className="h-4 w-4 text-success" />
               <span>
-                Reviewed by {review.reviewer_name} on {format(parseISO(review.reviewed_at), 'MMM d, h:mm a')}
+                Reviewed by {review.reviewer_name} on {safeFormatDate(review.reviewed_at, 'MMM d, h:mm a')}
               </span>
               {review.internal_notes && (
                 <span className="text-xs">• {review.internal_notes}</span>
@@ -704,8 +705,8 @@ function InviteActivityLine({
     : <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
 
   const timeAgo = invite.sent_at 
-    ? formatDistanceToNow(parseISO(invite.sent_at), { addSuffix: true })
-    : formatDistanceToNow(parseISO(invite.created_at), { addSuffix: true });
+    ? safeFormatDistanceToNow(invite.sent_at, { addSuffix: true })
+    : safeFormatDistanceToNow(invite.created_at, { addSuffix: true });
 
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground">

@@ -1,4 +1,4 @@
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, formatDistanceToNow, isBefore } from 'date-fns';
 
 /**
  * Safely format a date string, returning a fallback if the date is invalid.
@@ -50,4 +50,31 @@ export function safeParseDateISO(dateStr: string | null | undefined): Date | nul
  */
 export function isValidDateString(dateStr: string | null | undefined): boolean {
   return safeParseDateISO(dateStr) !== null;
+}
+
+/**
+ * Safely format a relative time string (e.g., "2 hours ago"), returning a fallback if the date is invalid.
+ */
+export function safeFormatDistanceToNow(
+  dateStr: string | null | undefined,
+  options?: { addSuffix?: boolean },
+  fallback: string = 'Unknown time'
+): string {
+  const date = safeParseDateISO(dateStr);
+  if (!date) return fallback;
+  
+  try {
+    return formatDistanceToNow(date, options);
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Safely check if a date string is before now. Returns true for invalid dates (treat as expired).
+ */
+export function safeIsBeforeNow(dateStr: string | null | undefined): boolean {
+  const date = safeParseDateISO(dateStr);
+  if (!date) return true; // Treat invalid dates as expired
+  return isBefore(date, new Date());
 }
