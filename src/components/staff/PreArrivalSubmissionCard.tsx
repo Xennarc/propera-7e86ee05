@@ -124,8 +124,8 @@ export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSu
 
   const { payload, completedAt, updatedAt } = submission;
   const hasArrivalDetails = payload.arrival_time || payload.arrival_flight_number || payload.transfer_preference;
-  const hasDietaryInfo = (payload.dietary_preferences && payload.dietary_preferences.length > 0) || payload.allergies;
-  const hasOccasions = payload.special_occasions && payload.special_occasions.length > 0;
+  const hasDietaryInfo = (Array.isArray(payload.dietary_preferences) && payload.dietary_preferences.length > 0) || payload.allergies;
+  const hasOccasions = Array.isArray(payload.special_occasions) && payload.special_occasions.length > 0;
   const hasRequests = payload.special_requests;
   const hasWaterComfort = payload.water_comfort_level;
 
@@ -186,7 +186,7 @@ export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSu
         {hasOccasions && (
           <Section title="Special Occasions" icon={PartyPopper}>
             <div className="flex flex-wrap gap-2">
-              {payload.special_occasions!.map((occasion) => (
+              {(Array.isArray(payload.special_occasions) ? payload.special_occasions : []).map((occasion) => (
                 <Badge key={occasion} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
                   {getOccasionEmoji(occasion)} {occasion}
                 </Badge>

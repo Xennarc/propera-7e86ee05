@@ -53,7 +53,7 @@ export function PrearrivalChecklist({
   // Preferences
   if (settings.show_preferences) {
     const hasPreferences = !!(
-      (profile?.dietary_preferences && profile.dietary_preferences.length > 0) ||
+      (Array.isArray(profile?.dietary_preferences) && profile.dietary_preferences.length > 0) ||
       profile?.allergies
     );
     items.push({
@@ -69,7 +69,7 @@ export function PrearrivalChecklist({
 
   // Special occasions
   if (settings.show_special_occasions) {
-    const hasOccasions = profile?.special_occasions && profile.special_occasions.length > 0;
+    const hasOccasions = Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0;
     items.push({
       id: 'occasions',
       title: 'Any special occasion?',
