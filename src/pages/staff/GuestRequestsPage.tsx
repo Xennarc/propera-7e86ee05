@@ -265,15 +265,17 @@ export default function GuestRequestsPage() {
       const booking = data.booking;
       if (booking && currentResort) {
         const session = booking.activity_sessions;
-        const dateStr = format(parseISO(session.date), 'EEE, MMM d');
-        createGuestNotification({
-          resort_id: currentResort.id,
-          guest_id: booking.guests.id,
-          type: 'ACTIVITY_BOOKING_CONFIRMED',
-          title: 'Booking Confirmed',
-          message: `Your booking for ${session.activities.name} on ${dateStr} at ${session.start_time.slice(0, 5)} is confirmed.`,
-          link_url: '/guest/bookings',
-        }).catch(console.error);
+        if (session?.activities?.name && booking.guests?.id) {
+          const dateStr = format(parseISO(session.date), 'EEE, MMM d');
+          createGuestNotification({
+            resort_id: currentResort.id,
+            guest_id: booking.guests.id,
+            type: 'ACTIVITY_BOOKING_CONFIRMED',
+            title: 'Booking Confirmed',
+            message: `Your booking for ${session.activities.name} on ${dateStr} at ${session.start_time?.slice(0, 5) || ''} is confirmed.`,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+        }
       }
     },
     onError: (error: Error) => {
@@ -302,15 +304,17 @@ export default function GuestRequestsPage() {
       const booking = data.booking;
       if (booking && currentResort) {
         const session = booking.activity_sessions;
-        const dateStr = format(parseISO(session.date), 'EEE, MMM d');
-        createGuestNotification({
-          resort_id: currentResort.id,
-          guest_id: booking.guests.id,
-          type: 'ACTIVITY_BOOKING_CANCELLED',
-          title: 'Booking Not Approved',
-          message: `Your request for ${session.activities.name} on ${dateStr} at ${session.start_time.slice(0, 5)} was not approved. Please contact front desk for details.`,
-          link_url: '/guest/bookings',
-        }).catch(console.error);
+        if (session?.activities?.name && booking.guests?.id) {
+          const dateStr = format(parseISO(session.date), 'EEE, MMM d');
+          createGuestNotification({
+            resort_id: currentResort.id,
+            guest_id: booking.guests.id,
+            type: 'ACTIVITY_BOOKING_CANCELLED',
+            title: 'Booking Not Approved',
+            message: `Your request for ${session.activities.name} on ${dateStr} at ${session.start_time?.slice(0, 5) || ''} was not approved. Please contact front desk for details.`,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+        }
       }
     },
     onError: (error: Error) => {
@@ -361,15 +365,17 @@ export default function GuestRequestsPage() {
       const reservation = data.reservation;
       if (reservation && currentResort) {
         const slot = reservation.restaurant_time_slots;
-        const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
-        createGuestNotification({
-          resort_id: currentResort.id,
-          guest_id: reservation.guests.id,
-          type: 'RESTAURANT_RESERVATION_CONFIRMED',
-          title: 'Table Confirmed',
-          message: `Your reservation at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time.slice(0, 5)} is confirmed.`,
-          link_url: '/guest/bookings',
-        }).catch(console.error);
+        if (slot?.restaurants?.name && reservation.guests?.id) {
+          const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
+          createGuestNotification({
+            resort_id: currentResort.id,
+            guest_id: reservation.guests.id,
+            type: 'RESTAURANT_RESERVATION_CONFIRMED',
+            title: 'Table Confirmed',
+            message: `Your reservation at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time?.slice(0, 5) || ''} is confirmed.`,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+        }
       }
     },
     onError: (error: Error) => {
@@ -398,15 +404,17 @@ export default function GuestRequestsPage() {
       const reservation = data.reservation;
       if (reservation && currentResort) {
         const slot = reservation.restaurant_time_slots;
-        const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
-        createGuestNotification({
-          resort_id: currentResort.id,
-          guest_id: reservation.guests.id,
-          type: 'RESTAURANT_RESERVATION_CANCELLED',
-          title: 'Reservation Not Approved',
-          message: `Your reservation request at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time.slice(0, 5)} was not approved. Please contact front desk for details.`,
-          link_url: '/guest/bookings',
-        }).catch(console.error);
+        if (slot?.restaurants?.name && reservation.guests?.id) {
+          const dateStr = format(parseISO(slot.date), 'EEE, MMM d');
+          createGuestNotification({
+            resort_id: currentResort.id,
+            guest_id: reservation.guests.id,
+            type: 'RESTAURANT_RESERVATION_CANCELLED',
+            title: 'Reservation Not Approved',
+            message: `Your reservation request at ${slot.restaurants.name} on ${dateStr} at ${slot.start_time?.slice(0, 5) || ''} was not approved. Please contact front desk for details.`,
+            link_url: '/guest/bookings',
+          }).catch(console.error);
+        }
       }
     },
     onError: (error: Error) => {
@@ -686,20 +694,20 @@ export default function GuestRequestsPage() {
                         <Badge variant="outline">Guest Portal</Badge>
                       </div>
                       <h3 className="font-semibold text-foreground">
-                        {request.activity_sessions.activities.name}
+                        {request.activity_sessions?.activities?.name || 'Unknown Activity'}
                       </h3>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
-                          {request.guests.full_name} • Room {request.room_number}
+                          {request.guests?.full_name || 'Guest'} • Room {request.room_number}
                         </p>
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          {format(parseISO(request.activity_sessions.date), 'EEE, MMM d, yyyy')}
+                          {request.activity_sessions?.date ? format(parseISO(request.activity_sessions.date), 'EEE, MMM d, yyyy') : 'N/A'}
                         </p>
                         <p className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
-                          {request.activity_sessions.start_time.slice(0, 5)} - {request.activity_sessions.end_time.slice(0, 5)}
+                          {request.activity_sessions?.start_time?.slice(0, 5) || '--:--'} - {request.activity_sessions?.end_time?.slice(0, 5) || '--:--'}
                         </p>
                         <p>
                           {request.num_adults} adult{request.num_adults !== 1 ? 's' : ''}
@@ -739,7 +747,7 @@ export default function GuestRequestsPage() {
                         onClick={() => setRejectDialog({
                           type: 'activity',
                           id: request.id,
-                          title: request.activity_sessions.activities.name,
+                          title: request.activity_sessions?.activities?.name || 'Activity',
                         })}
                       >
                         <X className="h-4 w-4 mr-2" />
@@ -780,24 +788,24 @@ export default function GuestRequestsPage() {
                         <Badge variant="pending">Pending Approval</Badge>
                         <Badge variant="outline">Guest Portal</Badge>
                         <Badge variant="secondary">
-                          {request.restaurant_time_slots.meal_period}
+                          {request.restaurant_time_slots?.meal_period || 'N/A'}
                         </Badge>
                       </div>
                       <h3 className="font-semibold text-foreground">
-                        {request.restaurant_time_slots.restaurants.name}
+                        {request.restaurant_time_slots?.restaurants?.name || 'Unknown Restaurant'}
                       </h3>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
-                          {request.guests.full_name} • Room {request.room_number}
+                          {request.guests?.full_name || 'Guest'} • Room {request.room_number}
                         </p>
                         <p className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          {format(parseISO(request.restaurant_time_slots.date), 'EEE, MMM d, yyyy')}
+                          {request.restaurant_time_slots?.date ? format(parseISO(request.restaurant_time_slots.date), 'EEE, MMM d, yyyy') : 'N/A'}
                         </p>
                         <p className="flex items-center gap-2">
                           <Clock className="h-4 w-4" />
-                          {request.restaurant_time_slots.start_time.slice(0, 5)} - {request.restaurant_time_slots.end_time.slice(0, 5)}
+                          {request.restaurant_time_slots?.start_time?.slice(0, 5) || '--:--'} - {request.restaurant_time_slots?.end_time?.slice(0, 5) || '--:--'}
                         </p>
                         <p>
                           {request.num_adults} adult{request.num_adults !== 1 ? 's' : ''}
@@ -837,7 +845,7 @@ export default function GuestRequestsPage() {
                         onClick={() => setRejectDialog({
                           type: 'restaurant',
                           id: request.id,
-                          title: request.restaurant_time_slots.restaurants.name,
+                          title: request.restaurant_time_slots?.restaurants?.name || 'Restaurant',
                         })}
                       >
                         <X className="h-4 w-4 mr-2" />

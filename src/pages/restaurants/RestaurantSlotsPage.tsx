@@ -275,12 +275,12 @@ export default function RestaurantSlotsPage() {
           ) : (
             <DataTable
               data={slots}
-              onRowClick={(slot) => navigate(`/restaurants/slots/${slot.id}`)}
+              onRowClick={(slot) => navigate(`/staff/restaurants/slots/${slot.id}`)}
               columns={[
                 {
                   header: 'Restaurant',
                   accessor: (slot) => (
-                    <span className="font-medium">{slot.restaurant?.name}</span>
+                    <span className="font-medium">{slot.restaurant?.name || 'Unknown Restaurant'}</span>
                   ),
                 },
                 {

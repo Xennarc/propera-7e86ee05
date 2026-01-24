@@ -400,7 +400,7 @@ export default function ResortAdminHome() {
                         {session.start_time.slice(0, 5)}
                       </div>
                       <span className="font-medium group-hover:text-primary transition-colors">
-                        {session.activities?.name}
+                        {session.activities?.name || 'Unknown Activity'}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -455,7 +455,7 @@ export default function ResortAdminHome() {
                         {slot.start_time.slice(0, 5)}
                       </div>
                       <span className="font-medium group-hover:text-primary transition-colors">
-                        {slot.restaurants?.name}
+                        {slot.restaurants?.name || 'Unknown Restaurant'}
                       </span>
                       <Badge className={getMealPeriodBadge(slot.meal_period)}>
                         {slot.meal_period}
@@ -508,10 +508,10 @@ export default function ResortAdminHome() {
                     <Star className="h-4 w-4 text-warning fill-warning" />
                     <span className="font-bold text-warning">{fb.overall_rating}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{fb.guests?.full_name}</span>
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{fb.guests?.full_name || 'Anonymous Guest'}</span>
+                        <span className="text-xs text-muted-foreground">
                         Checkout: {format(new Date(fb.check_out_date), 'MMM d')}
                       </span>
                     </div>
