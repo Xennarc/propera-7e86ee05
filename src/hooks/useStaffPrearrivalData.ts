@@ -73,16 +73,14 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
   return useQuery({
     queryKey: ['staff-prearrival-data', guestId, resortId],
     queryFn: async (): Promise<StaffPrearrivalData> => {
-      // Fetch all data in parallel
-      const [profileResult, settingsResult, linkResult, reviewResult] = await Promise.all([
-        // Prearrival profile
-        supabase
-          .from('prearrival_profiles')
-          .select('*')
-          .eq('guest_id', guestId)
-          .eq('resort_id', resortId)
-          .maybeSingle(),
-        
+      // Try unified RPC first (checks new system then falls back to legacy)
+      const { data: unifiedResult } = await supabase.rpc('get_prearrival_data_unified', {
+        p_guest_id: guestId,
+        p_resort_id: resortId,
+      });
+
+      // Fetch other data in parallel
+      const [settingsResult, linkResult, reviewResult] = await Promise.all([
         // Resort prearrival settings
         supabase
           .from('prearrival_settings')
@@ -90,7 +88,7 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
           .eq('resort_id', resortId)
           .maybeSingle(),
         
-        // Active prearrival link
+        // Active prearrival link (legacy system - for transition)
         supabase
           .from('prearrival_tokens')
           .select('id, token, status, expires_at, last_opened_at, completed_at, verification_completed_at')
@@ -112,7 +110,39 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
           .maybeSingle(),
       ]);
 
-      const profile = profileResult.data as PrearrivalProfile | null;
+      // Transform unified result to profile format
+      let profile: PrearrivalProfile | null = null;
+      const unified = unifiedResult as { source: string; data: any; completed_at?: string; updated_at?: string } | null;
+      
+      if (unified?.source !== 'none' && unified?.data) {
+        const data = unified.data;
+        profile = {
+          id: '', // Not needed for display
+          prearrival_status: unified.completed_at ? 'completed' : (Object.values(data).some(v => v) ? 'partial' : 'not_started'),
+          arrival_date: null,
+          arrival_time: data.arrival_time || null,
+          arrival_flight_number: data.arrival_flight_number || null,
+          transfer_preference: data.transfer_preference || null,
+          dietary_preferences: data.dietary_preferences || null,
+          allergies: data.allergies || null,
+          room_preferences: data.room_preferences || null,
+          water_comfort_level: data.water_comfort_level || null,
+          special_occasions: data.special_occasions || null,
+          special_requests: data.special_requests || null,
+          custom_answers_json: data.custom_answers_json || null,
+          policy_acknowledged_at: null,
+          esignature_name: null,
+          esignature_date: null,
+          checkin_completed_at: unified.completed_at || null,
+          staff_processed: false,
+          staff_notes: null,
+          stay_confirmed: null,
+          baggage_count: null,
+          pickup_notes: null,
+          guest_names: null,
+        };
+      }
+
       const settings = settingsResult.data as PrearrivalSettings | null;
       const link = linkResult.data as PrearrivalLink | null;
       

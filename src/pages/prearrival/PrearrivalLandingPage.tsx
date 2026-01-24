@@ -9,11 +9,12 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { format, parseISO, differenceInDays, isToday, isPast } from 'date-fns';
 import { 
   Plane, Calendar, Utensils, CheckCircle2, ChevronRight, 
-  AlertCircle, Sparkles, Clock, Shield, PartyPopper, MapPin
+  Sparkles, Clock, Shield, PartyPopper, MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { ExpiredLinkScreen } from '@/components/prearrival/ExpiredLinkScreen';
 
 interface ValidatedData {
   guest: {
@@ -291,31 +292,19 @@ export default function PrearrivalLandingPage() {
     );
   }
 
-  // Error state
+  // Error state - use ExpiredLinkScreen for better UX
   if (error) {
+    // Determine the error variant based on the error message
+    const isExpired = error.includes('expired');
+    const isNotFound = error.includes('no longer available') || error.includes('not found');
+    
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-muted/30 p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="max-w-md w-full"
-        >
-          <Card className="border-destructive/20">
-            <CardContent className="py-12 text-center space-y-4">
-              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                <AlertCircle className="h-8 w-8 text-destructive" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold mb-2">Unable to Continue</h2>
-                <p className="text-muted-foreground text-sm">{error}</p>
-              </div>
-              <Button onClick={() => navigate('/')} variant="outline">
-                Return to Home
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+      <ExpiredLinkScreen
+        resortBranding={resortBranding}
+        message={error}
+        title={isExpired ? 'Link Expired' : isNotFound ? 'Link Unavailable' : 'Unable to Continue'}
+        variant={isExpired ? 'expired' : isNotFound ? 'not_found' : 'error'}
+      />
     );
   }
 

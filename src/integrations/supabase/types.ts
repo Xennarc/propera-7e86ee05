@@ -1376,6 +1376,7 @@ export type Database = {
           expires_at: string
           guest_id: string
           id: string
+          legacy_token_id: string | null
           purpose: string
           resort_id: string
           stay_id: string
@@ -1387,6 +1388,7 @@ export type Database = {
           expires_at: string
           guest_id: string
           id?: string
+          legacy_token_id?: string | null
           purpose?: string
           resort_id: string
           stay_id: string
@@ -1398,6 +1400,7 @@ export type Database = {
           expires_at?: string
           guest_id?: string
           id?: string
+          legacy_token_id?: string | null
           purpose?: string
           resort_id?: string
           stay_id?: string
@@ -1409,6 +1412,13 @@ export type Database = {
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_access_links_legacy_token_id_fkey"
+            columns: ["legacy_token_id"]
+            isOneToOne: false
+            referencedRelation: "prearrival_tokens"
             referencedColumns: ["id"]
           },
           {
@@ -5285,6 +5295,8 @@ export type Database = {
         }
         Returns: Json
       }
+      backfill_guest_stays_from_guests: { Args: never; Returns: Json }
+      backfill_submissions_from_profiles: { Args: never; Returns: Json }
       cancel_activity_booking_safe: {
         Args: {
           p_booking_id: string
@@ -5492,6 +5504,10 @@ export type Database = {
       get_or_create_prearrival_profile: {
         Args: { p_guest_id: string }
         Returns: string
+      }
+      get_prearrival_data_unified: {
+        Args: { p_guest_id: string; p_resort_id: string }
+        Returns: Json
       }
       get_resort_by_id: { Args: { p_resort_id: string }; Returns: Json }
       get_resort_public_info: { Args: { p_resort_code: string }; Returns: Json }
@@ -5911,6 +5927,7 @@ export type Database = {
         Args: { p_booking_id: string; p_user_id: string }
         Returns: boolean
       }
+      link_legacy_tokens_to_stays: { Args: never; Returns: Json }
       log_access_change: {
         Args: {
           p_action_key: string

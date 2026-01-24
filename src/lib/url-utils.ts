@@ -42,10 +42,19 @@ export function getStaffInviteUrl(token: string): string {
 }
 
 /**
- * Generate a pre-arrival link URL
+ * Generate a pre-arrival link URL (legacy system)
+ * @deprecated Use getGuestAccessUrl for new links
  */
 export function getPrearrivalUrl(token: string): string {
   return `${PRODUCTION_URL}/prearrival/${token}`;
+}
+
+/**
+ * Generate a unified guest access link URL (new stay-based system)
+ * This is the preferred method for generating guest access links.
+ */
+export function getGuestAccessUrl(token: string): string {
+  return `${PRODUCTION_URL}/guest/access?t=${token}`;
 }
 
 /**
