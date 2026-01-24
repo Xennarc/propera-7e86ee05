@@ -1,332 +1,242 @@
 
 
-# Structured Guest Preferences Feature
+# Add "Make Restaurant Reservation" Action to Guest Detail Page
 
 ## Summary
 
-Add a **structured guest preferences system** as a purely additive feature. This creates a new database table, staff-specific hook, and UI card without modifying or migrating existing freeform notes.
+Add a **"Make Reservation" button** to the Restaurant Reservations card on the Guest Detail page, matching the Activity Booking pattern. This requires enhancing the existing `RestaurantReservationDialog` to support restaurant/date/slot selection when no slot is pre-selected.
 
 ---
 
-## Data Architecture
+## Current State Analysis
 
-### New Database Table: `guest_preferences`
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | uuid | PK, default gen_random_uuid() | Unique identifier |
-| `resort_id` | uuid | FK → resorts, NOT NULL | Multi-tenant scoping |
-| `guest_id` | uuid | FK → guests, NOT NULL | Guest this preference belongs to |
-| `category` | text | NOT NULL | Category: 'room', 'dining', 'activity', 'general' |
-| `value` | text | NOT NULL | The preference value (e.g., "High Floor", "Vegetarian") |
-| `priority` | integer | DEFAULT 1 | Importance level (1=low, 3=high) |
-| `source` | text | DEFAULT 'staff' | Origin: 'staff', 'prearrival', 'system' |
-| `created_by_user_id` | uuid | FK → profiles | Staff who added this preference |
-| `created_at` | timestamptz | DEFAULT now() | Creation timestamp |
-| `updated_at` | timestamptz | DEFAULT now() | Last update timestamp |
-
-**Indexes:**
-- Composite index on `(resort_id, guest_id)` for efficient lookups
-- Index on `category` for filtering
-
-**Constraints:**
-- Unique on `(guest_id, category, value)` to prevent duplicates
-- Immutable `resort_id` trigger (following existing pattern)
+| Feature | Activity Bookings | Restaurant Reservations |
+|---------|-------------------|------------------------|
+| Card header button | ✅ "Book Activity" | ❌ Missing |
+| Dialog state variable | ✅ `activityBookingDialogOpen` | ❌ Missing |
+| Dialog component | ✅ Full selection flow | ⚠️ Requires slot pre-selection |
+| Inline selection | ✅ Activity → Date → Session | ❌ Not implemented |
 
 ---
 
-## Security (RLS Policies)
+## Implementation Approach
 
-Using existing security functions for consistency:
+### Pattern Alignment
 
-| Policy | Operation | Check |
-|--------|-----------|-------|
-| `staff_select_preferences` | SELECT | `staff_has_resort_access(auth.uid(), resort_id)` |
-| `staff_insert_preferences` | INSERT | `has_resort_role(auth.uid(), resort_id, ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[])` |
-| `staff_update_preferences` | UPDATE | Same as INSERT with `WITH CHECK` |
-| `staff_delete_preferences` | DELETE | Same as INSERT |
+The `ActivityBookingDialog` (lines 76-115) provides the template:
 
-**No guest policies** - guests cannot view or modify preferences yet (future scope).
+1. When opened with a guest but no session:
+   - Fetch active activities for the resort
+   - Show activity dropdown
+   - Show date picker
+   - Fetch and display available sessions for selected activity/date
+   - User selects a session
 
----
+2. When opened with a pre-selected session:
+   - Skip selection, show session summary only
 
-## Implementation Plan
-
-### 1. Database Migration
-
-**File:** New migration file
-
-```sql
--- Create guest_preferences table
-CREATE TABLE public.guest_preferences (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  resort_id uuid NOT NULL REFERENCES public.resorts(id) ON DELETE CASCADE,
-  guest_id uuid NOT NULL REFERENCES public.guests(id) ON DELETE CASCADE,
-  category text NOT NULL CHECK (category IN ('room', 'dining', 'activity', 'general')),
-  value text NOT NULL,
-  priority integer NOT NULL DEFAULT 1 CHECK (priority BETWEEN 1 AND 3),
-  source text NOT NULL DEFAULT 'staff' CHECK (source IN ('staff', 'prearrival', 'system')),
-  created_by_user_id uuid REFERENCES public.profiles(id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
--- Prevent duplicate preferences
-ALTER TABLE public.guest_preferences 
-  ADD CONSTRAINT unique_guest_preference UNIQUE (guest_id, category, value);
-
--- Indexes
-CREATE INDEX idx_guest_preferences_guest ON public.guest_preferences(resort_id, guest_id);
-CREATE INDEX idx_guest_preferences_category ON public.guest_preferences(category);
-
--- Enable RLS
-ALTER TABLE public.guest_preferences ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guest_preferences FORCE ROW LEVEL SECURITY;
-
--- Immutable resort_id trigger
-CREATE TRIGGER prevent_resort_id_change_guest_preferences
-  BEFORE UPDATE ON public.guest_preferences
-  FOR EACH ROW
-  EXECUTE FUNCTION public.prevent_resort_id_change();
-
--- Updated_at trigger
-CREATE TRIGGER update_guest_preferences_updated_at
-  BEFORE UPDATE ON public.guest_preferences
-  FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();
-
--- RLS Policies
-CREATE POLICY "staff_select_preferences" ON public.guest_preferences
-  FOR SELECT
-  USING (public.staff_has_resort_access(auth.uid(), resort_id));
-
-CREATE POLICY "staff_insert_preferences" ON public.guest_preferences
-  FOR INSERT
-  WITH CHECK (public.has_resort_role(auth.uid(), resort_id, 
-    ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]));
-
-CREATE POLICY "staff_update_preferences" ON public.guest_preferences
-  FOR UPDATE
-  USING (public.has_resort_role(auth.uid(), resort_id, 
-    ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]))
-  WITH CHECK (public.has_resort_role(auth.uid(), resort_id, 
-    ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]));
-
-CREATE POLICY "staff_delete_preferences" ON public.guest_preferences
-  FOR DELETE
-  USING (public.has_resort_role(auth.uid(), resort_id, 
-    ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]));
-```
+The `RestaurantReservationDialog` will be enhanced to follow this exact pattern.
 
 ---
 
-### 2. New Hook: `useStaffGuestPreferences`
+## Files to Modify
 
-**File:** `src/hooks/useStaffGuestPreferences.ts`
+### 1. `src/pages/restaurants/RestaurantReservationDialog.tsx`
 
-A staff-specific hook for managing guest preferences:
+**Changes:**
+- Add state for restaurant selection: `selectedRestaurantId`, `selectedDate`
+- Add state for slot list: `slots`, `restaurants`
+- Add `useEffect` to fetch active restaurants when dialog opens without a slot
+- Add `useEffect` to fetch available slots when restaurant/date selected
+- Add restaurant dropdown, date picker, and slot selection UI (mirroring activity dialog)
+- Keep existing slot summary when slot is pre-selected
 
-**Features:**
-- Fetch preferences grouped by category
-- Add new preference (with duplicate check)
-- Remove preference
-- Update priority
-
-**Interface:**
-```typescript
-export interface StaffGuestPreference {
-  id: string;
-  category: 'room' | 'dining' | 'activity' | 'general';
-  value: string;
-  priority: 1 | 2 | 3;
-  source: 'staff' | 'prearrival' | 'system';
-  createdAt: string;
-}
-
-export interface StaffPreferencesGrouped {
-  room: StaffGuestPreference[];
-  dining: StaffGuestPreference[];
-  activity: StaffGuestPreference[];
-  general: StaffGuestPreference[];
-}
-```
-
-**Return API:**
-```typescript
-{
-  preferences: StaffPreferencesGrouped;
-  hasPreferences: boolean;
-  isLoading: boolean;
-  addPreference: (category, value, priority?) => Promise<void>;
-  removePreference: (id) => Promise<void>;
-  isAdding: boolean;
-  isRemoving: boolean;
-}
-```
-
----
-
-### 3. New Component: `StaffGuestPreferencesCard`
-
-**File:** `src/components/staff/StaffGuestPreferencesCard.tsx`
-
-A card component for viewing and managing structured preferences.
-
-**Empty State:**
+**New UI Flow (when no slot provided):**
 ```text
 ┌────────────────────────────────────────────────────────────┐
-│ 🎯 Preferences                                              │
+│ New Restaurant Reservation                                 │
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
-│         No structured preferences recorded                 │
-│         Add preferences for faster service                 │
+│  Guest                                                     │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ John Smith                       Room 101  [Change]│   │
+│  └────────────────────────────────────────────────────┘   │
 │                                                            │
-│              [ Add Preference ]                            │
+│  Restaurant *                                              │
+│  [ Select restaurant ▾ ]                                   │
 │                                                            │
+│  Date *                                                    │
+│  [ 2026-01-24 ]                                            │
+│                                                            │
+│  Available Slots *                                         │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ 18:00 - 20:00  │  DINNER  │  24 remaining          │   │
+│  └────────────────────────────────────────────────────┘   │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ 19:00 - 21:00  │  DINNER  │  12 remaining          │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  Adults *                Children                          │
+│  [ 1 ]                   [ 0 ]                             │
+│                                                            │
+│  Special Requests                                          │
+│  [                                                     ]   │
+│                                                            │
+│                         [Cancel]  [Create Reservation]     │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**With Preferences:**
-```text
-┌────────────────────────────────────────────────────────────┐
-│ 🎯 Preferences                            [ + Add ]        │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Room                                                      │
-│  [High Floor ×] [Extra Pillows ×] [Quiet Room ×]          │
-│                                                            │
-│  Dining                                                    │
-│  [Vegetarian ×] [No Shellfish ×]                          │
-│                                                            │
-│  Activity                                                  │
-│  [Prefers Morning ×]                                       │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-**UI Components:**
-- Category headers with icon badges
-- Pill-style tags with `×` remove button
-- Inline add preference popover (category dropdown + text input)
-- Priority indicator (optional subtle visual)
-
 ---
 
-### 4. Query Key Addition
+### 2. `src/pages/guests/GuestDetailPage.tsx`
 
-**File:** `src/lib/query-keys.ts`
+**Changes:**
+- Add state: `const [restaurantReservationDialogOpen, setRestaurantReservationDialogOpen] = useState(false);`
+- Add button to Restaurant Reservations card header (matching Activity Bookings)
+- Render `RestaurantReservationDialog` at bottom of component
 
-Add preferences keys:
+**Location:** Lines 688-695 (Restaurant Reservations CardHeader)
 
 ```typescript
-// Add to queryKeys object under new section
-preferences: {
-  staffPreferences: (resortId: string, guestId: string) => 
-    ['staff-guest-preferences', resortId, guestId],
-},
+// Current (line 690-695):
+<CardHeader className="flex flex-row items-center justify-between">
+  <CardTitle className="flex items-center gap-2">
+    <Utensils className="h-5 w-5" />
+    Restaurant Reservations
+  </CardTitle>
+</CardHeader>
+
+// Updated:
+<CardHeader className="flex flex-row items-center justify-between">
+  <CardTitle className="flex items-center gap-2">
+    <Utensils className="h-5 w-5" />
+    Restaurant Reservations
+  </CardTitle>
+  {canEdit && (
+    <Button onClick={() => setRestaurantReservationDialogOpen(true)}>
+      Make Reservation
+    </Button>
+  )}
+</CardHeader>
 ```
 
----
-
-### 5. Integration with GuestDetailPage
-
-**File:** `src/pages/guests/GuestDetailPage.tsx`
-
-Add the new card **after Travel Party, before Stay Panel** (around line 370):
-
+**Add dialog render (after ActivityBookingDialog, around line 790):**
 ```typescript
-// Import
-import { StaffGuestPreferencesCard } from '@/components/staff/StaffGuestPreferencesCard';
-
-// Render (after StaffTravelPartyCard)
-<StaffGuestPreferencesCard
-  guestId={guest.id}
-  resortId={guest.resort_id}
+{/* Restaurant Reservation Dialog */}
+<RestaurantReservationDialog
+  open={restaurantReservationDialogOpen}
+  onOpenChange={setRestaurantReservationDialogOpen}
+  guest={guest}
+  onSuccess={fetchGuest}
 />
 ```
 
 ---
 
-## Files to Create
+## Technical Details
 
-| File | Purpose |
-|------|---------|
-| `src/hooks/useStaffGuestPreferences.ts` | Staff hook for preference CRUD |
-| `src/components/staff/StaffGuestPreferencesCard.tsx` | UI card component |
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/lib/query-keys.ts` | Add `preferences.staffPreferences()` |
-| `src/pages/guests/GuestDetailPage.tsx` | Import and render card |
-
----
-
-## What This Does NOT Touch
-
-- `guest.notes` field - remains unchanged and functional
-- `guest.notes_internal` field - remains unchanged
-- `LoyaltyEditDialog` - no modification to notes editing
-- Existing pre-arrival data - no migration attempted
-- Any booking logic - completely independent
-
----
-
-## Predefined Preference Suggestions (UX Enhancement)
-
-The add preference UI will include common suggestions:
-
-**Room:**
-- High Floor, Low Floor, Near Elevator, Quiet Room, Extra Pillows, Hypoallergenic Bedding, Extra Towels
-
-**Dining:**
-- Vegetarian, Vegan, Gluten-Free, Halal, Kosher, No Shellfish, No Nuts, Window Seat, Private Table
-
-**Activity:**
-- Prefers Morning, Prefers Afternoon, Prefers Private, Group Activities OK, No Strenuous Activities
-
-**General:**
-- Early Check-in, Late Check-out, Celebration, Honeymoon, Anniversary
-
----
-
-## Technical Notes
-
-### Relationship to GuestPreference Interface
-
-The existing `GuestPreference` interface in `useGuestDetailContext.ts` (lines 37-44) defines:
+### Restaurant Fetch Query
 ```typescript
-export interface GuestPreference {
-  id: string;
-  category: 'room' | 'dining' | 'activity' | 'general';
-  key: string;
-  value: string;
-  source: 'prearrival' | 'staff' | 'system';
-  createdAt: string;
-}
+const fetchRestaurants = async () => {
+  if (!currentResort) return;
+  const { data } = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('resort_id', currentResort.id)
+    .eq('is_active', true)
+    .order('name');
+  if (data) setRestaurants(data);
+};
 ```
 
-The new database table will be compatible with this interface. In Phase 2, the composition layer can map DB rows to this interface and populate `preferences: GuestPreference[]`.
+### Slot Fetch Query (with remaining capacity)
+```typescript
+const fetchAvailableSlots = async () => {
+  if (!currentResort || !selectedRestaurantId || !selectedDate) return;
+  
+  // Fetch slots
+  const { data: slotsData } = await supabase
+    .from('restaurant_time_slots')
+    .select(`*, restaurant:restaurants(*)`)
+    .eq('resort_id', currentResort.id)
+    .eq('restaurant_id', selectedRestaurantId)
+    .eq('date', selectedDate)
+    .eq('status', 'OPEN')
+    .order('start_time');
+  
+  if (!slotsData) return;
+  
+  // Fetch booked covers for these slots
+  const slotIds = slotsData.map(s => s.id);
+  const { data: reservationsData } = await supabase
+    .from('restaurant_reservations')
+    .select('restaurant_slot_id, num_adults, num_children')
+    .in('restaurant_slot_id', slotIds)
+    .in('status', ['PENDING', 'CONFIRMED']);
+  
+  // Calculate remaining capacity
+  const slotsWithCapacity = slotsData.map(slot => {
+    const slotReservations = reservationsData?.filter(r => r.restaurant_slot_id === slot.id) || [];
+    const bookedCovers = slotReservations.reduce((sum, r) => sum + r.num_adults + r.num_children, 0);
+    return { ...slot, bookedCovers, remaining: slot.capacity - bookedCovers };
+  });
+  
+  setSlots(slotsWithCapacity);
+};
+```
 
-### Permission Alignment
+---
 
-This feature aligns with `guests.notes.edit` permission semantically, but since we're only allowing specific roles via RLS, no new permission entry is strictly required. The RLS policies handle authorization at the database level.
+## Permissions
+
+Using the same permission check as Activity Booking:
+
+```typescript
+// Line 108 in GuestDetailPage.tsx
+const canEdit = hasWriteAccess(canAccessGuests);
+```
+
+This ensures:
+- RESORT_ADMIN ✅
+- MANAGER ✅
+- FRONT_OFFICE ✅
+- RESERVATIONS ✅
+
+---
+
+## Post-Action Behavior
+
+| Action | Behavior |
+|--------|----------|
+| Reservation created | Toast: "Reservation created successfully" |
+| Duplicate detected | Toast: "Existing Reservation Found" |
+| Dialog closes | Automatically via `onOpenChange(false)` |
+| Data refresh | `fetchGuest()` called via `onSuccess` prop |
+| Navigation | Optional - user can click new row to navigate to slot detail |
+
+---
+
+## What This Does NOT Change
+
+- ✅ Existing reservation list display (unchanged)
+- ✅ Existing slot detail page behavior (unchanged)
+- ✅ Database tables (no modifications)
+- ✅ RLS policies (no modifications)
+- ✅ Booking service logic (reuses existing `createRestaurantReservation`)
+- ✅ Loyalty points awarding (already implemented in dialog)
 
 ---
 
 ## Testing Checklist
 
-1. Visit GuestDetailPage for a guest with no preferences
-   - Card shows empty state with "Add Preference" CTA
-2. Click "Add Preference" and add a room preference
-   - Preference appears as pill tag
-3. Remove a preference by clicking `×`
-   - Preference is deleted
-4. Add multiple preferences across categories
-   - Grouped correctly by category
-5. Verify resort isolation
-   - Staff from Resort A cannot see preferences from Resort B
-6. Verify existing notes unchanged
-   - `notes_internal` field still editable via LoyaltyEditDialog
+1. Open Guest Detail page for a guest
+2. Verify "Make Reservation" button appears in Restaurant Reservations card header
+3. Click button - dialog opens with guest pre-filled
+4. Select a restaurant from dropdown
+5. Select a date
+6. Verify available slots appear with remaining capacity
+7. Select a slot
+8. Enter pax count and optional special requests
+9. Click "Create Reservation"
+10. Verify toast appears and reservation shows in list immediately
 
