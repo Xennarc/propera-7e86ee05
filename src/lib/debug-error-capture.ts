@@ -11,11 +11,15 @@ const MAX_ERRORS = 10;
 let errors: CapturedError[] = [];
 let isInitialized = false;
 
-export function captureError(error: Error | string, type: CapturedError['type'] = 'error'): void {
+export function captureError(
+  error: Error | string, 
+  type: CapturedError['type'] = 'error',
+  explicitStack?: string
+): void {
   const captured: CapturedError = {
     timestamp: new Date(),
     message: typeof error === 'string' ? error : error.message,
-    stack: typeof error === 'object' ? error.stack : undefined,
+    stack: explicitStack || (typeof error === 'object' ? error.stack : undefined),
     type,
   };
   
@@ -55,10 +59,26 @@ export function initErrorCapture(): () => void {
   // Capture console.error calls
   const originalConsoleError = console.error;
   console.error = (...args) => {
-    const message = args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-    ).join(' ');
-    captureError(message, 'error');
+    const message = args.map(arg => {
+      // Handle Error objects specially - they don't serialize with JSON.stringify
+      if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}`;
+      }
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
+    
+    // Also capture stack trace from any Error in args
+    const errorArg = args.find(arg => arg instanceof Error);
+    const stack = errorArg?.stack;
+    
+    captureError(message, 'error', stack);
     originalConsoleError.apply(console, args);
   };
 

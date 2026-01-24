@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { format, parseISO } from 'date-fns';
+import { safeFormatDate } from '@/lib/safe-date-format';
 import { Copy, Check, MessageCircle, Mail, MessageSquare, ExternalLink, Send, Loader2 } from 'lucide-react';
 
 interface SharePrearrivalLinkDialogProps {
@@ -43,7 +43,7 @@ export function SharePrearrivalLinkDialog({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const firstName = guest.full_name.split(' ')[0];
-  const checkInFormatted = format(parseISO(guest.check_in_date), 'MMMM d, yyyy');
+  const checkInFormatted = safeFormatDate(guest.check_in_date, 'MMMM d, yyyy') || 'your arrival date';
 
   const templates = {
     whatsapp: `Hi ${firstName}! 👋
