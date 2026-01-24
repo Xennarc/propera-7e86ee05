@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Check, Minus, Plus } from 'lucide-react';
+import { Check, Circle, Minus, Plus } from 'lucide-react';
 import { CatalogItem } from '@/hooks/useServiceRequests';
 import { categoryConfigs } from './RequestCategoryGrid';
 
@@ -50,26 +50,47 @@ const ItemTile = memo(function ItemTile({
         className={cn(
           'relative overflow-hidden cursor-pointer transition-all duration-200',
           'hover:shadow-md active:scale-[0.98] tap-highlight-none',
-          selected && 'ring-2 ring-primary shadow-lg shadow-primary/20 bg-primary/5'
+          'min-h-[72px]', // Consistent height
+          selected 
+            ? 'ring-2 ring-primary shadow-lg shadow-primary/20 bg-primary/5' 
+            : 'hover:border-primary/30'
         )}
         onClick={onToggle}
+        role="checkbox"
+        aria-checked={selected}
+        aria-label={`${item.title}${selected ? ', selected' : ''}`}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
       >
-        {/* Selection indicator */}
-        <AnimatePresence>
-          {selected && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center z-10"
-            >
-              <Check className="h-3 w-3 text-primary-foreground" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <CardContent className="p-3">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2.5">
+            {/* Leading selection indicator */}
+            <div className="flex-shrink-0 pt-0.5">
+              <motion.div
+                className={cn(
+                  'w-5 h-5 rounded-full flex items-center justify-center transition-colors duration-200',
+                  selected
+                    ? 'bg-primary'
+                    : 'border-2 border-muted-foreground/30'
+                )}
+                initial={false}
+                animate={selected ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {selected ? (
+                  <Check className="h-3 w-3 text-primary-foreground" />
+                ) : (
+                  <span className="sr-only">Unselected</span>
+                )}
+              </motion.div>
+            </div>
+
+            {/* Category icon */}
             <div
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
@@ -79,6 +100,8 @@ const ItemTile = memo(function ItemTile({
             >
               <category.icon className="h-4 w-4" />
             </div>
+
+            {/* Content */}
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-sm text-foreground truncate">
                 {item.title}
@@ -87,6 +110,24 @@ const ItemTile = memo(function ItemTile({
                 {category.label}
               </p>
             </div>
+
+            {/* Quantity badge when selected */}
+            <AnimatePresence>
+              {selected && quantity > 1 && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                >
+                  <Badge 
+                    variant="default" 
+                    className="text-[10px] px-1.5 py-0 h-5 font-bold"
+                  >
+                    ×{quantity}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Quantity controls when selected */}
@@ -102,28 +143,40 @@ const ItemTile = memo(function ItemTile({
                 <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-border/50">
                   <button
                     type="button"
-                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-50"
+                    className={cn(
+                      'w-9 h-9 rounded-full flex items-center justify-center',
+                      'bg-muted hover:bg-muted/80 transition-colors',
+                      'disabled:opacity-40 disabled:cursor-not-allowed',
+                      'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       onUpdateQuantity(-1);
                     }}
                     disabled={quantity <= 1}
+                    aria-label="Decrease quantity"
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus className="h-4 w-4" />
                   </button>
-                  <span className="text-sm font-semibold tabular-nums w-6 text-center">
+                  <span className="text-base font-bold tabular-nums w-8 text-center">
                     {quantity}
                   </span>
                   <button
                     type="button"
-                    className="w-7 h-7 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors disabled:opacity-50"
+                    className={cn(
+                      'w-9 h-9 rounded-full flex items-center justify-center',
+                      'bg-muted hover:bg-muted/80 transition-colors',
+                      'disabled:opacity-40 disabled:cursor-not-allowed',
+                      'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       onUpdateQuantity(1);
                     }}
                     disabled={quantity >= 10}
+                    aria-label="Increase quantity"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus className="h-4 w-4" />
                   </button>
                 </div>
               </motion.div>
@@ -161,7 +214,7 @@ export function MultiSelectItemGrid({
   }, [items]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="group" aria-label="Select items">
       {Array.from(groupedItems.entries()).map(([categoryKey, categoryItems]) => {
         const category = categoryConfigs.find((c) => c.key === categoryKey);
         

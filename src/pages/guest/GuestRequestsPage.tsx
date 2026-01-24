@@ -8,12 +8,22 @@ import { RequestCategoryGrid, CategoryConfig } from '@/components/guest/requests
 import { RequestCreateSheet } from '@/components/guest/requests/RequestCreateSheet';
 import { MultiSelectItemGrid, SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
 import { RequestBundleSheet, BundleSubmitParams, MAX_BUNDLE_ITEMS, MAX_TOTAL_QUANTITY } from '@/components/guest/requests/RequestBundleSheet';
+import { RequestModeSwitcher, RequestMode } from '@/components/guest/requests/RequestModeSwitcher';
 import { PrearrivalRequestsBlockedState } from '@/components/guest/PrearrivalRequestsBlockedState';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Sparkles, ListChecks, X, ArrowRight, Package, AlertCircle } from 'lucide-react';
+import { ClipboardList, Sparkles, ArrowRight, Package, X, ShoppingBag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export default function GuestRequestsPage() {
@@ -23,9 +33,10 @@ export default function GuestRequestsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   
   // Multi-select mode state
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [mode, setMode] = useState<RequestMode>('quick');
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [bundleSheetOpen, setBundleSheetOpen] = useState(false);
+  const [exitDialogOpen, setExitDialogOpen] = useState(false);
   
   const { data: catalogItems, isLoading: catalogLoading } = useRequestCatalog(
     guest?.resortId || '',
@@ -42,6 +53,8 @@ export default function GuestRequestsPage() {
     selectedItems.reduce((sum, item) => sum + item.quantity, 0),
     [selectedItems]
   );
+
+  const multiSelectMode = mode === 'multi';
 
   if (!guest) return null;
 
@@ -128,20 +141,34 @@ export default function GuestRequestsPage() {
     
     // Reset state
     setSelectedItems([]);
-    setMultiSelectMode(false);
+    setMode('quick');
     setBundleSheetOpen(false);
   };
 
-  const toggleMultiSelectMode = () => {
-    if (multiSelectMode) {
-      // Exiting multi-select mode
-      setSelectedItems([]);
+  const handleModeChange = (newMode: RequestMode) => {
+    if (newMode === 'quick' && selectedItems.length > 0) {
+      // Show confirmation dialog
+      setExitDialogOpen(true);
+    } else {
+      setMode(newMode);
+      if (newMode === 'quick') {
+        setSelectedItems([]);
+      }
     }
-    setMultiSelectMode(!multiSelectMode);
+  };
+
+  const handleConfirmExit = () => {
+    setSelectedItems([]);
+    setMode('quick');
+    setExitDialogOpen(false);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedItems([]);
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-5 pb-24">
       {/* Header with link to My Requests */}
       <div className="flex items-center justify-between">
         <motion.div
@@ -153,9 +180,6 @@ export default function GuestRequestsPage() {
             <Sparkles className="h-5 w-5 text-primary" />
             How can we help?
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {multiSelectMode ? 'Select items to request' : 'Select a category to make a request'}
-          </p>
         </motion.div>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
@@ -171,95 +195,55 @@ export default function GuestRequestsPage() {
         </motion.div>
       </div>
 
-      {/* Multi-select toggle */}
+      {/* Mode Switcher */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.15 }}
       >
-        <Button
-          variant={multiSelectMode ? 'default' : 'outline'}
-          size="sm"
-          className={cn(
-            'gap-2 transition-all',
-            multiSelectMode && 'ring-2 ring-primary ring-offset-2 shadow-md'
-          )}
-          onClick={toggleMultiSelectMode}
-        >
-          {multiSelectMode ? (
-            <>
-              <X className="h-4 w-4" />
-              Exit Multi-Select
-            </>
-          ) : (
-            <>
-              <ListChecks className="h-4 w-4" />
-              Select Multiple
-            </>
-          )}
-        </Button>
-      </motion.div>
-
-      {/* Helpful tip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-      >
-        <Card className="bg-primary/5 border-primary/20">
-          <CardContent className="py-3 px-4">
-            <p className="text-xs text-muted-foreground">
-              {multiSelectMode ? (
-                <>
-                  <span className="font-medium text-foreground">Tip:</span>{' '}
-                  Tap items to select, then use the bottom bar to submit. We'll route to the right teams automatically.
-                </>
-              ) : (
-                <>
-                  <span className="font-medium text-foreground">Tip:</span> Need something right away? 
-                  Select <span className="font-medium">"As soon as possible"</span> and our team will prioritize your request.
-                </>
-              )}
-            </p>
-          </CardContent>
-        </Card>
+        <RequestModeSwitcher
+          mode={mode}
+          onModeChange={handleModeChange}
+        />
       </motion.div>
 
       {/* Category Grid or Multi-Select Grid */}
-      {catalogLoading ? (
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
-          ))}
-        </div>
-      ) : multiSelectMode ? (
-        <motion.div
-          key="multi-select"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <MultiSelectItemGrid
-            items={catalogItems || []}
-            selectedItems={selectedItems}
-            onToggleItem={handleToggleItem}
-            onUpdateQuantity={handleUpdateQuantity}
-          />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="categories"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          <RequestCategoryGrid onSelectCategory={handleCategorySelect} />
-        </motion.div>
-      )}
+      <div id="request-content" role="tabpanel">
+        {catalogLoading ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-2xl" />
+            ))}
+          </div>
+        ) : multiSelectMode ? (
+          <motion.div
+            key="multi-select"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <MultiSelectItemGrid
+              items={catalogItems || []}
+              selectedItems={selectedItems}
+              onToggleItem={handleToggleItem}
+              onUpdateQuantity={handleUpdateQuantity}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="categories"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <RequestCategoryGrid onSelectCategory={handleCategorySelect} />
+          </motion.div>
+        )}
+      </div>
 
       {/* Sticky bottom bar for multi-select */}
       <AnimatePresence>
-        {multiSelectMode && selectedItems.length > 0 && (
+        {multiSelectMode && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -267,35 +251,79 @@ export default function GuestRequestsPage() {
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed bottom-[calc(var(--guest-nav-h,72px)+env(safe-area-inset-bottom))] left-0 right-0 z-40 px-4 pb-4"
           >
-            <div className="bg-primary text-primary-foreground rounded-2xl shadow-2xl shadow-primary/30 p-4">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
-                    <Package className="h-5 w-5" />
+            <div 
+              className={cn(
+                'rounded-2xl shadow-2xl p-4 transition-all duration-300',
+                'backdrop-blur-xl border',
+                selectedItems.length > 0 
+                  ? 'bg-primary text-primary-foreground border-primary shadow-primary/30' 
+                  : 'bg-background/95 text-foreground border-border shadow-black/10'
+              )}
+            >
+              {selectedItems.length > 0 ? (
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+                      <ShoppingBag className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">
+                        {totalSelectedCount} item{totalSelectedCount !== 1 ? 's' : ''} selected
+                      </p>
+                      <p className="text-xs text-primary-foreground/70">
+                        {selectedItems.length} unique item{selectedItems.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold">
-                      {totalSelectedCount} item{totalSelectedCount !== 1 ? 's' : ''} selected
-                    </p>
-                    <p className="text-xs text-primary-foreground/70">
-                      {selectedItems.length} unique item{selectedItems.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5 font-semibold min-h-[44px] px-4"
+                    onClick={() => setBundleSheetOpen(true)}
+                  >
+                    Review & Send
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="gap-1.5 font-semibold"
-                  onClick={() => setBundleSheetOpen(true)}
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    Tap items above to select
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-muted-foreground hover:text-foreground min-h-[44px]"
+                    onClick={() => setMode('quick')}
+                  >
+                    <X className="h-4 w-4" />
+                    Exit
+                  </Button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Exit confirmation dialog */}
+      <AlertDialog open={exitDialogOpen} onOpenChange={setExitDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear selected items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected. 
+              Switching modes will clear your selection.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmExit}>
+              Clear & Exit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Sheet (single item) */}
       <RequestCreateSheet
