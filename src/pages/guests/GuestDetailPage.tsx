@@ -289,10 +289,10 @@ export default function GuestDetailPage() {
       {/* Operational Flags */}
       {prearrivalData && prearrivalData.hasAnyData && (
         <OperationalFlags
-          hasDietaryRestrictions={!!(prearrivalData.profile?.dietary_preferences && prearrivalData.profile.dietary_preferences.length > 0)}
+          hasDietaryRestrictions={!!(Array.isArray(prearrivalData.profile?.dietary_preferences) && prearrivalData.profile.dietary_preferences.length > 0)}
           hasAllergies={!!prearrivalData.profile?.allergies}
           isLateArrival={isLateArrival(prearrivalData.profile?.arrival_time)}
-          hasSpecialOccasion={!!(prearrivalData.profile?.special_occasions && prearrivalData.profile.special_occasions.length > 0)}
+          hasSpecialOccasion={!!(Array.isArray(prearrivalData.profile?.special_occasions) && prearrivalData.profile.special_occasions.length > 0)}
           requiresTransfer={!!prearrivalData.profile?.transfer_preference && prearrivalData.profile.transfer_preference !== 'none'}
           hasKidsInParty={false}
         />

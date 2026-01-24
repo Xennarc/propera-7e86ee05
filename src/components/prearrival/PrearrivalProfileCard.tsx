@@ -470,7 +470,7 @@ export function PrearrivalProfileCard({
                     <span className="text-sm font-medium text-destructive">{profile.allergies}</span>
                   </div>
                 )}
-                {profile.dietary_preferences && profile.dietary_preferences.length > 0 && (
+                {Array.isArray(profile.dietary_preferences) && profile.dietary_preferences.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {profile.dietary_preferences.map((pref: string) => (
                       <Badge key={pref} variant="secondary" className="text-xs">
