@@ -1,7 +1,8 @@
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { safeParseDateISO, safeFormatDate } from '@/lib/safe-date-format';
 
 interface PrearrivalCountdownProps {
   checkInDate: string;
@@ -21,8 +22,14 @@ export function PrearrivalCountdown({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const checkIn = parseISO(checkInDate);
-  const checkOut = parseISO(checkOutDate);
+  const checkIn = safeParseDateISO(checkInDate);
+  const checkOut = safeParseDateISO(checkOutDate);
+  
+  // Fallback if dates are invalid
+  if (!checkIn || !checkOut) {
+    return null;
+  }
+  
   const daysUntil = differenceInDays(checkIn, today);
   const stayNights = differenceInDays(checkOut, checkIn);
 
@@ -48,6 +55,7 @@ export function PrearrivalCountdown({
               {resortName && (
                 <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
                   <MapPin className="h-4 w-4" />
+                  {String(resortName)}
                   {resortName}
                 </p>
               )}
@@ -63,7 +71,7 @@ export function PrearrivalCountdown({
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Check-in</p>
                 <p className="font-semibold text-foreground">
-                  {format(checkIn, 'EEE, MMM d')}
+                  {safeFormatDate(checkInDate, 'EEE, MMM d', 'TBD')}
                 </p>
               </div>
             </div>
@@ -75,7 +83,7 @@ export function PrearrivalCountdown({
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Check-out</p>
                 <p className="font-semibold text-foreground">
-                  {format(checkOut, 'EEE, MMM d')}
+                  {safeFormatDate(checkOutDate, 'EEE, MMM d', 'TBD')}
                 </p>
               </div>
             </div>
@@ -87,8 +95,8 @@ export function PrearrivalCountdown({
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Stay</p>
                 <p className="font-semibold text-foreground">
-                  {stayNights} {stayNights === 1 ? 'night' : 'nights'}
-                  {roomNumber && ` • Room ${roomNumber}`}
+                  {Number(stayNights) || 0} {stayNights === 1 ? 'night' : 'nights'}
+                  {roomNumber && ` • Room ${String(roomNumber)}`}
                 </p>
               </div>
             </div>

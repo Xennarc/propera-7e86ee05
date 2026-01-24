@@ -197,10 +197,10 @@ export function GuestLayout() {
             )}
             <div className="min-w-0">
               <h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                {branding.name || guest?.resortName || 'Guest Portal'}
+                {String(branding.name || guest?.resortName || 'Guest Portal')}
               </h1>
               <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                Room {guest?.roomNumber}
+                Room {String(guest?.roomNumber || '')}
               </p>
             </div>
           </Link>

@@ -1,6 +1,7 @@
-import { differenceInDays, format, parseISO } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar, Sunrise, Sunset } from 'lucide-react';
+import { safeParseDateISO, safeFormatDate } from '@/lib/safe-date-format';
 
 interface GuestStayProgressProps {
   checkInDate: string;
@@ -15,9 +16,18 @@ export function GuestStayProgress({
   className,
   variant = 'compact'
 }: GuestStayProgressProps) {
-  const checkIn = parseISO(checkInDate);
-  const checkOut = parseISO(checkOutDate);
+  const checkIn = safeParseDateISO(checkInDate);
+  const checkOut = safeParseDateISO(checkOutDate);
   const today = new Date();
+  
+  // Fallback if dates are invalid
+  if (!checkIn || !checkOut) {
+    return (
+      <div className={cn("text-sm text-muted-foreground", className)}>
+        Stay dates unavailable
+      </div>
+    );
+  }
   
   const totalNights = differenceInDays(checkOut, checkIn);
   const nightsStayed = Math.max(0, Math.min(totalNights, differenceInDays(today, checkIn)));
@@ -33,7 +43,7 @@ export function GuestStayProgress({
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {format(checkIn, 'MMM d')} – {format(checkOut, 'MMM d')}
+            {safeFormatDate(checkInDate, 'MMM d', 'N/A')} – {safeFormatDate(checkOutDate, 'MMM d', 'N/A')}
           </span>
           <span className="font-medium text-foreground">
             {isCheckoutDay 
@@ -63,13 +73,13 @@ export function GuestStayProgress({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Check-in</p>
-            <p className="text-sm font-semibold">{format(checkIn, 'EEE, MMM d')}</p>
+            <p className="text-sm font-semibold">{safeFormatDate(checkInDate, 'EEE, MMM d', 'TBD')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 text-right">
           <div>
             <p className="text-xs text-muted-foreground">Check-out</p>
-            <p className="text-sm font-semibold">{format(checkOut, 'EEE, MMM d')}</p>
+            <p className="text-sm font-semibold">{safeFormatDate(checkOutDate, 'EEE, MMM d', 'TBD')}</p>
           </div>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sunset/10">
             <Sunset className="h-4 w-4 text-sunset" />
@@ -104,7 +114,7 @@ export function GuestStayProgress({
           {isCheckoutDay 
             ? 'Check-out today' 
             : isBeforeStay 
-              ? `Arriving ${format(checkIn, 'EEEE')}`
+              ? `Arriving ${safeFormatDate(checkInDate, 'EEEE', 'soon')}`
               : `${nightsRemaining} ${nightsRemaining === 1 ? 'night' : 'nights'} remaining`
           }
         </span>

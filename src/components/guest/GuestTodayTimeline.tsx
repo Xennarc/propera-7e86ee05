@@ -78,8 +78,8 @@ export function GuestTodayTimeline({
               )}
             >
               {getItemIcon(item)}
-              <span className="font-mono">{item.time.slice(0, 5)}</span>
-              <span className="max-w-[100px] truncate">{item.title}</span>
+              <span className="font-mono">{String(item.time || '').slice(0, 5)}</span>
+              <span className="max-w-[100px] truncate">{String(item.title || 'Event')}</span>
             </div>
           );
         })}
@@ -102,10 +102,10 @@ export function GuestTodayTimeline({
                   <p className="text-xs text-primary font-medium uppercase tracking-wide mb-0.5">
                     {t('home.nextUp', 'Next up')}
                   </p>
-                  <p className="font-semibold text-foreground">{nextBooking.title}</p>
+                  <p className="font-semibold text-foreground">{String(nextBooking.title || 'Event')}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span className="font-mono">{nextBooking.time.slice(0, 5)}</span>
+                  <Clock className="h-3.5 w-3.5" />
+                    <span className="font-mono">{String(nextBooking.time || '').slice(0, 5)}</span>
                   </div>
                 </div>
               </div>

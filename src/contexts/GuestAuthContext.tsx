@@ -119,7 +119,23 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       
       if (storedSession) {
         try {
-          const parsed = JSON.parse(storedSession) as GuestSession;
+          const rawParsed = JSON.parse(storedSession);
+          // Normalize all fields to strings to prevent React error #300
+          const parsed: GuestSession = {
+            guestId: String(rawParsed.guestId ?? ''),
+            fullName: String(rawParsed.fullName ?? 'Guest'),
+            roomNumber: String(rawParsed.roomNumber ?? ''),
+            checkInDate: String(rawParsed.checkInDate ?? ''),
+            checkOutDate: String(rawParsed.checkOutDate ?? ''),
+            resortId: String(rawParsed.resortId ?? ''),
+            resortName: rawParsed.resortName ? String(rawParsed.resortName) : undefined,
+            resortLogoUrl: rawParsed.resortLogoUrl ? String(rawParsed.resortLogoUrl) : undefined,
+            resortTimezone: rawParsed.resortTimezone ? String(rawParsed.resortTimezone) : 'UTC',
+            sessionId: rawParsed.sessionId ? String(rawParsed.sessionId) : undefined,
+            sessionToken: rawParsed.sessionToken ? String(rawParsed.sessionToken) : undefined,
+            stayId: rawParsed.stayId ? String(rawParsed.stayId) : undefined,
+          };
+          
           // Check if stay is still valid (basic check)
           const today = new Date().toISOString().split('T')[0];
           if (parsed.checkOutDate >= today) {
@@ -144,9 +160,9 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
                   .eq('id', parsed.resortId)
                   .single();
                 if (resortData) {
-                  parsed.resortName = resortData.name || parsed.resortName;
-                  parsed.resortLogoUrl = resortData.login_logo_url || undefined;
-                  parsed.resortTimezone = resortData.timezone || 'UTC';
+                  parsed.resortName = String(resortData.name || parsed.resortName || '');
+                  parsed.resortLogoUrl = resortData.login_logo_url ? String(resortData.login_logo_url) : undefined;
+                  parsed.resortTimezone = String(resortData.timezone || 'UTC');
                   localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(parsed));
                 }
               } catch {
@@ -247,17 +263,17 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       const { sessionId, sessionToken } = await registerSession(guestData.guest_id, guestData.resort_id);
       
       const session: GuestSession = {
-        guestId: guestData.guest_id,
-        fullName: guestData.full_name,
-        roomNumber: guestData.room_number,
-        checkInDate: guestData.check_in_date,
-        checkOutDate: guestData.check_out_date,
-        resortId: guestData.resort_id,
-        resortName,
-        resortLogoUrl,
-        resortTimezone,
-        sessionId,
-        sessionToken,
+        guestId: String(guestData.guest_id ?? ''),
+        fullName: String(guestData.full_name ?? 'Guest'),
+        roomNumber: String(guestData.room_number ?? ''),
+        checkInDate: String(guestData.check_in_date ?? ''),
+        checkOutDate: String(guestData.check_out_date ?? ''),
+        resortId: String(guestData.resort_id ?? ''),
+        resortName: resortName ? String(resortName) : undefined,
+        resortLogoUrl: resortLogoUrl ? String(resortLogoUrl) : undefined,
+        resortTimezone: String(resortTimezone || 'UTC'),
+        sessionId: sessionId ? String(sessionId) : undefined,
+        sessionToken: sessionToken ? String(sessionToken) : undefined,
       };
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));

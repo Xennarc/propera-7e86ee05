@@ -1,4 +1,3 @@
-import { format, parseISO } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { CategoryIcon } from '@/components/ui/category-badge';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Clock, Users, ChevronRight, X, Pencil, MapPin } from 'lucide-react';
+import { safeFormatDate } from '@/lib/safe-date-format';
 
 interface GuestBookingCardProps {
   booking: {
@@ -54,7 +54,8 @@ export function GuestBookingCard({
   const config = isActivity ? getCategoryConfig(booking.category || 'OTHER') : null;
   const restaurantConfig = !isActivity ? (mealPeriodConfig[booking.meal_period || 'DINNER'] || mealPeriodConfig.DINNER) : null;
   const isCancelled = booking.status === 'CANCELLED';
-  const totalGuests = booking.num_adults + booking.num_children;
+  const totalGuests = Number(booking.num_adults || 0) + Number(booking.num_children || 0);
+  
 
   const getStatusBadge = () => {
     switch (booking.status) {
@@ -101,10 +102,10 @@ export function GuestBookingCard({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{booking.title}</p>
+          <p className="text-sm font-semibold text-foreground truncate">{String(booking.title || 'Booking')}</p>
           <p className="text-xs text-muted-foreground">
-            {booking.start_time?.slice(0, 5)}
-            {booking.duration_minutes && ` • ${booking.duration_minutes}min`}
+            {String(booking.start_time || '').slice(0, 5)}
+            {booking.duration_minutes && ` • ${Number(booking.duration_minutes) || 0}min`}
           </p>
         </div>
         {getStatusBadge()}
@@ -162,7 +163,7 @@ export function GuestBookingCard({
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-semibold text-foreground truncate">
-                    {booking.title}
+                    {String(booking.title || 'Booking')}
                   </h3>
                   {getStatusBadge()}
                 </div>
@@ -171,14 +172,14 @@ export function GuestBookingCard({
                   {showDate && (
                     <span className="flex items-center gap-1">
                       <Clock className="h-3.5 w-3.5" />
-                      {format(parseISO(booking.date), 'EEE, MMM d')}
+                      {safeFormatDate(booking.date, 'EEE, MMM d', 'Date unavailable')}
                     </span>
                   )}
                   <span className="font-mono font-medium">
-                    {booking.start_time?.slice(0, 5)}
+                    {String(booking.start_time || '').slice(0, 5)}
                   </span>
                   {booking.duration_minutes && (
-                    <span>{booking.duration_minutes}min</span>
+                    <span>{Number(booking.duration_minutes) || 0}min</span>
                   )}
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" />
@@ -189,7 +190,7 @@ export function GuestBookingCard({
                 {/* Booked by indicator for shared room bookings */}
                 {!booking.is_own_booking && booking.booked_by && (
                   <p className="text-xs text-muted-foreground mb-2">
-                    Booked by {booking.booked_by}
+                    Booked by {String(booking.booked_by)}
                   </p>
                 )}
                 

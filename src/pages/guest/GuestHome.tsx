@@ -133,7 +133,7 @@ export default function GuestHome() {
 
   if (!guest) return null;
 
-  const firstName = guest.fullName.split(' ')[0];
+  const firstName = String(guest.fullName ?? 'Guest').split(' ')[0] || 'Guest';
   const todayStr = new Date().toISOString().split('T')[0];
   const tomorrowStr = addDays(new Date(), 1).toISOString().split('T')[0];
   const hour = new Date().getHours();
@@ -313,12 +313,12 @@ export default function GuestHome() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-                {greeting.text}, {firstName}!
+                {String(greeting.text)}, {firstName}!
               </h1>
               <p className="text-sm text-muted-foreground">
                 {todaySchedule.length > 0 
-                  ? t('home.eventsToday', { count: todaySchedule.length })
-                  : t('home.whatToDo')}
+                  ? String(t('home.eventsToday', { count: Number(todaySchedule.length) || 0 }))
+                  : String(t('home.whatToDo'))}
               </p>
             </div>
           </div>
