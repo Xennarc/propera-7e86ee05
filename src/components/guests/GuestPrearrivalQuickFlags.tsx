@@ -8,7 +8,7 @@ import {
   PartyPopper,
   RefreshCw
 } from 'lucide-react';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { safeFormatDistanceToNow } from '@/lib/safe-date-format';
 import { cn } from '@/lib/utils';
 import type { GuestPrearrivalStatus } from '@/hooks/usePrearrivalStatus';
 
@@ -141,7 +141,7 @@ export function GuestPrearrivalQuickFlags({
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3" />
-              <span>{formatDistanceToNow(parseISO(status.lastUpdatedAt), { addSuffix: true })}</span>
+              <span>{safeFormatDistanceToNow(status.lastUpdatedAt, { addSuffix: true })}</span>
             </div>
           </TooltipTrigger>
           <TooltipContent>

@@ -31,7 +31,6 @@ import {
   XCircle,
   RotateCcw
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/safe-date-format';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
 import { PrearrivalLinkManager } from './PrearrivalLinkManager';
@@ -202,7 +201,7 @@ export function PrearrivalProfileCard({
     if (profile?.arrival_time) {
       const timeStr = profile.arrival_time.slice(0, 5);
       const flightStr = profile.arrival_flight_number ? ` (Flight ${profile.arrival_flight_number})` : '';
-      lines.push(`Arriving: ${format(parseISO(checkInDate), 'MMM d')}, ${timeStr}${flightStr}`);
+      lines.push(`Arriving: ${safeFormatDate(checkInDate, 'MMM d')}, ${timeStr}${flightStr}`);
     }
     
     if (profile?.transfer_preference) {
