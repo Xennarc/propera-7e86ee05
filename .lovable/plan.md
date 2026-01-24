@@ -1,239 +1,148 @@
 
-# Enhanced Staff Debug Panel - Query Timing & UI Improvements
+# Fix: Null Safety Issues Across Staff Portal Pages
 
-## Overview
+## Problem Summary
 
-Enhance the existing `StaffDebugPanel` with advanced query diagnostics including:
-- Real-time tracking of pending/fetching queries
-- Query execution timing measurements
-- Slow query detection and highlighting
-- Improved scrollable UI with better visual hierarchy
-- Resizable/collapsible panel for easier use
+The debug console is showing persistent ErrorBoundary errors even after the initial fix to `GuestDetailPage.tsx`. The error pattern `ErrorBoundary caught an error: {} { "componentStack": "..."` indicates that other pages in the staff portal are crashing when accessing nested Supabase data without proper null safety checks.
 
----
+## Root Cause
 
-## Features to Add
+Multiple pages access nested joined data from Supabase queries without optional chaining:
 
-| Feature | Description |
-|---------|-------------|
-| **Pending Queries** | Live list of currently fetching queries with elapsed time |
-| **Query Timing** | Track and display execution times for recent queries |
-| **Slow Query Detection** | Highlight queries taking longer than threshold (e.g., 500ms) |
-| **Query Details** | Expandable view showing query keys and status |
-| **Improved Scrolling** | Better scroll behavior with sticky headers |
-| **Panel Controls** | Minimize, resize, and position options |
+| File | Line(s) | Unsafe Access |
+|------|---------|---------------|
+| `ActivitySessionDetailPage.tsx` | 209, 299, 303, 307 | `session.activity.name`, `.duration_minutes`, `.default_price_per_person` |
+| `RestaurantSlotDetailPage.tsx` | 160 | `slot.restaurant.name` |
+| `CancellationsReport.tsx` | 263, 264, 280 | `activity.name`, `.category`, `restaurant.name` |
 
----
+When a Supabase join returns `null` for the nested object (e.g., deleted activity/restaurant, RLS restriction, orphaned record), accessing properties like `.name` throws an error that crashes the component.
 
-## Architecture
+## Solution
 
-```text
-+------------------------------------------+
-|  debug-error-capture.ts (existing)       |
-+------------------------------------------+
-                  |
-+------------------------------------------+
-|  debug-query-tracker.ts (NEW)            |
-|  - Query start/end timing                |
-|  - Pending queries list                  |
-|  - Slow query detection                  |
-+------------------------------------------+
-                  |
-+------------------------------------------+
-|  StaffDebugPanel.tsx (enhanced)          |
-|  - New "Active Queries" section          |
-|  - New "Query Performance" section       |
-|  - Improved UI/UX                        |
-+------------------------------------------+
-```
-
----
-
-## Files to Create
-
-| File | Description |
-|------|-------------|
-| `src/lib/debug-query-tracker.ts` | Query timing and tracking utility |
+Add optional chaining (`?.`) and fallback values to all nested property accesses across these pages.
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/staff/StaffDebugPanel.tsx` | Add new sections and UI improvements |
+| File | Description |
+|------|-------------|
+| `src/pages/activities/ActivitySessionDetailPage.tsx` | Add null checks for `session.activity` |
+| `src/pages/restaurants/RestaurantSlotDetailPage.tsx` | Add null checks for `slot.restaurant` |
+| `src/pages/reports/CancellationsReport.tsx` | Add null checks in CSV export function |
 
----
+## Technical Changes
 
-## Technical Implementation
+### 1. ActivitySessionDetailPage.tsx
 
-### 1. Query Tracker Utility (`debug-query-tracker.ts`)
-
-A module that hooks into React Query's cache to track:
-
+**Early return guard (after existing `!session` check):**
 ```typescript
-interface TrackedQuery {
-  queryKey: string[];
-  keyString: string;         // Human-readable key
-  startTime: number;         // When fetch started
-  endTime?: number;          // When fetch completed
-  duration?: number;         // Duration in ms
-  status: 'pending' | 'success' | 'error';
-  isSlow: boolean;           // > 500ms threshold
-}
-
-// Export functions:
-export function initQueryTracker(queryClient: QueryClient): () => void;
-export function getPendingQueries(): TrackedQuery[];
-export function getRecentQueries(): TrackedQuery[];
-export function getSlowQueries(): TrackedQuery[];
-export function clearQueryHistory(): void;
-```
-
-**Implementation approach:**
-- Subscribe to `queryClient.getQueryCache().subscribe()` events
-- Track `added`, `updated` events with `isFetching` state changes
-- Store timing data in memory (last 20 queries)
-- Calculate duration when query transitions from fetching to success/error
-
-### 2. Enhanced StaffDebugPanel UI
-
-**New Sections:**
-
-**Section: Active Queries (Live)**
-```
-[Loader icon] Active Queries (3)
------------------------------------
-| guests-list        | 1.2s ↻     |
-| dining-slots       | 0.4s ↻     |
-| resort-config      | 2.1s ⚠️    |  <- slow query warning
------------------------------------
-```
-
-**Section: Query Performance**
-```
-[Timer icon] Query Performance
------------------------------------
-| avg response time  | 324ms      |
-| slow queries (>500ms) | 2       |
-| total fetched      | 47         |
------------------------------------
-Recent queries (last 10):
-| guests-list        | 245ms  ✓   |
-| dining-slots       | 612ms  ⚠️  |
-| resort-config      | 189ms  ✓   |
------------------------------------
-[Clear History] button
-```
-
-**UI Improvements:**
-- Sticky header that remains visible while scrolling
-- Better visual separation between sections
-- Compact/expanded view toggle
-- Pulse animation for active fetches
-- Color-coded timing (green < 300ms, amber 300-500ms, red > 500ms)
-- Improved badge styling
-- Smoother scroll with proper max-height
-
-### 3. UI Layout Changes
-
-```
-+------------------------------------------+
-| [Bug] Staff Debug Console    [_] [X]     | <- sticky header
-+------------------------------------------+
-| [ScrollArea - max-h calculated properly] |
-|                                          |
-| > Auth Context                           |
-| > Resort Context                         |
-| > Permissions                            |
-| > Active Queries (3) 🔄                  | <- NEW
-| > Query Performance                      | <- NEW  
-| > Query Cache                            |
-| > Error Log (0)                          |
-| > Page Diagnostics                       |
-|                                          |
-+------------------------------------------+
-| Remove ?debug=1 to hide                  | <- sticky footer
-+------------------------------------------+
-```
-
----
-
-## Implementation Details
-
-### Query Key Formatting
-
-Transform complex query keys into readable strings:
-```typescript
-// ['guests', 'list', 'resort-uuid-here'] 
-// becomes: "guests.list.resort..."
-
-function formatQueryKey(queryKey: unknown[]): string {
-  return queryKey
-    .map(part => {
-      if (typeof part === 'string') {
-        // Truncate UUIDs
-        if (part.length > 20 && part.includes('-')) {
-          return part.slice(0, 8) + '...';
-        }
-        return part;
-      }
-      return JSON.stringify(part);
-    })
-    .join('.');
+// After line 192-200 (!session check)
+if (!session.activity) {
+  return (
+    <Card>
+      <CardContent className="py-12 text-center">
+        <p className="text-muted-foreground">Activity data not available</p>
+      </CardContent>
+    </Card>
+  );
 }
 ```
 
-### Timing Color Thresholds
-
-| Duration | Color | Status |
-|----------|-------|--------|
-| < 300ms | Green | Fast |
-| 300-500ms | Amber | Normal |
-| > 500ms | Red | Slow |
-
-### Live Updates
-
-Use `useEffect` with interval to refresh pending queries every 100ms for smooth elapsed time updates:
+**OR add optional chaining with fallbacks:**
 
 ```typescript
-useEffect(() => {
-  const interval = setInterval(() => {
-    setPendingQueries(getPendingQueries());
-  }, 100); // Fast refresh for live timing
-  return () => clearInterval(interval);
-}, []);
+// Line 209
+<h1 className="text-2xl font-bold">{session.activity?.name || 'Unknown Activity'}</h1>
+
+// Line 299
+<dd className="font-medium">{session.activity?.name || 'Unknown'}</dd>
+
+// Line 303
+<dd className="font-medium">{session.activity?.duration_minutes || 0} min</dd>
+
+// Line 307
+<dd className="font-medium">${session.activity?.default_price_per_person || '0.00'}</dd>
 ```
 
----
+### 2. RestaurantSlotDetailPage.tsx
 
-## Visual Enhancements
+**Early return guard (after existing `!slot` check):**
+```typescript
+// After line 143-151 (!slot check)
+if (!slot.restaurant) {
+  return (
+    <Card>
+      <CardContent className="py-12 text-center">
+        <p className="text-muted-foreground">Restaurant data not available</p>
+      </CardContent>
+    </Card>
+  );
+}
+```
 
-1. **Pending Query Animation**
-   - Subtle pulse on the "Active Queries" section when queries are running
-   - Spinner icon next to each pending query
+**OR add optional chaining:**
+```typescript
+// Line 160
+<h1 className="text-2xl font-bold">{slot.restaurant?.name || 'Unknown Restaurant'}</h1>
+```
 
-2. **Timing Display**
-   - Live elapsed time counter for pending queries
-   - Duration badge with color coding for completed queries
+### 3. CancellationsReport.tsx (CSV Export)
 
-3. **Scroll Improvements**
-   - ScrollArea with proper `h-[calc(80vh-96px)]` calculation
-   - Smooth scrolling behavior
-   - Sections remain fully visible when expanded
+**Add guards in the forEach loops:**
+```typescript
+// Lines 258-273 - Activity cancellations
+activityCancellations.forEach((c: any) => {
+  const activity = c.activity_sessions?.activities;
+  if (!activity) return; // Skip if no activity data
+  
+  const leadTime = differenceInHours(parseISO(c.updated_at), parseISO(c.created_at));
+  rows.push([
+    'Activity',
+    activity.name || 'Unknown',
+    activity.category || 'N/A',
+    // ... rest unchanged
+  ]);
+});
 
-4. **Compact Mode** (optional toggle)
-   - Show only summary counts
-   - Expand to see details
+// Lines 275-290 - Restaurant cancellations
+restaurantCancellations.forEach((c: any) => {
+  const restaurant = c.restaurant_time_slots?.restaurants;
+  if (!restaurant) return; // Skip if no restaurant data
+  
+  const leadTime = differenceInHours(parseISO(c.updated_at), parseISO(c.created_at));
+  rows.push([
+    'Restaurant',
+    restaurant.name || 'Unknown',
+    // ... rest unchanged
+  ]);
+});
+```
 
----
+## Recommended Approach
 
-## Testing Checklist
+I recommend using **early return guards** for `ActivitySessionDetailPage` and `RestaurantSlotDetailPage` because:
+
+1. These are detail pages where the nested data (activity/restaurant) is essential for the page to make sense
+2. An early return with a clear error message is better UX than showing "Unknown Activity" throughout
+3. It matches the existing pattern of checking `!session` and `!slot`
+
+For `CancellationsReport.tsx`, use **filter/skip guards** in the loops since:
+1. It's a report that should continue processing other records even if one is corrupt
+2. Skipping orphaned records is acceptable behavior for a report
+
+## Impact
+
+- Fixes: ErrorBoundary crashes when navigating to detail pages with orphaned/null relations
+- Defensive: Gracefully handles deleted or RLS-restricted related records
+- No breaking changes: Pages continue to work normally when data is present
+- No database changes required
+
+## Testing
 
 After implementation:
-1. Navigate to `/staff/guests?debug=1`
-2. Verify "Active Queries" section shows live fetching queries
-3. Watch elapsed time counting up during slow queries
-4. Check "Query Performance" shows recent query timings
-5. Confirm slow queries (>500ms) are highlighted in red
-6. Test scroll behavior - panel should scroll smoothly
-7. Verify "Invalidate All" triggers visible re-fetch in active queries
-8. Check minimize/close buttons work correctly
+1. Navigate to `/staff/activities/sessions?debug=1`
+2. Click on any session - verify page loads without errors
+3. Navigate to `/staff/restaurants/slots?debug=1`
+4. Click on any slot - verify page loads without errors
+5. Navigate to `/staff/reports/cancellations?debug=1`
+6. Click "Export CSV" - verify it doesn't crash
+7. Check the Error Log section in the debug panel - should be empty
