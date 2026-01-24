@@ -1574,6 +1574,67 @@ export type Database = {
           },
         ]
       }
+      guest_preferences: {
+        Row: {
+          category: string
+          created_at: string
+          created_by_user_id: string | null
+          guest_id: string
+          id: string
+          priority: number
+          resort_id: string
+          source: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by_user_id?: string | null
+          guest_id: string
+          id?: string
+          priority?: number
+          resort_id: string
+          source?: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by_user_id?: string | null
+          guest_id?: string
+          id?: string
+          priority?: number
+          resort_id?: string
+          source?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_preferences_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_preferences_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_preferences_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_profile_events: {
         Row: {
           actor: string
