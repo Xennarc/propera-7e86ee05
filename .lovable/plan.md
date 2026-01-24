@@ -1,59 +1,64 @@
 
+# Debug: Guest Navigation Error Investigation
 
-# Fix: Remove Non-Existent `cuisine_type` Column Reference
+## Summary
 
-## Problem Summary
+The original `column restaurants.cuisine_type does not exist` error has been fixed in the codebase:
+- `usePrefetch.ts` was updated to remove `cuisine_type`
+- The database no longer shows `cuisine_type` errors in recent logs
+- The `guest_get_room_bookings` RPC function in the database has been verified to NOT include `cuisine_type`
 
-When navigating to a guest detail page (or any staff page within a resort context), the application triggers a prefetch query that references `restaurants.cuisine_type` — a column that does not exist in the database schema. This causes the error:
+## Current Status
 
-```
-column restaurants.cuisine_type does not exist
-```
+| Check | Status |
+|-------|--------|
+| `usePrefetch.ts` fixed | Done |
+| Database RPC function | Correct |
+| Recent DB error logs | None |
+| Supabase types file | Does not contain `cuisine_type` |
 
-The error is blocking or interfering with proper page rendering, which is why tapping on a guest in the list results in an error.
+## Immediate Actions Required
 
-## Root Cause
+### Step 1: Hard Refresh Your Browser
 
-The file `src/hooks/usePrefetch.ts` at line 37 contains:
+The fix has been deployed, but your browser may be caching the old JavaScript bundle. Please:
+1. Press **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac) to hard refresh
+2. Or clear your browser cache and reload
+3. Try navigating to a guest again
 
-```typescript
-.select('id, name, cuisine_type, is_active, opening_time, closing_time')
-```
+### Step 2: If Error Persists, Provide More Details
 
-The `cuisine_type` column was removed from the `restaurants` table (or never existed), but this code was not updated.
+If you still see an error after refreshing:
+1. Open browser DevTools (F12)
+2. Go to the **Console** tab
+3. Click on a guest in the list
+4. Share the **exact error message** you see
 
-## Solution
+This will help identify if there's a different issue occurring.
 
-Remove `cuisine_type` from the `.select()` call in `usePrefetch.ts`.
+## Preventive Improvements (Optional)
 
-## Changes Required
+If the error persists, I can implement these additional safeguards:
 
-| File | Change |
-|------|--------|
-| `src/hooks/usePrefetch.ts` | Remove `cuisine_type` from the restaurants prefetch query |
+### 1. Explicit Field Selection in Restaurant Queries
+Several pages use `select('*')` on the `restaurants` table. While this works now (since `cuisine_type` was never in the schema), converting these to explicit field lists would prevent future issues:
 
-## Technical Details
+| File | Line | Current | Proposed |
+|------|------|---------|----------|
+| `RestaurantsPage.tsx` | 47 | `select('*')` | `select('id, name, description, ...')` |
+| `RestaurantSlotsPage.tsx` | 76 | `select('*')` | `select('id, name, ...')` |
+| `RestaurantSlotDetailPage.tsx` | 117 | `select('*')` | `select('id, name, ...')` |
+| `CreateRestaurantSlotWizard.tsx` | 129 | `select('*')` | `select('id, name, ...')` |
 
-### Before (line 37)
-```typescript
-.select('id, name, cuisine_type, is_active, opening_time, closing_time')
-```
+### 2. React Query Cache Invalidation
+Add cache invalidation after navigation to ensure stale data doesn't persist.
 
-### After
-```typescript
-.select('id, name, is_active, opening_time, closing_time')
-```
+## Technical Verification
 
-## Impact
+The database currently has these columns on the `restaurants` table (verified via direct query):
+- `id`, `resort_id`, `name`, `description`, `total_capacity`
+- `guest_can_book`, `requires_approval`, `guest_cutoff_minutes`
+- `max_pax_per_booking`, `guest_can_cancel`, `guest_cancel_cutoff_minutes`
+- `is_active`, `created_at`, `updated_at`, `opening_time`, `closing_time`
 
-- **Fixes**: Guest list navigation, Guest detail page loading, and any other page that triggers the prefetch hook
-- **No breaking changes**: The `cuisine_type` field was not being used anywhere since it doesn't exist
-- **No schema changes required**: This is purely a frontend code fix
-
-## Testing
-
-After the fix:
-1. Navigate to the Guests page
-2. Click on any guest in the list
-3. Verify the Guest Detail page loads without errors
-
+**`cuisine_type` is NOT present** - this confirms the column was never in the schema, and the error was coming from outdated code references that have now been fixed.
