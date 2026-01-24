@@ -199,6 +199,19 @@ export default function ActivitySessionDetailPage() {
     );
   }
 
+  if (!session.activity) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">Activity data not available</p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate('/staff/activities/sessions')}>
+            Back to Sessions
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
