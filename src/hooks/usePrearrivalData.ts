@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { toStringArray } from '@/lib/safe-array';
 
 export interface PrearrivalProfile {
   id: string;
@@ -66,7 +67,14 @@ export function usePrearrivalData() {
         throw error;
       }
 
-      return data as unknown as PrearrivalData;
+      // Normalize array fields to prevent .map() crashes
+      const result = data as unknown as PrearrivalData;
+      if (result?.profile) {
+        result.profile.dietary_preferences = toStringArray(result.profile.dietary_preferences);
+        result.profile.special_occasions = toStringArray(result.profile.special_occasions);
+      }
+
+      return result;
     },
     enabled: !!guest,
     staleTime: 60000, // 1 minute

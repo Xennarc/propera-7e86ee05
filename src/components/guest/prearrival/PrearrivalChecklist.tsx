@@ -69,14 +69,15 @@ export function PrearrivalChecklist({
 
   // Special occasions
   if (settings.show_special_occasions) {
-    const hasOccasions = Array.isArray(profile?.special_occasions) && profile.special_occasions.length > 0;
+    const occasionsArr = Array.isArray(profile?.special_occasions) ? profile.special_occasions : [];
+    const hasOccasions = occasionsArr.length > 0;
     items.push({
       id: 'occasions',
       title: 'Any special occasion?',
       description: hasOccasions
-        ? profile.special_occasions.join(', ')
+        ? occasionsArr.join(', ')
         : 'Honeymoon, anniversary, birthday...',
-      isComplete: !!hasOccasions,
+      isComplete: hasOccasions,
       action: () => onOpenWizard(2),
     });
   }

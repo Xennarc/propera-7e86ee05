@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toStringArray } from '@/lib/safe-array';
 
 export interface PrearrivalProfile {
   id: string;
@@ -8,11 +9,11 @@ export interface PrearrivalProfile {
   arrival_time: string | null;
   arrival_flight_number: string | null;
   transfer_preference: string | null;
-  dietary_preferences: string[] | null;
+  dietary_preferences: string[];
   allergies: string | null;
   room_preferences: Record<string, any> | null;
   water_comfort_level: string | null;
-  special_occasions: string[] | null;
+  special_occasions: string[];
   special_requests: string | null;
   custom_answers_json: Record<string, any> | null;
   policy_acknowledged_at: string | null;
@@ -123,11 +124,11 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
           arrival_time: data.arrival_time || null,
           arrival_flight_number: data.arrival_flight_number || null,
           transfer_preference: data.transfer_preference || null,
-          dietary_preferences: data.dietary_preferences || null,
+          dietary_preferences: toStringArray(data.dietary_preferences),
           allergies: data.allergies || null,
           room_preferences: data.room_preferences || null,
           water_comfort_level: data.water_comfort_level || null,
-          special_occasions: data.special_occasions || null,
+          special_occasions: toStringArray(data.special_occasions),
           special_requests: data.special_requests || null,
           custom_answers_json: data.custom_answers_json || null,
           policy_acknowledged_at: null,
@@ -191,9 +192,9 @@ function hasPartialData(profile: PrearrivalProfile): boolean {
     profile.arrival_time ||
     profile.arrival_flight_number ||
     profile.transfer_preference ||
-    (profile.dietary_preferences && profile.dietary_preferences.length > 0) ||
+    profile.dietary_preferences.length > 0 ||
     profile.allergies ||
-    (profile.special_occasions && profile.special_occasions.length > 0) ||
+    profile.special_occasions.length > 0 ||
     profile.special_requests ||
     profile.policy_acknowledged_at
   );
