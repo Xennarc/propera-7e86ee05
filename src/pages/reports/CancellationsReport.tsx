@@ -256,13 +256,14 @@ export default function CancellationsReport() {
     const rows: string[][] = [];
 
     activityCancellations.forEach((c: any) => {
-      const activity = c.activity_sessions.activities;
+      const activity = c.activity_sessions?.activities;
+      if (!activity) return; // Skip orphaned records
       const leadTime = differenceInHours(parseISO(c.updated_at), parseISO(c.created_at));
       rows.push([
         'Activity',
-        activity.name,
-        activity.category,
-        c.activity_sessions.date,
+        activity.name || 'Unknown',
+        activity.category || 'N/A',
+        c.activity_sessions?.date || '',
         format(new Date(c.created_at), 'yyyy-MM-dd HH:mm'),
         format(new Date(c.updated_at), 'yyyy-MM-dd HH:mm'),
         leadTime.toString(),
@@ -273,13 +274,14 @@ export default function CancellationsReport() {
     });
 
     restaurantCancellations.forEach((c: any) => {
-      const restaurant = c.restaurant_time_slots.restaurants;
+      const restaurant = c.restaurant_time_slots?.restaurants;
+      if (!restaurant) return; // Skip orphaned records
       const leadTime = differenceInHours(parseISO(c.updated_at), parseISO(c.created_at));
       rows.push([
         'Restaurant',
-        restaurant.name,
-        c.restaurant_time_slots.meal_period,
-        c.restaurant_time_slots.date,
+        restaurant.name || 'Unknown',
+        c.restaurant_time_slots?.meal_period || 'N/A',
+        c.restaurant_time_slots?.date || '',
         format(new Date(c.created_at), 'yyyy-MM-dd HH:mm'),
         format(new Date(c.updated_at), 'yyyy-MM-dd HH:mm'),
         leadTime.toString(),

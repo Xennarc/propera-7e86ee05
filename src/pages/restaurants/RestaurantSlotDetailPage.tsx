@@ -150,6 +150,19 @@ export default function RestaurantSlotDetailPage() {
     );
   }
 
+  if (!slot.restaurant) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">Restaurant data not available</p>
+          <Button variant="outline" className="mt-4" onClick={() => navigate('/restaurants/slots')}>
+            Back to Slots
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
