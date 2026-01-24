@@ -1,103 +1,239 @@
 
-# Fix: Null Safety Issues in GuestDetailPage
+# Enhanced Staff Debug Panel - Query Timing & UI Improvements
 
-## Problem Summary
+## Overview
 
-The `GuestDetailPage` component is crashing when navigating to a guest detail view. The debug console shows:
+Enhance the existing `StaffDebugPanel` with advanced query diagnostics including:
+- Real-time tracking of pending/fetching queries
+- Query execution timing measurements
+- Slow query detection and highlighting
+- Improved scrollable UI with better visual hierarchy
+- Resizable/collapsible panel for easier use
+
+---
+
+## Features to Add
+
+| Feature | Description |
+|---------|-------------|
+| **Pending Queries** | Live list of currently fetching queries with elapsed time |
+| **Query Timing** | Track and display execution times for recent queries |
+| **Slow Query Detection** | Highlight queries taking longer than threshold (e.g., 500ms) |
+| **Query Details** | Expandable view showing query keys and status |
+| **Improved Scrolling** | Better scroll behavior with sticky headers |
+| **Panel Controls** | Minimize, resize, and position options |
+
+---
+
+## Architecture
+
+```text
++------------------------------------------+
+|  debug-error-capture.ts (existing)       |
++------------------------------------------+
+                  |
++------------------------------------------+
+|  debug-query-tracker.ts (NEW)            |
+|  - Query start/end timing                |
+|  - Pending queries list                  |
+|  - Slow query detection                  |
++------------------------------------------+
+                  |
++------------------------------------------+
+|  StaffDebugPanel.tsx (enhanced)          |
+|  - New "Active Queries" section          |
+|  - New "Query Performance" section       |
+|  - Improved UI/UX                        |
++------------------------------------------+
 ```
-ErrorBoundary caught an error: {} { "componentStack": "\n at Rt (https://propera.cc/assets/GuestDetailPage-...
-```
 
-The root cause is **missing null safety checks** when accessing nested joined data from the database.
+---
 
-## Root Cause
+## Files to Create
 
-The component fetches activity bookings and restaurant reservations with Supabase joins:
-```typescript
-// Activity bookings with nested activity
-session:activity_sessions(id, date, start_time, activity:activities(name))
-
-// Restaurant reservations with nested restaurant  
-slot:restaurant_time_slots(id, date, start_time, meal_period, restaurant:restaurants(name))
-```
-
-However, when rendering the data, the code directly accesses:
-- `booking.session.activity.name` (lines 581, 611)
-- `reservation.slot.restaurant.name` (lines 663, 695)
-
-**Without optional chaining**. If any `activity` or `restaurant` join returns null (e.g., deleted record, RLS restriction), the component crashes.
-
-The filter logic only checks `if (!b.session)` but NOT `if (!b.session.activity)`, allowing broken data through to the render.
-
-## Solution
-
-1. **Add optional chaining** to all nested property accesses
-2. **Enhance filter logic** to exclude bookings/reservations with missing nested data
-3. **Add fallback text** for missing activity/restaurant names
+| File | Description |
+|------|-------------|
+| `src/lib/debug-query-tracker.ts` | Query timing and tracking utility |
 
 ## Files to Modify
 
-| File | Lines | Change |
-|------|-------|--------|
-| `src/pages/guests/GuestDetailPage.tsx` | 185-204 | Add null checks for nested `activity` and `restaurant` in filters |
-| `src/pages/guests/GuestDetailPage.tsx` | 581, 611 | Add optional chaining: `booking.session.activity?.name || 'Unknown'` |
-| `src/pages/guests/GuestDetailPage.tsx` | 663, 695 | Add optional chaining: `reservation.slot.restaurant?.name || 'Unknown'` |
+| File | Change |
+|------|--------|
+| `src/components/staff/StaffDebugPanel.tsx` | Add new sections and UI improvements |
 
-## Technical Details
+---
 
-### Change 1: Enhanced Filter Logic (Lines 185-204)
+## Technical Implementation
 
-```typescript
-// Before
-const upcomingActivityBookings = activityBookings.filter(b => {
-  if (!b.session) return false;
-  // ...
-});
+### 1. Query Tracker Utility (`debug-query-tracker.ts`)
 
-// After - also check for nested activity
-const upcomingActivityBookings = activityBookings.filter(b => {
-  if (!b.session || !b.session.activity) return false;
-  // ...
-});
-```
-
-Apply the same pattern to:
-- `pastActivityBookings` - add `!b.session.activity` check
-- `upcomingReservations` - add `!r.slot.restaurant` check
-- `pastReservations` - add `!r.slot.restaurant` check
-
-### Change 2: Render with Optional Chaining (Lines 581, 611)
+A module that hooks into React Query's cache to track:
 
 ```typescript
-// Before
-<TableCell className="font-medium">{booking.session.activity.name}</TableCell>
+interface TrackedQuery {
+  queryKey: string[];
+  keyString: string;         // Human-readable key
+  startTime: number;         // When fetch started
+  endTime?: number;          // When fetch completed
+  duration?: number;         // Duration in ms
+  status: 'pending' | 'success' | 'error';
+  isSlow: boolean;           // > 500ms threshold
+}
 
-// After
-<TableCell className="font-medium">{booking.session.activity?.name || 'Unknown Activity'}</TableCell>
+// Export functions:
+export function initQueryTracker(queryClient: QueryClient): () => void;
+export function getPendingQueries(): TrackedQuery[];
+export function getRecentQueries(): TrackedQuery[];
+export function getSlowQueries(): TrackedQuery[];
+export function clearQueryHistory(): void;
 ```
 
-### Change 3: Render with Optional Chaining (Lines 663, 695)
+**Implementation approach:**
+- Subscribe to `queryClient.getQueryCache().subscribe()` events
+- Track `added`, `updated` events with `isFetching` state changes
+- Store timing data in memory (last 20 queries)
+- Calculate duration when query transitions from fetching to success/error
+
+### 2. Enhanced StaffDebugPanel UI
+
+**New Sections:**
+
+**Section: Active Queries (Live)**
+```
+[Loader icon] Active Queries (3)
+-----------------------------------
+| guests-list        | 1.2s ↻     |
+| dining-slots       | 0.4s ↻     |
+| resort-config      | 2.1s ⚠️    |  <- slow query warning
+-----------------------------------
+```
+
+**Section: Query Performance**
+```
+[Timer icon] Query Performance
+-----------------------------------
+| avg response time  | 324ms      |
+| slow queries (>500ms) | 2       |
+| total fetched      | 47         |
+-----------------------------------
+Recent queries (last 10):
+| guests-list        | 245ms  ✓   |
+| dining-slots       | 612ms  ⚠️  |
+| resort-config      | 189ms  ✓   |
+-----------------------------------
+[Clear History] button
+```
+
+**UI Improvements:**
+- Sticky header that remains visible while scrolling
+- Better visual separation between sections
+- Compact/expanded view toggle
+- Pulse animation for active fetches
+- Color-coded timing (green < 300ms, amber 300-500ms, red > 500ms)
+- Improved badge styling
+- Smoother scroll with proper max-height
+
+### 3. UI Layout Changes
+
+```
++------------------------------------------+
+| [Bug] Staff Debug Console    [_] [X]     | <- sticky header
++------------------------------------------+
+| [ScrollArea - max-h calculated properly] |
+|                                          |
+| > Auth Context                           |
+| > Resort Context                         |
+| > Permissions                            |
+| > Active Queries (3) 🔄                  | <- NEW
+| > Query Performance                      | <- NEW  
+| > Query Cache                            |
+| > Error Log (0)                          |
+| > Page Diagnostics                       |
+|                                          |
++------------------------------------------+
+| Remove ?debug=1 to hide                  | <- sticky footer
++------------------------------------------+
+```
+
+---
+
+## Implementation Details
+
+### Query Key Formatting
+
+Transform complex query keys into readable strings:
+```typescript
+// ['guests', 'list', 'resort-uuid-here'] 
+// becomes: "guests.list.resort..."
+
+function formatQueryKey(queryKey: unknown[]): string {
+  return queryKey
+    .map(part => {
+      if (typeof part === 'string') {
+        // Truncate UUIDs
+        if (part.length > 20 && part.includes('-')) {
+          return part.slice(0, 8) + '...';
+        }
+        return part;
+      }
+      return JSON.stringify(part);
+    })
+    .join('.');
+}
+```
+
+### Timing Color Thresholds
+
+| Duration | Color | Status |
+|----------|-------|--------|
+| < 300ms | Green | Fast |
+| 300-500ms | Amber | Normal |
+| > 500ms | Red | Slow |
+
+### Live Updates
+
+Use `useEffect` with interval to refresh pending queries every 100ms for smooth elapsed time updates:
 
 ```typescript
-// Before
-<TableCell className="font-medium">{reservation.slot.restaurant.name}</TableCell>
-
-// After
-<TableCell className="font-medium">{reservation.slot.restaurant?.name || 'Unknown Restaurant'}</TableCell>
+useEffect(() => {
+  const interval = setInterval(() => {
+    setPendingQueries(getPendingQueries());
+  }, 100); // Fast refresh for live timing
+  return () => clearInterval(interval);
+}, []);
 ```
 
-## Impact
+---
 
-- **Fixes**: The ErrorBoundary crash on GuestDetailPage
-- **Defensive**: Gracefully handles missing or deleted related records
-- **No breaking changes**: Just adds safety, does not change functionality
-- **No schema changes required**
+## Visual Enhancements
 
-## Testing
+1. **Pending Query Animation**
+   - Subtle pulse on the "Active Queries" section when queries are running
+   - Spinner icon next to each pending query
 
-After the fix:
+2. **Timing Display**
+   - Live elapsed time counter for pending queries
+   - Duration badge with color coding for completed queries
+
+3. **Scroll Improvements**
+   - ScrollArea with proper `h-[calc(80vh-96px)]` calculation
+   - Smooth scrolling behavior
+   - Sections remain fully visible when expanded
+
+4. **Compact Mode** (optional toggle)
+   - Show only summary counts
+   - Expand to see details
+
+---
+
+## Testing Checklist
+
+After implementation:
 1. Navigate to `/staff/guests?debug=1`
-2. Click on any guest in the list
-3. Verify the Guest Detail page loads without errors
-4. Check the Error Log section in the debug console - should be empty
-5. Verify activity bookings and restaurant reservations display correctly
+2. Verify "Active Queries" section shows live fetching queries
+3. Watch elapsed time counting up during slow queries
+4. Check "Query Performance" shows recent query timings
+5. Confirm slow queries (>500ms) are highlighted in red
+6. Test scroll behavior - panel should scroll smoothly
+7. Verify "Invalidate All" triggers visible re-fetch in active queries
+8. Check minimize/close buttons work correctly
