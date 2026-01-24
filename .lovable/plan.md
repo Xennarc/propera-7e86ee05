@@ -1,242 +1,345 @@
 
 
-# Add "Make Restaurant Reservation" Action to Guest Detail Page
+# Enhance Booking Tables with Inline Detail Previews
 
 ## Summary
 
-Add a **"Make Reservation" button** to the Restaurant Reservations card on the Guest Detail page, matching the Activity Booking pattern. This requires enhancing the existing `RestaurantReservationDialog` to support restaurant/date/slot selection when no slot is pre-selected.
+Add **side sheet previews** to booking tables on the Guest Detail page, enabling staff to view expanded booking details (pax, notes, status, policy) and perform quick actions (cancel/navigate) without navigating away from the current page. Navigation to session/slot detail pages remains available.
 
 ---
 
-## Current State Analysis
+## Current State
 
-| Feature | Activity Bookings | Restaurant Reservations |
-|---------|-------------------|------------------------|
-| Card header button | ✅ "Book Activity" | ❌ Missing |
-| Dialog state variable | ✅ `activityBookingDialogOpen` | ❌ Missing |
-| Dialog component | ✅ Full selection flow | ⚠️ Requires slot pre-selection |
-| Inline selection | ✅ Activity → Date → Session | ❌ Not implemented |
-
----
-
-## Implementation Approach
-
-### Pattern Alignment
-
-The `ActivityBookingDialog` (lines 76-115) provides the template:
-
-1. When opened with a guest but no session:
-   - Fetch active activities for the resort
-   - Show activity dropdown
-   - Show date picker
-   - Fetch and display available sessions for selected activity/date
-   - User selects a session
-
-2. When opened with a pre-selected session:
-   - Skip selection, show session summary only
-
-The `RestaurantReservationDialog` will be enhanced to follow this exact pattern.
+| Component | Behavior |
+|-----------|----------|
+| Activity Bookings table | Row click navigates to `/staff/activities/sessions/:id` |
+| Restaurant Reservations table | Row click navigates to `/staff/restaurants/slots/:id` |
+| Detail preview | Not available - requires full page navigation |
+| Quick actions | Only available on detail pages |
 
 ---
 
-## Files to Modify
+## Design Decision: Side Sheet vs Expandable Row
 
-### 1. `src/pages/restaurants/RestaurantReservationDialog.tsx`
+| Option | Pros | Cons |
+|--------|------|------|
+| **Side Sheet** ✓ | More space for details, consistent with `RequestDetailDrawer` pattern, supports quick actions | Extra click to open |
+| Expandable Row | Inline, no overlay | Limited space, harder to show actions, complex table state |
 
-**Changes:**
-- Add state for restaurant selection: `selectedRestaurantId`, `selectedDate`
-- Add state for slot list: `slots`, `restaurants`
-- Add `useEffect` to fetch active restaurants when dialog opens without a slot
-- Add `useEffect` to fetch available slots when restaurant/date selected
-- Add restaurant dropdown, date picker, and slot selection UI (mirroring activity dialog)
-- Keep existing slot summary when slot is pre-selected
+**Recommendation**: Use **Side Sheet** (following `RequestDetailDrawer` pattern) - it provides adequate space for pax details, notes, status, policy snippets, and quick actions while keeping navigation to detail pages intact.
 
-**New UI Flow (when no slot provided):**
+---
+
+## Architecture
+
 ```text
-┌────────────────────────────────────────────────────────────┐
-│ New Restaurant Reservation                                 │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  Guest                                                     │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ John Smith                       Room 101  [Change]│   │
-│  └────────────────────────────────────────────────────┘   │
-│                                                            │
-│  Restaurant *                                              │
-│  [ Select restaurant ▾ ]                                   │
-│                                                            │
-│  Date *                                                    │
-│  [ 2026-01-24 ]                                            │
-│                                                            │
-│  Available Slots *                                         │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ 18:00 - 20:00  │  DINNER  │  24 remaining          │   │
-│  └────────────────────────────────────────────────────┘   │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │ 19:00 - 21:00  │  DINNER  │  12 remaining          │   │
-│  └────────────────────────────────────────────────────┘   │
-│                                                            │
-│  Adults *                Children                          │
-│  [ 1 ]                   [ 0 ]                             │
-│                                                            │
-│  Special Requests                                          │
-│  [                                                     ]   │
-│                                                            │
-│                         [Cancel]  [Create Reservation]     │
-└────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│ GuestDetailPage                                                           │
+│                                                                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐ │
+│  │ Activity Bookings Table                                              │ │
+│  │ ┌─────────┬──────────┬──────┬─────┬────────┬────────┬─────────────┐ │ │
+│  │ │ Activity│ Date     │ Time │ Pax │ Source │ Status │ Actions  ⋮  │ │ │
+│  │ ├─────────┼──────────┼──────┼─────┼────────┼────────┼─────────────┤ │ │
+│  │ │ Snorkel │ Mon, Jan │10:00 │ 2   │ Portal │ ✓ Conf │ [Eye] [→]   │ │ │
+│  │ └─────────┴──────────┴──────┴─────┴────────┴────────┴─────────────┘ │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+                           │ Click [Eye]
+                           ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│ StaffBookingPreviewSheet (Side Panel)                                     │
+├───────────────────────────────────────────────────────────────────────────┤
+│ ┌───────────────────────────────────────────────────────────────────────┐ │
+│ │ Snorkeling Trip                                    [CONFIRMED]        │ │
+│ │ Monday, January 27 • 10:00 - 12:00                                    │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+│ ┌───────────────────────────────────────────────────────────────────────┐ │
+│ │ 👤 Guest       John Smith (Room 101)                                  │ │
+│ │ 👥 Party       2 adults, 1 child                                      │ │
+│ │ 📅 Booked      Jan 20 via Guest Portal                                │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+│ ┌ Notes ────────────────────────────────────────────────────────────────┐ │
+│ │ "Need snorkel gear for beginner"                                      │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+│ ┌ Cancellation Policy ──────────────────────────────────────────────────┐ │
+│ │ Cancel before 24 hours for full refund                                │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                           │
+│ ┌───────────────────────────────────────────────────────────────────────┐ │
+│ │ [View Full Session →]    [Cancel Booking]                             │ │
+│ └───────────────────────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 2. `src/pages/guests/GuestDetailPage.tsx`
+## Implementation Plan
 
-**Changes:**
-- Add state: `const [restaurantReservationDialogOpen, setRestaurantReservationDialogOpen] = useState(false);`
-- Add button to Restaurant Reservations card header (matching Activity Bookings)
-- Render `RestaurantReservationDialog` at bottom of component
+### 1. New Component: `StaffBookingPreviewSheet`
 
-**Location:** Lines 688-695 (Restaurant Reservations CardHeader)
+**File:** `src/components/staff/StaffBookingPreviewSheet.tsx`
 
+A unified preview sheet for both activity bookings and restaurant reservations.
+
+**Props Interface:**
 ```typescript
-// Current (line 690-695):
-<CardHeader className="flex flex-row items-center justify-between">
-  <CardTitle className="flex items-center gap-2">
-    <Utensils className="h-5 w-5" />
-    Restaurant Reservations
-  </CardTitle>
-</CardHeader>
-
-// Updated:
-<CardHeader className="flex flex-row items-center justify-between">
-  <CardTitle className="flex items-center gap-2">
-    <Utensils className="h-5 w-5" />
-    Restaurant Reservations
-  </CardTitle>
-  {canEdit && (
-    <Button onClick={() => setRestaurantReservationDialogOpen(true)}>
-      Make Reservation
-    </Button>
-  )}
-</CardHeader>
+interface StaffBookingPreviewSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  
+  // One of these will be provided
+  activityBooking?: ActivityBookingWithSession | null;
+  restaurantReservation?: ReservationWithSlot | null;
+  
+  // Callbacks
+  onNavigateToDetail?: () => void;
+  onCancelBooking?: () => void;
+  onRefresh?: () => void;
+  
+  // Permissions
+  canCancel?: boolean;
+}
 ```
 
-**Add dialog render (after ActivityBookingDialog, around line 790):**
+**Content Sections:**
+1. **Header**: Title (activity/restaurant name), status badge, date/time
+2. **Guest Info**: Name, room number, party size (adults/children)
+3. **Booking Source**: Portal, Pre-arrival, or Staff-created with creator name
+4. **Notes Section**: Display `notes` (activities) or `special_requests` (restaurants)
+5. **Policy Snippet**: Show cancellation window if applicable
+6. **Quick Actions**:
+   - "View Full Session/Slot" button (navigates to detail page)
+   - "Cancel Booking" button (if canCancel and status allows)
+
+**UI Pattern**: Uses `Sheet` component (consistent with `RequestDetailDrawer`)
+
+---
+
+### 2. New Hook: `useStaffBookingCancel`
+
+**File:** `src/hooks/useStaffBookingCancel.ts`
+
+A mutation hook for staff-side booking cancellations.
+
+**Features:**
+- Calls `cancelActivityBooking` or `cancelRestaurantReservation` from `booking-service.ts`
+- Returns `isLoading`, `error`, and `mutateAsync` for the cancel operation
+- Provides toast feedback on success/failure
+- Includes `canCancelBooking` helper to check if cancellation is allowed
+
+**Interface:**
 ```typescript
-{/* Restaurant Reservation Dialog */}
-<RestaurantReservationDialog
-  open={restaurantReservationDialogOpen}
-  onOpenChange={setRestaurantReservationDialogOpen}
-  guest={guest}
-  onSuccess={fetchGuest}
+export function useStaffBookingCancel() {
+  return {
+    cancelActivity: (bookingId: string, guestId: string) => Promise<void>,
+    cancelReservation: (reservationId: string, guestId: string) => Promise<void>,
+    isCancelling: boolean,
+  };
+}
+
+export function canCancelBooking(
+  status: BookingStatus,
+  bookingDate: string,
+  bookingTime: string,
+  cutoffHours?: number
+): boolean;
+```
+
+---
+
+### 3. Update Table in GuestDetailPage
+
+**File:** `src/pages/guests/GuestDetailPage.tsx`
+
+**Changes:**
+
+1. **Add State for Preview Sheet:**
+```typescript
+const [previewBooking, setPreviewBooking] = useState<{
+  type: 'activity' | 'restaurant';
+  booking: ActivityBookingWithSession | null;
+  reservation: ReservationWithSlot | null;
+} | null>(null);
+```
+
+2. **Add Actions Column to Tables:**
+
+Replace current row `onClick` with explicit action buttons:
+
+| Column | Content |
+|--------|---------|
+| ... existing columns ... | |
+| Actions | `[Eye icon]` Preview, `[ArrowRight icon]` Navigate |
+
+**Activity Table Row:**
+```typescript
+<TableRow key={booking.id}>
+  {/* ... existing cells ... */}
+  <TableCell className="text-right">
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={(e) => {
+          e.stopPropagation();
+          setPreviewBooking({ type: 'activity', booking, reservation: null });
+        }}
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => navigate(`/staff/activities/sessions/${booking.session?.id}`)}
+      >
+        <ArrowRight className="h-4 w-4" />
+      </Button>
+    </div>
+  </TableCell>
+</TableRow>
+```
+
+3. **Render Preview Sheet:**
+```typescript
+<StaffBookingPreviewSheet
+  open={!!previewBooking}
+  onOpenChange={(open) => !open && setPreviewBooking(null)}
+  activityBooking={previewBooking?.type === 'activity' ? previewBooking.booking : null}
+  restaurantReservation={previewBooking?.type === 'restaurant' ? previewBooking.reservation : null}
+  onNavigateToDetail={() => {
+    if (previewBooking?.type === 'activity') {
+      navigate(`/staff/activities/sessions/${previewBooking.booking?.session?.id}`);
+    } else {
+      navigate(`/staff/restaurants/slots/${previewBooking?.reservation?.slot?.id}`);
+    }
+    setPreviewBooking(null);
+  }}
+  onCancelBooking={async () => {
+    // Handle cancel via useStaffBookingCancel
+  }}
+  onRefresh={fetchGuest}
+  canCancel={canEdit}
 />
 ```
 
 ---
 
-## Technical Details
+### 4. Fetch Additional Data for Previews
 
-### Restaurant Fetch Query
-```typescript
-const fetchRestaurants = async () => {
-  if (!currentResort) return;
-  const { data } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('resort_id', currentResort.id)
-    .eq('is_active', true)
-    .order('name');
-  if (data) setRestaurants(data);
-};
-```
+The current `GuestDetailPage` already fetches bookings with sessions/slots. To support the preview, we need to ensure `notes` and `special_requests` are included in the queries.
 
-### Slot Fetch Query (with remaining capacity)
-```typescript
-const fetchAvailableSlots = async () => {
-  if (!currentResort || !selectedRestaurantId || !selectedDate) return;
-  
-  // Fetch slots
-  const { data: slotsData } = await supabase
-    .from('restaurant_time_slots')
-    .select(`*, restaurant:restaurants(*)`)
-    .eq('resort_id', currentResort.id)
-    .eq('restaurant_id', selectedRestaurantId)
-    .eq('date', selectedDate)
-    .eq('status', 'OPEN')
-    .order('start_time');
-  
-  if (!slotsData) return;
-  
-  // Fetch booked covers for these slots
-  const slotIds = slotsData.map(s => s.id);
-  const { data: reservationsData } = await supabase
-    .from('restaurant_reservations')
-    .select('restaurant_slot_id, num_adults, num_children')
-    .in('restaurant_slot_id', slotIds)
-    .in('status', ['PENDING', 'CONFIRMED']);
-  
-  // Calculate remaining capacity
-  const slotsWithCapacity = slotsData.map(slot => {
-    const slotReservations = reservationsData?.filter(r => r.restaurant_slot_id === slot.id) || [];
-    const bookedCovers = slotReservations.reduce((sum, r) => sum + r.num_adults + r.num_children, 0);
-    return { ...slot, bookedCovers, remaining: slot.capacity - bookedCovers };
-  });
-  
-  setSlots(slotsWithCapacity);
-};
-```
+**Lines 130-140 (Activity Bookings Query):**
+- Already includes `session:activity_sessions(*, activity:activities(*))`
+- Verify `notes` field is selected (implicit in `*`)
+
+**Lines 165-175 (Restaurant Reservations Query):**
+- Already includes `slot:restaurant_time_slots(*, restaurant:restaurants(*))`
+- Verify `special_requests` field is selected (implicit in `*`)
+
+**Additional fields needed for policy display:**
+- Activity: `session.activity.guest_can_cancel`, `session.activity.guest_cancel_cutoff_hours`, `session.activity.cancellation_policy_text`
+- Restaurant: `slot.restaurant.guest_can_cancel`, `slot.restaurant.guest_cancel_cutoff_minutes`
 
 ---
 
-## Permissions
+## Files to Create
 
-Using the same permission check as Activity Booking:
+| File | Purpose |
+|------|---------|
+| `src/components/staff/StaffBookingPreviewSheet.tsx` | Unified booking preview side sheet |
+| `src/hooks/useStaffBookingCancel.ts` | Staff cancellation mutation hook |
 
-```typescript
-// Line 108 in GuestDetailPage.tsx
-const canEdit = hasWriteAccess(canAccessGuests);
-```
+## Files to Modify
 
-This ensures:
-- RESORT_ADMIN ✅
-- MANAGER ✅
-- FRONT_OFFICE ✅
-- RESERVATIONS ✅
-
----
-
-## Post-Action Behavior
-
-| Action | Behavior |
-|--------|----------|
-| Reservation created | Toast: "Reservation created successfully" |
-| Duplicate detected | Toast: "Existing Reservation Found" |
-| Dialog closes | Automatically via `onOpenChange(false)` |
-| Data refresh | `fetchGuest()` called via `onSuccess` prop |
-| Navigation | Optional - user can click new row to navigate to slot detail |
+| File | Change |
+|------|--------|
+| `src/pages/guests/GuestDetailPage.tsx` | Add preview state, action buttons, render sheet |
 
 ---
 
 ## What This Does NOT Change
 
-- ✅ Existing reservation list display (unchanged)
-- ✅ Existing slot detail page behavior (unchanged)
-- ✅ Database tables (no modifications)
-- ✅ RLS policies (no modifications)
-- ✅ Booking service logic (reuses existing `createRestaurantReservation`)
-- ✅ Loyalty points awarding (already implemented in dialog)
+- **Navigation preserved**: Arrow button still navigates to session/slot detail pages
+- **Existing table data**: Same columns, same sorting
+- **Detail pages**: `ActivitySessionDetailPage` and `RestaurantSlotDetailPage` remain unchanged
+- **Booking service logic**: Uses existing `cancelActivityBooking` / `cancelRestaurantReservation`
+- **Database/RLS**: No changes required
+
+---
+
+## Permission Handling
+
+| Action | Requirement |
+|--------|-------------|
+| View preview | Any staff with resort access |
+| Cancel booking | `canEdit` permission (RESORT_ADMIN, MANAGER, FRONT_OFFICE, RESERVATIONS) |
+| Navigate to detail | Any staff with resort access |
+
+---
+
+## Quick Actions Availability
+
+| Action | Condition |
+|--------|-----------|
+| Cancel Activity | `status IN (PENDING, CONFIRMED)` AND within cutoff window |
+| Cancel Reservation | `status IN (PENDING, CONFIRMED)` AND within cutoff window |
+| View Full Session | Always available (navigates to detail page) |
+| Edit Booking | Future enhancement (currently only on detail pages) |
+
+---
+
+## Preview Sheet Content Breakdown
+
+### Activity Booking Preview
+
+| Section | Data Source |
+|---------|-------------|
+| Title | `booking.session.activity.name` |
+| Date/Time | `booking.session.date`, `booking.session.start_time` |
+| Status | `booking.status` (via `StatusBadge`) |
+| Guest | `guest.full_name` from context |
+| Room | `booking.room_number` |
+| Party | `booking.num_adults`, `booking.num_children` |
+| Source | `booking.booking_source` |
+| Notes | `booking.notes` |
+| Policy | `booking.session.activity.cancellation_policy_text` |
+
+### Restaurant Reservation Preview
+
+| Section | Data Source |
+|---------|-------------|
+| Title | `reservation.slot.restaurant.name` |
+| Date/Time | `reservation.slot.date`, `reservation.slot.start_time` |
+| Meal Period | `reservation.slot.meal_period` |
+| Status | `reservation.status` (via `StatusBadge`) |
+| Guest | `guest.full_name` from context |
+| Room | `reservation.room_number` |
+| Party | `reservation.num_adults`, `reservation.num_children` |
+| Special Requests | `reservation.special_requests` |
+| Policy | Derived from `slot.restaurant.guest_cancel_cutoff_minutes` |
 
 ---
 
 ## Testing Checklist
 
-1. Open Guest Detail page for a guest
-2. Verify "Make Reservation" button appears in Restaurant Reservations card header
-3. Click button - dialog opens with guest pre-filled
-4. Select a restaurant from dropdown
-5. Select a date
-6. Verify available slots appear with remaining capacity
-7. Select a slot
-8. Enter pax count and optional special requests
-9. Click "Create Reservation"
-10. Verify toast appears and reservation shows in list immediately
+1. Open GuestDetailPage for a guest with activity bookings
+2. Click Eye icon on a booking row
+3. Verify preview sheet opens with correct data:
+   - Activity name, date, time, status
+   - Guest party size (adults/children)
+   - Notes if present
+   - Policy snippet if available
+4. Click "View Full Session" - navigates to session detail page
+5. Click "Cancel Booking" (if allowed) - booking cancelled, list refreshes
+6. Close sheet and verify table row still has arrow navigation
+7. Repeat for restaurant reservations
+8. Test with past bookings (cancel button should be hidden)
+9. Test with different statuses (PENDING, CONFIRMED, CANCELLED)
 
