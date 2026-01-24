@@ -183,22 +183,22 @@ export default function GuestDetailPage() {
   // Split bookings into upcoming and past
   const today = startOfDay(new Date());
   const upcomingActivityBookings = activityBookings.filter(b => {
-    if (!b.session) return false;
+    if (!b.session || !b.session.activity) return false;
     const date = safeParseDateISO(b.session.date);
     return date && !isBefore(date, today);
   });
   const pastActivityBookings = activityBookings.filter(b => {
-    if (!b.session) return false;
+    if (!b.session || !b.session.activity) return false;
     const date = safeParseDateISO(b.session.date);
     return date && isBefore(date, today);
   });
   const upcomingReservations = restaurantReservations.filter(r => {
-    if (!r.slot) return false;
+    if (!r.slot || !r.slot.restaurant) return false;
     const date = safeParseDateISO(r.slot.date);
     return date && !isBefore(date, today);
   });
   const pastReservations = restaurantReservations.filter(r => {
-    if (!r.slot) return false;
+    if (!r.slot || !r.slot.restaurant) return false;
     const date = safeParseDateISO(r.slot.date);
     return date && isBefore(date, today);
   });
@@ -578,7 +578,7 @@ export default function GuestDetailPage() {
                             className="cursor-pointer hover:bg-muted/50"
                             onClick={() => navigate(`/activities/sessions/${booking.session.id}`)}
                           >
-                            <TableCell className="font-medium">{booking.session.activity.name}</TableCell>
+                            <TableCell className="font-medium">{booking.session.activity?.name || 'Unknown Activity'}</TableCell>
                             <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
@@ -608,7 +608,7 @@ export default function GuestDetailPage() {
                       <TableBody>
                         {pastActivityBookings.map((booking) => (
                           <TableRow key={booking.id}>
-                            <TableCell className="font-medium">{booking.session.activity.name}</TableCell>
+                            <TableCell className="font-medium">{booking.session.activity?.name || 'Unknown Activity'}</TableCell>
                             <TableCell>{safeFormatDate(booking.session.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{booking.session.start_time.slice(0, 5)}</TableCell>
                             <TableCell>{booking.num_adults + booking.num_children}</TableCell>
@@ -660,7 +660,7 @@ export default function GuestDetailPage() {
                             className="cursor-pointer hover:bg-muted/50"
                             onClick={() => navigate(`/restaurants/slots/${reservation.slot.id}`)}
                           >
-                            <TableCell className="font-medium">{reservation.slot.restaurant.name}</TableCell>
+                            <TableCell className="font-medium">{reservation.slot.restaurant?.name || 'Unknown Restaurant'}</TableCell>
                             <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
@@ -692,7 +692,7 @@ export default function GuestDetailPage() {
                       <TableBody>
                         {pastReservations.map((reservation) => (
                           <TableRow key={reservation.id}>
-                            <TableCell className="font-medium">{reservation.slot.restaurant.name}</TableCell>
+                            <TableCell className="font-medium">{reservation.slot.restaurant?.name || 'Unknown Restaurant'}</TableCell>
                             <TableCell>{safeFormatDate(reservation.slot.date, 'EEE, MMM d')}</TableCell>
                             <TableCell>{reservation.slot.start_time.slice(0, 5)}</TableCell>
                             <TableCell><Badge variant="outline">{reservation.slot.meal_period}</Badge></TableCell>
