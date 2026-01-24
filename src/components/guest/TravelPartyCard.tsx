@@ -37,19 +37,19 @@ export function TravelPartyCard() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-foreground">
-                {hasParty ? (travelParty.name || 'Travel Party') : 'Travel Party'}
+                {hasParty ? String(travelParty.name || 'Travel Party') : 'Travel Party'}
               </h3>
               {hasParty && (
                 <Badge variant="secondary" className="text-xs">
-                  {travelParty.members.length} people
+                  {Number(travelParty.members?.length) || 0} people
                 </Badge>
               )}
             </div>
             {hasParty ? (
               <p className="text-sm text-muted-foreground">
-                {adultsCount} adult{adultsCount !== 1 ? 's' : ''}
-                {childrenCount > 0 && `, ${childrenCount} child${childrenCount !== 1 ? 'ren' : ''}`}
-                {roomsCount > 1 && ` · ${roomsCount} rooms`}
+                {Number(adultsCount) || 0} adult{adultsCount !== 1 ? 's' : ''}
+                {childrenCount > 0 && `, ${Number(childrenCount) || 0} child${childrenCount !== 1 ? 'ren' : ''}`}
+                {roomsCount > 1 && ` · ${Number(roomsCount) || 0} rooms`}
               </p>
             ) : (
               <p className="text-sm text-muted-foreground flex items-center gap-1">

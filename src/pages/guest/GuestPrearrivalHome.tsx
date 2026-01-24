@@ -66,7 +66,7 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
     return <GuestHomeLoading />;
   }
 
-  const firstName = guest.fullName.split(' ')[0];
+  const firstName = String(guest.fullName ?? 'Guest').split(' ')[0] || 'Guest';
   const settings = prearrivalData?.settings;
   const profile = prearrivalData?.profile;
   
