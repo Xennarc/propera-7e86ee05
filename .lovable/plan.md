@@ -1,135 +1,246 @@
 
-# Plan: Add Real Logic for `hasKidsInParty`
+# Travel Party Support for Guest Detail Page
 
 ## Summary
 
-Replace the hardcoded `hasKidsInParty: false` in `useGuestDetailContext` with computed logic that checks multiple data sources in priority order, without modifying the UI or existing hooks.
+Add a **staff-facing Travel Party card** to the Guest Detail page as a fully optional, additive feature. This leverages the existing database schema and RLS policies while creating new staff-specific hooks and UI components.
 
-## Current State
+## Existing Infrastructure (No Changes Needed)
 
-```typescript
-// useGuestDetailContext.ts lines 221-227
-const hasKidsInParty = useMemo(() => {
-  const payload = submission?.payload;
-  if (!payload) return false;
-  // Future: check travel_party_members table
-  return false;  // ← Always returns false (hardcoded)
-}, [submission]);
+| Component | Status |
+|-----------|--------|
+| **Database Tables** | ✅ `travel_parties`, `travel_party_members`, `travel_party_room_links` already exist |
+| **RLS Policies** | ✅ Staff access via `staff_has_resort_access()` and `staff_can_write_resort()` already configured |
+| **Schema** | ✅ `resort_id` scoping already enforced |
+| **Guest-facing hook** | ✅ `useTravelParty` exists (not reused - uses guest auth) |
+
+## Architecture Overview
+
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      GuestDetailPage.tsx                                  │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │ Existing Cards (unchanged)                                         │   │
+│  │ • Guest Information                                                │   │
+│  │ • GuestStayPanel                                                   │   │
+│  │ • PreArrivalSubmissionCard                                         │   │
+│  │ • PrearrivalProfileCard                                            │   │
+│  │ • Loyalty & Internal Notes                                         │   │
+│  │ • GuestPinManager                                                  │   │
+│  │ • GuestQrLoginManager                                              │   │
+│  │ • Activity Bookings                                                │   │
+│  │ • Restaurant Reservations                                          │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌──────────────────────────────────────────────────────────────────┐   │
+│  │ NEW: StaffTravelPartyCard                                          │   │
+│  │ • Positioned after Guest Information card                          │   │
+│  │ • Conditionally rendered (fully optional)                          │   │
+│  └──────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Data Sources Analysis
+## Implementation Details
 
-| Source | Field | Availability | Notes |
-|--------|-------|--------------|-------|
-| `guest_stays` | `children_count` | Not available | Column does not exist in schema |
-| `pre_arrival_submissions.payload` | `num_children` | Flexible JSONB | Currently no records have this |
-| `activity_bookings` | `num_children` | Available | Integer field, default 0 |
-| `restaurant_reservations` | `num_children` | Available | Integer field |
-| `travel_party_members` | `member_type = 'child'` | Available | Requires separate query |
+### 1. New Hook: `useStaffTravelParty`
 
-## Implementation Approach
+**File:** `src/hooks/useStaffTravelParty.ts`
 
-Since the constraint is to NOT add new queries or modify existing hooks, the implementation will focus on data already available through `useStaffGuestStay`:
+A staff-specific hook that queries travel party data directly from the database (not through guest RPC functions).
 
-### Priority Order for Detection
+**Features:**
+- Fetches travel party by `lead_guest_id` and `resort_id`
+- Returns party members with role badges (adult/child)
+- Provides mutation for creating a new travel party
+- Includes `hasParty` boolean for conditional rendering
 
-1. **Pre-arrival submission payload** - Check `payload.num_children` (future-proof for when guests submit this)
-2. **Custom answers** - Check `payload.custom_answers_json` for any children-related fields
-3. **Fallback**: `false`
-
-### Technical Details
-
-**File: `src/hooks/useGuestDetailContext.ts`**
-
-Update the `hasKidsInParty` computation (lines 221-227):
-
+**Query Pattern:**
 ```typescript
-// Check if party has kids from available data sources
-const hasKidsInParty = useMemo(() => {
-  // Priority 1: Check pre-arrival submission payload for explicit num_children
-  const payload = submission?.payload;
-  if (payload) {
-    // Check for num_children in payload (future-proof)
-    const numChildren = (payload as Record<string, unknown>)?.num_children;
-    if (typeof numChildren === 'number' && numChildren > 0) {
-      return true;
-    }
-    
-    // Check custom_answers_json for children-related fields
-    const customAnswers = payload.custom_answers_json;
-    if (customAnswers) {
-      // Look for common children-related keys
-      const childrenKeys = ['num_children', 'children_count', 'number_of_children', 'kids'];
-      for (const key of childrenKeys) {
-        const value = customAnswers[key];
-        if (typeof value === 'number' && value > 0) {
-          return true;
-        }
-        if (typeof value === 'string' && parseInt(value, 10) > 0) {
-          return true;
-        }
-      }
-    }
-  }
-  
-  // Fallback: no children info available
-  return false;
-}, [submission]);
+// Fetch travel party where this guest is the lead
+supabase
+  .from('travel_parties')
+  .select(`
+    *,
+    members:travel_party_members(*)
+  `)
+  .eq('lead_guest_id', guestId)
+  .eq('resort_id', resortId)
+  .maybeSingle()
 ```
 
-### Update PreArrivalSubmission Interface (Type Extension)
-
-To make this type-safe, extend the payload interface to include `num_children` as an optional field:
-
-**File: `src/hooks/useStaffGuestStay.ts`** (line 34 - add optional field)
-
+**Interface:**
 ```typescript
-export interface PreArrivalSubmission {
+interface StaffTravelParty {
   id: string;
-  payload: {
-    arrival_time?: string;
-    arrival_flight_number?: string;
-    transfer_preference?: string;
-    dietary_preferences?: string[];
-    allergies?: string;
-    water_comfort_level?: string;
-    special_occasions?: string[];
-    special_requests?: string;
-    room_preferences?: Record<string, unknown>;
-    custom_answers_json?: Record<string, unknown>;
-    num_children?: number;  // ← Add this optional field
-  };
-  completedAt: string | null;
-  updatedAt: string;
+  name: string | null;
+  leadGuestId: string;
+  members: StaffTravelPartyMember[];
+}
+
+interface StaffTravelPartyMember {
+  id: string;
+  displayName: string;
+  memberType: 'adult' | 'child';
+  birthYear: number | null;
+  roomNumber: string | null;
+  relationshipLabel: string | null;
+  isLead: boolean;
+  linkedGuestId: string | null;
 }
 ```
+
+### 2. New Component: `StaffTravelPartyCard`
+
+**File:** `src/components/staff/StaffTravelPartyCard.tsx`
+
+A card component for staff to view/create travel parties.
+
+**Empty State:**
+- Shows "No travel party linked"
+- CTA button: "Create Travel Party"
+- Clicking creates a party with the current guest as lead
+
+**With Party State:**
+- Party name (editable) or "Travel Party" default
+- Member count badge
+- Member list grouped by room
+- Role badges: Adult (default), Child (blue), Lead (gold)
+- Optional: Add member button (future)
+
+**UI Mockup:**
+```text
+┌────────────────────────────────────────────────────────────┐
+│ 👥 Travel Party                           [2 people]       │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  Room 101                                                  │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ 👤 John Smith                     [Lead] [Adult]   │   │
+│  │ 👤 Sarah Smith                    [Spouse] [Adult] │   │
+│  │ 👤 Emma Smith (2020)              [Child]          │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Empty State Mockup:**
+```text
+┌────────────────────────────────────────────────────────────┐
+│ 👥 Travel Party                                            │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│         No travel party linked                             │
+│         Group bookings and linked rooms                    │
+│                                                            │
+│              [ Create Travel Party ]                       │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 3. Query Key Addition
+
+**File:** `src/lib/query-keys.ts`
+
+Add travel party keys to the centralized query key factory:
+
+```typescript
+// Add to queryKeys object
+travelParty: {
+  staffParty: (resortId: string, guestId: string) => 
+    ['staff-travel-party', resortId, guestId],
+},
+```
+
+### 4. Integration with GuestDetailPage
+
+**File:** `src/pages/guests/GuestDetailPage.tsx`
+
+Add the new card **after the Guest Information card** (around line 361):
+
+```typescript
+// Import
+import { StaffTravelPartyCard } from '@/components/staff/StaffTravelPartyCard';
+
+// Render (after Guest Information card, before GuestStayPanel)
+<StaffTravelPartyCard
+  guestId={guest.id}
+  guestName={guest.full_name}
+  resortId={guest.resort_id}
+/>
+```
+
+### 5. Update Composition Layer (Optional)
+
+**File:** `src/hooks/useGuestDetailContext.ts`
+
+Optionally integrate the travel party data into the composition layer for future use:
+
+- Import `useStaffTravelParty`
+- Map members to `partyMembers: GuestPartyMember[]` 
+- Compute `hasKidsInParty` from actual party data if available
+
+---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useStaffTravelParty.ts` | Staff-specific travel party data hook |
+| `src/components/staff/StaffTravelPartyCard.tsx` | Staff-facing travel party card component |
 
 ## Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/hooks/useGuestDetailContext.ts` | Update `hasKidsInParty` computation (lines 221-227) |
-| `src/hooks/useStaffGuestStay.ts` | Add `num_children?: number` to payload interface (line 34) |
+| `src/lib/query-keys.ts` | Add `travelParty.staffParty()` key factory |
+| `src/pages/guests/GuestDetailPage.tsx` | Import and render `StaffTravelPartyCard` |
+
+---
 
 ## What This Does NOT Change
 
-- No UI components modified
-- No existing hook behavior changed
-- `OperationalFlags` component unchanged (still receives `hasKidsInParty` prop)
-- `GuestDetailPage.tsx` continues to pass `hasKidsInParty={false}` directly (existing behavior preserved)
-- No database schema changes required
+- ✅ No changes to existing `useTravelParty` hook (guest-facing)
+- ✅ No changes to existing `TravelPartyCard` component (guest-facing)
+- ✅ No changes to booking logic or room assignments
+- ✅ No database migrations required (tables already exist)
+- ✅ No RLS policy changes (staff access already configured)
+- ✅ No automatic party inference - manual creation only
+- ✅ Fully optional card - page works identically without it
+
+---
+
+## Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| Resort isolation | Queries filter by `resort_id`; RLS enforces `staff_has_resort_access()` |
+| Write permissions | Create party mutation requires staff auth; RLS enforces `staff_can_write_resort()` |
+| No guest access | This hook uses `useAuth` (staff), not `useGuestAuth` |
+
+---
 
 ## Future Enhancements (Out of Scope)
 
-When integrating the new hook with the UI (Phase 2), the `GuestDetailPage` will:
-1. Use `useGuestDetailContext()` to get the computed `hasKidsInParty`
-2. Pass that value to `OperationalFlags` instead of hardcoded `false`
+These features can be added later without breaking this implementation:
 
-This requires only changing the prop value from `false` to `context.hasKidsInParty` in a future phase.
+1. **Add Member** - Button to add party members (reuse `AddPartyMemberDialog`)
+2. **Link Room** - Button to link another room to the party
+3. **Edit Party Name** - Inline editing of party name
+4. **Remove Member** - Staff can remove non-lead members
+5. **Booking Integration** - Show party members in booking attendee selection
 
-## Testing
+---
 
-After implementation:
-1. Create a pre-arrival submission with `payload.num_children = 2`
-2. Verify `useGuestDetailContext` returns `hasKidsInParty: true`
-3. Confirm existing UI behavior unchanged (still shows `hasKidsInParty={false}` until Phase 2 wiring)
+## Testing Checklist
+
+1. Visit GuestDetailPage for a guest with no travel party
+   - Card shows "No travel party linked" with CTA
+2. Click "Create Travel Party"
+   - Party is created with guest as lead member
+   - Card updates to show member list
+3. Visit GuestDetailPage for a guest with existing party
+   - Card shows party members with role badges
+4. Verify resort isolation
+   - Staff from Resort A cannot see parties from Resort B
