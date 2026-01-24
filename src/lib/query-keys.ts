@@ -150,6 +150,13 @@ export const queryKeys = {
     staffParty: (resortId: string, guestId: string) => 
       ['staff-travel-party', resortId, guestId],
   },
+
+  // ==================== PREFERENCES ====================
+  preferences: {
+    // Staff-facing guest preferences
+    staffPreferences: (resortId: string, guestId: string) => 
+      ['staff-guest-preferences', resortId, guestId],
+  },
 };
 
 /**

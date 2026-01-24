@@ -30,6 +30,7 @@ import { useStaffGuestStay } from '@/hooks/useStaffGuestStay';
 import { GuestStayPanel } from '@/components/staff/GuestStayPanel';
 import { PreArrivalSubmissionCard } from '@/components/staff/PreArrivalSubmissionCard';
 import { StaffTravelPartyCard } from '@/components/staff/StaffTravelPartyCard';
+import { StaffGuestPreferencesCard } from '@/components/staff/StaffGuestPreferencesCard';
 
 interface ActivityBookingWithSession {
   id: string;
@@ -365,6 +366,12 @@ export default function GuestDetailPage() {
       <StaffTravelPartyCard
         guestId={guest.id}
         guestName={guest.full_name}
+        resortId={guest.resort_id}
+      />
+
+      {/* Guest Preferences (Optional) */}
+      <StaffGuestPreferencesCard
+        guestId={guest.id}
         resortId={guest.resort_id}
       />
 
