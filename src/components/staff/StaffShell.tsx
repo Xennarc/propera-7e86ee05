@@ -4,9 +4,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
+import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { StaffSidebar } from './StaffSidebar';
 import { StaffTopbar } from './StaffTopbar';
 import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
+import { StaffDebugPanel } from './StaffDebugPanel';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -21,6 +23,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
+  const { showDebugPanel } = useStaffDebugMode();
   
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
   const { loading: resortLoading } = useResort();
@@ -133,6 +136,9 @@ export function StaffShell() {
           open={commandBarOpen}
           onOpenChange={setCommandBarOpen}
         />
+
+        {/* Debug Panel */}
+        {showDebugPanel && <StaffDebugPanel />}
       </div>
     </TooltipProvider>
   );
