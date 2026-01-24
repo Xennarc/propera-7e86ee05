@@ -201,6 +201,7 @@ export type Database = {
           session_id: string
           source: Database["public"]["Enums"]["booking_source"]
           status: Database["public"]["Enums"]["booking_status"]
+          stay_id: string | null
           total_amount: number
           updated_at: string
           vendor_amount: number | null
@@ -234,6 +235,7 @@ export type Database = {
           session_id: string
           source?: Database["public"]["Enums"]["booking_source"]
           status?: Database["public"]["Enums"]["booking_status"]
+          stay_id?: string | null
           total_amount?: number
           updated_at?: string
           vendor_amount?: number | null
@@ -267,6 +269,7 @@ export type Database = {
           session_id?: string
           source?: Database["public"]["Enums"]["booking_source"]
           status?: Database["public"]["Enums"]["booking_status"]
+          stay_id?: string | null
           total_amount?: number
           updated_at?: string
           vendor_amount?: number | null
@@ -298,6 +301,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_bookings_stay_id_fkey"
+            columns: ["stay_id"]
+            isOneToOne: false
+            referencedRelation: "guest_stays"
             referencedColumns: ["id"]
           },
           {
@@ -5631,16 +5641,28 @@ export type Database = {
         Args: { p_guest_id: string; p_request_id: string; p_resort_id: string }
         Returns: boolean
       }
-      guest_create_activity_booking: {
-        Args: {
-          p_guest_id: string
-          p_notes?: string
-          p_num_adults: number
-          p_num_children: number
-          p_session_id: string
-        }
-        Returns: Json
-      }
+      guest_create_activity_booking:
+        | {
+            Args: {
+              p_guest_id: string
+              p_notes?: string
+              p_num_adults: number
+              p_num_children: number
+              p_session_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_guest_id: string
+              p_notes?: string
+              p_num_adults: number
+              p_num_children: number
+              p_session_id: string
+              p_stay_id?: string
+            }
+            Returns: Json
+          }
       guest_create_activity_booking_with_attendees: {
         Args: {
           p_guest_id: string

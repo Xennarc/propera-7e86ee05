@@ -122,6 +122,7 @@ export default function GuestMyBookings() {
         num_children: b.num_children,
         status: b.status,
         notes: b.notes,
+        booking_source: b.booking_source, // Include booking_source for pre-arrival badge
         date: b.session?.date,
         start_time: b.session?.start_time,
         end_time: b.session?.end_time,
@@ -573,9 +574,17 @@ export default function GuestMyBookings() {
               </div>
               
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground truncate mb-1">
-                  {isActivity ? booking.activity_name : booking.restaurant_name}
-                </h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-foreground truncate">
+                    {isActivity ? booking.activity_name : booking.restaurant_name}
+                  </h3>
+                  {/* Pre-arrival "Planned" badge */}
+                  {isActivity && booking.booking_source === 'PRE_STAY' && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary shrink-0">
+                      Planned
+                    </Badge>
+                  )}
+                </div>
                 
                 {/* Date and time - prominent */}
                 <div className={cn(

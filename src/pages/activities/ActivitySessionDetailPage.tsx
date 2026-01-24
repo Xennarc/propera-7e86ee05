@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Edit, Plus, Users, Clock, MapPin, ListOrdered } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -85,10 +86,9 @@ export default function ActivitySessionDetailPage() {
 
     setSession(sessionData as SessionWithDetails);
 
-    // Fetch bookings with creator info
     const { data: bookingsData } = await supabase
       .from('activity_bookings')
-      .select(`*, guest:guests(*)`)
+      .select(`*, guest:guests(*), booking_source`)
       .eq('session_id', id)
       .order('created_at', { ascending: false });
 
@@ -393,7 +393,15 @@ export default function ActivitySessionDetailPage() {
                             />
                           </TableCell>
                           <TableCell>${booking.total_amount}</TableCell>
-                          <TableCell className="text-xs">{booking.source.replace('STAFF_', '')}</TableCell>
+                          <TableCell className="text-xs">
+                            {(booking as any).booking_source === 'PRE_STAY' ? (
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800">
+                                Pre-arrival
+                              </Badge>
+                            ) : (
+                              booking.source.replace('STAFF_', '')
+                            )}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {booking.source === 'GUEST_PORTAL' ? (
                               <span className="italic">Guest</span>

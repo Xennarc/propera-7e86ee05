@@ -9,6 +9,7 @@ import { createGuestNotification, createStaffNotificationsForRoles, formatActivi
 import { calculatePriceBreakdown, parsePricingCharges } from '@/lib/pricing-utils';
 import { awardLoyaltyPoints } from '@/hooks/useLoyaltyProgram';
 import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
+import { useActiveStay } from '@/hooks/useActiveStay';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,10 @@ export default function GuestActivityBookingPage() {
   const navigate = useNavigate();
   const { guest } = useGuestAuth();
   const queryClient = useQueryClient();
+  const { activeStay } = useActiveStay();
+
+  // Determine if this is a pre-arrival booking
+  const isPrearrival = activeStay?.status === 'pre_arrival';
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(sessionId || null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -54,6 +59,7 @@ export default function GuestActivityBookingPage() {
   const [bookingResult, setBookingResult] = useState<{
     success: boolean;
     requiresApproval?: boolean;
+    isPrearrival?: boolean;
     error?: string;
   } | null>(null);
 
@@ -269,10 +275,11 @@ export default function GuestActivityBookingPage() {
         p_num_adults: numAdults,
         p_num_children: numChildren,
         p_notes: notes.trim() || null,
+        p_stay_id: activeStay?.id || null, // Pass stay context for pre-arrival bookings
       });
       if (error) throw error;
       
-      const result = data as { success: boolean; booking_id?: string; status?: string; requires_approval?: boolean; error?: string };
+      const result = data as { success: boolean; booking_id?: string; status?: string; requires_approval?: boolean; is_prearrival?: boolean; error?: string };
       
       // If demo resort, update the booking with origin='demo_user'
       if (isDemoResort && result?.success && result?.booking_id) {
@@ -293,6 +300,7 @@ export default function GuestActivityBookingPage() {
         setBookingResult({
           success: true,
           requiresApproval: data.requires_approval,
+          isPrearrival: data.is_prearrival || isPrearrival,
         });
 
         // Send notifications (fire and forget)
@@ -400,23 +408,32 @@ export default function GuestActivityBookingPage() {
   // Booking success screen
   if (bookingResult?.success) {
     const guestBookingsPath = code ? `/guest/bookings` : '/guest/bookings';
+    const isPreArrivalBooking = bookingResult.isPrearrival;
     return (
       <div className="space-y-4">
         <Card>
           <CardContent className="py-8 text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">
-              {bookingResult.requiresApproval ? 'Request Sent!' : "You're Booked!"}
+              {bookingResult.requiresApproval 
+                ? 'Request Sent!' 
+                : isPreArrivalBooking 
+                  ? 'Reserved for Your Stay!' 
+                  : "You're Booked!"}
             </h2>
             <p className="text-muted-foreground mb-2">
               {bookingResult.requiresApproval
                 ? `We've sent your request for ${session.activity_name} on ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)}.`
-                : `Your booking for ${session.activity_name} on ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)} is confirmed.`}
+                : isPreArrivalBooking
+                  ? `We've reserved ${session.activity_name} for ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)}. See you soon!`
+                  : `Your booking for ${session.activity_name} on ${format(parseISO(session.date), 'EEE, MMM d')} at ${session.start_time.slice(0, 5)} is confirmed.`}
             </p>
             <p className="text-sm text-muted-foreground mb-6">
               {bookingResult.requiresApproval
                 ? "We'll confirm this as soon as possible."
-                : "You can find this in 'My Bookings' at any time."}
+                : isPreArrivalBooking
+                  ? "You can modify this booking anytime before your arrival."
+                  : "You can find this in 'My Bookings' at any time."}
             </p>
             <div className="space-y-2">
               <Button className="w-full" onClick={() => navigate(guestBookingsPath)}>
@@ -722,6 +739,16 @@ export default function GuestActivityBookingPage() {
               </div>
             );
           })()}
+
+          {/* Pre-arrival booking notice */}
+          {isPrearrival && (
+            <Alert className="bg-primary/5 border-primary/20">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                This will be reserved for your upcoming stay. You can modify it later.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label>Notes for the team (optional)</Label>
