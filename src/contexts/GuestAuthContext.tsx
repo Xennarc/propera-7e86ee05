@@ -232,6 +232,10 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Login error:', error);
+        // Check for rate limit error (without exposing details)
+        if (error.message?.includes('Rate limit exceeded')) {
+          return { error: 'Too many login attempts. Please wait a few minutes and try again.' };
+        }
         return { error: 'We couldn\'t sign you in. Please try again or contact reception.' };
       }
 
