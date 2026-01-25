@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
@@ -24,6 +24,16 @@ interface ResortBasicInfo {
   status: ResortStatus;
 }
 
+interface VerifyQrResponse {
+  valid: boolean;
+  error?: string;
+  message?: string;
+  resortCode?: string;
+  roomNumber?: string;
+  lastName?: string;
+  pin?: string;
+}
+
 export default function ResortGuestLogin() {
   const { code } = useParams<{ code: string }>();
   const [searchParams] = useSearchParams();
@@ -36,17 +46,77 @@ export default function ResortGuestLogin() {
   const [notFound, setNotFound] = useState(false);
   const [resortInactive, setResortInactive] = useState(false);
   const [error, setError] = useState('');
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const autoLoginRef = useRef(false);
   
   // Fetch branding dynamically via hook - ensures fresh data after staff saves
   const { data: brandingData, isLoading: brandingLoading } = useResortBranding(code);
   const branding = getBrandingWithDefaults(brandingData);
   
-  // Initialize form with URL params from "Find Resort" flow
+  // Initialize form with URL params from "Find Resort" flow or QR auto-login
   const [formData, setFormData] = useState(() => ({
-    roomNumber: searchParams.get('roomNumber') || '',
-    lastName: searchParams.get('lastName') || '',
-    pin: '',
+    roomNumber: searchParams.get('roomNumber') || searchParams.get('room') || '',
+    lastName: searchParams.get('lastName') || searchParams.get('last') || '',
+    pin: '', // Don't pre-fill PIN in initial state for security
   }));
+
+  // Auto-login attempt handler
+  const attemptAutoLogin = useCallback(async (
+    room: string, 
+    last: string, 
+    pin: string, 
+    exp: string, 
+    sig: string,
+    resortId: string
+  ) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // 1. Call verify-qr-login edge function to validate signature
+      const { data: verifyData, error: verifyError } = await supabase.functions.invoke<VerifyQrResponse>(
+        'verify-qr-login',
+        {
+          body: { resortCode: code, room, last, pin, exp, sig },
+        }
+      );
+
+      if (verifyError) {
+        console.error('Verify QR error:', verifyError);
+        setError('Unable to verify QR code. Please enter your credentials manually.');
+        setLoading(false);
+        return;
+      }
+
+      if (!verifyData?.valid) {
+        // Show user-friendly error based on error type
+        if (verifyData?.error === 'EXPIRED') {
+          setError('This QR code has expired. Please enter your PIN manually or ask staff for a new QR code.');
+        } else if (verifyData?.error === 'INVALID_SIGNATURE') {
+          setError('This QR code is invalid. Please ask staff for a new one.');
+          // Clear pre-filled fields for invalid signature
+          setFormData(prev => ({ ...prev, pin: '' }));
+        } else {
+          setError(verifyData?.message || 'QR code verification failed. Please enter your credentials manually.');
+        }
+        setLoading(false);
+        return;
+      }
+
+      // 2. Signature valid - proceed with PIN login
+      const result = await login(resortId, room, last, pin);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+      } else {
+        navigate('/guest');
+      }
+    } catch (err) {
+      console.error('Auto-login error:', err);
+      setError('An error occurred. Please enter your credentials manually.');
+      setLoading(false);
+    }
+  }, [code, login, navigate]);
 
   // Handle if already logged in - check for resort mismatch
   useEffect(() => {
@@ -119,6 +189,37 @@ export default function ResortGuestLogin() {
 
     fetchResort();
   }, [code]);
+
+  // Handle QR auto-login parameters
+  useEffect(() => {
+    // Only attempt once and after resort is loaded
+    if (autoLoginRef.current || loadingResort || !resortInfo) return;
+
+    const room = searchParams.get('room');
+    const last = searchParams.get('last');
+    const pin = searchParams.get('pin');
+    const exp = searchParams.get('exp');
+    const sig = searchParams.get('sig');
+    const autologin = searchParams.get('autologin');
+
+    // Pre-fill fields if params exist (even without autologin)
+    if (room || last) {
+      setFormData(prev => ({
+        ...prev,
+        roomNumber: room || prev.roomNumber,
+        lastName: last || prev.lastName,
+        // Only pre-fill PIN if all auto-login params are present
+        pin: (room && last && pin && exp && sig && autologin) ? pin : prev.pin,
+      }));
+    }
+
+    // Attempt auto-login if all params present and autologin flag set
+    if (room && last && pin && exp && sig && autologin === '1') {
+      autoLoginRef.current = true;
+      setAutoLoginAttempted(true);
+      attemptAutoLogin(room, last, pin, exp, sig, resortInfo.id);
+    }
+  }, [searchParams, loadingResort, resortInfo, attemptAutoLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -401,7 +502,7 @@ export default function ResortGuestLogin() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-                    Signing in...
+                    {autoLoginAttempted ? 'Logging in via QR...' : 'Signing in...'}
                   </>
                 ) : (
                   'Sign In'

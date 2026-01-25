@@ -53,3 +53,9 @@ schedule = "0 3 * * *"
 
 [functions.debug-bookings]
 verify_jwt = false
+
+[functions.sign-qr-login]
+verify_jwt = false
+
+[functions.verify-qr-login]
+verify_jwt = false

@@ -66,9 +66,28 @@ export function getQrLoginUrl(token: string): string {
 
 /**
  * Generate a QR login URL for confirmation flow (path param format)
+ * @deprecated Use getSignedQrLoginUrl for new implementations
  */
 export function getQrConfirmUrl(token: string): string {
   return `${PRODUCTION_URL}/guest/qr/${token}`;
+}
+
+/**
+ * Generate a signed QR login URL with auto-fill credentials
+ * This is the preferred method for staff-generated QR codes
+ */
+export function getSignedQrLoginUrl(params: {
+  resortCode: string;
+  room: string;
+  last: string;
+  pin: string;
+  exp: number;
+  sig: string;
+}): string {
+  const { resortCode, room, last, pin, exp, sig } = params;
+  const encodedRoom = encodeURIComponent(room);
+  const encodedLast = encodeURIComponent(last);
+  return `${PRODUCTION_URL}/resort/${resortCode.toLowerCase()}/guest/login?room=${encodedRoom}&last=${encodedLast}&pin=${pin}&exp=${exp}&sig=${sig}&autologin=1`;
 }
 
 /**
