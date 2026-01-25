@@ -1,465 +1,433 @@
 
+# Staff Portal Admin UI Refinement - Premium, Safe, and Clear
 
-# Mobile-First No-Zoom Improvements - Phase 2
+## Executive Summary
 
-## Goal
-Ensure all staff portal elements are readable and tappable without pinch-zoom. This builds on the Phase 1 improvements already implemented (navigation, card layouts, basic spacing) by targeting remaining problematic areas: tiny text, undersized touch targets, and cramped layouts.
+This plan transforms the Staff Portal Settings & Admin pages into a calm, organized, and confidence-inspiring experience. The goal is to make admins feel **powerful but safe** — able to find settings quickly, understand their impact, and execute changes without fear of accidental damage.
 
 ---
 
-## Problem Areas Identified
+## Current State Analysis
 
-### 1. Text Too Small for Mobile Readability
+### Settings Hub (`SettingsPage.tsx`)
+- **Issue**: Flat grid of 13+ cards with no grouping — overwhelming for non-technical users
+- **Issue**: No visual distinction between routine settings and dangerous operations
+- **Issue**: Same card style for everything — no hierarchy
 
-| Component | Current Size | Issue |
-|-----------|--------------|-------|
-| Badge text in sidebar/cards | `text-2xs` (10px) | Unreadable without zoom |
-| Guest bottom nav labels | `text-[10px]` | Too small for quick glance |
-| Calendar day labels | `text-[10px]` | Difficult to read outdoors |
-| Stat card descriptions | `text-[11px]` | Strains eyes on small screens |
-| Filter chips small text | `text-[10px]` | Barely visible |
-| Command bar shortcuts | `text-2xs` | Not important on mobile anyway |
+### Individual Settings Pages (Prearrival, Branding, Requests, Staff, etc.)
+- **Issue**: Long scrolling forms without clear section boundaries
+- **Issue**: Destructive actions (delete, remove) styled same as routine buttons
+- **Issue**: No confirmation patterns for high-impact changes
+- **Issue**: Mobile views are cramped, requiring horizontal scrolling on some tables
 
-### 2. Touch Targets Under 44px
+### Access & Permissions (UserManagementPage, ResortStaffPage, etc.)
+- **Issue**: Small cards for user management — hard to scan at volume
+- **Issue**: Role changes lack proper warning for escalation
+- **Issue**: Delete membership buttons are prominent and easy to misclick
 
-| Component | Current | Required |
-|-----------|---------|----------|
-| Calendar day cells | 36px × 36px | 44px × 44px |
-| Checkbox | 16px × 16px | Should have 44px hit area |
-| Switch | 24px × 44px | 28px × 48px for easier tapping |
-| Dropdown menu items | ~32px height | 44px minimum |
-| Filter chips remove button | ~16px | 32px with padding |
-| Badge close buttons | ~12px | 28px tap target |
+---
 
-### 3. Dense Layouts Needing Simplification
+## Design Principles for Admin UI
 
-| Area | Issue | Solution |
-|------|-------|----------|
-| TodayAtAGlance cards | 3-column on mobile | 1-column stack |
-| Dashboard stat grid | 2-col with small gaps | Larger gaps, bigger cards |
-| Filter bar | Cramped on mobile | Stack vertically |
-| Activity/Restaurant list rows | Side-by-side layout | Stacked on mobile |
+| Principle | Implementation |
+|-----------|----------------|
+| **Group by domain** | Settings organized into: Resort, Staff, Configuration, System |
+| **Read before edit** | Show current state clearly before allowing changes |
+| **Separate danger zones** | Destructive actions in visually distinct sections |
+| **Confirm thoughtfully** | Proportional confirmation based on impact |
+| **Mobile = accordions** | Convert multi-section pages to collapsible accordions on small screens |
 
 ---
 
 ## Implementation Plan
 
-### Phase 2A: Typography Minimum Sizes
+### Phase 1: Settings Hub Reorganization
 
-**File: `src/index.css`**
+**File: `src/pages/settings/SettingsPage.tsx`**
 
-Add new mobile-safe text utility classes:
+Transform the flat grid into **grouped sections** with headers and descriptions:
 
-```css
-/* Mobile-safe minimum text sizes */
-@layer utilities {
-  /* Replace text-2xs (10px) with mobile-safe minimum */
-  .text-mobile-min {
-    @apply text-[11px] sm:text-xs;
-  }
-  
-  /* Badge text - readable on mobile */
-  .text-badge-mobile {
-    @apply text-[11px] sm:text-[10px];
-  }
-  
-  /* Navigation label - clear at a glance */
-  .text-nav-label {
-    @apply text-[11px] sm:text-xs font-medium;
-  }
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Settings                                                       │
+│  Configure your resort operations                               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  GUEST EXPERIENCE                                               │
+│  Configure how guests interact with your resort                 │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
+│  │ Pre-Arrival      │ │ Guest Portal     │ │ Guest Portal     │ │
+│  │ Settings         │ │ Branding         │ │ Links            │ │
+│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
+│                                                                 │
+│  OPERATIONS                                                     │
+│  Manage day-to-day operational settings                         │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
+│  │ Guest Requests   │ │ Resort Directory │ │ Pricing & Taxes  │ │
+│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
+│                                                                 │
+│  STAFF & ACCESS                                                 │
+│  Manage your team                                               │
+│  ┌──────────────────┐ ┌──────────────────┐                      │
+│  │ Resort Staff     │ │ Platform Users   │                      │
+│  │                  │ │ (Super Admin)    │                      │
+│  └──────────────────┘ └──────────────────┘                      │
+│                                                                 │
+│  SYSTEM (Super Admin only)                                      │
+│  Platform-wide configuration                                    │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
+│  │ Resorts          │ │ Subscription     │ │ Booking Health   │ │
+│  │                  │ │ Tiers            │ │                  │ │
+│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Changes:**
+1. Add `SettingsSection` component to group cards by domain
+2. Add section headers with icons and descriptions
+3. Reduce card density — remove redundant "Manage X" buttons, make entire card clickable
+4. Add subtle background wash to different sections for visual grouping
+5. Super Admin sections get a distinctive border/badge
+
+### Phase 2: New Shared Components
+
+**File: `src/components/admin/SettingsSection.tsx`** (NEW)
+
+Reusable section component for grouping settings:
+
+```tsx
+interface SettingsSectionProps {
+  title: string;
+  description?: string;
+  icon?: LucideIcon;
+  badge?: 'admin' | 'super-admin';
+  children: ReactNode;
+  collapsible?: boolean; // For mobile accordion behavior
 }
 ```
 
-### Phase 2B: Component Updates
+Features:
+- Mobile: Renders as `Collapsible` accordion
+- Desktop: Static open section with header
+- Badges for role-restricted sections
 
-#### 1. Badge Component (`src/components/ui/badge.tsx`)
+**File: `src/components/admin/SettingsCard.tsx`** (NEW)
 
-**Current:** `px-2.5 py-0.5 text-xs`
-**Change:** Add size variant for mobile-friendly badges
+Simplified settings navigation card:
 
 ```tsx
-const badgeVariants = cva(
-  "inline-flex items-center rounded-full border font-semibold transition-colors",
-  {
-    variants: {
-      variant: { /* existing */ },
-      size: {
-        default: "px-2.5 py-0.5 text-xs",
-        sm: "px-2 py-0.5 text-[11px]",  // Mobile minimum
-        lg: "px-3 py-1 text-sm",        // For emphasis
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
+interface SettingsCardProps {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  href: string;
+  feature?: TierFeature;
+  disabled?: boolean;
+  badge?: React.ReactNode;
+}
 ```
 
-#### 2. Checkbox Component (`src/components/ui/checkbox.tsx`)
+Features:
+- Entire card is clickable (not nested button)
+- Disabled state with tooltip explanation
+- Tier badge integration
+- Hover animation (subtle lift)
 
-**Current:** `h-4 w-4` (16px)
-**Change:** Increase size and add touch padding
+**File: `src/components/admin/DangerZone.tsx`** (NEW)
+
+Dedicated component for destructive actions:
 
 ```tsx
-<CheckboxPrimitive.Root
-  className={cn(
-    // Increase visual size for mobile
-    "peer h-5 w-5 shrink-0 rounded-md border border-primary",
-    // Add invisible touch target padding
-    "relative before:absolute before:-inset-2 before:content-['']",
-    // ... rest
-  )}
-/>
+interface DangerZoneProps {
+  title?: string; // Default: "Danger Zone"
+  description?: string;
+  children: ReactNode;
+}
 ```
 
-#### 3. Switch Component (`src/components/ui/switch.tsx`)
+Features:
+- Red/destructive border accent
+- Warning icon
+- Collapsed by default on mobile
+- Requires explicit expansion to access destructive buttons
 
-**Current:** `h-6 w-11` with `h-5 w-5` thumb
-**Change:** Larger mobile-friendly size
+### Phase 3: Form Page Improvements
 
-```tsx
-<SwitchPrimitives.Root
-  className={cn(
-    // Larger for mobile
-    "peer inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full",
-    // ...
-  )}
->
-  <SwitchPrimitives.Thumb
-    className={cn(
-      // Larger thumb
-      "pointer-events-none block h-6 w-6 rounded-full bg-background shadow-lg",
-      "data-[state=checked]:translate-x-5",
-      // ...
-    )}
-  />
-</SwitchPrimitives.Root>
+**File: `src/pages/settings/PrearrivalSettingsPage.tsx`**
+
+Improvements:
+1. Add sticky save button at bottom on mobile (use `MobileActionBar`)
+2. Wrap form sections in `Accordion` on mobile (< sm breakpoint)
+3. Increase spacing between cards (`space-y-6` → `space-y-8`)
+4. Add section dividers with labels
+
+**File: `src/pages/settings/ResortBrandingPage.tsx`**
+
+Improvements:
+1. Already has good tab structure — enhance mobile tab layout
+2. Add "Reset to Defaults" to a dedicated danger zone at bottom
+3. Improve color picker touch targets
+
+**File: `src/pages/settings/RequestsSettingsPage.tsx`**
+
+Improvements:
+1. Already uses tabs — ensure touch targets are 44px+
+2. Tab labels should show on mobile (currently hidden with `hidden sm:inline`)
+
+### Phase 4: Staff Management UI Refinements
+
+**File: `src/pages/settings/ResortStaffPage.tsx`**
+
+Changes:
+1. Convert card grid to a cleaner list layout on desktop
+2. Add role-based grouping option (Group by Role toggle)
+3. Increase action button spacing to prevent misclicks
+4. Delete confirmation should require typing staff name
+5. Add visual distinction for "yourself" row (subtle highlight)
+
+Before (Current):
+```
+┌──────────────────────────────────────┐
+│ [Avatar] John Doe       [View][Edit] │
+│          @johndoe       [Key][Delete]│
+│          Resort Admin                │
+└──────────────────────────────────────┘
 ```
 
-#### 4. Calendar Component (`src/components/ui/calendar.tsx`)
-
-**Current:** Day cells are `h-9 w-9` (36px)
-**Change:** Increase to 44px minimum on mobile
-
-```tsx
-classNames={{
-  head_cell: "text-muted-foreground rounded-md w-11 font-medium text-xs",  // was w-9
-  cell: "h-11 w-11 text-center text-sm p-0 relative ...",  // was h-9 w-9
-  day: cn(buttonVariants({ variant: "ghost" }), "h-11 w-11 p-0 font-normal ..."),  // was h-9 w-9
-}}
+After (Improved):
+```
+┌──────────────────────────────────────────────────────────────┐
+│ [Avatar] John Doe                              Resort Admin  │
+│          @johndoe • Front Office                             │
+│          ─────────────────────────────────────────────────── │
+│                        [View Profile]  [Edit Access]  [...] │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-#### 5. Dropdown Menu Items (`src/components/ui/dropdown-menu.tsx`)
+**File: `src/pages/settings/UserManagementPage.tsx`**
 
-**Current:** `py-2` (~32px total height)
-**Change:** Increase to 44px minimum
+Changes:
+1. Add warning banner for Super Admin role assignment
+2. Super Admin changes require confirmation dialog
+3. Add "Last login" metadata for user insights
+4. Improve search to include username
 
+### Phase 5: Resorts Management Refinements
+
+**File: `src/pages/settings/ResortsPage.tsx`**
+
+Changes:
+1. Add status filter chips (Active/Inactive/Demo)
+2. Demo resorts should have a distinct visual style (dashed border, muted background)
+3. Delete resort should require typing resort code to confirm
+4. Move "Create Demo" to a less prominent position (dropdown or secondary row)
+
+### Phase 6: Mobile Accordion Pattern
+
+For pages with multiple form sections, implement accordion behavior on mobile:
+
+**Files affected:**
+- `PrearrivalSettingsPage.tsx`
+- `ResortBrandingPage.tsx` (already has tabs, may not need)
+- `ResortStaffPage.tsx` (user cards → list with expand)
+
+Pattern:
 ```tsx
-<DropdownMenuPrimitive.Item
-  className={cn(
-    // Increase padding for 44px touch target
-    "relative flex cursor-default select-none items-center rounded-lg px-3 py-3 text-sm outline-none min-h-[44px]",
-    // ...
-  )}
-/>
-```
+// Mobile: Accordion
+<Accordion type="single" collapsible className="sm:hidden">
+  <AccordionItem value="section-1">
+    <AccordionTrigger>Portal Settings</AccordionTrigger>
+    <AccordionContent>
+      {/* Form fields */}
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
 
-Also update `DropdownMenuCheckboxItem` and `DropdownMenuRadioItem` similarly.
-
-#### 6. Select Items (`src/components/ui/select.tsx`)
-
-**Current:** `py-2.5` 
-**Change:** Ensure minimum 44px height
-
-```tsx
-<SelectPrimitive.Item
-  className={cn(
-    "relative flex w-full cursor-default select-none items-center rounded-lg py-3 pl-8 pr-3 text-sm outline-none min-h-[44px]",
-    // ...
-  )}
-/>
-```
-
-#### 7. Tabs Component (`src/components/ui/tabs.tsx`)
-
-**Current:** `px-4 py-2`
-**Change:** Larger touch targets on mobile
-
-```tsx
-<TabsPrimitive.Trigger
-  className={cn(
-    // Mobile-first sizing
-    "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-3 sm:py-2 text-sm font-medium min-h-[44px]",
-    // ...
-  )}
-/>
-```
-
-### Phase 2C: Layout Responsiveness
-
-#### 1. TodayAtAGlance (`src/components/staff/TodayAtAGlance.tsx`)
-
-**Current:** `grid gap-4 sm:grid-cols-3`
-**Change:** Single column on smallest screens, full-width cards
-
-```tsx
-<div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-  {metrics.map((metric) => (
-    <Link
-      key={metric.label}
-      to={metric.href}
-      className={cn(
-        // Larger padding for mobile
-        "group relative p-5 sm:p-4 rounded-xl border border-border/50 bg-card transition-all duration-200",
-        // ...
-      )}
-    >
-```
-
-Also increase icon container size:
-```tsx
-<div className={cn(
-  'flex h-12 w-12 sm:h-10 sm:w-10 items-center justify-center rounded-lg',  // was h-10 w-10
-  // ...
-)}>
-  {React.cloneElement(metric.icon as React.ReactElement, {
-    className: 'h-6 w-6 sm:h-5 sm:w-5'  // was h-5 w-5
-  })}
+// Desktop: Regular cards
+<div className="hidden sm:block space-y-6">
+  <Card>...</Card>
+  <Card>...</Card>
 </div>
 ```
 
-#### 2. Dashboard Stat Grid (`src/pages/dashboards/ResortAdminHome.tsx`)
+### Phase 7: Confirmation Dialog Improvements
 
-**Current:** `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`
-**Change:** 1-column on very small screens with larger gaps
+**File: `src/components/ui/confirmation-dialog.tsx`**
 
+Already exists with variants. Enhance with:
+1. Add `requireTyping` prop for high-impact actions
+2. Add `countdown` prop (3-second delay before confirm is enabled)
+3. Improve icon/color associations
+
+**New variant: `critical`**
 ```tsx
-<div className="grid gap-4 sm:gap-3 grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+variant: 'critical', // Red background on confirm button, requires typing
 ```
 
-Also need to add `xs` breakpoint to Tailwind config (already exists if not, add to `tailwind.config.ts`).
-
-#### 3. Activity/Restaurant List Items (Dashboard)
-
-**Current:** Side-by-side info in list rows
-**Change:** Stack on mobile with clearer hierarchy
-
-```tsx
-<Link
-  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-3 rounded-lg hover:bg-muted/50 transition-colors group gap-2"
->
-  {/* Mobile: stack vertically */}
-  <div className="flex items-center gap-3">
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <Clock className="h-4 w-4" />
-      <span className="font-mono">{session.start_time.slice(0, 5)}</span>
-    </div>
-    <span className="font-medium text-base sm:text-sm group-hover:text-primary transition-colors">
-      {session.activities?.name}
-    </span>
-  </div>
-  {/* Capacity on second row on mobile */}
-  <div className="flex items-center justify-between sm:justify-end gap-3 pl-6 sm:pl-0">
-    <span className="text-sm text-muted-foreground">
-      {session.confirmedPax}/{session.capacity} pax
-    </span>
-    <Badge variant={...} className="text-xs">
-      {session.occupancy}%
-    </Badge>
-  </div>
-</Link>
-```
-
-#### 4. Filter Bar Mobile Stacking (`src/components/ui/enhanced-filter-bar.tsx`)
-
-**Current:** Flex row with wrap
-**Change:** Full-width stacked inputs on mobile
-
-```tsx
-export function EnhancedFilterBar({ children, className }: EnhancedFilterBarProps) {
-  return (
-    <div className={cn('space-y-3', className)}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
-        {children}
-      </div>
-    </div>
-  );
-}
-```
-
-And for FilterSearch:
-```tsx
-<input
-  className={cn(
-    // Full height input on mobile
-    'h-12 sm:h-9 w-full rounded-xl border border-input bg-background px-4 py-3 sm:py-1 text-sm',
-    // ...
-  )}
-/>
-```
-
-### Phase 2D: Guest Portal Specific
-
-#### 1. Bottom Nav Labels (`src/components/guest/GuestLayout.tsx`)
-
-**Current:** `text-[10px] sm:text-[11px]`
-**Change:** Minimum 11px with better contrast
-
-```tsx
-<span className={cn(
-  "text-[11px] sm:text-xs font-medium transition-all",
-  isActive && "font-bold text-primary"
-)}>
-  {label}
-</span>
-```
-
-#### 2. Request Status Pills (`src/components/guest/requests/RequestStatusPill.tsx`)
-
-**Current:** Small size is `text-[10px]`
-**Change:** Minimum 11px
-
-```tsx
-size === 'sm' ? 'text-[11px] px-2 py-0.5' : 'text-xs px-2.5 py-1'
-```
-
-#### 3. Category Grid Descriptions
-
-**Current:** `text-[11px]`
-**Change:** Increase to `text-xs` on all screens for readability
-
-```tsx
-{category.description && (
-  <p className="text-xs text-muted-foreground line-clamp-1">
-    {category.description}
-  </p>
-)}
-```
-
-### Phase 2E: Dialog/Drawer Content Sizing
-
-#### 1. Dialog Content (`src/components/ui/dialog.tsx`)
-
-Ensure dialogs don't require horizontal scrolling:
-
-```tsx
-<DialogPrimitive.Content
-  className={cn(
-    // Full width on mobile with inset for safe area
-    "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] sm:w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
-    "max-h-[90vh] overflow-y-auto",  // Prevent overflow
-    // ...
-  )}
-/>
-```
-
-#### 2. Sheet Width on Mobile (`src/components/ui/sheet.tsx`)
-
-**Current:** `w-3/4 sm:max-w-sm` for right/left
-**Change:** Nearly full width on smallest screens
-
-```tsx
-side: {
-  left: "inset-y-0 left-0 h-full w-[85%] sm:w-3/4 border-r sm:max-w-sm ...",
-  right: "inset-y-0 right-0 h-full w-[85%] sm:w-3/4 border-l sm:max-w-sm ...",
-}
-```
-
-### Phase 2F: Drawer Improvements (`src/components/ui/drawer.tsx`)
-
-Increase handle size for easier grab:
-
-```tsx
-<DrawerPrimitive.Content
-  className={cn(
-    "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border bg-background",  // Larger radius
-    className,
-  )}
->
-  {/* Larger, more visible handle */}
-  <div className="mx-auto mt-4 h-1.5 w-16 rounded-full bg-muted-foreground/30" />
-  {children}
-</DrawerPrimitive.Content>
-```
-
-Also increase padding in header/footer:
-
-```tsx
-const DrawerHeader = ({ className, ...props }) => (
-  <div className={cn("grid gap-1.5 p-5 text-center sm:text-left", className)} {...props} />
-);
-
-const DrawerFooter = ({ className, ...props }) => (
-  <div className={cn("mt-auto flex flex-col gap-3 p-5", className)} {...props} />
-);
-```
+Usage for:
+- Delete resort
+- Remove Super Admin
+- Delete staff member
+- Purge data
 
 ---
 
-## Files to Modify Summary
+## Files to Modify
 
+### Core Settings Hub
 | File | Change Type |
 |------|-------------|
-| `src/index.css` | Add mobile-safe text utilities |
-| `src/components/ui/badge.tsx` | Add size variant |
-| `src/components/ui/checkbox.tsx` | Increase size + touch target |
-| `src/components/ui/switch.tsx` | Increase size for mobile |
-| `src/components/ui/calendar.tsx` | 44px minimum day cells |
-| `src/components/ui/dropdown-menu.tsx` | 44px item height |
-| `src/components/ui/select.tsx` | 44px item height |
-| `src/components/ui/tabs.tsx` | Larger touch targets |
-| `src/components/ui/dialog.tsx` | Prevent horizontal overflow |
-| `src/components/ui/sheet.tsx` | Wider on small screens |
-| `src/components/ui/drawer.tsx` | Larger handle, more padding |
-| `src/components/ui/enhanced-filter-bar.tsx` | Full-width mobile stacking |
-| `src/components/staff/TodayAtAGlance.tsx` | Single column on mobile |
-| `src/pages/dashboards/ResortAdminHome.tsx` | Better stat grid + list items |
-| `src/components/guest/GuestLayout.tsx` | Larger nav labels |
-| `src/components/guest/requests/RequestStatusPill.tsx` | Minimum 11px text |
-| `src/components/guest/requests/RequestCategoryGrid.tsx` | Larger description text |
+| `src/pages/settings/SettingsPage.tsx` | Major refactor — grouped sections |
+
+### New Components
+| File | Purpose |
+|------|---------|
+| `src/components/admin/SettingsSection.tsx` | Section grouping with collapsible mobile |
+| `src/components/admin/SettingsCard.tsx` | Simplified navigation card |
+| `src/components/admin/DangerZone.tsx` | Container for destructive actions |
+| `src/components/admin/index.ts` | Export barrel |
+
+### Settings Pages
+| File | Change Type |
+|------|-------------|
+| `src/pages/settings/PrearrivalSettingsPage.tsx` | Mobile accordion, sticky save |
+| `src/pages/settings/ResortBrandingPage.tsx` | Reset button to danger zone |
+| `src/pages/settings/RequestsSettingsPage.tsx` | Mobile tab label improvements |
+| `src/pages/settings/ResortStaffPage.tsx` | List layout, better actions |
+| `src/pages/settings/UserManagementPage.tsx` | Super Admin warnings |
+| `src/pages/settings/ResortsPage.tsx` | Status filters, safer delete |
+
+### UI Components
+| File | Change Type |
+|------|-------------|
+| `src/components/ui/confirmation-dialog.tsx` | Add `requireTyping` prop |
 
 ---
 
-## Testing Checklist
+## Visual Design Specifications
 
-After implementation:
+### Section Groupings
+```css
+.settings-section {
+  @apply space-y-4 pb-8;
+}
 
-- [ ] All text readable at arm's length on iPhone SE (smallest common screen)
-- [ ] All buttons/checkboxes/switches tappable with thumb tip (44px)
-- [ ] Calendar days easily selectable without misclicks
-- [ ] Dropdown menus scrollable without zoom
-- [ ] Filter bars usable with one hand
-- [ ] Dashboard cards readable without squinting
-- [ ] No horizontal scrolling on any page
-- [ ] Dialogs/sheets don't overflow screen edges
+.settings-section-header {
+  @apply flex items-center gap-3 mb-4;
+}
 
----
+.settings-section-title {
+  @apply text-lg font-semibold text-foreground;
+}
 
-## Technical Notes
-
-### Tailwind `xs` Breakpoint
-
-If not already present, add to `tailwind.config.ts`:
-
-```ts
-theme: {
-  screens: {
-    'xs': '375px',  // iPhone SE and up
-    // ... existing sm, md, lg, xl
-  }
+.settings-section-description {
+  @apply text-sm text-muted-foreground;
 }
 ```
 
-### Safe Minimum Sizes Reference
+### Danger Zone Styling
+```css
+.danger-zone {
+  @apply border-l-4 border-destructive/50 bg-destructive/5 rounded-lg p-4 mt-8;
+}
 
-| Element Type | Min Font | Min Touch Target |
-|--------------|----------|------------------|
-| Body text | 14px (text-sm) | - |
-| Labels/metadata | 11px | - |
-| Navigation | 11px | 44px × 44px |
-| Badges | 11px | 32px if interactive |
-| Buttons | 14px | 44px height |
-| Form inputs | 16px (prevents iOS zoom) | 48px height |
+.danger-zone-title {
+  @apply flex items-center gap-2 text-destructive font-semibold mb-2;
+}
+```
 
+### Admin Badge Variations
+```css
+.admin-badge {
+  @apply text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded;
+}
+
+.admin-badge--super-admin {
+  @apply bg-destructive/10 text-destructive border border-destructive/20;
+}
+
+.admin-badge--admin {
+  @apply bg-primary/10 text-primary border border-primary/20;
+}
+```
+
+---
+
+## Mobile Optimization Summary
+
+| Pattern | When to Use |
+|---------|-------------|
+| **Accordion sections** | Forms with 3+ cards/sections |
+| **Tabs** | Already used in Branding, Requests — keep but optimize |
+| **Sticky action bar** | Forms with single primary save action |
+| **Bottom sheet for edit** | Staff member edit, role change dialogs |
+| **Full-width cards** | User list, resort list on mobile |
+
+---
+
+## Safety & Confirmation Levels
+
+| Action | Confirmation Level |
+|--------|-------------------|
+| Save settings | None (reversible) |
+| Remove staff from resort | Simple confirm dialog |
+| Change own role | Warning + confirm |
+| Delete staff account | Confirm + type name |
+| Grant Super Admin | Dedicated dialog with warning |
+| Revoke Super Admin | Confirm + type name |
+| Delete resort | Critical dialog + type code |
+
+---
+
+## Accessibility Considerations
+
+| Requirement | Implementation |
+|-------------|----------------|
+| Section headers | Semantic `h2` for section titles, `h3` for card titles |
+| Focus management | Return focus after dialog close |
+| Screen reader | Announce role changes, destructive action warnings |
+| Touch targets | All buttons 44px+ minimum |
+| Keyboard navigation | Tab order through sections, Escape to close |
+
+---
+
+## Implementation Phases
+
+### Phase 1: Foundation (Create new components)
+1. Create `SettingsSection` component
+2. Create `SettingsCard` component  
+3. Create `DangerZone` component
+4. Create export barrel
+
+### Phase 2: Settings Hub Transformation
+5. Refactor `SettingsPage.tsx` with grouped sections
+6. Implement mobile accordion behavior
+
+### Phase 3: Staff Management Polish
+7. Improve `ResortStaffPage.tsx` layout
+8. Add warnings to `UserManagementPage.tsx`
+9. Enhance confirmation dialogs
+
+### Phase 4: Form Pages Mobile Optimization
+10. Add accordions to `PrearrivalSettingsPage.tsx`
+11. Improve mobile tabs in `RequestsSettingsPage.tsx`
+12. Add sticky save buttons where needed
+
+### Phase 5: Safety Enhancements
+13. Add `requireTyping` to confirmation dialog
+14. Implement critical confirmations for resort delete
+15. Add danger zones to relevant pages
+
+---
+
+## Summary
+
+This refinement transforms the admin experience from a flat, overwhelming list of options into a structured, confident interface where:
+
+1. **Settings are discoverable** — grouped by domain with clear descriptions
+2. **Mobile is usable** — accordions, sticky actions, no cramped tables
+3. **Destructive actions are safe** — visually separated, properly confirmed
+4. **Hierarchy is clear** — Super Admin sections are distinct from resort settings
+5. **Non-technical users feel confident** — plain language, helpful descriptions, reversible where possible
+
+The changes are purely visual and interaction-layer — no business logic, permissions, or data persistence will be modified.
