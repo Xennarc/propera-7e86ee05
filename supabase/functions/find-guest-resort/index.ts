@@ -138,6 +138,15 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split('T')[0]
 
+    // Log search parameters for debugging
+    console.log(JSON.stringify({
+      event: 'find-guest-resort-search-params',
+      searchLastName: sanitizedLastName,
+      searchRoom: sanitizedRoomNumber,
+      searchDate: today,
+      timestamp: new Date().toISOString()
+    }))
+
     // Search for guests matching the criteria
     const { data: guests, error } = await supabase
       .from('guests')
@@ -156,6 +165,26 @@ Deno.serve(async (req) => {
       throw error
     }
 
+    // Log diagnostic info about query results
+    if (guests && guests.length > 0) {
+      const diagnostics = guests.map((g: any) => ({
+        hasResort: !!g.resorts,
+        resortStatus: g.resorts?.status,
+        isActive: g.resorts?.status === 'ACTIVE'
+      }))
+      
+      console.log(JSON.stringify({
+        event: 'find-guest-resort-query-diagnostics',
+        totalMatches: guests.length,
+        byStatus: {
+          active: diagnostics.filter(d => d.isActive).length,
+          inactive: diagnostics.filter(d => !d.isActive).length,
+          noResort: diagnostics.filter(d => !d.hasResort).length
+        },
+        timestamp: new Date().toISOString()
+      }))
+    }
+
     // Filter to only active resorts
     const activeGuests = guests?.filter((g: any) => g.resorts?.status === 'ACTIVE') || []
 
@@ -166,6 +195,47 @@ Deno.serve(async (req) => {
         uniqueResorts.set(g.resort_id, { code: g.resorts.code, name: g.resorts.name })
       }
     })
+
+    // If no results, log what similar records exist for debugging
+    if (activeGuests.length === 0) {
+      // Check if there are any guests with matching room (ignoring name)
+      const { data: roomMatches } = await supabase
+        .from('guests')
+        .select('full_name, room_number, check_in_date, check_out_date, resort_id')
+        .ilike('room_number', sanitizedRoomNumber)
+        .limit(5)
+
+      // Check if there are any guests with matching last name (ignoring room)
+      const { data: nameMatches } = await supabase
+        .from('guests')
+        .select('full_name, room_number, check_in_date, check_out_date, resort_id')
+        .ilike('full_name', `%${sanitizedLastName}%`)
+        .limit(5)
+
+      console.log(JSON.stringify({
+        event: 'find-guest-resort-debug-no-match',
+        searchedLastName: sanitizedLastName,
+        searchedRoom: sanitizedRoomNumber,
+        searchedDate: today,
+        rawQueryResultCount: guests?.length || 0,
+        activeGuestCount: activeGuests.length,
+        roomMatchSamples: roomMatches?.map(g => ({
+          fullNamePreview: g.full_name?.substring(0, 20) + '...',
+          room: g.room_number,
+          checkIn: g.check_in_date,
+          checkOut: g.check_out_date,
+          isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
+        })) || [],
+        nameMatchSamples: nameMatches?.map(g => ({
+          fullNamePreview: g.full_name?.substring(0, 20) + '...',
+          room: g.room_number,
+          checkIn: g.check_in_date,
+          checkOut: g.check_out_date,
+          isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
+        })) || [],
+        timestamp: new Date().toISOString()
+      }))
+    }
 
     let result: { type: string; resortCode?: string; resortName?: string }
 
@@ -182,6 +252,9 @@ Deno.serve(async (req) => {
       event: 'find-guest-resort-result',
       ip: clientIP,
       resultType: result.type,
+      uniqueResortsFound: uniqueResorts.size,
+      searchedLastName: sanitizedLastName.substring(0, 3) + '***',
+      searchedRoom: sanitizedRoomNumber,
       timestamp: new Date().toISOString()
     }))
 
