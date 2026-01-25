@@ -51,8 +51,11 @@ export function SendPrearrivalEmailDialog({
   const [editableEmails, setEditableEmails] = useState<Record<string, string>>({});
   const [sendingStatus, setSendingStatus] = useState<Record<string, 'pending' | 'sending' | 'sent' | 'failed'>>({});
 
-  const isBulk = guests.length > 1;
-  const singleGuest = guests.length === 1 ? guests[0] : null;
+  // CRITICAL: Filter out any null/undefined guests from the array
+  const validGuests = guests.filter((g): g is Guest => g != null && !!g.id);
+  
+  const isBulk = validGuests.length > 1;
+  const singleGuest = validGuests.length === 1 ? validGuests[0] : null;
 
   // Send email mutation using send-guest-credentials edge function
   const sendEmailMutation = useMutation({
@@ -96,26 +99,26 @@ export function SendPrearrivalEmailDialog({
   };
 
   const handleSendBulk = async () => {
-    const validGuests = guests.filter(g => {
+    const guestsWithEmail = validGuests.filter(g => {
       const email = editableEmails[g.id] || g.email;
       return email && email.includes('@');
     });
 
-    if (validGuests.length === 0) {
+    if (guestsWithEmail.length === 0) {
       toast({ variant: 'destructive', title: 'No valid emails', description: 'No guests have valid email addresses' });
       return;
     }
 
     // Initialize all as pending
     const initialStatus: Record<string, 'pending' | 'sending' | 'sent' | 'failed'> = {};
-    validGuests.forEach(g => { initialStatus[g.id] = 'pending'; });
+    guestsWithEmail.forEach(g => { initialStatus[g.id] = 'pending'; });
     setSendingStatus(initialStatus);
 
     // Send sequentially to avoid rate limits
     let successCount = 0;
     let failCount = 0;
 
-    for (const guest of validGuests) {
+    for (const guest of guestsWithEmail) {
       const email = editableEmails[guest.id] || guest.email;
       setSendingStatus(prev => ({ ...prev, [guest.id]: 'sending' }));
       
@@ -150,8 +153,34 @@ export function SendPrearrivalEmailDialog({
     return email && email.includes('@');
   };
 
-  const validGuestCount = guests.filter(hasValidEmail).length;
+  const validGuestCount = validGuests.filter(hasValidEmail).length;
   const isSending = Object.values(sendingStatus).some(s => s === 'sending');
+  
+  // CRITICAL: Don't render if no valid guests
+  if (validGuests.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Send Login Credentials
+            </DialogTitle>
+            <DialogDescription>
+              No valid guests selected
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-8 text-center text-muted-foreground">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+            <p>Please select guests with valid data to send credentials.</p>
+          </div>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -214,7 +243,7 @@ export function SendPrearrivalEmailDialog({
           {/* Bulk guest list */}
           {isBulk && (
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {guests.map(guest => (
+              {validGuests.map(guest => (
                 <Card key={guest.id} className={!hasValidEmail(guest) ? 'border-destructive/50' : ''}>
                   <CardContent className="p-3">
                     <div className="flex items-center gap-3">
@@ -310,18 +339,18 @@ export function SendPrearrivalEmailDialog({
                   </>
                 )}
               </Button>
-            ) : (
+            ) : singleGuest ? (
               <Button 
                 onClick={handleSendSingle} 
-                disabled={!hasValidEmail(singleGuest!) || sendingStatus[singleGuest!.id] === 'sending' || sendingStatus[singleGuest!.id] === 'sent'}
+                disabled={!hasValidEmail(singleGuest) || sendingStatus[singleGuest.id] === 'sending' || sendingStatus[singleGuest.id] === 'sent'}
                 className="w-full"
               >
-                {sendingStatus[singleGuest!.id] === 'sending' ? (
+                {sendingStatus[singleGuest.id] === 'sending' ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Sending...
                   </>
-                ) : sendingStatus[singleGuest!.id] === 'sent' ? (
+                ) : sendingStatus[singleGuest.id] === 'sent' ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Sent!
@@ -333,7 +362,7 @@ export function SendPrearrivalEmailDialog({
                   </>
                 )}
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </DialogContent>
