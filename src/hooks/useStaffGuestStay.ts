@@ -86,24 +86,9 @@ export function useStaffGuestStay(guestId: string, resortId: string): StaffGuest
         updatedAt: activeStay.updated_at,
       };
 
-      // Fetch access links for this stay
-      const { data: links, error: linksError } = await supabase
-        .from('guest_access_links')
-        .select('*')
-        .eq('stay_id', activeStay.id)
-        .order('created_at', { ascending: false });
-
-      if (linksError) {
-        console.error('Error fetching access links:', linksError);
-      }
-
-      const accessLinks: StaffAccessLink[] = (links || []).map(link => ({
-        id: link.id,
-        tokenHint: link.token_hash ? link.token_hash.slice(-8) : '****',
-        expiresAt: link.expires_at,
-        consumedAt: link.consumed_at,
-        createdAt: link.created_at,
-      }));
+      // Legacy access links removed - all guest access now uses PIN-based authentication
+      // The guest_access_links table will be dropped in a future migration
+      const accessLinks: StaffAccessLink[] = [];
 
       // Fetch pre-arrival submission for this stay
       const { data: submissions, error: subError } = await supabase
