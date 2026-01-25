@@ -81,23 +81,12 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
       });
 
       // Fetch other data in parallel
-      const [settingsResult, linkResult, reviewResult] = await Promise.all([
+      const [settingsResult, reviewResult] = await Promise.all([
         // Resort prearrival settings
         supabase
           .from('prearrival_settings')
           .select('is_enabled, show_arrival_details, show_preferences, show_special_occasions, require_policy_acknowledgement, require_esignature')
           .eq('resort_id', resortId)
-          .maybeSingle(),
-        
-        // Active prearrival link (legacy system - for transition)
-        supabase
-          .from('prearrival_tokens')
-          .select('id, token, status, expires_at, last_opened_at, completed_at, verification_completed_at')
-          .eq('guest_id', guestId)
-          .is('revoked_at', null)
-          .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
           .maybeSingle(),
         
         // Staff review with reviewer name
@@ -110,6 +99,8 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
           .eq('guest_id', guestId)
           .maybeSingle(),
       ]);
+      
+      // Legacy prearrival_tokens query removed - all guest access now uses PIN-based authentication
 
       // Transform unified result to profile format
       let profile: PrearrivalProfile | null = null;
@@ -145,7 +136,8 @@ export function useStaffPrearrivalData({ guestId, resortId, enabled = true }: Us
       }
 
       const settings = settingsResult.data as PrearrivalSettings | null;
-      const link = linkResult.data as PrearrivalLink | null;
+      // Legacy prearrival link removed - all guest access now uses PIN-based authentication
+      const link: PrearrivalLink | null = null;
       
       // Process review with reviewer name
       let review: StaffReview | null = null;
