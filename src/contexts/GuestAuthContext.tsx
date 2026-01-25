@@ -38,8 +38,7 @@ async function hashPin(pin: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-const GUEST_SESSION_KEY = 'propera_guest_session';
-
+export const GUEST_SESSION_KEY = 'propera_guest_session';
 interface SessionRegistrationResult {
   success: boolean;
   session_id?: string;
@@ -326,4 +325,43 @@ export function useGuestAuth() {
 // Helper to generate PIN hash (for staff when enabling portal)
 export async function generatePinHash(pin: string): Promise<string> {
   return hashPin(pin);
+}
+
+/**
+ * Utility to build a normalized GuestSession from raw data.
+ * Ensures all fields are properly stringified to prevent React error #300.
+ * Use this in all login flows for consistency.
+ */
+export function buildGuestSession(params: {
+  guest: {
+    id: string;
+    full_name: string;
+    room_number: string;
+    check_in_date: string;
+    check_out_date: string;
+  };
+  resort: {
+    id: string;
+    name: string;
+    logo_url?: string | null;
+    timezone?: string | null;
+  };
+  sessionId?: string;
+  sessionToken?: string;
+  stayId?: string;
+}): GuestSession {
+  return {
+    guestId: String(params.guest.id ?? ''),
+    fullName: String(params.guest.full_name ?? 'Guest'),
+    roomNumber: String(params.guest.room_number ?? ''),
+    checkInDate: String(params.guest.check_in_date ?? ''),
+    checkOutDate: String(params.guest.check_out_date ?? ''),
+    resortId: String(params.resort.id ?? ''),
+    resortName: params.resort.name ? String(params.resort.name) : undefined,
+    resortLogoUrl: params.resort.logo_url ? String(params.resort.logo_url) : undefined,
+    resortTimezone: params.resort.timezone ? String(params.resort.timezone) : 'UTC',
+    sessionId: params.sessionId ? String(params.sessionId) : undefined,
+    sessionToken: params.sessionToken ? String(params.sessionToken) : undefined,
+    stayId: params.stayId ? String(params.stayId) : undefined,
+  };
 }

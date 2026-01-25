@@ -6097,6 +6097,7 @@ export type Database = {
         Returns: undefined
       }
       now_in_resort_tz: { Args: { p_resort_id: string }; Returns: string }
+      peek_guest_login_token: { Args: { p_raw_token: string }; Returns: Json }
       purge_archived_requests: { Args: never; Returns: Json }
       regenerate_prearrival_link: {
         Args: { p_guest_id: string }
