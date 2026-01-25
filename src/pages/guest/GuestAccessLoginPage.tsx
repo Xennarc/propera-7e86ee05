@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useGuestAuth, buildGuestSession, GUEST_SESSION_KEY } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { QRCodeSVG } from 'qrcode.react';
-import { Smartphone, AlertCircle, KeyRound, RefreshCw } from 'lucide-react';
+import { Smartphone, AlertCircle, KeyRound, RefreshCw, Laptop } from 'lucide-react';
 import { getDeviceInfo } from '@/lib/device-info';
 
 type PageState = 'loading' | 'processing' | 'desktop' | 'error' | 'no_token';
@@ -51,8 +51,6 @@ function useIsDesktop(): boolean {
 
   return isDesktop;
 }
-
-const GUEST_SESSION_KEY = 'propera_guest_session';
 
 export default function GuestAccessLoginPage() {
   const navigate = useNavigate();
@@ -153,21 +151,14 @@ export default function GuestAccessLoginPage() {
         // Continue without session - guest can still use the portal
       }
 
-      // Build and store guest session (same format as PIN login)
-      const guestSession = {
-        guestId: result.guest.id,
-        fullName: result.guest.full_name,
-        roomNumber: result.guest.room_number,
-        checkInDate: result.guest.check_in_date,
-        checkOutDate: result.guest.check_out_date,
-        resortId: result.resort.id,
-        resortName: result.resort.name,
-        resortLogoUrl: result.resort.logo_url || undefined,
-        resortTimezone: result.resort.timezone || 'UTC',
+      // Use centralized session builder for consistency
+      const guestSession = buildGuestSession({
+        guest: result.guest,
+        resort: result.resort,
         sessionId,
         sessionToken,
         stayId: result.stay_id,
-      };
+      });
 
       localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(guestSession));
 
@@ -191,6 +182,11 @@ export default function GuestAccessLoginPage() {
 
   const handleGoToLogin = () => {
     navigate('/guest/find', { replace: true });
+  };
+
+  const handleContinueOnDesktop = () => {
+    // Force processing even on desktop
+    processToken();
   };
 
   // Construct the full URL for QR code
@@ -247,7 +243,7 @@ export default function GuestAccessLoginPage() {
     );
   }
 
-  // Desktop - show QR for mobile scanning
+  // Desktop - show QR for mobile scanning with bypass option
   if (pageState === 'desktop') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -274,6 +270,22 @@ export default function GuestAccessLoginPage() {
 
             <div className="text-xs text-muted-foreground">
               <p>The guest portal is optimized for mobile devices</p>
+            </div>
+
+            {/* Desktop bypass option */}
+            <div className="pt-2 border-t">
+              <p className="text-xs text-muted-foreground mb-3">
+                On a laptop but want to continue?
+              </p>
+              <Button 
+                onClick={handleContinueOnDesktop} 
+                variant="ghost" 
+                size="sm" 
+                className="w-full"
+              >
+                <Laptop className="h-4 w-4 mr-2" />
+                Continue on this device
+              </Button>
             </div>
 
             <div className="pt-2 border-t">

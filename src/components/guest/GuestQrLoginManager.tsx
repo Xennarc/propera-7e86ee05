@@ -100,7 +100,11 @@ export function GuestQrLoginManager({
       }
 
       setGeneratedToken(result.token || null);
-      setExpiresAt(new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000));
+      // Use server-provided expiry time instead of hardcoded client estimate
+      const serverExpiry = result.expires_at 
+        ? new Date(result.expires_at) 
+        : new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000);
+      setExpiresAt(serverExpiry);
       setShowQrModal(true);
       setCopied(false);
     } catch (err) {

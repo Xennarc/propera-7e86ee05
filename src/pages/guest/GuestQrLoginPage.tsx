@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useGuestAuth, GuestSession } from '@/contexts/GuestAuthContext';
+import { useGuestAuth, buildGuestSession, GUEST_SESSION_KEY } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -12,7 +12,8 @@ import {
   RefreshCw, 
   Monitor,
   QrCode,
-  AlertTriangle
+  AlertTriangle,
+  Laptop
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDeviceInfo } from '@/lib/device-info';
@@ -131,7 +132,7 @@ export default function GuestQrLoginPage() {
         return;
       }
 
-      // Build session and store it
+      // Build session using centralized utility
       if (result.guest && result.resort) {
         // Register a session for this device
         let sessionId: string | undefined;
@@ -156,22 +157,16 @@ export default function GuestQrLoginPage() {
           // Session registration is optional, continue without it
         }
 
-        const session: GuestSession = {
-          guestId: result.guest.id,
-          fullName: result.guest.full_name,
-          roomNumber: result.guest.room_number,
-          checkInDate: result.guest.check_in_date,
-          checkOutDate: result.guest.check_out_date,
-          resortId: result.resort.id,
-          resortName: result.resort.name,
-          resortLogoUrl: result.resort.logo_url,
-          resortTimezone: result.resort.timezone,
+        // Use centralized session builder for consistency
+        const session = buildGuestSession({
+          guest: result.guest,
+          resort: result.resort,
           sessionId,
           sessionToken,
-        };
+        });
 
-        // Store session (same key as normal login)
-        localStorage.setItem('propera_guest_session', JSON.stringify(session));
+        // Store session
+        localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
 
         toast({
           title: `Welcome, ${result.guest.full_name}!`,
@@ -200,11 +195,15 @@ export default function GuestQrLoginPage() {
   };
 
   const handleAskStaff = () => {
-    // Could open a help dialog or navigate to help page
     toast({
       title: 'Need Help?',
       description: 'Please ask a staff member to generate a new QR code for you.',
     });
+  };
+
+  const handleContinueOnDesktop = () => {
+    // Force processing even on desktop
+    processToken();
   };
 
   // Loading state
@@ -255,7 +254,7 @@ export default function GuestQrLoginPage() {
     );
   }
 
-  // Desktop view - show QR for scanning on phone
+  // Desktop view - show QR for scanning on phone with bypass option
   if (pageState === 'desktop') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -296,6 +295,22 @@ export default function GuestQrLoginPage() {
                 <li>Point it at the QR code above</li>
                 <li>Tap the notification that appears</li>
               </ol>
+            </div>
+
+            {/* Desktop bypass option */}
+            <div className="pt-2 border-t">
+              <p className="text-xs text-center text-muted-foreground mb-3">
+                On a laptop but want to continue?
+              </p>
+              <Button 
+                onClick={handleContinueOnDesktop} 
+                variant="ghost" 
+                size="sm" 
+                className="w-full"
+              >
+                <Laptop className="h-4 w-4 mr-2" />
+                Continue on this device
+              </Button>
             </div>
 
             {/* Alternative login */}
