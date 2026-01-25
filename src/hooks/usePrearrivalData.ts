@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { toStringArray } from '@/lib/safe-array';
+import { nowInTimezone } from '@/lib/timezone-utils';
+import { startOfDay, differenceInDays, parseISO } from 'date-fns';
 
 export interface PrearrivalProfile {
   id: string;
@@ -164,17 +166,18 @@ export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArriva
     return { isPrearrival: false, daysUntilArrival: 0 };
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Get "today" in the resort's timezone (not browser timezone)
+  const resortTimezone = guest.resortTimezone || 'UTC';
+  const nowLocal = nowInTimezone(resortTimezone);
+  const todayStart = startOfDay(nowLocal);
   
-  const checkInDate = new Date(guest.checkInDate);
-  checkInDate.setHours(0, 0, 0, 0);
+  // Parse check-in date (stored as YYYY-MM-DD)
+  const checkInDate = startOfDay(parseISO(guest.checkInDate));
 
-  const diffTime = checkInDate.getTime() - today.getTime();
-  const daysUntilArrival = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const daysUntilArrival = differenceInDays(checkInDate, todayStart);
 
   return {
     isPrearrival: daysUntilArrival > 0,
-    daysUntilArrival,
+    daysUntilArrival: Math.max(0, daysUntilArrival),
   };
 }
