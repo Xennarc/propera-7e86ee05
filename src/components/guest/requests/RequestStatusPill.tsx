@@ -82,19 +82,20 @@ export function RequestStatusPill({
         isSlaBreach 
           ? 'bg-destructive/15 text-destructive border-destructive/30 animate-pulse' 
           : config.className,
-        size === 'sm' ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'
+        // Minimum 11px text for mobile readability (was 10px for sm)
+        size === 'sm' ? 'text-[11px] px-2 py-0.5' : 'text-xs px-2.5 py-1'
       )}
     >
       {showIcon && (
         isSlaBreach ? (
           <AlertTriangle className={cn(
             'flex-shrink-0',
-            size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'
+            size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
           )} />
         ) : (
           <Icon className={cn(
             'flex-shrink-0',
-            size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5',
+            size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4',
             status === 'IN_PROGRESS' && 'animate-spin'
           )} />
         )

@@ -101,8 +101,10 @@ const CategoryTile = memo(({ category, onSelect }: {
       )}
       onClick={onSelect}
     >
-      <CardContent className="p-4 flex flex-col items-center text-center gap-3">
+      {/* Larger padding for better touch targets */}
+      <CardContent className="p-5 flex flex-col items-center text-center gap-3">
         <div className={cn(
+          // Larger icon container for touch (56px = 14 × 4)
           'w-14 h-14 rounded-full flex items-center justify-center',
           'border-2 bg-transparent',
           category.ringColor
@@ -110,12 +112,13 @@ const CategoryTile = memo(({ category, onSelect }: {
           <Icon className="h-6 w-6" />
         </div>
         
-        <div className="space-y-0.5">
+        <div className="space-y-1">
           <h3 className="font-semibold text-sm text-foreground">
             {category.label}
           </h3>
           {category.description && (
-            <p className="text-[11px] text-muted-foreground line-clamp-1">
+            // Minimum 12px (text-xs) for mobile readability (was 11px)
+            <p className="text-xs text-muted-foreground line-clamp-1">
               {category.description}
             </p>
           )}

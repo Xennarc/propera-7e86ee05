@@ -118,7 +118,8 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-lg py-2.5 pl-8 pr-3 text-sm outline-none",
+      // 44px minimum height for touch targets
+      "relative flex w-full cursor-default select-none items-center rounded-lg py-3 pl-8 pr-3 text-sm outline-none min-h-[44px]",
       "transition-colors duration-100",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "focus:bg-muted focus:text-foreground",
@@ -126,7 +127,7 @@ const SelectItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className="absolute left-2.5 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-2.5 flex h-4 w-4 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
         <Check className="h-4 w-4 text-primary" />
       </SelectPrimitive.ItemIndicator>

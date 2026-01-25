@@ -93,7 +93,8 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-lg px-3 py-2 text-sm outline-none",
+      // 44px minimum height for touch targets
+      "relative flex cursor-default select-none items-center rounded-lg px-3 py-3 text-sm outline-none min-h-[44px]",
       "transition-colors duration-100",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "focus:bg-muted focus:text-foreground",
@@ -112,7 +113,8 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm outline-none",
+      // 44px minimum height for touch targets
+      "relative flex cursor-default select-none items-center rounded-lg py-3 pl-8 pr-3 text-sm outline-none min-h-[44px]",
       "transition-colors duration-100",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "focus:bg-muted focus:text-foreground",
@@ -121,7 +123,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     checked={checked}
     {...props}
   >
-    <span className="absolute left-2.5 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-2.5 flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Check className="h-4 w-4 text-primary" />
       </DropdownMenuPrimitive.ItemIndicator>
@@ -138,7 +140,8 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm outline-none",
+      // 44px minimum height for touch targets
+      "relative flex cursor-default select-none items-center rounded-lg py-3 pl-8 pr-3 text-sm outline-none min-h-[44px]",
       "transition-colors duration-100",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "focus:bg-muted focus:text-foreground",
@@ -146,9 +149,9 @@ const DropdownMenuRadioItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className="absolute left-2.5 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-2.5 flex h-4 w-4 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-primary text-primary" />
+        <Circle className="h-2.5 w-2.5 fill-primary text-primary" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}

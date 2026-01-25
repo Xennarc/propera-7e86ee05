@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -169,47 +170,55 @@ export function TodayAtAGlance() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-3">
+          // Mobile: 1 column, sm: 3 columns
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
             {[1, 2, 3].map(i => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
+              <Skeleton key={i} className="h-28 sm:h-24 rounded-xl" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-3">
+          // Mobile: 1 column for easier reading, sm: 3 columns
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
             {metrics.map((metric) => (
               <Link
                 key={metric.label}
                 to={metric.href}
                 className={cn(
-                  'group relative p-4 rounded-xl border border-border/50 bg-card transition-all duration-200',
-                  'hover:border-primary/30 hover:shadow-md hover:bg-primary/5'
+                  // Larger padding on mobile for touch
+                  'group relative p-5 sm:p-4 rounded-xl border border-border/50 bg-card transition-all duration-200',
+                  'hover:border-primary/30 hover:shadow-md hover:bg-primary/5',
+                  'active:scale-[0.98]'
                 )}
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3 sm:mb-2">
                   <div className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-lg',
+                    // Larger icon container on mobile
+                    'flex h-12 w-12 sm:h-10 sm:w-10 items-center justify-center rounded-lg',
                     variantStyles[metric.variant || 'default']
                   )}>
-                    {metric.icon}
+                    {React.cloneElement(metric.icon as React.ReactElement, {
+                      className: 'h-6 w-6 sm:h-5 sm:w-5'
+                    })}
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                  <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                 </div>
                 
                 <div className="space-y-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-baseline gap-2 flex-wrap">
                     <span className="text-2xl font-bold text-foreground">
                       {metric.value}
                     </span>
                     {metric.alert && (
-                      <Badge variant="secondary" className="text-[10px] bg-warning/10 text-warning border-warning/20">
-                        <AlertCircle className="h-3 w-3 mr-1" />
+                      // Minimum 11px text for mobile readability
+                      <Badge variant="secondary" className="text-[11px] bg-warning/10 text-warning border-warning/20">
+                        <AlertCircle className="h-3.5 w-3.5 mr-1" />
                         {metric.alert}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm font-medium text-foreground">{metric.label}</p>
+                  <p className="text-base sm:text-sm font-medium text-foreground">{metric.label}</p>
                   {metric.subValue && (
-                    <p className="text-xs text-muted-foreground">{metric.subValue}</p>
+                    <p className="text-sm sm:text-xs text-muted-foreground">{metric.subValue}</p>
                   )}
                 </div>
               </Link>

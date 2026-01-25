@@ -71,8 +71,9 @@ const NavItem = memo(({ item, isActive, label, isPrearrivalRestricted }: {
           </div>
         )}
       </div>
+      {/* Minimum 11px text for mobile readability */}
       <span className={cn(
-        "text-[10px] sm:text-[11px] font-medium transition-all",
+        "text-[11px] sm:text-xs font-medium transition-all",
         isActive && "font-bold text-primary"
       )}>
         {label}
