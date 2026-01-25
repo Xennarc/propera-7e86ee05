@@ -31,7 +31,7 @@ export function StaffShell() {
   const queryClient = useQueryClient();
   
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
-  const { loading: resortLoading } = useResort();
+  const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
 
   // Prefetch common resort data
@@ -74,6 +74,16 @@ export function StaffShell() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <ProperaLoader size={64} text="Loading resorts..." />
+      </div>
+    );
+  }
+
+  // Guard for when loading finished but currentResort is still null
+  // This handles the race condition where resort selection is pending
+  if (!currentResort && permissions.hasAnyResortAccess) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <ProperaLoader size={64} text="Selecting resort..." />
       </div>
     );
   }

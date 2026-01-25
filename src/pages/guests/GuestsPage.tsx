@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { Guest } from '@/types/database';
@@ -60,18 +60,37 @@ function GuestsPageContent() {
   const [previewGuest, setPreviewGuest] = useState<Guest | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   
-  const { currentResort } = useResort();
+  const { currentResort, loading: resortLoading } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // Safely extract resortId to use consistently across all hooks
+  const resortId = currentResort?.id;
+
+  // Debug logging for null resort issues (single-fire)
+  const hasLoggedNullWarning = useRef(false);
+  useEffect(() => {
+    if (!currentResort && !resortLoading && !hasLoggedNullWarning.current) {
+      hasLoggedNullWarning.current = true;
+      console.warn('[GuestsPage] currentResort is null after loading', {
+        resortLoading,
+        pathname: window.location.pathname,
+      });
+    }
+    // Reset when resort becomes available
+    if (currentResort) {
+      hasLoggedNullWarning.current = false;
+    }
+  }, [currentResort, resortLoading]);
 
   // UI preferences
   const { preferences, toggleDensity } = useGuestListPreferences();
 
   // Use React Query for guests - enables instant sync
   const { data: guests = [], isLoading: loading } = useGuestsQuery({
-    resortId: currentResort?.id,
-    enabled: !!currentResort,
+    resortId: resortId,
+    enabled: !!resortId,
   });
 
   // Use mutations hook for delete
@@ -79,18 +98,18 @@ function GuestsPageContent() {
 
   // Check if prearrival is enabled for this resort
   const { data: prearrivalSettings } = useQuery({
-    queryKey: ['prearrival-settings', currentResort?.id],
+    queryKey: ['prearrival-settings', resortId ?? 'none'],
     queryFn: async () => {
-      if (!currentResort) return null;
+      if (!resortId) return null;
       const { data, error } = await supabase
         .from('prearrival_settings')
         .select('is_enabled')
-        .eq('resort_id', currentResort.id)
+        .eq('resort_id', resortId)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: !!currentResort,
+    enabled: !!resortId,
   });
 
   const prearrivalEnabled = prearrivalSettings?.is_enabled ?? false;
@@ -102,8 +121,8 @@ function GuestsPageContent() {
   const guestIds = useMemo(() => guests.map(g => g.id), [guests]);
   const { data: prearrivalStatuses } = usePrearrivalStatuses({
     guestIds,
-    resortId: currentResort?.id || '',
-    enabled: prearrivalEnabled && guestIds.length > 0,
+    resortId: resortId || '',
+    enabled: prearrivalEnabled && guestIds.length > 0 && !!resortId,
   });
 
   // Use new filter hook
@@ -194,11 +213,33 @@ function GuestsPageContent() {
     return prearrivalEnabled && isFutureArrival(guest);
   }, [prearrivalEnabled, isFutureArrival]);
 
+  // Show loading skeleton while resort context is loading
+  if (resortLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <PageHeader
+          title="Guests"
+          description="Manage resort guests and their stays"
+        />
+        <StatCardGridSkeleton count={5} />
+        <Card>
+          <CardContent className="p-8">
+            <LoadingPage />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show empty state if no resort (user has no memberships)
   if (!currentResort) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
+        <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
           <p className="text-muted-foreground">Please select a resort first</p>
+          <p className="text-sm text-muted-foreground/70">
+            If you don't see any resorts, contact your administrator.
+          </p>
         </CardContent>
       </Card>
     );

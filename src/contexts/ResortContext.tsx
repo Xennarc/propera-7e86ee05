@@ -68,29 +68,33 @@ export function ResortProvider({ children }: { children: ReactNode }) {
       setLoading(true);
     }
     
-    if (isSuperAdmin()) {
-      const { data, error } = await supabase.from('resorts').select('*').order('name');
-      if (!error && data) {
-        const typedData = data as Resort[];
-        setResorts(typedData);
-        restoreOrSelectResort(typedData);
+    try {
+      if (isSuperAdmin()) {
+        const { data, error } = await supabase.from('resorts').select('*').order('name');
+        if (!error && data) {
+          const typedData = data as Resort[];
+          setResorts(typedData);
+          restoreOrSelectResort(typedData);
+        }
+      } else {
+        const memberResortIds = memberships.map(m => m.resort_id);
+        if (memberResortIds.length === 0) {
+          setResorts([]);
+          setCurrentResortState(null);
+          setLoading(false);
+          return;
+        }
+        const { data, error } = await supabase.from('resorts').select('*').in('id', memberResortIds).order('name');
+        if (!error && data) {
+          const typedData = data as Resort[];
+          setResorts(typedData);
+          restoreOrSelectResort(typedData);
+        }
       }
-    } else {
-      const memberResortIds = memberships.map(m => m.resort_id);
-      if (memberResortIds.length === 0) {
-        setResorts([]);
-        setCurrentResortState(null);
-        setLoading(false);
-        return;
-      }
-      const { data, error } = await supabase.from('resorts').select('*').in('id', memberResortIds).order('name');
-      if (!error && data) {
-        const typedData = data as Resort[];
-        setResorts(typedData);
-        restoreOrSelectResort(typedData);
-      }
+    } finally {
+      // Always ensure loading is set to false after the fetch completes
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
