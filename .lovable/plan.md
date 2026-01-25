@@ -1,289 +1,371 @@
 
+# Portal Behavior Unification Plan (Phase 1)
 
-# Improve QR Code Login & Guest Portal Pre-Arrival Flow
+## Overview
+Unify the Guest Portal so **both pre-arrival and in-house guests** use the exact same routes, layout, and UI shell. The only difference: guests accessing the portal **before their check-in date** (in resort timezone) see a skippable Pre-Arrival Form interstitial on first visit.
 
 ## Current State Analysis
 
-### What Exists Today
+### Existing Architecture
+| Component | Current Behavior |
+|-----------|------------------|
+| `GuestHome.tsx` | Already routes to `GuestPrearrivalHome` if `isPrearrival` is true |
+| `useIsPrearrivalGuest()` | Uses browser's local date (not resort timezone) |
+| `useActiveStay()` | Fetches stay with `status` field (pre_arrival, in_house, checked_out) |
+| `usePrearrivalData()` | Fetches profile with `prearrival_status` (not_started, partial, completed) |
+| `PrearrivalWizard` | Full dialog-based form for arrival details, preferences, occasions |
+| `GuestLayout.tsx` | Same shell for all guests (header + bottom nav) |
+| Staff `PreArrivalSubmissionCard.tsx` | Already shows submission data in Guest Detail page |
 
-The system has **three parallel login methods** for guests:
+### What Works Today
+- Same portal routes (`/guest/*`) for all guests
+- Pre-arrival checklist shown on `GuestPrearrivalHome`
+- Staff can view pre-arrival submissions via `PreArrivalSubmissionCard`
+- `PrearrivalWizard` handles form submission
 
-| Method | Route | Token Table | Consume RPC |
-|--------|-------|-------------|-------------|
-| **Standard PIN Login** | `/resort/:code/guest/login` | N/A | `guest_portal_login` |
-| **QR Login (Instant/Confirm)** | `/guest/qr?t=TOKEN` or `/guest/qr/:token` | `guest_login_tokens` | `consume_guest_login_token` |
-| **Pre-Arrival Access Link** | `/guest/access?t=TOKEN` | `guest_access_links` | `consume_guest_access_link` |
-
-### Issues Identified
-
-1. **Inconsistent Session Construction**
-   - Each login page (`GuestQrLoginPage`, `GuestQrConfirmPage`, `GuestAccessLoginPage`) manually constructs and stores the session, duplicating logic and risking inconsistencies
-   - The `GuestAuthContext` has hardened normalization, but login pages bypass it
-
-2. **URL Hardcoding Mismatch**
-   - `GuestQrLoginManager` uses `https://propera.cc` for production
-   - `GuestQrLoginPage` displays `https://propera.cc/guest/qr?t=TOKEN` for desktop QR
-   - No resort code in QR URLs — guests land on generic route without resort context
-
-3. **No "Peek" for Confirm Flow**
-   - `GuestQrConfirmPage` shows generic "Confirm Your Login" without guest details
-   - Missed opportunity for premium UX: "Welcome, James Wilson (Room 101)"
-
-4. **Desktop Detection Issues**
-   - Both QR and Access pages show "Scan with your phone" on desktop
-   - Flaky detection: some tablets report as desktop
-   - No way to bypass and continue on desktop anyway
-
-5. **Token Expiry Sync Issues**
-   - `GuestQrLoginManager` uses client-side timer (`Date.now() + EXPIRY_MINUTES`)
-   - Server sets different expiry times (15min for instant, 1hr for confirm)
-   - Client timer shows 2 minutes regardless of server expiry
-
-6. **Legacy Route Clutter**
-   - `/guest/access?t=TOKEN` overlaps with `/guest/qr?t=TOKEN` conceptually
-   - Legacy `/prearrival/:token` redirects add complexity
+### What Needs Improvement
+1. **`useIsPrearrivalGuest` uses browser timezone** — should use resort timezone
+2. **No interstitial/gate** — guests go directly to pre-arrival home without explicit prompt
+3. **No skip mechanism** — guests can't dismiss the prompt for the session
+4. **No persistent "Complete Pre-Arrival" card** on the regular home page after check-in
+5. **Staff detail page already shows data** via `PreArrivalSubmissionCard` ✓
 
 ---
 
-## Improvement Plan
+## Implementation Plan
 
-### Phase 1: Centralize Session Creation (Code Quality)
+### Task 1: Update `useIsPrearrivalGuest` to Use Resort Timezone
 
-**Goal**: Create a single utility function for session construction used by all login flows.
+**File:** `src/hooks/usePrearrivalData.ts`
 
-**Changes**:
-
-| File | Change |
-|------|--------|
-| `src/contexts/GuestAuthContext.tsx` | Export `buildGuestSession()` utility that normalizes all fields |
-| `src/pages/guest/GuestQrLoginPage.tsx` | Import and use `buildGuestSession()` instead of manual construction |
-| `src/pages/guest/GuestQrConfirmPage.tsx` | Import and use `buildGuestSession()` |
-| `src/pages/guest/GuestAccessLoginPage.tsx` | Import and use `buildGuestSession()` |
-
-**New Utility**:
+**Current Logic (uses browser timezone):**
 ```typescript
-// In GuestAuthContext.tsx
-export function buildGuestSession(params: {
-  guest: { id: string; full_name: string; room_number: string; check_in_date: string; check_out_date: string };
-  resort: { id: string; name: string; logo_url?: string; timezone?: string };
-  sessionId?: string;
-  sessionToken?: string;
-  stayId?: string;
-}): GuestSession {
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const checkInDate = new Date(guest.checkInDate);
+checkInDate.setHours(0, 0, 0, 0);
+
+const diffTime = checkInDate.getTime() - today.getTime();
+```
+
+**New Logic (uses resort timezone):**
+```typescript
+import { nowInTimezone } from '@/lib/timezone-utils';
+import { startOfDay, differenceInDays, parseISO } from 'date-fns';
+
+export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArrival: number } {
+  const { guest } = useGuestAuth();
+  
+  if (!guest) {
+    return { isPrearrival: false, daysUntilArrival: 0 };
+  }
+
+  // Get "today" in the resort's timezone
+  const resortTimezone = guest.resortTimezone || 'UTC';
+  const nowLocal = nowInTimezone(resortTimezone);
+  const todayStart = startOfDay(nowLocal);
+  
+  // Parse check-in date (stored as YYYY-MM-DD)
+  const checkInDate = startOfDay(parseISO(guest.checkInDate));
+
+  const daysUntilArrival = differenceInDays(checkInDate, todayStart);
+
   return {
-    guestId: String(params.guest.id ?? ''),
-    fullName: String(params.guest.full_name ?? 'Guest'),
-    roomNumber: String(params.guest.room_number ?? ''),
-    checkInDate: String(params.guest.check_in_date ?? ''),
-    checkOutDate: String(params.guest.check_out_date ?? ''),
-    resortId: String(params.resort.id ?? ''),
-    resortName: params.resort.name ? String(params.resort.name) : undefined,
-    resortLogoUrl: params.resort.logo_url ? String(params.resort.logo_url) : undefined,
-    resortTimezone: params.resort.timezone ? String(params.resort.timezone) : 'UTC',
-    sessionId: params.sessionId ? String(params.sessionId) : undefined,
-    sessionToken: params.sessionToken ? String(params.sessionToken) : undefined,
-    stayId: params.stayId ? String(params.stayId) : undefined,
+    isPrearrival: daysUntilArrival > 0,
+    daysUntilArrival: Math.max(0, daysUntilArrival),
   };
 }
 ```
 
-### Phase 2: Fix Token Expiry Timer Sync
+---
 
-**Goal**: Use actual server-returned expiry time instead of hardcoded client estimate.
+### Task 2: Create `GuestPortalGate` Wrapper Component
 
-**Changes**:
+**New File:** `src/components/guest/GuestPortalGate.tsx`
 
-| File | Change |
-|------|--------|
-| `src/components/guest/GuestQrLoginManager.tsx` | Use `result.expires_at` from RPC response, not `Date.now() + EXPIRY_MINUTES` |
+This component wraps the `<Outlet />` in `GuestLayout` and shows a pre-arrival prompt interstitial when appropriate.
 
-**Current (Bug)**:
+**Logic:**
+1. Check if `isPrearrival` is true (using updated hook)
+2. Check if `prearrivalData.profile.prearrival_status !== 'completed'`
+3. Check if NOT recently skipped (localStorage key `preArrivalSkippedUntil`)
+4. If all conditions met → show `PreArrivalPromptScreen`
+5. Else → render `<Outlet />` (normal portal)
+
+**Component Structure:**
 ```typescript
-setExpiresAt(new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000));
+interface GuestPortalGateProps {
+  children: React.ReactNode;
+}
+
+export function GuestPortalGate({ children }: GuestPortalGateProps) {
+  const { isPrearrival } = useIsPrearrivalGuest();
+  const { data: prearrivalData, isLoading } = usePrearrivalData();
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  useEffect(() => {
+    // Skip if loading or not pre-arrival
+    if (isLoading || !isPrearrival) {
+      setShowPrompt(false);
+      return;
+    }
+
+    // Skip if pre-arrival not enabled for this resort
+    if (!prearrivalData?.settings?.is_enabled) {
+      setShowPrompt(false);
+      return;
+    }
+
+    // Skip if already completed
+    if (prearrivalData?.profile?.prearrival_status === 'completed') {
+      setShowPrompt(false);
+      return;
+    }
+
+    // Check localStorage skip marker
+    const skippedUntil = localStorage.getItem('preArrivalSkippedUntil');
+    if (skippedUntil) {
+      const skipExpiry = new Date(skippedUntil);
+      if (skipExpiry > new Date()) {
+        setShowPrompt(false);
+        return;
+      }
+      // Expired, clean up
+      localStorage.removeItem('preArrivalSkippedUntil');
+    }
+
+    setShowPrompt(true);
+  }, [isPrearrival, prearrivalData, isLoading]);
+
+  const handleSkip = () => {
+    // Skip for 24 hours
+    const skipUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    localStorage.setItem('preArrivalSkippedUntil', skipUntil.toISOString());
+    setShowPrompt(false);
+  };
+
+  const handleComplete = () => {
+    setWizardOpen(true);
+  };
+
+  const handleWizardClose = (open: boolean) => {
+    setWizardOpen(open);
+    if (!open) {
+      // After wizard closes, re-check status
+      // The query will auto-refetch and update prearrivalData
+      setShowPrompt(false);
+    }
+  };
+
+  if (isLoading) {
+    return children; // Don't block during loading
+  }
+
+  if (showPrompt) {
+    return (
+      <>
+        <PreArrivalPromptScreen
+          onComplete={handleComplete}
+          onSkip={handleSkip}
+          guestName={...}
+          checkInDate={...}
+          settings={prearrivalData?.settings}
+        />
+        <PrearrivalWizard
+          open={wizardOpen}
+          onOpenChange={handleWizardClose}
+          profile={prearrivalData?.profile || null}
+          settings={prearrivalData?.settings!}
+          checkInDate={guest.checkInDate}
+        />
+      </>
+    );
+  }
+
+  return <>{children}</>;
+}
 ```
 
-**Fixed**:
-```typescript
-// Use server-provided expiry
-setExpiresAt(result.expires_at ? new Date(result.expires_at) : new Date(Date.now() + 2 * 60 * 1000));
+---
+
+### Task 3: Create `PreArrivalPromptScreen` Component
+
+**New File:** `src/components/guest/prearrival/PreArrivalPromptScreen.tsx`
+
+A full-screen or modal interstitial with:
+- Resort branding/logo
+- Welcome message: "Welcome, {firstName}!"
+- Check-in countdown
+- Primary CTA: "Complete Pre-Arrival" → opens wizard
+- Secondary CTA: "Skip for now" → sets localStorage marker
+
+**Design:**
+```text
++-------------------------------------------+
+|       [Resort Logo]                       |
+|                                           |
+|     Welcome, James!                       |
+|     Your stay begins in 5 days            |
+|                                           |
+|   Help us prepare for your arrival by     |
+|   sharing a few preferences.              |
+|                                           |
+|  +-----------------------------------+    |
+|  |     Complete Pre-Arrival (2 min)  |    | ← Primary Button
+|  +-----------------------------------+    |
+|                                           |
+|         Skip for now →                    | ← Text link
+|                                           |
++-------------------------------------------+
 ```
 
-### Phase 3: Add Token Peek RPC for Confirm Flow
+---
 
-**Goal**: Allow the confirmation page to show "Welcome, [Guest Name]" before consuming the token.
+### Task 4: Integrate Gate into `GuestLayout`
 
-**New RPC**: `peek_guest_login_token`
+**File:** `src/components/guest/GuestLayout.tsx`
 
-```sql
-CREATE OR REPLACE FUNCTION public.peek_guest_login_token(p_raw_token text)
-RETURNS json
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'extensions'
-AS $$
-DECLARE
-  v_token_hash text;
-  v_token_record record;
-  v_guest record;
-  v_resort record;
-BEGIN
-  -- Hash token
-  v_token_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
-  
-  -- Find token (don't consume)
-  SELECT * INTO v_token_record
-  FROM public.guest_login_tokens
-  WHERE token_hash = v_token_hash;
-  
-  IF v_token_record.id IS NULL THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_INVALID');
-  END IF;
-  
-  IF v_token_record.consumed_at IS NOT NULL THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_ALREADY_USED');
-  END IF;
-  
-  IF v_token_record.expires_at <= now() THEN
-    RETURN json_build_object('success', false, 'error', 'TOKEN_EXPIRED');
-  END IF;
-  
-  -- Fetch guest and resort for preview
-  SELECT id, full_name, room_number INTO v_guest FROM public.guests WHERE id = v_token_record.guest_id;
-  SELECT id, name, login_logo_url INTO v_resort FROM public.resorts WHERE id = v_token_record.resort_id;
-  
-  RETURN json_build_object(
-    'success', true,
-    'guest', json_build_object('id', v_guest.id, 'full_name', v_guest.full_name, 'room_number', v_guest.room_number),
-    'resort', json_build_object('id', v_resort.id, 'name', v_resort.name, 'logo_url', v_resort.login_logo_url),
-    'token_type', v_token_record.type,
-    'expires_at', v_token_record.expires_at
-  );
-END;
-$$;
+**Current:**
+```tsx
+<main ref={mainRef} className="...">
+  <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
+    <Outlet />
+  </div>
+</main>
 ```
 
-**UI Update** for `GuestQrConfirmPage.tsx`:
-- On mount, call `peek_guest_login_token` to get guest info
-- Show personalized welcome: "Welcome, James Wilson — Room 101"
-- Display resort logo if available
-- Show token expiry countdown
+**Updated:**
+```tsx
+import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 
-### Phase 4: Improve Desktop Detection & Bypass
+// In the return:
+<main ref={mainRef} className="...">
+  <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
+    <GuestPortalGate>
+      <Outlet />
+    </GuestPortalGate>
+  </div>
+</main>
+```
 
-**Goal**: Allow guests on desktop to proceed anyway if they want.
+---
 
-**Changes to `GuestQrLoginPage.tsx` and `GuestAccessLoginPage.tsx`**:
+### Task 5: Add "Complete Pre-Arrival" Card to Regular Home
 
-Add a "Continue anyway" link below the desktop QR code:
+**File:** `src/pages/guest/GuestHome.tsx`
+
+The current code already has a "Soft Pre-arrival Nudge" card (lines 242-278) for in-stay guests who haven't completed pre-arrival:
 
 ```tsx
-{/* Desktop view */}
-{pageState === 'desktop' && (
-  <Card>
-    {/* ... existing QR display ... */}
-    
-    {/* Add bypass option */}
-    <div className="text-center pt-4 border-t">
-      <p className="text-xs text-muted-foreground mb-2">On a laptop but want to continue?</p>
-      <Button 
-        variant="ghost" 
-        size="sm"
-        onClick={() => {
-          // Force processing even on desktop
-          processToken();
-        }}
-      >
-        Continue on this device
-      </Button>
-    </div>
+{!isPrearrival && 
+ prearrivalData?.settings?.is_enabled && 
+ prearrivalData?.profile?.prearrival_status !== 'completed' &&
+ !prearrivalNudgeDismissed && (
+  <Card className="...">
+    ...
+    <Button onClick={() => setWizardOpen(true)}>
+      Complete Now
+    </Button>
   </Card>
 )}
 ```
 
-### Phase 5: Consolidate Pre-Arrival Flow (Simplification)
+**Enhancement:** Make this card persistent (not dismissible) until completed. Add visual distinction to show it's optional but helpful.
 
-**Goal**: Deprecate `guest_access_links` and use the same QR token system for all flows.
-
-**Rationale**: With the new `send-guest-credentials` flow sending PIN-based login details, the `guest_access_links` table is redundant. Staff can either:
-1. Send credentials email (PIN + room + last name)
-2. Generate a QR code for instant login
-
-**Changes**:
-
-| Action | Description |
-|--------|-------------|
-| Keep `/guest/access` route | But show deprecation warning in code comments |
-| Update `StayAccessLinkManager` | Replace with "Send Credentials" button that uses `SendGuestCredentialsDialog` |
-| Add migration note | Mark `guest_access_links` table for future deprecation |
-
-### Phase 6: Resort-Scoped QR URLs (Future Enhancement)
-
-**Goal**: Include resort code in QR URLs for proper branding on landing page.
-
-**Current URL**: `https://propera.cc/guest/qr?t=TOKEN`
-**Proposed URL**: `https://propera.cc/resort/{code}/guest/qr?t=TOKEN`
-
-This would allow the QR login page to show resort branding before consumption.
-
-**Note**: This is a larger change that requires:
-- New route in `App.tsx`
-- Modified `GuestQrLoginManager` to include resort code
-- Modified RPC to optionally validate resort matches
-
-**Recommendation**: Defer to Phase 2 of improvements.
+Current has `!prearrivalNudgeDismissed` — we'll keep the dismiss capability but the card will reappear on next session if still not completed.
 
 ---
 
-## Implementation Order
+### Task 6: Verify Staff Pre-Arrival Data Display
 
-| Order | Task | Effort | Impact |
-|-------|------|--------|--------|
-| 1 | Centralize session construction (`buildGuestSession`) | Small | High (prevents bugs) |
-| 2 | Fix token expiry timer sync | Small | Medium (UX accuracy) |
-| 3 | Add desktop bypass button | Small | Medium (UX flexibility) |
-| 4 | Add `peek_guest_login_token` RPC | Medium | Medium (premium UX) |
-| 5 | Update `GuestQrConfirmPage` to use peek | Medium | Medium (personalization) |
-| 6 | Update `StayAccessLinkManager` for credentials flow | Medium | High (simplification) |
+**Files to verify (no changes needed):**
+- `src/pages/guests/GuestDetailPage.tsx` — Already imports and renders `PreArrivalSubmissionCard`
+- `src/components/staff/PreArrivalSubmissionCard.tsx` — Already displays:
+  - Status badge (Completed/Not Started)
+  - Arrival details (time, flight, transfer)
+  - Dietary & allergies
+  - Water comfort level
+  - Special occasions
+  - Special requests
+  - Last updated timestamp
+
+**Current Integration (lines 115-122 in GuestDetailPage):**
+```tsx
+const { 
+  stay: activeStay, 
+  accessLinks, 
+  submission,  // ← Pre-arrival data
+  isLoading: stayLoading,
+  refetch: refetchStay 
+} = useStaffGuestStay(id || '', guest?.resort_id || currentResort?.id || '');
+```
+
+**Staff section rendering (already exists):**
+```tsx
+<PreArrivalSubmissionCard 
+  submission={submission} 
+  isLoading={stayLoading} 
+/>
+```
+
+✅ **No changes needed** — Staff already sees pre-arrival data with status.
 
 ---
 
-## Files to Modify
+## File Summary
 
-| File | Changes |
-|------|---------|
-| `src/contexts/GuestAuthContext.tsx` | Add `buildGuestSession()` export |
-| `src/pages/guest/GuestQrLoginPage.tsx` | Use `buildGuestSession()`, add desktop bypass |
-| `src/pages/guest/GuestQrConfirmPage.tsx` | Use `buildGuestSession()`, call peek RPC, show personalized welcome |
-| `src/pages/guest/GuestAccessLoginPage.tsx` | Use `buildGuestSession()`, add desktop bypass |
-| `src/components/guest/GuestQrLoginManager.tsx` | Fix expiry timer to use server response |
-| `src/components/staff/StayAccessLinkManager.tsx` | Integrate `SendGuestCredentialsDialog` as primary action |
-
-## New Files
-
-| File | Purpose |
-|------|---------|
-| `supabase/migrations/XXXXXX_peek_guest_login_token.sql` | Add peek RPC for token preview |
+| File | Action | Description |
+|------|--------|-------------|
+| `src/hooks/usePrearrivalData.ts` | **Modify** | Update `useIsPrearrivalGuest` to use resort timezone |
+| `src/components/guest/GuestPortalGate.tsx` | **Create** | Gate wrapper that shows pre-arrival prompt |
+| `src/components/guest/prearrival/PreArrivalPromptScreen.tsx` | **Create** | Full-screen interstitial with CTAs |
+| `src/components/guest/GuestLayout.tsx` | **Modify** | Wrap `<Outlet />` with `<GuestPortalGate>` |
+| `src/pages/guest/GuestHome.tsx` | **Minor** | Enhance existing nudge card behavior |
+| Staff files | **None** | Already displays pre-arrival data correctly |
 
 ---
 
-## Security Considerations
+## Backward Compatibility
 
 | Concern | Mitigation |
 |---------|------------|
-| Peek reveals guest info | Only reveals name/room, no sensitive data; token still required to authenticate |
-| Desktop bypass | Guest still needs valid token; no security downgrade |
-| Rate limiting | Existing rate limits on token consumption apply |
+| Existing sessions | `useIsPrearrivalGuest` still returns same shape, just with correct timezone |
+| Token-based logins | Unaffected — all login routes lead to same portal |
+| In-house guests | Never see the prompt (isPrearrival = false) |
+| Completed pre-arrival | Never see prompt (status check) |
+| Skipped guests | Can still browse activities, make bookings, use all features |
 
 ---
 
-## Summary
+## Acceptance Criteria Validation
 
-This plan improves the QR login and pre-arrival flows by:
-1. **Consolidating** duplicated session construction logic
-2. **Fixing** the token expiry timer accuracy
-3. **Enhancing** the confirm flow with a personalized welcome screen
-4. **Improving** desktop UX with a bypass option
-5. **Simplifying** by moving pre-arrival toward credential-based emails
+| Criteria | Implementation |
+|----------|----------------|
+| Guest with future start date sees pre-arrival prompt | ✅ `GuestPortalGate` checks `isPrearrival` + status |
+| Prompt is skippable | ✅ "Skip for now" sets 24h localStorage marker |
+| Skipping goes to portal home | ✅ `setShowPrompt(false)` renders children |
+| Skip doesn't block bookings | ✅ All routes remain accessible |
+| In-stay guest never sees prompt | ✅ `isPrearrival: false` bypasses gate |
+| Staff sees pre-arrival data | ✅ Already implemented via `PreArrivalSubmissionCard` |
+| No existing routes break | ✅ Additive wrapper only |
 
-The changes maintain backward compatibility while making the system more robust and user-friendly.
+---
+
+## Technical Notes
+
+### Timezone Calculation
+The key fix is using `nowInTimezone(resortTimezone)` instead of `new Date()`:
+- A guest accessing the portal at 11pm in New York for a Maldives resort (UTC+5) should see "pre-arrival" based on Maldives time, not NY time
+- If it's Jan 25 in Maldives and check-in is Jan 26, they should see the prompt
+
+### Skip Duration
+- 24 hours chosen as balance between "not annoying" and "reminding them"
+- Stored as ISO timestamp for accurate expiry across page reloads
+- Clears automatically when expired
+
+### Loading States
+- Gate doesn't block during `isLoading` to prevent flash
+- Wizard loading is handled by existing `PrearrivalWizard` component
 
