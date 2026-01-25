@@ -190,7 +190,18 @@ export function useGuestFilters(
   const guestsWithStatus = useMemo(() => {
     const today = startOfDay(new Date());
     
-    return guests.map((guest): GuestWithStatus => {
+    // CRITICAL: Filter out any null/undefined guests before processing
+    const validGuests = guests.filter((guest): guest is Guest => {
+      if (guest == null) {
+        console.warn('[useGuestFilters] Filtered out null guest from array', {
+          totalGuests: guests.length,
+        });
+        return false;
+      }
+      return true;
+    });
+    
+    return validGuests.map((guest): GuestWithStatus => {
       const checkIn = safeParseDateISO(guest.check_in_date);
       const checkOut = safeParseDateISO(guest.check_out_date);
       

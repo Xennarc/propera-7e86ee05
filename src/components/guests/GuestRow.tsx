@@ -68,6 +68,13 @@ export const GuestRow = memo(function GuestRow({
   isReadOnly = false,
 }: GuestRowProps) {
   const { toast } = useToast();
+  
+  // CRITICAL: Guard against null guest prop
+  if (!guest || !guest.id) {
+    console.error('[GuestRow] Received null/invalid guest prop');
+    return null;
+  }
+  
   const status = getGuestStatusWithCountdown(guest);
   
   // Calculate nights

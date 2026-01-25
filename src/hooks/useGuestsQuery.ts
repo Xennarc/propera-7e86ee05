@@ -37,6 +37,17 @@ export function useGuestsQuery({ resortId, enabled = true }: UseGuestsQueryOptio
 
       return (data || []) as Guest[];
     },
+    // CRITICAL: Filter out any null/undefined entries that might come from database
+    select: (data) => {
+      const validGuests = (data || []).filter((guest): guest is Guest => guest != null);
+      if (validGuests.length !== data?.length) {
+        console.warn('[useGuestsQuery] Filtered out null guests', {
+          original: data?.length,
+          valid: validGuests.length,
+        });
+      }
+      return validGuests;
+    },
     // CRITICAL: Only enable with valid resort ID (not empty string)
     enabled: enabled && hasValidResortId,
     staleTime: 30 * 1000, // 30 seconds - considers data fresh for 30s
