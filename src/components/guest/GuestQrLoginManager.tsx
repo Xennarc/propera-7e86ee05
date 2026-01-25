@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { QrCode, Copy, Check, Clock, AlertTriangle, Zap, ShieldCheck } from 'lucide-react';
+import { QrCode, Copy, Check, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { getQrLoginUrl, getQrConfirmUrl } from '@/lib/url-utils';
 
 interface GuestQrLoginManagerProps {
   guestId: string;
@@ -14,21 +13,15 @@ interface GuestQrLoginManagerProps {
   roomNumber: string;
 }
 
-interface TokenResult {
+interface SignQrResponse {
   success: boolean;
-  token?: string;
-  expires_at?: string;
-  guest_id?: string;
-  type?: string;
+  url?: string;
+  expiresAt?: string;
+  pin?: string;
   error?: string;
 }
 
-type TokenType = 'instant' | 'confirm';
-
-const EXPIRY_MINUTES: Record<TokenType, number> = {
-  instant: 2,
-  confirm: 2,
-};
+const EXPIRY_MINUTES = 10;
 
 export function GuestQrLoginManager({
   guestId,
@@ -38,13 +31,13 @@ export function GuestQrLoginManager({
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
-  const [tokenType, setTokenType] = useState<TokenType>('instant');
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [generatedPin, setGeneratedPin] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [copied, setCopied] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
 
-  // Countdown timer for token expiry
+  // Countdown timer for URL expiry
   useEffect(() => {
     if (!expiresAt || !showQrModal) return;
 
@@ -54,7 +47,7 @@ export function GuestQrLoginManager({
       setTimeRemaining(remaining);
       
       if (remaining <= 0) {
-        // Token expired, close modal
+        // QR expired, close modal
         closeModal();
         toast({
           variant: 'destructive',
@@ -69,16 +62,19 @@ export function GuestQrLoginManager({
     return () => clearInterval(interval);
   }, [expiresAt, showQrModal, toast]);
 
-  const generateQrToken = async (type: TokenType) => {
+  const generateSignedQr = async () => {
     setGenerating(true);
-    setTokenType(type);
     try {
-      const { data, error } = await supabase.rpc('create_guest_login_token', {
-        p_guest_id: guestId,
-        p_token_type: type,
+      // Call the sign-qr-login edge function
+      const { data, error } = await supabase.functions.invoke<SignQrResponse>('sign-qr-login', {
+        body: {
+          guestId,
+          expiryMinutes: EXPIRY_MINUTES,
+        },
       });
 
       if (error) {
+        console.error('Edge function error:', error);
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -87,28 +83,24 @@ export function GuestQrLoginManager({
         return;
       }
 
-      const result = data as unknown as TokenResult;
-      
-      if (!result.success) {
+      if (!data?.success || !data.url) {
         toast({
           variant: 'destructive',
           title: 'Error',
-          description: result.error === 'UNAUTHORIZED' 
+          description: data?.error === 'Access denied to this resort'
             ? 'You do not have permission to generate login codes for this guest.'
-            : result.error || 'Failed to generate QR code.',
+            : data?.error || 'Failed to generate QR code.',
         });
         return;
       }
 
-      setGeneratedToken(result.token || null);
-      // Use server-provided expiry time instead of hardcoded client estimate
-      const serverExpiry = result.expires_at 
-        ? new Date(result.expires_at) 
-        : new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000);
-      setExpiresAt(serverExpiry);
+      setGeneratedUrl(data.url);
+      setGeneratedPin(data.pin || null);
+      setExpiresAt(data.expiresAt ? new Date(data.expiresAt) : new Date(Date.now() + EXPIRY_MINUTES * 60 * 1000));
       setShowQrModal(true);
       setCopied(false);
     } catch (err) {
+      console.error('Unexpected error:', err);
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -119,22 +111,10 @@ export function GuestQrLoginManager({
     }
   };
 
-  const getQrUrl = () => {
-    if (!generatedToken) return '';
-    
-    // Use centralized URL utilities for consistent production URLs
-    if (tokenType === 'instant') {
-      return getQrLoginUrl(generatedToken);
-    } else {
-      return getQrConfirmUrl(generatedToken);
-    }
-  };
-
   const copyLink = async () => {
-    const url = getQrUrl();
-    if (!url) return;
+    if (!generatedUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(generatedUrl);
       setCopied(true);
       toast({
         title: 'Copied!',
@@ -151,7 +131,8 @@ export function GuestQrLoginManager({
 
   const closeModal = () => {
     setShowQrModal(false);
-    setGeneratedToken(null);
+    setGeneratedUrl(null);
+    setGeneratedPin(null);
     setExpiresAt(null);
     setCopied(false);
     setTimeRemaining(0);
@@ -163,7 +144,7 @@ export function GuestQrLoginManager({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const isExpiringSoon = timeRemaining <= 30 && timeRemaining > 0;
+  const isExpiringSoon = timeRemaining <= 60 && timeRemaining > 0;
 
   return (
     <>
@@ -177,32 +158,29 @@ export function GuestQrLoginManager({
         <CardContent>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Generate a QR code that the guest can scan to log in without entering credentials.
+              Generate a QR code that the guest can scan to log in instantly. This will create a fresh PIN for the guest.
             </p>
             
-            {/* Two button options */}
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                onClick={() => generateQrToken('instant')} 
-                disabled={generating}
-                className="flex-1"
-              >
-                <Zap className={`h-4 w-4 mr-2 ${generating && tokenType === 'instant' ? 'animate-pulse' : ''}`} />
-                {generating && tokenType === 'instant' ? 'Generating...' : 'Instant Login'}
-              </Button>
-              <Button 
-                onClick={() => generateQrToken('confirm')} 
-                disabled={generating}
-                variant="outline"
-                className="flex-1"
-              >
-                <ShieldCheck className={`h-4 w-4 mr-2 ${generating && tokenType === 'confirm' ? 'animate-pulse' : ''}`} />
-                {generating && tokenType === 'confirm' ? 'Generating...' : 'With Confirmation'}
-              </Button>
-            </div>
+            <Button 
+              onClick={generateSignedQr} 
+              disabled={generating}
+              className="w-full"
+            >
+              {generating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Generate QR Code
+                </>
+              )}
+            </Button>
             
             <p className="text-xs text-muted-foreground">
-              <strong>Instant:</strong> Guest scans and logs in immediately. <strong>With Confirmation:</strong> Guest must tap to confirm.
+              The QR code expires after {EXPIRY_MINUTES} minutes. The guest will be logged in automatically when they scan it.
             </p>
           </div>
         </CardContent>
@@ -212,32 +190,37 @@ export function GuestQrLoginManager({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {tokenType === 'instant' ? (
-                <Zap className="h-5 w-5" />
-              ) : (
-                <ShieldCheck className="h-5 w-5" />
-              )}
-              {tokenType === 'instant' ? 'Instant Login QR' : 'Confirmed Login QR'}
+              <QrCode className="h-5 w-5" />
+              Guest Login QR Code
             </DialogTitle>
             <DialogDescription>
-              {tokenType === 'instant' 
-                ? `Show this QR code to ${guestName} (Room ${roomNumber}). They will be logged in immediately upon scanning.`
-                : `Show this QR code to ${guestName} (Room ${roomNumber}). They will need to confirm their identity to log in.`
-              }
+              Show this QR code to {guestName} (Room {roomNumber}). They will be logged in automatically upon scanning.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* QR Code Display */}
             <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg border">
-              {generatedToken && (
+              {generatedUrl && (
                 <QRCodeSVG
-                  value={getQrUrl()}
+                  value={generatedUrl}
                   size={200}
                   level="M"
                   includeMargin={false}
                 />
               )}
             </div>
+
+            {/* New PIN Notice */}
+            {generatedPin && (
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-center">
+                <p className="text-sm font-medium text-primary">
+                  New PIN: <span className="font-mono text-lg">{generatedPin}</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Share this PIN with the guest if they need to log in manually later.
+                </p>
+              </div>
+            )}
 
             {/* Timer Display */}
             <div className={`flex items-center justify-center gap-2 p-3 rounded-lg ${
@@ -260,11 +243,8 @@ export function GuestQrLoginManager({
             {/* Security Notice */}
             <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                <strong>Security:</strong> This QR code is single-use and expires in {EXPIRY_MINUTES[tokenType]} minutes.
-                {tokenType === 'instant' 
-                  ? ' The guest will be logged in immediately upon scanning.'
-                  : ' The guest must confirm their identity before logging in.'
-                }
+                <strong>Security:</strong> This QR code expires in {EXPIRY_MINUTES} minutes. 
+                The guest will be logged in instantly when they scan it.
               </p>
             </div>
 
