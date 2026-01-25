@@ -1,25 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, Trash2, User, Users, ArrowUpRight, ArrowDownRight, Building2, Eye, Crown, Star, Mail, Send } from 'lucide-react';
+import { Plus, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { GuestDialog } from './GuestDialog';
 import { SendPrearrivalEmailDialog } from '@/components/guests/SendPrearrivalEmailDialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
-import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
-import { SearchInput } from '@/components/ui/search-input';
-import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton } from '@/components/ui/dashboard-skeletons';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,13 +23,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { isWithinInterval, isToday, startOfDay, addDays, isBefore, isAfter } from 'date-fns';
+import { isAfter } from 'date-fns';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { safeFormatDate, safeParseDateISO } from '@/lib/safe-date-format';
+import { safeParseDateISO } from '@/lib/safe-date-format';
 import { usePrearrivalStatuses } from '@/hooks/usePrearrivalStatus';
 import { usePrearrivalListRealtime } from '@/hooks/usePrearrivalRealtime';
 import { useQuery } from '@tanstack/react-query';
-import { GuestPrearrivalQuickFlags } from '@/components/guests/GuestPrearrivalQuickFlags';
 import { useGuestsQuery } from '@/hooks/useGuestsQuery';
 import { useGuestMutations } from '@/hooks/useGuestMutations';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,25 +36,40 @@ import { useDemoReadOnly } from '@/hooks/useDemoReadOnly';
 import { DemoReadOnlyBanner } from '@/components/demo/DemoReadOnlyBanner';
 import { DemoActionWrapper } from '@/components/ui/demo-action-wrapper';
 
-type GuestFilter = 'all' | 'in-house' | 'arrivals' | 'departures' | 'prearrival-pending' | 'prearrival-completed' | 'has-allergies' | 'arriving-72h';
+// New components
+import { GuestsSummaryStrip } from '@/components/guests/GuestsSummaryStrip';
+import { GuestListToolbar } from '@/components/guests/GuestListToolbar';
+import { GuestRow } from '@/components/guests/GuestRow';
+import { GuestCardRow } from '@/components/guests/GuestCardRow';
+import { GuestPreviewDrawer } from '@/components/guests/GuestPreviewDrawer';
+import { GuestBulkActionBar } from '@/components/guests/GuestBulkActionBar';
+import { useGuestFilters, LegacyGuestFilter } from '@/hooks/useGuestFilters';
+import { useGuestListPreferences } from '@/hooks/useGuestListPreferences';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 function GuestsPageContent() {
   const { isReadOnly } = useDemoReadOnly();
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<GuestFilter>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [deleteGuest, setDeleteGuest] = useState<Guest | null>(null);
   const [selectedGuests, setSelectedGuests] = useState<Set<string>>(new Set());
   const [sendEmailDialogOpen, setSendEmailDialogOpen] = useState(false);
   const [emailTargetGuests, setEmailTargetGuests] = useState<Guest[]>([]);
+  const [previewGuest, setPreviewGuest] = useState<Guest | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   
   const { currentResort } = useResort();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // UI preferences
+  const { preferences, toggleDensity } = useGuestListPreferences();
 
   // Use React Query for guests - enables instant sync
-  const { data: guests = [], isLoading: loading, refetch } = useGuestsQuery({
+  const { data: guests = [], isLoading: loading } = useGuestsQuery({
     resortId: currentResort?.id,
     enabled: !!currentResort,
   });
@@ -99,6 +106,21 @@ function GuestsPageContent() {
     enabled: prearrivalEnabled && guestIds.length > 0,
   });
 
+  // Use new filter hook
+  const {
+    filters,
+    filteredGuests,
+    stats,
+    setSearch,
+    setLegacyFilter,
+    setStatusFilters,
+    setFlagFilters,
+    setSortBy,
+    clearFilters,
+    hasActiveFilters,
+    isFutureArrival,
+  } = useGuestFilters(guests, prearrivalStatuses, prearrivalEnabled);
+
   const handleDelete = async () => {
     if (!deleteGuest || !currentResort) return;
     
@@ -115,206 +137,62 @@ function GuestsPageContent() {
     );
   };
 
-  const isCurrentGuest = (guest: Guest) => {
-    const today = new Date();
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    const checkOut = safeParseDateISO(guest.check_out_date);
-    if (!checkIn || !checkOut) return false;
-    
-    try {
-      return isWithinInterval(today, { start: checkIn, end: checkOut });
-    } catch {
-      return false;
-    }
-  };
-
-  const isArrivalToday = (guest: Guest) => {
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    if (!checkIn) return false;
-    return isToday(checkIn);
-  };
-
-  const isDepartureToday = (guest: Guest) => {
-    const checkOut = safeParseDateISO(guest.check_out_date);
-    if (!checkOut) return false;
-    return isToday(checkOut);
-  };
-
-  const isFutureArrival = (guest: Guest) => {
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    if (!checkIn) return false;
-    return isAfter(checkIn, new Date());
-  };
-
-  const isArrivingInNext7Days = (guest: Guest) => {
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    if (!checkIn) return false;
-    const today = startOfDay(new Date());
-    const in7Days = addDays(today, 7);
-    return isAfter(checkIn, today) && isBefore(checkIn, in7Days);
-  };
-
-  const isArrivingIn72Hours = (guest: Guest) => {
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    if (!checkIn) return false;
-    const today = startOfDay(new Date());
-    const in3Days = addDays(today, 3);
-    return isAfter(checkIn, today) && isBefore(checkIn, in3Days);
-  };
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const inHouse = guests.filter(isCurrentGuest).length;
-    const arrivals = guests.filter(isArrivalToday).length;
-    const departures = guests.filter(isDepartureToday).length;
-    const pendingPrearrival = prearrivalEnabled 
-      ? guests.filter(g => {
-          const status = prearrivalStatuses?.[g.id];
-          return isFutureArrival(g) && (!status?.prearrivalStatus || status.prearrivalStatus === 'not_started');
-        }).length
-      : 0;
-    const completedPrearrival = prearrivalEnabled
-      ? guests.filter(g => {
-          const status = prearrivalStatuses?.[g.id];
-          return isFutureArrival(g) && status?.prearrivalStatus === 'completed';
-        }).length
-      : 0;
-    const arriving72h = guests.filter(isArrivingIn72Hours).length;
-    return { inHouse, arrivals, departures, pendingPrearrival, completedPrearrival, arriving72h };
-  }, [guests, prearrivalStatuses, prearrivalEnabled]);
-
-  // Filter guests
-  const filteredGuests = useMemo(() => {
-    let result = guests;
-
-    // Apply filter
-    switch (filter) {
-      case 'in-house':
-        result = result.filter(isCurrentGuest);
-        break;
-      case 'arrivals':
-        result = result.filter(isArrivalToday);
-        break;
-      case 'departures':
-        result = result.filter(isDepartureToday);
-        break;
-      case 'prearrival-pending':
-        result = result.filter(g => {
-          const status = prearrivalStatuses?.[g.id];
-          return isArrivingInNext7Days(g) && (!status?.prearrivalStatus || status.prearrivalStatus !== 'completed');
-        });
-        break;
-      case 'prearrival-completed':
-        result = result.filter(g => {
-          const status = prearrivalStatuses?.[g.id];
-          return isFutureArrival(g) && status?.prearrivalStatus === 'completed';
-        });
-        break;
-      case 'arriving-72h':
-        result = result.filter(isArrivingIn72Hours);
-        break;
-      case 'has-allergies':
-        result = result.filter(g => isFutureArrival(g));
-        break;
-    }
-
-    // Apply search
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter(guest =>
-        guest.full_name.toLowerCase().includes(searchLower) ||
-        guest.room_number.toLowerCase().includes(searchLower) ||
-        guest.booking_reference?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return result;
-  }, [guests, filter, search, prearrivalStatuses]);
-
-  const getGuestStatus = (guest: Guest) => {
-    if (isCurrentGuest(guest)) return { label: 'In-House', variant: 'confirmed' as const };
-    const today = startOfDay(new Date());
-    const checkIn = safeParseDateISO(guest.check_in_date);
-    if (checkIn && checkIn > today) return { label: 'Upcoming', variant: 'pending' as const };
-    return { label: 'Checked Out', variant: 'secondary' as const };
-  };
-
-  const getPrearrivalBadge = (guestId: string) => {
-    const status = prearrivalStatuses?.[guestId];
-    if (!status) return null;
-
-    switch (status.prearrivalStatus) {
-      case 'completed':
-        return <Badge variant="success" className="text-xs">Completed</Badge>;
-      case 'partial':
-        return <Badge variant="warning" className="text-xs">In Progress</Badge>;
-      case 'not_started':
-      default:
-        return <Badge variant="outline" className="text-xs">Not Started</Badge>;
-    }
-  };
-
-  const getInviteBadge = (guestId: string) => {
-    const status = prearrivalStatuses?.[guestId];
-    if (!status || status.inviteStatus === 'not_sent') return null;
-
-    if (status.inviteStatus === 'sent') {
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <Badge variant="outline" className="text-xs text-success border-success/30">
-              <Mail className="h-3 w-3 mr-1" />
-              Sent
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            Sent {status.lastInviteSent ? safeFormatDate(status.lastInviteSent, 'MMM d, h:mm a') : ''}
-          </TooltipContent>
-        </Tooltip>
-      );
-    }
-    if (status.inviteStatus === 'failed') {
-      return <Badge variant="destructive" className="text-xs">Failed</Badge>;
-    }
-    return null;
-  };
-
   // Selection handlers
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
       setSelectedGuests(new Set(filteredGuests.map(g => g.id)));
     } else {
       setSelectedGuests(new Set());
     }
-  };
+  }, [filteredGuests]);
 
-  const handleSelectGuest = (guestId: string, checked: boolean) => {
-    const newSet = new Set(selectedGuests);
-    if (checked) {
-      newSet.add(guestId);
-    } else {
-      newSet.delete(guestId);
-    }
-    setSelectedGuests(newSet);
-  };
+  const handleSelectGuest = useCallback((guestId: string, checked: boolean) => {
+    setSelectedGuests(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(guestId);
+      } else {
+        newSet.delete(guestId);
+      }
+      return newSet;
+    });
+  }, []);
 
-  const isSomeSelected = selectedGuests.size > 0;
+  const selectedGuestsList = useMemo(() => 
+    guests.filter(g => selectedGuests.has(g.id)),
+    [guests, selectedGuests]
+  );
 
   // Email actions
-  const handleSendEmailSingle = (guest: Guest) => {
+  const handleSendEmailSingle = useCallback((guest: Guest) => {
     setEmailTargetGuests([guest]);
     setSendEmailDialogOpen(true);
-  };
+  }, []);
 
-  const handleSendEmailBulk = () => {
-    const selected = guests.filter(g => selectedGuests.has(g.id));
-    setEmailTargetGuests(selected);
+  const handleSendEmailBulk = useCallback(() => {
+    setEmailTargetGuests(selectedGuestsList);
     setSendEmailDialogOpen(true);
-  };
+  }, [selectedGuestsList]);
 
-  const canSendPrearrival = (guest: Guest) => {
+  // Preview drawer handlers
+  const handleOpenPreview = useCallback((guest: Guest) => {
+    setPreviewGuest(guest);
+    setPreviewOpen(true);
+  }, []);
+
+  const handleNavigateToDetail = useCallback((guest: Guest) => {
+    navigate(`/guests/${guest.id}`);
+  }, [navigate]);
+
+  const handleEditGuest = useCallback((guest: Guest) => {
+    setEditingGuest(guest);
+    setDialogOpen(true);
+    setPreviewOpen(false);
+  }, []);
+
+  const canSendPrearrival = useCallback((guest: Guest) => {
     return prearrivalEnabled && isFutureArrival(guest);
-  };
+  }, [prearrivalEnabled, isFutureArrival]);
 
   if (!currentResort) {
     return (
@@ -325,6 +203,9 @@ function GuestsPageContent() {
       </Card>
     );
   }
+
+  const allSelected = filteredGuests.length > 0 && filteredGuests.every(g => selectedGuests.has(g.id));
+  const someSelected = selectedGuests.size > 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -343,87 +224,40 @@ function GuestsPageContent() {
         }
       />
 
-      {/* Stats */}
+      {/* Summary Strip */}
       {loading ? (
-        <StatCardGridSkeleton count={4} />
+        <StatCardGridSkeleton count={5} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Guests"
-            value={guests.length}
-            icon={Users}
-            variant="default"
-          />
-          <StatCard
-            title="In-House Today"
-            value={stats.inHouse}
-            icon={Building2}
-            variant="primary"
-          />
-          <StatCard
-            title="Arrivals Today"
-            value={stats.arrivals}
-            icon={ArrowUpRight}
-            variant="success"
-          />
-          <StatCard
-            title="Departures Today"
-            value={stats.departures}
-            icon={ArrowDownRight}
-            variant="warning"
-          />
-        </div>
+        <GuestsSummaryStrip
+          stats={stats}
+          activeFilter={filters.legacyFilter}
+          onFilterChange={setLegacyFilter}
+        />
       )}
 
-      {/* Filters and Table */}
+      {/* Filters and List */}
       <Card>
         <CardContent className="p-0">
+          {/* Toolbar */}
           <div className="p-4 border-b border-border/50">
-            <FilterBar>
-              <FilterBarGroup>
-                <Select value={filter} onValueChange={(v) => setFilter(v as GuestFilter)}>
-                  <SelectTrigger className="w-48 bg-background">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Guests</SelectItem>
-                    <SelectItem value="in-house">In-House</SelectItem>
-                    <SelectItem value="arrivals">Arrivals Today</SelectItem>
-                    <SelectItem value="departures">Departures Today</SelectItem>
-                    {prearrivalEnabled && (
-                      <>
-                        <SelectItem value="arriving-72h">
-                          Arriving Next 72h ({stats.arriving72h})
-                        </SelectItem>
-                        <SelectItem value="prearrival-pending">
-                          Pre-Arrival Incomplete
-                        </SelectItem>
-                        <SelectItem value="prearrival-completed">
-                          Pre-Arrival Complete ({stats.completedPrearrival})
-                        </SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </FilterBarGroup>
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="Search name, room, or booking ref..."
-                className="flex-1 max-w-sm"
-              />
-              {/* Bulk actions */}
-              {isSomeSelected && prearrivalEnabled && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleSendEmailBulk}
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Pre-Arrival ({selectedGuests.size})
-                </Button>
-              )}
-            </FilterBar>
+            <GuestListToolbar
+              search={filters.search}
+              onSearchChange={setSearch}
+              legacyFilter={filters.legacyFilter}
+              onLegacyFilterChange={setLegacyFilter}
+              statusFilters={filters.statusFilters}
+              onStatusFiltersChange={setStatusFilters}
+              flagFilters={filters.flagFilters}
+              onFlagFiltersChange={setFlagFilters}
+              sortBy={filters.sortBy}
+              onSortChange={setSortBy}
+              density={preferences.density}
+              onDensityToggle={toggleDensity}
+              prearrivalEnabled={prearrivalEnabled}
+              stats={stats}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+            />
           </div>
 
           {loading ? (
@@ -431,10 +265,10 @@ function GuestsPageContent() {
           ) : filteredGuests.length === 0 ? (
             <EmptyState
               icon={User}
-              title={search || filter !== 'all' ? 'No guests found' : 'No guests yet'}
-              description={search || filter !== 'all' ? 'Try adjusting your filters' : 'Add your first guest to get started'}
+              title={hasActiveFilters ? 'No guests found' : 'No guests yet'}
+              description={hasActiveFilters ? 'Try adjusting your filters' : 'Add your first guest to get started'}
               action={
-                !search && filter === 'all' && !isReadOnly && (
+                !hasActiveFilters && !isReadOnly && (
                   <Button onClick={() => { if (!currentResort) return; setEditingGuest(null); setDialogOpen(true); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Guest
@@ -443,146 +277,106 @@ function GuestsPageContent() {
               }
             />
           ) : (
-            <DataTable
-              data={filteredGuests}
-              onRowClick={(guest) => navigate(`/guests/${guest.id}`)}
-              columns={[
-                // Selection checkbox
-                ...(prearrivalEnabled ? [{
-                  header: '',
-                  accessor: (guest: Guest) => (
-                    <div onClick={(e) => e.stopPropagation()}>
+            <>
+              {/* Desktop: Table-like rows */}
+              {!isMobile && (
+                <div className="overflow-hidden">
+                  {/* Header row */}
+                  <div className={cn(
+                    'grid gap-3 items-center border-b border-border bg-muted/30 text-sm font-medium text-muted-foreground',
+                    preferences.density === 'compact' ? 'py-2 px-3' : 'py-3 px-4',
+                    prearrivalEnabled 
+                      ? 'grid-cols-[auto_1fr_auto_auto_auto_auto_auto]' 
+                      : 'grid-cols-[1fr_auto_auto_auto_auto_auto]'
+                  )}>
+                    {prearrivalEnabled && (
                       <Checkbox
-                        checked={selectedGuests.has(guest.id)}
-                        onCheckedChange={(checked) => handleSelectGuest(guest.id, !!checked)}
-                        aria-label={`Select ${guest.full_name}`}
+                        checked={allSelected}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Select all"
                       />
-                    </div>
-                  ),
-                  className: 'w-12',
-                }] : []),
-                {
-                  header: 'Guest',
-                  accessor: (guest) => (
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-medium text-foreground">{guest.full_name}</p>
-                          {guest.is_vip && (
-                            <Crown className="h-3.5 w-3.5 text-amber-500" />
-                          )}
-                          {guest.loyalty_tier && (
-                            <Star className="h-3.5 w-3.5 text-primary" />
-                          )}
-                        </div>
-                        {guest.email && (
-                          <p className="text-sm text-muted-foreground">{guest.email}</p>
-                        )}
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  header: 'Room',
-                  accessor: (guest) => (
-                    <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
-                      {guest.room_number}
-                    </span>
-                  ),
-                },
-                {
-                  header: 'Check-in',
-                  accessor: (guest) => safeFormatDate(guest.check_in_date, 'MMM d, yyyy'),
-                },
-                {
-                  header: 'Check-out',
-                  accessor: (guest) => safeFormatDate(guest.check_out_date, 'MMM d, yyyy'),
-                },
-                {
-                  header: 'Status',
-                  accessor: (guest) => {
-                    const status = getGuestStatus(guest);
-                    return <Badge variant={status.variant}>{status.label}</Badge>;
-                  },
-                },
-                // Pre-arrival columns (only if enabled)
-                ...(prearrivalEnabled ? [
-                  {
-                    header: 'Pre-Arrival',
-                    accessor: (guest: Guest) => {
-                      if (!isFutureArrival(guest)) return <span className="text-muted-foreground">-</span>;
-                      const status = prearrivalStatuses?.[guest.id];
-                      return (
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5">
-                            {getPrearrivalBadge(guest.id)}
-                            {getInviteBadge(guest.id)}
-                          </div>
-                          {status && (
-                            <GuestPrearrivalQuickFlags 
-                              status={status} 
-                              compact 
-                              showUpdatedAt={status.prearrivalStatus === 'completed' || status.prearrivalStatus === 'partial'}
-                            />
-                          )}
-                        </div>
-                      );
-                    },
-                  },
-                ] : []),
-                {
-                  header: '',
-                  accessor: (guest) => (
-                    <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      {/* Send Pre-Arrival button (only for future arrivals) */}
-                      {canSendPrearrival(guest) && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleSendEmailSingle(guest)}
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Send pre-arrival email</TooltipContent>
-                        </Tooltip>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => navigate(`/guests/${guest.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => { setEditingGuest(guest); setDialogOpen(true); }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteGuest(guest)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ),
-                  className: 'w-36',
-                },
-              ]}
-            />
+                    )}
+                    <span>Guest</span>
+                    <span>Room</span>
+                    <span>Status</span>
+                    <span>Dates</span>
+                    {prearrivalEnabled && <span>Flags</span>}
+                    <span className="text-right">Actions</span>
+                  </div>
+
+                  {/* Guest rows */}
+                  <div className="divide-y divide-border/30">
+                    {filteredGuests.map(guest => (
+                      <GuestRow
+                        key={guest.id}
+                        guest={guest}
+                        prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                        isSelected={selectedGuests.has(guest.id)}
+                        onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                        onPreview={() => handleOpenPreview(guest)}
+                        onNavigate={() => handleNavigateToDetail(guest)}
+                        onEdit={() => handleEditGuest(guest)}
+                        onDelete={() => setDeleteGuest(guest)}
+                        onSendEmail={canSendPrearrival(guest) ? () => handleSendEmailSingle(guest) : undefined}
+                        showSelection={prearrivalEnabled}
+                        showPrearrival={prearrivalEnabled}
+                        isCompact={preferences.density === 'compact'}
+                        isReadOnly={isReadOnly}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile: Card rows */}
+              {isMobile && (
+                <div className="p-3 space-y-3">
+                  {filteredGuests.map(guest => (
+                    <GuestCardRow
+                      key={guest.id}
+                      guest={guest}
+                      prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                      isSelected={selectedGuests.has(guest.id)}
+                      onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                      onPreview={() => handleOpenPreview(guest)}
+                      onNavigate={() => handleNavigateToDetail(guest)}
+                      showSelection={prearrivalEnabled}
+                      showPrearrival={prearrivalEnabled}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Results count */}
+              <div className="px-4 py-3 border-t border-border/50 text-sm text-muted-foreground">
+                Showing {filteredGuests.length} of {guests.length} guests
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
+
+      {/* Bulk Action Bar */}
+      <GuestBulkActionBar
+        selectedGuests={selectedGuestsList}
+        onClearSelection={() => setSelectedGuests(new Set())}
+        onSendPrearrival={someSelected && prearrivalEnabled ? handleSendEmailBulk : undefined}
+        prearrivalEnabled={prearrivalEnabled}
+      />
+
+      {/* Preview Drawer */}
+      <GuestPreviewDrawer
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        guest={previewGuest}
+        prearrivalStatus={previewGuest ? prearrivalStatuses?.[previewGuest.id] : undefined}
+        onEdit={() => previewGuest && handleEditGuest(previewGuest)}
+        onNavigateToDetail={() => previewGuest && handleNavigateToDetail(previewGuest)}
+        onSendEmail={previewGuest && canSendPrearrival(previewGuest) ? () => handleSendEmailSingle(previewGuest) : undefined}
+        prearrivalEnabled={prearrivalEnabled}
+        isFutureArrival={previewGuest ? isFutureArrival(previewGuest) : false}
+        isReadOnly={isReadOnly}
+      />
 
       {currentResort && (
         <GuestDialog
