@@ -34,7 +34,6 @@ import {
 } from 'lucide-react';
 import { safeFormatDate, safeFormatDistanceToNow } from '@/lib/safe-date-format';
 import { PrearrivalStatusBadge } from './PrearrivalStatusBadge';
-import { PrearrivalLinkManager } from './PrearrivalLinkManager';
 import { PrearrivalHistoryTimeline } from './PrearrivalHistoryTimeline';
 import { StaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
 import { usePrearrivalRealtime } from '@/hooks/usePrearrivalRealtime';
@@ -226,20 +225,6 @@ export function PrearrivalProfileCard({
                 </p>
               )}
               
-              {/* Secondary actions */}
-              <div className="flex items-center gap-2 mt-2">
-                <PrearrivalLinkManager
-                  guestId={guestId}
-                  guestName={guestName}
-                  guestEmail={guestEmail}
-                  checkInDate={checkInDate}
-                  checkOutDate={checkOutDate}
-                  resortId={resortId}
-                  resortName={resortName}
-                  resortLogoUrl={resortLogoUrl}
-                  resortPrimaryColor={resortPrimaryColor}
-                />
-              </div>
             </div>
             
             {/* Last invite activity */}
@@ -499,24 +484,6 @@ export function PrearrivalProfileCard({
               )}
             </div>
           )}
-        </div>
-
-        {/* Pre-arrival Link Manager */}
-        <div className="pt-3 border-t">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Pre-arrival Link</span>
-            <PrearrivalLinkManager
-              guestId={guestId}
-              guestName={guestName}
-              guestEmail={guestEmail}
-              checkInDate={checkInDate}
-              checkOutDate={checkOutDate}
-              resortId={resortId}
-              resortName={resortName}
-              resortLogoUrl={resortLogoUrl}
-              resortPrimaryColor={resortPrimaryColor}
-            />
-          </div>
         </div>
 
         {/* Pre-arrival History */}

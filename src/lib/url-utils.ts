@@ -43,17 +43,21 @@ export function getStaffInviteUrl(token: string): string {
 
 /**
  * Generate a pre-arrival link URL (legacy system)
- * @deprecated Use getGuestAccessUrl for new links
+ * @deprecated This function is deprecated. Use getGuestPortalUrl instead.
+ * Kept for backward compatibility but will be removed in a future version.
  */
 export function getPrearrivalUrl(token: string): string {
+  console.warn('getPrearrivalUrl is deprecated. Use getGuestPortalUrl instead.');
   return `${PRODUCTION_URL}/prearrival/${token}`;
 }
 
 /**
- * Generate a unified guest access link URL (new stay-based system)
- * This is the preferred method for generating guest access links.
+ * Generate a unified guest access link URL (legacy stay-based system)
+ * @deprecated This function is deprecated. Use getGuestPortalUrl or getSignedQrLoginUrl instead.
+ * Kept for backward compatibility but will be removed in a future version.
  */
 export function getGuestAccessUrl(token: string): string {
+  console.warn('getGuestAccessUrl is deprecated. Use getGuestPortalUrl or getSignedQrLoginUrl instead.');
   return `${PRODUCTION_URL}/guest/access?t=${token}`;
 }
 

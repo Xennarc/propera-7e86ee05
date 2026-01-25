@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { getPrearrivalUrl, getGuestAccessUrl } from '@/lib/url-utils';
+import { getGuestPortalUrl } from '@/lib/url-utils';
 import { Guest } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,6 @@ import { safeFormatDate } from '@/lib/safe-date-format';
 import {
   Mail,
   Send,
-  Copy,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -35,6 +34,10 @@ interface SendPrearrivalEmailDialogProps {
   onSuccess?: () => void;
 }
 
+/**
+ * Dialog for sending pre-arrival/login credential emails to guests.
+ * Uses the send-guest-credentials edge function which handles PIN generation.
+ */
 export function SendPrearrivalEmailDialog({
   open,
   onOpenChange,
@@ -51,75 +54,13 @@ export function SendPrearrivalEmailDialog({
   const isBulk = guests.length > 1;
   const singleGuest = guests.length === 1 ? guests[0] : null;
 
-  // Fetch prearrival settings to check if enabled
-  const { data: prearrivalSettings } = useQuery({
-    queryKey: ['prearrival-settings', currentResort?.id],
-    queryFn: async () => {
-      if (!currentResort) return null;
-      const { data, error } = await supabase
-        .from('prearrival_settings')
-        .select('is_enabled, welcome_message')
-        .eq('resort_id', currentResort.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: open && !!currentResort,
-  });
-
-  // Generate or get existing prearrival link (tries new system first, falls back to legacy)
-  const generateLinkMutation = useMutation({
-    mutationFn: async (guest: Guest): Promise<string> => {
-      // First, check if guest has a stay record for the new system
-      const { data: stay } = await supabase
-        .from('guest_stays')
-        .select('id')
-        .eq('guest_id', guest.id)
-        .eq('resort_id', currentResort?.id)
-        .order('arrival_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (stay) {
-        // Use new stay-based system
-        const { data, error } = await supabase.rpc('create_guest_access_link', {
-          p_stay_id: stay.id,
-        });
-        if (error) throw error;
-        const result = data as { success: boolean; raw_token?: string; error?: string };
-        if (!result.success) throw new Error(result.error || 'Failed to generate link');
-        return getGuestAccessUrl(result.raw_token!);
-      } else {
-        // Fall back to legacy system
-        const { data, error } = await supabase.rpc('generate_prearrival_token', {
-          p_guest_id: guest.id,
-        });
-        if (error) throw error;
-        const result = data as { success: boolean; token?: string; error?: string };
-        if (!result.success) throw new Error(result.error || 'Failed to generate link');
-        return getPrearrivalUrl(result.token!);
-      }
-    },
-  });
-
-  // Send email mutation
+  // Send email mutation using send-guest-credentials edge function
   const sendEmailMutation = useMutation({
     mutationFn: async ({ guest, email }: { guest: Guest; email: string }) => {
-      // Generate or get the link (uses new system if available)
-      const prearrivalLink = await generateLinkMutation.mutateAsync(guest);
-
-      // Send via edge function
-      const { data, error } = await supabase.functions.invoke('send-prearrival-link', {
+      // Use send-guest-credentials which handles PIN generation and email sending
+      const { data, error } = await supabase.functions.invoke('send-guest-credentials', {
         body: {
-          guestId: guest.id,
-          guestName: guest.full_name,
-          guestEmail: email,
-          checkInDate: guest.check_in_date,
-          resortId: currentResort?.id,
-          resortName: currentResort?.name,
-          prearrivalLink,
-          resortLogoUrl: currentResort?.login_logo_url,
-          resortPrimaryColor: currentResort?.login_primary_color,
+          guestIds: [guest.id],
         },
       });
 
@@ -129,8 +70,7 @@ export function SendPrearrivalEmailDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guest-outbound-messages'] });
-      queryClient.invalidateQueries({ queryKey: ['prearrival-link'] });
-      queryClient.invalidateQueries({ queryKey: ['staff-guest-stay'] });
+      queryClient.invalidateQueries({ queryKey: ['guests'] });
     },
   });
 
@@ -146,7 +86,7 @@ export function SendPrearrivalEmailDialog({
     try {
       await sendEmailMutation.mutateAsync({ guest: singleGuest, email });
       setSendingStatus({ [singleGuest.id]: 'sent' });
-      toast({ title: 'Email sent!', description: `Pre-arrival email sent to ${singleGuest.full_name}` });
+      toast({ title: 'Credentials sent!', description: `Login credentials sent to ${singleGuest.full_name}` });
       onSuccess?.();
       setTimeout(() => onOpenChange(false), 1500);
     } catch (error: any) {
@@ -204,17 +144,6 @@ export function SendPrearrivalEmailDialog({
     }
   };
 
-  const handleCopyLink = async () => {
-    if (!singleGuest) return;
-    try {
-      const link = await generateLinkMutation.mutateAsync(singleGuest);
-      await navigator.clipboard.writeText(link);
-      toast({ title: 'Link copied!', description: 'Pre-arrival link copied to clipboard' });
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Failed', description: error.message });
-    }
-  };
-
   const getGuestEmail = (guest: Guest) => editableEmails[guest.id] || guest.email || '';
   const hasValidEmail = (guest: Guest) => {
     const email = getGuestEmail(guest);
@@ -224,37 +153,18 @@ export function SendPrearrivalEmailDialog({
   const validGuestCount = guests.filter(hasValidEmail).length;
   const isSending = Object.values(sendingStatus).some(s => s === 'sending');
 
-  if (!prearrivalSettings?.is_enabled) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-warning" />
-              Pre-Arrival Not Enabled
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-muted-foreground">
-            Pre-arrival is not enabled for this resort. Please enable it in settings first.
-          </p>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />
-            {isBulk ? `Send Pre-Arrival Emails (${guests.length})` : 'Send Pre-Arrival Email'}
+            {isBulk ? `Send Login Credentials (${guests.length})` : 'Send Login Credentials'}
           </DialogTitle>
           <DialogDescription>
             {isBulk 
-              ? 'Send pre-arrival check-in invitations to selected guests' 
-              : 'Send a pre-arrival check-in invitation with a secure link'}
+              ? 'Send login credentials to selected guests' 
+              : 'Send login credentials (room, name, PIN) to the guest'}
           </DialogDescription>
         </DialogHeader>
 
@@ -341,7 +251,7 @@ export function SendPrearrivalEmailDialog({
           <Collapsible open={showPreview} onOpenChange={setShowPreview}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full justify-between">
-                <span className="text-sm text-muted-foreground">Preview email template</span>
+                <span className="text-sm text-muted-foreground">Preview email content</span>
                 {showPreview ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
@@ -350,20 +260,18 @@ export function SendPrearrivalEmailDialog({
                 <CardContent className="p-4 text-sm space-y-3">
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Subject</p>
-                    <p className="font-medium">Complete Your Pre-Arrival Check-in for {currentResort?.name}</p>
+                    <p className="font-medium">Your Guest Portal Login for {currentResort?.name}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Preview</p>
                     <p className="text-muted-foreground">
                       Dear {singleGuest ? singleGuest.full_name.split(' ')[0] : 'Guest'}, 
-                      we're thrilled to be hosting you. Please complete your online check-in to help us prepare...
+                      here are your login credentials for the guest portal. You can view activities, make reservations, and more...
                     </p>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>Takes 2–3 minutes</span>
-                    <Shield className="h-3 w-3 ml-2" />
-                    <span>Secure link</span>
+                    <Shield className="h-3 w-3" />
+                    <span>Secure PIN-based login</span>
                   </div>
                 </CardContent>
               </Card>
@@ -374,7 +282,7 @@ export function SendPrearrivalEmailDialog({
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
             <span className="flex items-center gap-1">
               <Shield className="h-3 w-3" />
-              Secure link expires after arrival
+              PIN-based authentication
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3 w-3" />
@@ -403,38 +311,28 @@ export function SendPrearrivalEmailDialog({
                 )}
               </Button>
             ) : (
-              <>
-                <Button 
-                  onClick={handleSendSingle} 
-                  disabled={!hasValidEmail(singleGuest!) || sendingStatus[singleGuest!.id] === 'sending' || sendingStatus[singleGuest!.id] === 'sent'}
-                  className="w-full"
-                >
-                  {sendingStatus[singleGuest!.id] === 'sending' ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending...
-                    </>
-                  ) : sendingStatus[singleGuest!.id] === 'sent' ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Sent!
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Email
-                    </>
-                  )}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleCopyLink}
-                  disabled={generateLinkMutation.isPending}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy link instead
-                </Button>
-              </>
+              <Button 
+                onClick={handleSendSingle} 
+                disabled={!hasValidEmail(singleGuest!) || sendingStatus[singleGuest!.id] === 'sending' || sendingStatus[singleGuest!.id] === 'sent'}
+                className="w-full"
+              >
+                {sendingStatus[singleGuest!.id] === 'sending' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : sendingStatus[singleGuest!.id] === 'sent' ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Sent!
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Credentials
+                  </>
+                )}
+              </Button>
             )}
           </div>
         </div>
