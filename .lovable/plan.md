@@ -1,211 +1,268 @@
 
-# Simplify Pre-Arrival Flow: Remove Token Links, Use Standard Login
 
-## Summary
+# Improve QR Code Login & Guest Portal Pre-Arrival Flow
 
-Replace the complex token-based pre-arrival access links with a simpler approach where guests receive standard login credentials (room number, last name, PIN) via email, and can optionally use QR codes for instant login.
+## Current State Analysis
 
----
+### What Exists Today
 
-## Current Architecture
+The system has **three parallel login methods** for guests:
 
-The pre-arrival system currently uses **one-time secure access links** that bypass PIN authentication:
+| Method | Route | Token Table | Consume RPC |
+|--------|-------|-------------|-------------|
+| **Standard PIN Login** | `/resort/:code/guest/login` | N/A | `guest_portal_login` |
+| **QR Login (Instant/Confirm)** | `/guest/qr?t=TOKEN` or `/guest/qr/:token` | `guest_login_tokens` | `consume_guest_login_token` |
+| **Pre-Arrival Access Link** | `/guest/access?t=TOKEN` | `guest_access_links` | `consume_guest_access_link` |
 
-| Component | Purpose |
-|-----------|---------|
-| `guest_access_links` table | Stores hashed tokens for stay-based access |
-| `prearrival_tokens` table | Legacy token system |
-| `create_guest_access_link` RPC | Generates secure tokens for stays |
-| `consume_guest_access_link` RPC | Validates and consumes tokens |
-| `GuestAccessLoginPage.tsx` | Processes `/guest/access?t=TOKEN` URLs |
-| `SendPrearrivalEmailDialog` | Generates link and sends email with magic link |
-| `StayAccessLinkManager` | Manages access links on guest detail page |
-| `send-prearrival-link` edge function | Sends email with access link button |
+### Issues Identified
 
----
+1. **Inconsistent Session Construction**
+   - Each login page (`GuestQrLoginPage`, `GuestQrConfirmPage`, `GuestAccessLoginPage`) manually constructs and stores the session, duplicating logic and risking inconsistencies
+   - The `GuestAuthContext` has hardened normalization, but login pages bypass it
 
-## Proposed New Architecture
+2. **URL Hardcoding Mismatch**
+   - `GuestQrLoginManager` uses `https://propera.cc` for production
+   - `GuestQrLoginPage` displays `https://propera.cc/guest/qr?t=TOKEN` for desktop QR
+   - No resort code in QR URLs — guests land on generic route without resort context
 
-### Philosophy Change
+3. **No "Peek" for Confirm Flow**
+   - `GuestQrConfirmPage` shows generic "Confirm Your Login" without guest details
+   - Missed opportunity for premium UX: "Welcome, James Wilson (Room 101)"
 
-Instead of "magic links" that auto-authenticate, use the **standard guest login flow**:
+4. **Desktop Detection Issues**
+   - Both QR and Access pages show "Scan with your phone" on desktop
+   - Flaky detection: some tablets report as desktop
+   - No way to bypass and continue on desktop anyway
 
-1. **Email with credentials**: Guest receives email with resort portal URL + login instructions (room, last name, PIN)
-2. **QR code option**: Staff can generate instant-login QR codes for guests who prefer scanning
-3. **Same portal URL**: All guests use `/resort/{code}/guest/login` - no special token routes
+5. **Token Expiry Sync Issues**
+   - `GuestQrLoginManager` uses client-side timer (`Date.now() + EXPIRY_MINUTES`)
+   - Server sets different expiry times (15min for instant, 1hr for confirm)
+   - Client timer shows 2 minutes regardless of server expiry
 
-### Benefits
-
-- **Simpler**: One login method for all guests (pre-arrival and in-house)
-- **Reusable**: Guest can share credentials with travel companions
-- **No expiry concerns**: PIN doesn't expire like tokens
-- **Familiar UX**: Standard login form guests understand
-- **Less infrastructure**: Remove token tables and consumption logic over time
-
----
-
-## Implementation Plan
-
-### Phase 1: Create New "Send Login Credentials" Email Flow
-
-#### 1.1 Create New Edge Function: `send-guest-credentials`
-
-**File:** `supabase/functions/send-guest-credentials/index.ts`
-
-A new edge function that sends an email with:
-- Resort portal URL (e.g., `https://propera.cc/resort/DEMO/guest/login`)
-- Guest's room number
-- Last name for login
-- PIN (generated if not already set)
-- Check-in date
-- Optional: QR code as inline image for instant login
-
-Key differences from `send-prearrival-link`:
-- No token generation or magic link
-- Includes PIN in email (one-time display)
-- Simpler email template focused on credentials
-
-#### 1.2 Create New Dialog: `SendGuestCredentialsDialog`
-
-**File:** `src/components/guests/SendGuestCredentialsDialog.tsx`
-
-Replace or complement `SendPrearrivalEmailDialog` with a dialog that:
-- Shows guest details (name, room, dates)
-- Generates PIN if none exists (calls `generate_guest_pin` RPC)
-- Allows editing email address
-- Has toggle: "Include QR code for instant login"
-- Sends email via new `send-guest-credentials` edge function
-- Shows preview of what guest will receive
-
-#### 1.3 Update Email Template
-
-The new email template will include:
-
-```text
-Subject: Your stay at {Resort Name} — login details
-
-Body:
-- Welcome message
-- Check-in date
-- How to access: "Visit {portal URL}"
-- Your credentials:
-  - Room Number: {room}
-  - Last Name: {lastName}
-  - PIN: {pin}
-- Trust signals (secure portal, same as in-room access)
-- Optional QR code section
-- Contact info
-```
-
-### Phase 2: Update Staff UI
-
-#### 2.1 Update Guest Detail Page Actions
-
-**File:** `src/pages/guests/GuestDetailPage.tsx`
-
-Change the "Send Pre-Arrival" action to "Send Login Credentials":
-- Replace `SendPrearrivalEmailDialog` with `SendGuestCredentialsDialog`
-- Keep existing `GuestPinManager` (generate/reset PIN)
-- Keep existing `GuestQrLoginManager` (generate QR codes)
-
-#### 2.2 Update or Replace `StayAccessLinkManager`
-
-**File:** `src/components/staff/StayAccessLinkManager.tsx`
-
-Options:
-1. **Remove entirely** - PIN + QR are now the primary methods
-2. **Simplify to "Quick Actions"** - Show options: Send Credentials, Generate QR, View PIN
-
-#### 2.3 Update Bulk Guest Actions
-
-If bulk "Send Pre-Arrival" exists, update to use the new credentials flow.
-
-### Phase 3: Simplify Routes (Future)
-
-#### 3.1 Deprecate Token Routes
-
-The following routes can be deprecated over time:
-- `/guest/access?t=TOKEN` → Redirect to `/guest/login` with message
-- `/prearrival/:token` → Already using `LegacyPrearrivalRedirect`
-
-#### 3.2 Keep QR Login Routes
-
-These are still valuable and should be kept:
-- `/guest/qr?t=TOKEN` (instant QR login)
-- `/guest/qr/:token` (confirmed QR login)
-
-QR codes are different from email links - they're for in-person use where staff generates them on the spot.
+6. **Legacy Route Clutter**
+   - `/guest/access?t=TOKEN` overlaps with `/guest/qr?t=TOKEN` conceptually
+   - Legacy `/prearrival/:token` redirects add complexity
 
 ---
 
-## Files to Create
+## Improvement Plan
 
-| File | Purpose |
-|------|---------|
-| `supabase/functions/send-guest-credentials/index.ts` | Edge function for credentials email |
-| `src/components/guests/SendGuestCredentialsDialog.tsx` | Dialog to send login credentials |
+### Phase 1: Centralize Session Creation (Code Quality)
 
-## Files to Modify
+**Goal**: Create a single utility function for session construction used by all login flows.
+
+**Changes**:
 
 | File | Change |
 |------|--------|
-| `src/pages/guests/GuestDetailPage.tsx` | Replace pre-arrival email with credentials email |
-| `src/components/staff/StayAccessLinkManager.tsx` | Simplify or repurpose for credentials flow |
-| `src/components/guests/GuestCreatedModal.tsx` | Update to clarify PIN sharing (already good) |
+| `src/contexts/GuestAuthContext.tsx` | Export `buildGuestSession()` utility that normalizes all fields |
+| `src/pages/guest/GuestQrLoginPage.tsx` | Import and use `buildGuestSession()` instead of manual construction |
+| `src/pages/guest/GuestQrConfirmPage.tsx` | Import and use `buildGuestSession()` |
+| `src/pages/guest/GuestAccessLoginPage.tsx` | Import and use `buildGuestSession()` |
 
-## Files to Deprecate (Phase 3)
+**New Utility**:
+```typescript
+// In GuestAuthContext.tsx
+export function buildGuestSession(params: {
+  guest: { id: string; full_name: string; room_number: string; check_in_date: string; check_out_date: string };
+  resort: { id: string; name: string; logo_url?: string; timezone?: string };
+  sessionId?: string;
+  sessionToken?: string;
+  stayId?: string;
+}): GuestSession {
+  return {
+    guestId: String(params.guest.id ?? ''),
+    fullName: String(params.guest.full_name ?? 'Guest'),
+    roomNumber: String(params.guest.room_number ?? ''),
+    checkInDate: String(params.guest.check_in_date ?? ''),
+    checkOutDate: String(params.guest.check_out_date ?? ''),
+    resortId: String(params.resort.id ?? ''),
+    resortName: params.resort.name ? String(params.resort.name) : undefined,
+    resortLogoUrl: params.resort.logo_url ? String(params.resort.logo_url) : undefined,
+    resortTimezone: params.resort.timezone ? String(params.resort.timezone) : 'UTC',
+    sessionId: params.sessionId ? String(params.sessionId) : undefined,
+    sessionToken: params.sessionToken ? String(params.sessionToken) : undefined,
+    stayId: params.stayId ? String(params.stayId) : undefined,
+  };
+}
+```
 
-| File | Reason |
+### Phase 2: Fix Token Expiry Timer Sync
+
+**Goal**: Use actual server-returned expiry time instead of hardcoded client estimate.
+
+**Changes**:
+
+| File | Change |
 |------|--------|
-| `src/components/guests/SendPrearrivalEmailDialog.tsx` | Replaced by credentials dialog |
-| `src/components/prearrival/SharePrearrivalLinkDialog.tsx` | No longer needed |
-| `src/components/prearrival/PrearrivalLinkManager.tsx` | Token management no longer needed |
-| `src/components/guest/GeneratePreArrivalLinkDialog.tsx` | Replaced by credentials flow |
+| `src/components/guest/GuestQrLoginManager.tsx` | Use `result.expires_at` from RPC response, not `Date.now() + EXPIRY_MINUTES` |
+
+**Current (Bug)**:
+```typescript
+setExpiresAt(new Date(Date.now() + EXPIRY_MINUTES[type] * 60 * 1000));
+```
+
+**Fixed**:
+```typescript
+// Use server-provided expiry
+setExpiresAt(result.expires_at ? new Date(result.expires_at) : new Date(Date.now() + 2 * 60 * 1000));
+```
+
+### Phase 3: Add Token Peek RPC for Confirm Flow
+
+**Goal**: Allow the confirmation page to show "Welcome, [Guest Name]" before consuming the token.
+
+**New RPC**: `peek_guest_login_token`
+
+```sql
+CREATE OR REPLACE FUNCTION public.peek_guest_login_token(p_raw_token text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'extensions'
+AS $$
+DECLARE
+  v_token_hash text;
+  v_token_record record;
+  v_guest record;
+  v_resort record;
+BEGIN
+  -- Hash token
+  v_token_hash := encode(digest(p_raw_token, 'sha256'), 'hex');
+  
+  -- Find token (don't consume)
+  SELECT * INTO v_token_record
+  FROM public.guest_login_tokens
+  WHERE token_hash = v_token_hash;
+  
+  IF v_token_record.id IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'TOKEN_INVALID');
+  END IF;
+  
+  IF v_token_record.consumed_at IS NOT NULL THEN
+    RETURN json_build_object('success', false, 'error', 'TOKEN_ALREADY_USED');
+  END IF;
+  
+  IF v_token_record.expires_at <= now() THEN
+    RETURN json_build_object('success', false, 'error', 'TOKEN_EXPIRED');
+  END IF;
+  
+  -- Fetch guest and resort for preview
+  SELECT id, full_name, room_number INTO v_guest FROM public.guests WHERE id = v_token_record.guest_id;
+  SELECT id, name, login_logo_url INTO v_resort FROM public.resorts WHERE id = v_token_record.resort_id;
+  
+  RETURN json_build_object(
+    'success', true,
+    'guest', json_build_object('id', v_guest.id, 'full_name', v_guest.full_name, 'room_number', v_guest.room_number),
+    'resort', json_build_object('id', v_resort.id, 'name', v_resort.name, 'logo_url', v_resort.login_logo_url),
+    'token_type', v_token_record.type,
+    'expires_at', v_token_record.expires_at
+  );
+END;
+$$;
+```
+
+**UI Update** for `GuestQrConfirmPage.tsx`:
+- On mount, call `peek_guest_login_token` to get guest info
+- Show personalized welcome: "Welcome, James Wilson — Room 101"
+- Display resort logo if available
+- Show token expiry countdown
+
+### Phase 4: Improve Desktop Detection & Bypass
+
+**Goal**: Allow guests on desktop to proceed anyway if they want.
+
+**Changes to `GuestQrLoginPage.tsx` and `GuestAccessLoginPage.tsx`**:
+
+Add a "Continue anyway" link below the desktop QR code:
+
+```tsx
+{/* Desktop view */}
+{pageState === 'desktop' && (
+  <Card>
+    {/* ... existing QR display ... */}
+    
+    {/* Add bypass option */}
+    <div className="text-center pt-4 border-t">
+      <p className="text-xs text-muted-foreground mb-2">On a laptop but want to continue?</p>
+      <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={() => {
+          // Force processing even on desktop
+          processToken();
+        }}
+      >
+        Continue on this device
+      </Button>
+    </div>
+  </Card>
+)}
+```
+
+### Phase 5: Consolidate Pre-Arrival Flow (Simplification)
+
+**Goal**: Deprecate `guest_access_links` and use the same QR token system for all flows.
+
+**Rationale**: With the new `send-guest-credentials` flow sending PIN-based login details, the `guest_access_links` table is redundant. Staff can either:
+1. Send credentials email (PIN + room + last name)
+2. Generate a QR code for instant login
+
+**Changes**:
+
+| Action | Description |
+|--------|-------------|
+| Keep `/guest/access` route | But show deprecation warning in code comments |
+| Update `StayAccessLinkManager` | Replace with "Send Credentials" button that uses `SendGuestCredentialsDialog` |
+| Add migration note | Mark `guest_access_links` table for future deprecation |
+
+### Phase 6: Resort-Scoped QR URLs (Future Enhancement)
+
+**Goal**: Include resort code in QR URLs for proper branding on landing page.
+
+**Current URL**: `https://propera.cc/guest/qr?t=TOKEN`
+**Proposed URL**: `https://propera.cc/resort/{code}/guest/qr?t=TOKEN`
+
+This would allow the QR login page to show resort branding before consumption.
+
+**Note**: This is a larger change that requires:
+- New route in `App.tsx`
+- Modified `GuestQrLoginManager` to include resort code
+- Modified RPC to optionally validate resort matches
+
+**Recommendation**: Defer to Phase 2 of improvements.
 
 ---
 
-## New Email Template Structure
+## Implementation Order
 
-```text
-┌────────────────────────────────────────┐
-│  [Resort Logo]                         │
-│                                        │
-│  Welcome to {Resort Name}!             │
-│  Your stay begins {Check-in Date}      │
-├────────────────────────────────────────┤
-│                                        │
-│  Dear {First Name},                    │
-│                                        │
-│  We're excited to welcome you! Access  │
-│  your guest portal to:                 │
-│  ✓ Complete your pre-arrival check-in  │
-│  ✓ Browse and book activities          │
-│  ✓ Reserve restaurants                 │
-│                                        │
-│  ┌──────────────────────────────────┐  │
-│  │  YOUR LOGIN DETAILS              │  │
-│  │                                  │  │
-│  │  Portal:    {resort URL}         │  │
-│  │  Room:      {room_number}        │  │
-│  │  Last Name: {last_name}          │  │
-│  │  PIN:       {pin}                │  │
-│  └──────────────────────────────────┘  │
-│                                        │
-│        [ Access Guest Portal ]         │
-│                                        │
-│  ─────── Or scan to login ───────     │
-│                                        │
-│          [QR CODE IMAGE]               │
-│                                        │
-├────────────────────────────────────────┤
-│  🔒 Your PIN is for your use only     │
-│  📱 Works on any device                │
-│  💾 Same login throughout your stay    │
-├────────────────────────────────────────┤
-│  Questions? Contact our guest services │
-│  The {Resort Name} Team                │
-└────────────────────────────────────────┘
-```
+| Order | Task | Effort | Impact |
+|-------|------|--------|--------|
+| 1 | Centralize session construction (`buildGuestSession`) | Small | High (prevents bugs) |
+| 2 | Fix token expiry timer sync | Small | Medium (UX accuracy) |
+| 3 | Add desktop bypass button | Small | Medium (UX flexibility) |
+| 4 | Add `peek_guest_login_token` RPC | Medium | Medium (premium UX) |
+| 5 | Update `GuestQrConfirmPage` to use peek | Medium | Medium (personalization) |
+| 6 | Update `StayAccessLinkManager` for credentials flow | Medium | High (simplification) |
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/contexts/GuestAuthContext.tsx` | Add `buildGuestSession()` export |
+| `src/pages/guest/GuestQrLoginPage.tsx` | Use `buildGuestSession()`, add desktop bypass |
+| `src/pages/guest/GuestQrConfirmPage.tsx` | Use `buildGuestSession()`, call peek RPC, show personalized welcome |
+| `src/pages/guest/GuestAccessLoginPage.tsx` | Use `buildGuestSession()`, add desktop bypass |
+| `src/components/guest/GuestQrLoginManager.tsx` | Fix expiry timer to use server response |
+| `src/components/staff/StayAccessLinkManager.tsx` | Integrate `SendGuestCredentialsDialog` as primary action |
+
+## New Files
+
+| File | Purpose |
+|------|---------|
+| `supabase/migrations/XXXXXX_peek_guest_login_token.sql` | Add peek RPC for token preview |
 
 ---
 
@@ -213,53 +270,20 @@ QR codes are different from email links - they're for in-person use where staff 
 
 | Concern | Mitigation |
 |---------|------------|
-| PIN in email | PINs are 4-6 digits, tied to specific room + last name combo |
-| Email forwarding | Same risk as magic links; hotel credential pattern is well understood |
-| QR code in email | Optional feature; QR expires quickly if using instant type |
-| Multiple devices | Standard login supports multiple devices naturally |
-
----
-
-## Migration Path
-
-1. **Week 1**: Implement new credentials email flow alongside existing
-2. **Week 2**: Update staff UI to prefer credentials flow
-3. **Week 3**: Monitor usage, gather feedback
-4. **Week 4+**: Deprecate token-based flows if no issues
-
----
-
-## Technical Details
-
-### Generate PIN if Missing
-
-The `SendGuestCredentialsDialog` will automatically generate a PIN if the guest doesn't have one:
-
-```typescript
-// Check if guest has PIN
-if (!guest.portal_pin_last4) {
-  // Generate PIN
-  const { data } = await supabase.rpc('generate_guest_pin', {
-    p_guest_id: guest.id
-  });
-  // PIN is returned and can be included in email
-}
-```
-
-### QR Code in Email (Optional)
-
-If staff enables "Include QR code":
-1. Generate instant login token via `create_guest_login_token`
-2. Generate QR code as base64 image
-3. Embed in email as inline image
-4. Include note that QR expires in 5 minutes (configurable)
+| Peek reveals guest info | Only reveals name/room, no sensitive data; token still required to authenticate |
+| Desktop bypass | Guest still needs valid token; no security downgrade |
+| Rate limiting | Existing rate limits on token consumption apply |
 
 ---
 
 ## Summary
 
-This change simplifies the guest onboarding experience by:
-1. Using familiar login credentials instead of magic links
-2. Reducing infrastructure complexity (fewer token tables/functions)
-3. Giving guests reusable credentials for their entire stay
-4. Maintaining QR option for staff who prefer that method
+This plan improves the QR login and pre-arrival flows by:
+1. **Consolidating** duplicated session construction logic
+2. **Fixing** the token expiry timer accuracy
+3. **Enhancing** the confirm flow with a personalized welcome screen
+4. **Improving** desktop UX with a bypass option
+5. **Simplifying** by moving pre-arrival toward credential-based emails
+
+The changes maintain backward compatibility while making the system more robust and user-friendly.
+
