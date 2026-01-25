@@ -335,7 +335,7 @@ function GuestsPageContent() {
         description="Manage resort guests and their stays"
         action={
           <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating guests is disabled in demo mode">
-            <Button onClick={() => { setEditingGuest(null); setDialogOpen(true); }} disabled={isReadOnly}>
+            <Button onClick={() => { if (!currentResort) return; setEditingGuest(null); setDialogOpen(true); }} disabled={isReadOnly}>
               <Plus className="mr-2 h-4 w-4" />
               Add Guest
             </Button>
@@ -435,7 +435,7 @@ function GuestsPageContent() {
               description={search || filter !== 'all' ? 'Try adjusting your filters' : 'Add your first guest to get started'}
               action={
                 !search && filter === 'all' && !isReadOnly && (
-                  <Button onClick={() => { setEditingGuest(null); setDialogOpen(true); }}>
+                  <Button onClick={() => { if (!currentResort) return; setEditingGuest(null); setDialogOpen(true); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Guest
                   </Button>
@@ -584,16 +584,18 @@ function GuestsPageContent() {
         </CardContent>
       </Card>
 
-      <GuestDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        guest={editingGuest}
-        resortId={currentResort.id}
-        resortCode={currentResort.code}
-        onSuccess={() => {
-          // React Query will auto-refetch via invalidation
-        }}
-      />
+      {currentResort && (
+        <GuestDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          guest={editingGuest}
+          resortId={currentResort.id}
+          resortCode={currentResort.code}
+          onSuccess={() => {
+            // React Query will auto-refetch via invalidation
+          }}
+        />
+      )}
 
       <AlertDialog open={!!deleteGuest} onOpenChange={() => setDeleteGuest(null)}>
         <AlertDialogContent>
@@ -617,14 +619,16 @@ function GuestsPageContent() {
       </AlertDialog>
 
       {/* Send Pre-Arrival Email Dialog */}
-      <SendPrearrivalEmailDialog
-        open={sendEmailDialogOpen}
-        onOpenChange={setSendEmailDialogOpen}
-        guests={emailTargetGuests}
-        onSuccess={() => {
-          setSelectedGuests(new Set());
-        }}
-      />
+      {currentResort && (
+        <SendPrearrivalEmailDialog
+          open={sendEmailDialogOpen}
+          onOpenChange={setSendEmailDialogOpen}
+          guests={emailTargetGuests}
+          onSuccess={() => {
+            setSelectedGuests(new Set());
+          }}
+        />
+      )}
     </div>
   );
 }
