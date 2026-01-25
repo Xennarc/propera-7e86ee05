@@ -55,8 +55,10 @@ export function MobileBottomNav() {
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-strong border-t border-border/20 safe-area-inset-bottom">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-strong border-t border-border/20"
+      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+    >
+      <div className="flex items-center justify-around h-16 px-1">
         {visiblePrimaryItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -65,15 +67,22 @@ export function MobileBottomNav() {
               key={item.href}
               to={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-2 px-3 rounded-xl transition-all duration-200",
-                "text-muted-foreground",
-                active && "text-primary bg-primary/10"
+                // 48px touch target for accessibility
+                "flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[48px] py-1.5 px-2 rounded-xl",
+                "transition-all duration-200",
+                "text-muted-foreground active:scale-95",
+                active && "text-primary"
               )}
             >
-              <Icon className={cn("h-5 w-5", active && "text-primary")} />
+              <div className={cn(
+                "flex items-center justify-center w-10 h-7 rounded-lg transition-colors",
+                active && "bg-primary/15"
+              )}>
+                <Icon className={cn("h-5 w-5", active && "text-primary")} />
+              </div>
               <span className={cn(
-                "text-[10px] font-medium",
-                active && "text-primary"
+                "text-[10px] font-medium leading-none",
+                active && "text-primary font-semibold"
               )}>
                 {item.label}
               </span>
@@ -84,14 +93,19 @@ export function MobileBottomNav() {
         {/* More menu */}
         <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
           <SheetTrigger asChild>
-            <button className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] py-2 px-3 rounded-xl text-muted-foreground transition-all duration-200">
-              <MoreHorizontal className="h-5 w-5" />
-              <span className="text-[10px] font-medium">More</span>
+            <button className={cn(
+              "flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[48px] py-1.5 px-2 rounded-xl",
+              "text-muted-foreground transition-all duration-200 active:scale-95"
+            )}>
+              <div className="flex items-center justify-center w-10 h-7 rounded-lg">
+                <MoreHorizontal className="h-5 w-5" />
+              </div>
+              <span className="text-[10px] font-medium leading-none">More</span>
             </button>
           </SheetTrigger>
           <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-3xl bg-card dark:bg-midnight-900 border-border/30">
             <SheetHeader className="pb-4">
-              <SheetTitle className="text-left">Quick Navigation</SheetTitle>
+              <SheetTitle className="text-left text-lg">Quick Navigation</SheetTitle>
             </SheetHeader>
             <div className="grid grid-cols-3 gap-3 pb-6">
               {visibleMoreItems.map((item) => {
@@ -103,15 +117,17 @@ export function MobileBottomNav() {
                     to={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all duration-200",
-                      "bg-muted/20 border-border/30 hover:bg-muted/40 dark:bg-midnight-800/50 dark:border-midnight-700/50",
+                      // 48px+ touch targets
+                      "flex flex-col items-center justify-center gap-2.5 p-4 min-h-[80px] rounded-2xl border",
+                      "transition-all duration-200 active:scale-[0.97]",
+                      "bg-muted/30 border-border/30 dark:bg-midnight-800/50 dark:border-midnight-700/50",
                       active && "bg-primary/10 border-primary/30 text-primary"
                     )}
                   >
                     <Icon className={cn("h-6 w-6", active && "text-primary")} />
                     <span className={cn(
-                      "text-xs font-medium text-center",
-                      active && "text-primary"
+                      "text-xs font-medium text-center leading-tight",
+                      active && "text-primary font-semibold"
                     )}>
                       {item.label}
                     </span>

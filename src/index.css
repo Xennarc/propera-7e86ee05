@@ -695,6 +695,186 @@
     @apply bg-primary/10 text-primary;
   }
 
+  /* ========================================
+     STAFF PORTAL PREMIUM UI UTILITIES
+     Mobile-first, calm, operationally powerful
+     ======================================== */
+
+  /* === Staff Content Area - Improved max-width and breathing room === */
+  .staff-content-area {
+    @apply w-full mx-auto;
+    max-width: min(1400px, 100%);
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  @screen lg {
+    .staff-content-area {
+      @apply px-8;
+    }
+  }
+
+  @screen xl {
+    .staff-content-area {
+      @apply px-10;
+    }
+  }
+
+  /* === Staff Card Elevated - Premium card with subtle lift === */
+  .staff-card-elevated {
+    @apply bg-card rounded-2xl border border-border/40;
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.03),
+      0 8px 24px rgba(0, 0, 0, 0.02);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .staff-card-elevated:hover {
+    border-color: hsl(var(--border) / 0.6);
+    box-shadow: 
+      0 2px 6px rgba(0, 0, 0, 0.05),
+      0 8px 20px rgba(0, 0, 0, 0.04),
+      0 16px 40px rgba(0, 0, 0, 0.03);
+  }
+
+  /* === Staff Header Sticky - Page headers with glass blur === */
+  .staff-header-sticky {
+    @apply sticky top-0 z-30;
+    background: hsl(var(--background) / 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* === Staff Section Divider - Soft visual separator === */
+  .staff-section-divider {
+    @apply border-t border-border/30 my-6;
+  }
+
+  /* === Staff Mobile Action Bar - Fixed bottom for forms === */
+  .staff-mobile-action-bar {
+    @apply fixed bottom-0 left-0 right-0 z-40 p-4;
+    @apply flex items-center gap-3;
+    @apply bg-card/95 border-t border-border/40;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @screen lg {
+    .staff-mobile-action-bar {
+      @apply hidden;
+    }
+  }
+
+  /* === Staff Touch Target - Ensures 44px minimum tap targets === */
+  .staff-touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* === Staff Compact Table - Improved density for desktop === */
+  .staff-compact-table th {
+    @apply h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+    @apply bg-muted/30 first:rounded-tl-xl last:rounded-tr-xl;
+  }
+
+  .staff-compact-table td {
+    @apply py-4 px-4 align-middle;
+  }
+
+  .staff-compact-table tr {
+    @apply border-b border-border/30 transition-colors;
+  }
+
+  .staff-compact-table tbody tr:hover {
+    @apply bg-muted/30;
+  }
+
+  /* === Staff Card List Item - Mobile card variant for table rows === */
+  .staff-card-list-item {
+    @apply p-4 bg-card border border-border/40 rounded-xl;
+    @apply transition-all duration-150;
+    @apply active:scale-[0.99];
+  }
+
+  .staff-card-list-item:hover {
+    @apply bg-accent/30 border-border/60;
+  }
+
+  .staff-card-list-item.selected {
+    @apply ring-2 ring-primary/30 bg-primary/5;
+  }
+
+  /* === Typography Hierarchy === */
+  .text-metadata {
+    @apply text-xs text-muted-foreground/70 uppercase tracking-wide;
+  }
+
+  .text-section-title {
+    @apply text-base font-semibold text-foreground/90 tracking-tight;
+  }
+
+  .text-body-calm {
+    @apply text-sm text-foreground/80 leading-relaxed;
+  }
+
+  /* === Form Section Patterns === */
+  .form-section {
+    @apply space-y-6 pb-6 border-b border-border/30;
+  }
+
+  .form-section:last-child {
+    @apply border-b-0 pb-0;
+  }
+
+  .form-section-title {
+    @apply text-sm font-semibold text-foreground/90 mb-4;
+  }
+
+  .form-field-group {
+    @apply space-y-4;
+  }
+
+  /* === Staff Row Hover Effect === */
+  .staff-row-hover {
+    @apply transition-all duration-150;
+    @apply hover:bg-muted/30;
+    @apply relative;
+  }
+
+  .staff-row-hover::before {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-0.5 bg-transparent;
+    @apply transition-colors duration-150;
+  }
+
+  .staff-row-hover:hover::before {
+    @apply bg-primary/60;
+  }
+
+  /* === Glass Surface Strong (for headers/nav) === */
+  .surface-glass-strong {
+    @apply backdrop-blur-xl border-b border-border/30;
+    background: hsl(var(--background) / 0.9);
+  }
+
+  .dark .surface-glass-strong {
+    background: hsl(var(--midnight-950) / 0.9);
+  }
+
+  /* === Premium Nav Item (sidebar) === */
+  .staff-nav-item {
+    @apply flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium;
+    @apply transition-all duration-150;
+    @apply text-muted-foreground;
+    @apply hover:bg-muted/40 hover:text-foreground;
+  }
+
+  .staff-nav-item.active {
+    @apply bg-primary/10 text-primary font-semibold;
+    @apply border-l-2 border-primary;
+  }
+
   /* === Wave Divider Container === */
   .wave-divider {
     @apply relative w-full overflow-hidden pointer-events-none select-none;

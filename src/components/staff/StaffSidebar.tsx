@@ -282,8 +282,10 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
               >
                 <CollapsibleTrigger
                   className={cn(
-                    'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                    // Increased padding for better touch targets
+                    'flex w-full items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150',
+                    'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+                    'hover:scale-[1.01]',
                     isGroupActive(group) && 'text-sidebar-foreground'
                   )}
                 >
@@ -292,15 +294,15 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                     <>
                       <span className="flex-1 text-left">{group.title}</span>
                       {isOpen ? (
-                        <ChevronDown className="h-4 w-4 shrink-0" />
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0" />
+                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                       )}
                     </>
                   )}
                 </CollapsibleTrigger>
 
-                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5">
                   {group.items.map((item) => {
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
@@ -311,10 +313,11 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            // Larger touch targets (44px+)
+                            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
                             isActive
-                              ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
-                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                              ? 'bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-2 border-sidebar-primary -ml-[2px] pl-[14px]'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                           )
                         }
                       >
@@ -335,15 +338,16 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
           {/* Admin Group */}
           {isAdmin && groupHasVisibleItems(adminGroup) && (
-            <div className="pt-4 mt-4 border-t border-sidebar-border/50">
+            <div className="pt-4 mt-4 border-t border-sidebar-border/30">
               <Collapsible
                 open={openGroups['admin']}
                 onOpenChange={() => toggleGroup('admin')}
               >
                 <CollapsibleTrigger
                   className={cn(
-                    'flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                    'flex w-full items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150',
+                    'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+                    'hover:scale-[1.01]',
                     isGroupActive(adminGroup) && 'text-sidebar-foreground'
                   )}
                 >
@@ -352,15 +356,15 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                     <>
                       <span className="flex-1 text-left">Admin</span>
                       {openGroups['admin'] ? (
-                        <ChevronDown className="h-4 w-4 shrink-0" />
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
                       ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0" />
+                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
                       )}
                     </>
                   )}
                 </CollapsibleTrigger>
 
-                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l border-sidebar-border/50 space-y-1">
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5">
                   {adminGroup.items.map((item) => {
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
@@ -371,10 +375,10 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
                             isActive
-                              ? 'bg-sidebar-primary/20 text-sidebar-primary font-medium'
-                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                              ? 'bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-2 border-sidebar-primary -ml-[2px] pl-[14px]'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
                           )
                         }
                       >

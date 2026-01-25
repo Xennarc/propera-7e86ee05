@@ -277,7 +277,7 @@ export default function ResortAdminHome() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 lg:space-y-8 animate-fade-in">
       {/* Welcome/Branding Prompt for new resorts */}
       {showWelcome && (
         <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 overflow-hidden">
@@ -326,7 +326,7 @@ export default function ResortAdminHome() {
       {isLoading ? (
         <StatCardGridSkeleton count={6} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
             title="Guests In House"
             value={stats?.guestsInHouse || 0}
@@ -366,8 +366,8 @@ export default function ResortAdminHome() {
         </div>
       )}
 
-      {/* Two Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* Two Column Layout - responsive */}
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
         {/* Today's Activities */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-4">
