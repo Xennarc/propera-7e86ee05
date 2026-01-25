@@ -1,184 +1,140 @@
 
-# Add Debug Logging to Guest Search (find-guest-resort)
+# Fix: Guest List Not Showing on /staff/guests
 
-## Overview
-Enhance the `find-guest-resort` edge function with detailed debug logging to help troubleshoot failed searches. The logs will show exactly what was searched vs. what exists in the database, making it easy to identify mismatches.
+## Root Cause Analysis
 
----
+The guest list fails to display due to a **race condition** in `ResortContext.tsx`. When a user logs in:
 
-## Current State
-The edge function currently logs:
-- Basic request info (IP, has lastName/roomNumber)
-- Result type (found/not_found/multiple)
+1. `AuthContext` begins fetching user profile and resort memberships asynchronously
+2. `ResortContext`'s `useEffect` runs immediately with `memberships = []` (not yet loaded)
+3. Because `memberships.length === 0`, the code early-returns with `loading: false` and empty resorts
+4. `GuestsPage` renders with `currentResort = null`, showing "Please select a resort first" or empty state
+5. When memberships finally load, the effect *should* re-run, but there's a secondary bug in the dependency array
 
-**Missing:**
-- The actual search values being used
-- What records exist that might have matched
-- Why specific records were filtered out (date range, resort status, etc.)
+**Secondary Issue**: The dependency array includes `isSuperAdmin()` as a function call, which is a React anti-pattern that can cause stale closures and missed updates.
 
 ---
 
-## Implementation Plan
+## Technical Fix
 
-### File: `supabase/functions/find-guest-resort/index.ts`
+### File: `src/contexts/ResortContext.tsx`
 
-**Change 1: Add detailed search parameters log (after line 137)**
+**Change 1: Import `userDataLoading` from AuthContext**
 
-Log the exact values being used for the search query:
+Add `userDataLoading` to the destructured values from `useAuth()`:
+
 ```typescript
-console.log(JSON.stringify({
-  event: 'find-guest-resort-search-params',
-  searchLastName: sanitizedLastName,
-  searchRoom: sanitizedRoomNumber,
-  searchDate: today,
-  timestamp: new Date().toISOString()
-}))
+const { user, isSuperAdmin, memberships, userDataLoading } = useAuth();
 ```
 
-**Change 2: Add query for nearby matches when not found (before line 172)**
+**Change 2: Add guard in `fetchResorts` to wait for user data**
 
-When no active guests are found, query for similar records to help debug:
+Before deciding there are no memberships, ensure user data has finished loading:
+
 ```typescript
-// If no results, log what similar records exist for debugging
-if (activeGuests.length === 0) {
-  // Check if there are any guests with matching room (ignoring name)
-  const { data: roomMatches } = await supabase
-    .from('guests')
-    .select('full_name, room_number, check_in_date, check_out_date, resort_id')
-    .ilike('room_number', sanitizedRoomNumber)
-    .limit(5)
-
-  // Check if there are any guests with matching last name (ignoring room)
-  const { data: nameMatches } = await supabase
-    .from('guests')
-    .select('full_name, room_number, check_in_date, check_out_date, resort_id')
-    .ilike('full_name', `%${sanitizedLastName}%`)
-    .limit(5)
-
-  console.log(JSON.stringify({
-    event: 'find-guest-resort-debug-no-match',
-    searchedLastName: sanitizedLastName,
-    searchedRoom: sanitizedRoomNumber,
-    searchedDate: today,
-    rawQueryResultCount: guests?.length || 0,
-    activeGuestCount: activeGuests.length,
-    roomMatchSamples: roomMatches?.map(g => ({
-      fullName: g.full_name?.substring(0, 20) + '...',
-      room: g.room_number,
-      checkIn: g.check_in_date,
-      checkOut: g.check_out_date,
-      isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
-    })) || [],
-    nameMatchSamples: nameMatches?.map(g => ({
-      fullNamePreview: g.full_name?.substring(0, 20) + '...',
-      room: g.room_number,
-      checkIn: g.check_in_date,
-      checkOut: g.check_out_date,
-      isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
-    })) || [],
-    timestamp: new Date().toISOString()
-  }))
-}
-```
-
-**Change 3: Add filter diagnostics before active guest filtering (after line 157)**
-
-Log why records might be filtered out:
-```typescript
-// Log diagnostic info about query results
-if (guests && guests.length > 0) {
-  const diagnostics = guests.map((g: any) => ({
-    hasResort: !!g.resorts,
-    resortStatus: g.resorts?.status,
-    isActive: g.resorts?.status === 'ACTIVE'
-  }))
+const fetchResorts = async () => {
+  if (!user) {
+    setResorts([]);
+    setCurrentResortState(null);
+    setLoading(false);
+    return;
+  }
   
-  console.log(JSON.stringify({
-    event: 'find-guest-resort-query-diagnostics',
-    totalMatches: guests.length,
-    byStatus: {
-      active: diagnostics.filter(d => d.isActive).length,
-      inactive: diagnostics.filter(d => !d.isActive).length,
-      noResort: diagnostics.filter(d => !d.hasResort).length
-    },
-    timestamp: new Date().toISOString()
-  }))
-}
+  // ADD THIS GUARD: Don't fetch until user data (memberships) is loaded
+  if (userDataLoading) {
+    return; // Wait for userDataLoading to be false
+  }
+  
+  setLoading(true);
+  // ... rest of function unchanged
+};
 ```
 
-**Change 4: Enhance existing result log (line 181-186)**
+**Change 3: Fix the `useEffect` dependency array**
 
-Add more detail to the final result log:
+Replace `isSuperAdmin()` function call with a stable reference:
+
 ```typescript
-console.log(JSON.stringify({
-  event: 'find-guest-resort-result',
-  ip: clientIP,
-  resultType: result.type,
-  uniqueResortsFound: uniqueResorts.size,
-  searchedLastName: sanitizedLastName.substring(0, 3) + '***',  // Partial for privacy
-  searchedRoom: sanitizedRoomNumber,
-  timestamp: new Date().toISOString()
-}))
+// Store the result in a variable for stable dependency
+const superAdmin = isSuperAdmin();
+
+useEffect(() => {
+  if (user && !userDataLoading) fetchResorts();
+}, [user, memberships.length, superAdmin, userDataLoading]);
 ```
 
 ---
 
-## Log Output Examples
+## Complete Code Change
 
-### Successful Search
-```json
-{"event":"find-guest-resort-search-params","searchLastName":"Smith","searchRoom":"101","searchDate":"2026-01-25"}
-{"event":"find-guest-resort-query-diagnostics","totalMatches":1,"byStatus":{"active":1,"inactive":0,"noResort":0}}
-{"event":"find-guest-resort-result","resultType":"found","uniqueResortsFound":1,"searchedLastName":"Smi***","searchedRoom":"101"}
-```
+```text
+File: src/contexts/ResortContext.tsx
 
-### Failed Search (shows what exists)
-```json
-{"event":"find-guest-resort-search-params","searchLastName":"Smyth","searchRoom":"101","searchDate":"2026-01-25"}
-{"event":"find-guest-resort-debug-no-match",
-  "searchedLastName":"Smyth",
-  "searchedRoom":"101",
-  "searchedDate":"2026-01-25",
-  "rawQueryResultCount":0,
-  "activeGuestCount":0,
-  "roomMatchSamples":[{"fullNamePreview":"John Smith...","room":"101","checkIn":"2026-01-20","checkOut":"2026-01-28","isCurrentStay":true}],
-  "nameMatchSamples":[]
-}
-{"event":"find-guest-resort-result","resultType":"not_found","uniqueResortsFound":0}
+Line 22 - Add userDataLoading:
+  const { user, isSuperAdmin, memberships, userDataLoading } = useAuth();
+
+Lines 51-57 - Add userDataLoading guard:
+  const fetchResorts = async () => {
+    if (!user) {
+      setResorts([]);
+      setCurrentResortState(null);
+      setLoading(false);
+      return;
+    }
+    
+    // Wait for user data (including memberships) to finish loading
+    if (userDataLoading) {
+      return;
+    }
+    
+    setLoading(true);
+    // ... rest unchanged
+
+Lines 85-87 - Fix useEffect:
+  const superAdmin = isSuperAdmin();
+  
+  useEffect(() => {
+    if (user && !userDataLoading) fetchResorts();
+  }, [user, memberships.length, superAdmin, userDataLoading]);
 ```
 
 ---
 
-## Privacy Considerations
+## Why This Fixes the Issue
 
-- Full names are truncated in logs (first 20 chars + "...")
-- Last names in result logs show only first 3 chars + "***"
-- Room numbers are shown fully (not PII)
-- Resort IDs are not logged (internal reference only)
-- IP addresses are already logged for rate limiting
+| Problem | Solution |
+|---------|----------|
+| Effect runs before memberships are loaded | Added `userDataLoading` guard to wait |
+| `isSuperAdmin()` in dependency array causes issues | Store result in `superAdmin` variable |
+| Early return with empty resorts | Guard prevents premature decision |
 
 ---
 
-## How to Use Debug Logs
+## Data Flow After Fix
 
-1. **View logs in Cloud View**: Navigate to Backend Functions > find-guest-resort > Logs
-2. **Search by event type**: Filter by `find-guest-resort-debug-no-match` to see failed searches
-3. **Identify mismatches**: Compare `searchedLastName` vs `nameMatchSamples` to spot typos or case issues
+```text
+1. User logs in
+2. AuthContext sets userDataLoading = true, fetches profile + memberships
+3. ResortContext effect runs → userDataLoading is true → returns early (stays in loading state)
+4. AuthContext completes → userDataLoading = false, memberships populated
+5. ResortContext effect re-runs → userDataLoading is false → fetches resorts correctly
+6. currentResort is set → GuestsPage query runs → guest list displays
+```
 
 ---
 
 ## Files Changed
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/find-guest-resort/index.ts` | **Modify** | Add 4 new logging statements for search params, query diagnostics, no-match debugging, and enhanced results |
+| File | Change |
+|------|--------|
+| `src/contexts/ResortContext.tsx` | Add `userDataLoading` import, add guard in `fetchResorts`, fix `useEffect` dependency array |
 
 ---
 
 ## Testing
 
-After deployment:
-1. Search for a valid guest → Logs show search params + diagnostics + found result
-2. Search with misspelled name → Logs show no-match with room matches sample
-3. Search with wrong room → Logs show no-match with name matches sample
-4. Search for past guest → Logs show isCurrentStay: false in samples
+After the fix:
+1. Log in as a staff user → Guest list should load
+2. Switch resorts → Guest list should update
+3. Refresh page while logged in → Guest list should load without "Please select a resort" flash
+4. Log in as super admin → All resorts accessible, guest list loads
