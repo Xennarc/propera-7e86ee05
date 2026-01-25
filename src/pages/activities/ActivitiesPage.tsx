@@ -1,20 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
-import { Activity, ActivityCategory } from '@/types/database';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Edit, Trash2, Calendar, Sparkles } from 'lucide-react';
+import { Activity } from '@/types/database';
+import { ActivityCategoryKey } from '@/lib/activity-category-config';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ActivityDialog } from './ActivityDialog';
-import { SetupBanner } from '@/components/staff/SetupBanner';
-import { CategoryBadge, CategoryIcon } from '@/components/ui/category-badge';
 import { useDemoReadOnly } from '@/hooks/useDemoReadOnly';
 import { DemoReadOnlyBanner } from '@/components/demo/DemoReadOnlyBanner';
-import { DemoActionWrapper } from '@/components/ui/demo-action-wrapper';
+import { SetupBanner } from '@/components/staff/SetupBanner';
+import { ActivityDialog } from './ActivityDialog';
+import {
+  ActivityCard,
+  ActivityCardGrid,
+  ActivitiesHeader,
+  ActivitiesEmptyState,
+  ActivitiesTableView,
+} from '@/components/activities';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,24 +27,31 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+type ViewMode = 'cards' | 'table';
+
 export default function ActivitiesPage() {
   const { isReadOnly } = useDemoReadOnly();
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [sessionsCount, setSessionsCount] = useState<number>(0);
+  const [sessionCounts, setSessionCounts] = useState<Record<string, { total: number; upcoming: number }>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [selectedCategory, setSelectedCategory] = useState<ActivityCategoryKey | 'all'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [deleteActivity, setDeleteActivity] = useState<Activity | null>(null);
-  
+
   const { currentResort } = useResort();
   const { toast } = useToast();
 
+  // Fetch activities and session counts
   const fetchActivities = async () => {
     if (!currentResort) return;
-    
+
     setLoading(true);
-    const { data, error } = await supabase
+    
+    // Fetch activities
+    const { data: activitiesData, error } = await supabase
       .from('activities')
       .select('*')
       .eq('resort_id', currentResort.id)
@@ -51,17 +59,46 @@ export default function ActivitiesPage() {
 
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } else {
-      setActivities(data as Activity[]);
+      setLoading(false);
+      return;
     }
-    
-    // Check if any sessions exist
-    const { count } = await supabase
-      .from('activity_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('resort_id', currentResort.id);
-    setSessionsCount(count ?? 0);
-    
+
+    setActivities(activitiesData as Activity[]);
+
+    // Fetch session counts per activity
+    if (activitiesData && activitiesData.length > 0) {
+      const activityIds = activitiesData.map(a => a.id);
+      const today = new Date().toISOString().split('T')[0];
+
+      // Total sessions
+      const { data: allSessions } = await supabase
+        .from('activity_sessions')
+        .select('activity_id')
+        .in('activity_id', activityIds);
+
+      // Upcoming sessions (scheduled, date >= today)
+      const { data: upcomingSessions } = await supabase
+        .from('activity_sessions')
+        .select('activity_id')
+        .in('activity_id', activityIds)
+        .eq('status', 'SCHEDULED')
+        .gte('date', today);
+
+      const counts: Record<string, { total: number; upcoming: number }> = {};
+      activityIds.forEach(id => {
+        counts[id] = { total: 0, upcoming: 0 };
+      });
+
+      allSessions?.forEach(s => {
+        if (counts[s.activity_id]) counts[s.activity_id].total++;
+      });
+      upcomingSessions?.forEach(s => {
+        if (counts[s.activity_id]) counts[s.activity_id].upcoming++;
+      });
+
+      setSessionCounts(counts);
+    }
+
     setLoading(false);
   };
 
@@ -69,9 +106,36 @@ export default function ActivitiesPage() {
     fetchActivities();
   }, [currentResort]);
 
+  // Calculate category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    activities.forEach(a => {
+      counts[a.category] = (counts[a.category] || 0) + 1;
+    });
+    return counts;
+  }, [activities]);
+
+  // Filter activities
+  const filteredActivities = useMemo(() => {
+    return activities.filter(activity => {
+      const matchesSearch = 
+        activity.name.toLowerCase().includes(search.toLowerCase()) ||
+        activity.category.toLowerCase().includes(search.toLowerCase()) ||
+        (activity.description?.toLowerCase().includes(search.toLowerCase()));
+      
+      const matchesCategory = 
+        selectedCategory === 'all' || activity.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [activities, search, selectedCategory]);
+
+  // Check if any sessions exist
+  const hasAnySessions = Object.values(sessionCounts).some(c => c.total > 0);
+
   const handleDelete = async () => {
     if (!deleteActivity) return;
-    
+
     const { error } = await supabase
       .from('activities')
       .delete()
@@ -86,10 +150,20 @@ export default function ActivitiesPage() {
     setDeleteActivity(null);
   };
 
-  const filteredActivities = activities.filter(activity =>
-    activity.name.toLowerCase().includes(search.toLowerCase()) ||
-    activity.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleOpenEdit = (activity: Activity) => {
+    setEditingActivity(activity);
+    setDialogOpen(true);
+  };
+
+  const handleOpenAdd = () => {
+    setEditingActivity(null);
+    setDialogOpen(true);
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSelectedCategory('all');
+  };
 
   if (!currentResort) {
     return (
@@ -104,22 +178,9 @@ export default function ActivitiesPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {isReadOnly && <DemoReadOnlyBanner />}
-      
-      <div className="page-header">
-        <div>
-          <h1 className="page-header-title">Activities</h1>
-          <p className="page-header-subtitle">Manage resort activities and excursions</p>
-        </div>
-        <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating activities is disabled in demo mode">
-          <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target" disabled={isReadOnly}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Activity
-          </Button>
-        </DemoActionWrapper>
-      </div>
 
       {/* Setup Banner: Activities exist but no sessions */}
-      {activities.length > 0 && sessionsCount === 0 && !isReadOnly && (
+      {activities.length > 0 && !hasAnySessions && !isReadOnly && (
         <SetupBanner
           id="activities-need-sessions"
           title="Next step: Add sessions for your activities"
@@ -130,121 +191,60 @@ export default function ActivitiesPage() {
         />
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search activities..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-          ) : filteredActivities.length === 0 ? (
-            <div className="empty-state">
-              <div className="rounded-full bg-muted/60 p-4 mb-4">
-                <Sparkles className="h-12 w-12 text-muted-foreground/40" />
-              </div>
-              <h3 className="empty-state-title">
-                {search ? 'No activities found' : 'No activities yet'}
-              </h3>
-              <p className="empty-state-description">
-                {search 
-                  ? 'Try adjusting your search terms'
-                  : "Create your first activity to get started with bookings."}
-              </p>
-              {!search && !isReadOnly && (
-                <Button onClick={() => { setEditingActivity(null); setDialogOpen(true); }} className="tap-target">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Activity
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Activity</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredActivities.map((activity) => (
-                    <TableRow key={activity.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
-                            <CategoryIcon category={activity.category} iconKey={(activity as any).icon_key} size={20} />
-                          </div>
-                          <div>
-                            <p className="font-medium">{activity.name}</p>
-                            {activity.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-1">
-                                {activity.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <CategoryBadge category={activity.category} iconKey={(activity as any).icon_key} size="md" />
-                      </TableCell>
-                      <TableCell>{activity.duration_minutes} min</TableCell>
-                      <TableCell>${activity.default_price_per_person}</TableCell>
-                      <TableCell>{activity.default_max_capacity} pax</TableCell>
-                      <TableCell>
-                        <Badge variant={activity.is_active ? 'confirmed' : 'secondary'}>
-                          {activity.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Editing is disabled in demo mode">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => { setEditingActivity(activity); setDialogOpen(true); }}
-                              disabled={isReadOnly}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DemoActionWrapper>
-                          <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Deleting is disabled in demo mode">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteActivity(activity)}
-                              disabled={isReadOnly}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </DemoActionWrapper>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Header with Search & Filters */}
+      <ActivitiesHeader
+        search={search}
+        onSearchChange={setSearch}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        categoryCounts={categoryCounts}
+        onAddActivity={handleOpenAdd}
+        isReadOnly={isReadOnly}
+      />
 
+      {/* Loading State */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : filteredActivities.length === 0 ? (
+        /* Empty State */
+        <ActivitiesEmptyState
+          hasSearch={search.length > 0}
+          hasCategory={selectedCategory !== 'all'}
+          onAddActivity={handleOpenAdd}
+          onClearFilters={handleClearFilters}
+          isReadOnly={isReadOnly}
+        />
+      ) : viewMode === 'cards' ? (
+        /* Card Grid View */
+        <ActivityCardGrid>
+          {filteredActivities.map((activity) => (
+            <ActivityCard
+              key={activity.id}
+              activity={activity}
+              sessionCount={sessionCounts[activity.id]?.total || 0}
+              upcomingSessionCount={sessionCounts[activity.id]?.upcoming || 0}
+              onEdit={() => handleOpenEdit(activity)}
+              onDelete={() => setDeleteActivity(activity)}
+              isReadOnly={isReadOnly}
+            />
+          ))}
+        </ActivityCardGrid>
+      ) : (
+        /* Table View */
+        <ActivitiesTableView
+          activities={filteredActivities}
+          sessionCounts={sessionCounts}
+          onEdit={handleOpenEdit}
+          onDelete={setDeleteActivity}
+          isReadOnly={isReadOnly}
+        />
+      )}
+
+      {/* Activity Dialog */}
       <ActivityDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
@@ -253,17 +253,21 @@ export default function ActivitiesPage() {
         onSuccess={fetchActivities}
       />
 
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteActivity} onOpenChange={() => setDeleteActivity(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Activity</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {deleteActivity?.name}? This will also delete all associated sessions and bookings.
+              Are you sure you want to delete "{deleteActivity?.name}"? This will also delete all associated sessions and bookings.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
