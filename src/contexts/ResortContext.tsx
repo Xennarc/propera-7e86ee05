@@ -62,7 +62,11 @@ export function ResortProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    setLoading(true);
+    // Only show loading state if we don't have any resorts yet
+    // This prevents flicker and null access during refetch
+    if (resorts.length === 0) {
+      setLoading(true);
+    }
     
     if (isSuperAdmin()) {
       const { data, error } = await supabase.from('resorts').select('*').order('name');
@@ -90,7 +94,12 @@ export function ResortProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user && !userDataLoading) fetchResorts();
+    // Keep loading true while waiting for user data
+    if (userDataLoading) {
+      setLoading(true);
+      return;
+    }
+    if (user) fetchResorts();
   }, [user, memberships.length, superAdmin, userDataLoading]);
 
   return (
