@@ -5,11 +5,13 @@ import { Calendar, Home, Plane } from 'lucide-react';
 import { safeFormatDate } from '@/lib/safe-date-format';
 import { StaffGuestStay, StaffAccessLink } from '@/hooks/useStaffGuestStay';
 import { StayAccessLinkManager } from './StayAccessLinkManager';
+import { Guest } from '@/types/database';
 
 interface GuestStayPanelProps {
   guestId: string;
   guestName: string;
   resortId: string;
+  guest?: Guest | null;
   stay: StaffGuestStay | null;
   accessLinks: StaffAccessLink[];
   isLoading: boolean;
@@ -49,6 +51,7 @@ export function GuestStayPanel({
   guestId, 
   guestName, 
   resortId, 
+  guest,
   stay, 
   accessLinks, 
   isLoading,
@@ -133,6 +136,7 @@ export function GuestStayPanel({
             <StayAccessLinkManager
               stayId={stay.id}
               guestName={guestName}
+              guest={guest}
               accessLinks={accessLinks}
               onLinkGenerated={onLinkGenerated}
             />

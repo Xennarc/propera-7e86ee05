@@ -397,6 +397,7 @@ export default function GuestDetailPage() {
         guestId={guest.id}
         guestName={guest.full_name}
         resortId={guest.resort_id}
+        guest={guest}
         stay={activeStay}
         accessLinks={accessLinks}
         isLoading={stayLoading}
