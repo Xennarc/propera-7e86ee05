@@ -1,19 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, UserPlus, UserMinus, Calendar, Utensils, Star, ArrowRight, Clock, MessageSquare, Palette, X } from 'lucide-react';
-import { StatCardGridSkeleton, ListItemSkeleton, FeedbackItemSkeleton } from '@/components/ui/dashboard-skeletons';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { 
+  Users, UserPlus, UserMinus, Calendar, Utensils, Star, 
+  MessageSquare, Palette, X, ChevronRight, ChevronDown, Plus
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { OnboardingBanner } from '@/components/onboarding/OnboardingBanner';
-import { TodayAtAGlance } from '@/components/staff/TodayAtAGlance';
 import { useState, useEffect } from 'react';
+import {
+  DashboardHeader,
+  PriorityCard,
+  PriorityCardGrid,
+  OperationsSection,
+  OperationsListItem,
+  NeedsAttentionCard,
+} from '@/components/staff/dashboard';
 
 export default function ResortAdminHome() {
   const { currentResort } = useResort();
@@ -21,11 +29,11 @@ export default function ResortAdminHome() {
   const today = new Date().toISOString().split('T')[0];
   const [showWelcome, setShowWelcome] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   // Check if this is a new resort needing branding setup
   useEffect(() => {
     if (currentResort?.onboarding_status === 'NOT_STARTED' && !dismissed) {
-      // Check if user already dismissed this session
       const dismissedKey = `propera-welcome-dismissed-${currentResort.id}`;
       const wasDismissed = sessionStorage.getItem(dismissedKey);
       if (!wasDismissed) {
@@ -50,48 +58,63 @@ export default function ResortAdminHome() {
     queryFn: async () => {
       if (!currentResort) return null;
 
-      // Guests in house
-      const { count: guestsInHouse } = await supabase
-        .from('guests')
-        .select('*', { count: 'exact', head: true })
-        .eq('resort_id', currentResort.id)
-        .lte('check_in_date', today)
-        .gte('check_out_date', today);
+      // Parallel fetch for performance
+      const [inHouseRes, arrivalsRes, departuresRes] = await Promise.all([
+        supabase
+          .from('guests')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', currentResort.id)
+          .lte('check_in_date', today)
+          .gte('check_out_date', today),
+        supabase
+          .from('guests')
+          .select('id, full_name, room_number, is_vip', { count: 'exact' })
+          .eq('resort_id', currentResort.id)
+          .eq('check_in_date', today)
+          .limit(10),
+        supabase
+          .from('guests')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', currentResort.id)
+          .eq('check_out_date', today),
+      ]);
 
-      // Arrivals today
-      const { count: arrivalsToday } = await supabase
-        .from('guests')
-        .select('*', { count: 'exact', head: true })
-        .eq('resort_id', currentResort.id)
-        .eq('check_in_date', today);
-
-      // Departures today
-      const { count: departuresToday } = await supabase
-        .from('guests')
-        .select('*', { count: 'exact', head: true })
-        .eq('resort_id', currentResort.id)
-        .eq('check_out_date', today);
+      // VIP arrivals
+      const vipArrivals = arrivalsRes.data?.filter((g: any) => g.is_vip) || [];
 
       // Today's activity pax
       const { data: sessions } = await supabase
         .from('activity_sessions')
-        .select('id')
+        .select('id, capacity')
         .eq('resort_id', currentResort.id)
         .eq('date', today)
         .eq('status', 'SCHEDULED');
 
       let activityPax = 0;
+      let fullyBookedSessions = 0;
+      
       if (sessions && sessions.length > 0) {
         const sessionIds = sessions.map(s => s.id);
         const { data: bookings } = await supabase
           .from('activity_bookings')
-          .select('num_adults, num_children')
+          .select('session_id, num_adults, num_children')
           .in('session_id', sessionIds)
           .eq('status', 'CONFIRMED');
-        activityPax = bookings?.reduce(
-          (sum, b) => sum + (b.num_adults || 0) + (b.num_children || 0),
-          0
-        ) || 0;
+        
+        // Calculate per-session pax
+        const sessionPax: Record<string, number> = {};
+        bookings?.forEach(b => {
+          const pax = (b.num_adults || 0) + (b.num_children || 0);
+          sessionPax[b.session_id] = (sessionPax[b.session_id] || 0) + pax;
+          activityPax += pax;
+        });
+        
+        // Count fully booked sessions
+        sessions.forEach(s => {
+          if ((sessionPax[s.id] || 0) >= s.capacity) {
+            fullyBookedSessions++;
+          }
+        });
       }
 
       // Today's restaurant covers
@@ -129,13 +152,33 @@ export default function ResortAdminHome() {
         : null;
 
       return {
-        guestsInHouse: guestsInHouse || 0,
-        arrivalsToday: arrivalsToday || 0,
-        departuresToday: departuresToday || 0,
+        guestsInHouse: inHouseRes.count || 0,
+        arrivalsToday: arrivalsRes.count || 0,
+        arrivals: arrivalsRes.data || [],
+        vipArrivals,
+        departuresToday: departuresRes.count || 0,
         activityPax,
+        fullyBookedSessions,
         covers,
         avgRating,
       };
+    },
+    enabled: !!currentResort,
+  });
+
+  // Fetch open guest requests
+  const { data: openRequests, isLoading: loadingRequests } = useQuery({
+    queryKey: ['open-requests', currentResort?.id],
+    queryFn: async () => {
+      if (!currentResort) return [];
+      const { data } = await supabase
+        .from('guest_requests')
+        .select('id, special_request_text, status, guest:guests(full_name, room_number)')
+        .eq('resort_id', currentResort.id)
+        .in('status', ['OPEN', 'IN_PROGRESS'])
+        .order('created_at', { ascending: false })
+        .limit(5);
+      return data || [];
     },
     enabled: !!currentResort,
   });
@@ -163,7 +206,6 @@ export default function ResortAdminHome() {
 
       if (!sessions) return [];
 
-      // Get confirmed pax for each session
       const sessionsWithPax = await Promise.all(
         sessions.map(async (session) => {
           const { data: bookings } = await supabase
@@ -190,7 +232,7 @@ export default function ResortAdminHome() {
     enabled: !!currentResort,
   });
 
-  // Fetch tonight's restaurant slots (dinner)
+  // Fetch tonight's restaurant slots
   const { data: tonightSlots, isLoading: loadingSlots } = useQuery({
     queryKey: ['tonight-slots', currentResort?.id, today],
     queryFn: async () => {
@@ -214,7 +256,6 @@ export default function ResortAdminHome() {
 
       if (!slots) return [];
 
-      // Get confirmed covers for each slot
       const slotsWithCovers = await Promise.all(
         slots.map(async (slot) => {
           const { data: reservations } = await supabase
@@ -276,34 +317,70 @@ export default function ResortAdminHome() {
     return colors[period] || 'bg-muted text-muted-foreground';
   };
 
+  // Format requests for NeedsAttentionCard
+  const formattedRequests = openRequests?.map((req: any) => ({
+    id: req.id,
+    guestName: req.guest?.full_name || 'Unknown Guest',
+    roomNumber: req.guest?.room_number || '',
+    requestText: req.special_request_text,
+    status: req.status,
+  })) || [];
+
+  const formattedVipArrivals = stats?.vipArrivals?.map((vip: any) => ({
+    id: vip.id,
+    name: vip.full_name,
+    roomNumber: vip.room_number,
+  })) || [];
+
   return (
-    <div className="space-y-6 lg:space-y-8 animate-fade-in">
+    <div className="space-y-5 sm:space-y-6 lg:space-y-8 animate-fade-in">
+      {/* Sticky Dashboard Header */}
+      <DashboardHeader
+        resortName={currentResort?.name || 'Resort'}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/staff/guest-requests">
+                <MessageSquare className="h-4 w-4 mr-1.5" />
+                <span className="hidden xs:inline">Requests</span>
+              </Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link to="/staff/guests/new">
+                <Plus className="h-4 w-4 mr-1.5" />
+                <span className="hidden xs:inline">Add Guest</span>
+              </Link>
+            </Button>
+          </div>
+        }
+      />
+
       {/* Welcome/Branding Prompt for new resorts */}
       {showWelcome && (
         <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 overflow-hidden">
-          <CardContent className="py-6">
+          <CardContent className="py-5 sm:py-6">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Palette className="h-6 w-6 text-primary" />
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="p-2.5 sm:p-3 rounded-xl bg-primary/10 shrink-0">
+                  <Palette className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Welcome to {currentResort?.name}!</h3>
-                  <p className="text-muted-foreground text-sm mb-4">
-                    Let's set up your brand so the guest portal looks like your resort. You can customize your logo, colors, and welcome message.
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-base sm:text-lg mb-1">Welcome to {currentResort?.name}!</h3>
+                  <p className="text-muted-foreground text-sm mb-3 sm:mb-4">
+                    Set up your brand so the guest portal reflects your resort.
                   </p>
-                  <div className="flex gap-2">
-                    <Button onClick={() => navigate('/staff/settings/branding')}>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => navigate('/staff/settings/branding')}>
                       <Palette className="h-4 w-4 mr-2" />
                       Set Up Branding
                     </Button>
-                    <Button variant="ghost" onClick={handleDismiss}>
+                    <Button variant="ghost" size="sm" onClick={handleDismiss}>
                       Skip for Now
                     </Button>
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={handleDismiss} className="shrink-0">
+              <Button variant="ghost" size="icon" onClick={handleDismiss} className="shrink-0 h-8 w-8">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -314,225 +391,218 @@ export default function ResortAdminHome() {
       {/* Onboarding Banner */}
       <OnboardingBanner />
 
-      {/* Today at a Glance - Quick Overview Panel */}
-      <TodayAtAGlance />
-
-      <PageHeader
-        title={`${currentResort?.name || 'Resort'} – Today`}
-        description="Overview of guests, activities, restaurants, and feedback for today."
+      {/* SECTION 1: Needs Attention - Always first on mobile */}
+      <NeedsAttentionCard
+        openRequests={formattedRequests}
+        vipArrivals={formattedVipArrivals}
+        fullySessions={stats?.fullyBookedSessions || 0}
+        loading={isLoading || loadingRequests}
       />
 
-      {/* Top Stats */}
-      {isLoading ? (
-        <StatCardGridSkeleton count={6} />
-      ) : (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-          <StatCard
-            title="Guests In House"
+      {/* SECTION 2: Today at a Glance - Priority Metrics */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
+          Today at a Glance
+        </h2>
+        <PriorityCardGrid>
+          <PriorityCard
+            title="Guests In-House"
             value={stats?.guestsInHouse || 0}
+            subtitle="currently staying"
             icon={Users}
+            href="/staff/guests"
             variant="primary"
+            loading={isLoading}
           />
-          <StatCard
+          <PriorityCard
             title="Arrivals Today"
             value={stats?.arrivalsToday || 0}
+            subtitle="checking in"
             icon={UserPlus}
+            href="/staff/guests?filter=arrivals"
             variant="success"
+            loading={isLoading}
           />
-          <StatCard
+          <PriorityCard
             title="Departures Today"
             value={stats?.departuresToday || 0}
+            subtitle="checking out"
             icon={UserMinus}
+            href="/staff/guests?filter=departures"
             variant="warning"
+            loading={isLoading}
           />
-          <StatCard
-            title="Activities Pax"
-            value={stats?.activityPax || 0}
-            icon={Calendar}
-            description="Excursions, dives, spa"
-          />
-          <StatCard
+          <PriorityCard
             title="Dining Covers"
             value={stats?.covers || 0}
+            subtitle="restaurant bookings"
             icon={Utensils}
-            description="Restaurant bookings"
+            href="/staff/restaurants/slots"
+            variant="default"
+            loading={isLoading}
           />
-          <StatCard
-            title="Avg Rating (7d)"
-            value={stats?.avgRating || '—'}
-            icon={Star}
-            variant={stats?.avgRating && parseFloat(stats.avgRating) >= 4 ? 'success' : 'default'}
-          />
-        </div>
-      )}
+        </PriorityCardGrid>
+      </section>
 
-      {/* Two Column Layout - responsive */}
-      <div className="grid gap-4 lg:gap-6 lg:grid-cols-2">
+      {/* SECTION 3: Operations - Activities & Restaurants */}
+      <section className="grid gap-4 sm:gap-5 lg:gap-6 lg:grid-cols-2">
         {/* Today's Activities */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <div>
-              <CardTitle className="text-lg">Today's Activities</CardTitle>
-              <CardDescription>Scheduled sessions for today</CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/staff/activities/sessions" className="text-primary">
-                View all <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {loadingSessions ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map(i => <ListItemSkeleton key={i} />)}
-              </div>
-            ) : todaySessions && todaySessions.length > 0 ? (
-              <div className="space-y-2 max-h-80 overflow-auto">
-                {todaySessions.slice(0, 6).map((session: any) => (
-                  <Link
-                    key={session.id}
-                    to={`/staff/activities/sessions/${session.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {session.start_time.slice(0, 5)}
-                      </div>
-                      <span className="font-medium group-hover:text-primary transition-colors">
-                        {session.activities?.name || 'Unknown Activity'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm">
-                        {session.confirmedPax}/{session.capacity}
-                      </span>
-                      <Badge variant={session.occupancy >= 80 ? 'destructive' : session.occupancy >= 50 ? 'default' : 'secondary'}>
-                        {session.occupancy}%
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p>No sessions scheduled today</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <OperationsSection
+          title="Today's Activities"
+          icon={Calendar}
+          iconColor="text-primary"
+          viewAllHref="/staff/activities/sessions"
+          loading={loadingSessions}
+          emptyIcon={Calendar}
+          emptyMessage="No sessions scheduled today"
+          hasItems={!!(todaySessions && todaySessions.length > 0)}
+          collapsibleMobile
+        >
+          {todaySessions?.slice(0, 6).map((session: any) => (
+            <OperationsListItem
+              key={session.id}
+              href={`/staff/activities/sessions/${session.id}`}
+              time={session.start_time.slice(0, 5)}
+              title={session.activities?.name || 'Unknown Activity'}
+              capacity={`${session.confirmedPax}/${session.capacity}`}
+              occupancy={session.occupancy}
+            />
+          ))}
+        </OperationsSection>
 
-        {/* Tonight's Restaurants */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <div>
-              <CardTitle className="text-lg">Today's Restaurants</CardTitle>
-              <CardDescription>Time slots and covers</CardDescription>
-            </div>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/staff/restaurants/slots" className="text-primary">
-                View all <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {loadingSlots ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map(i => <ListItemSkeleton key={i} />)}
-              </div>
-            ) : tonightSlots && tonightSlots.length > 0 ? (
-              <div className="space-y-2 max-h-80 overflow-auto">
-                {tonightSlots.slice(0, 6).map((slot: any) => (
-                  <Link
-                    key={slot.id}
-                    to={`/staff/restaurants/slots/${slot.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {slot.start_time.slice(0, 5)}
-                      </div>
-                      <span className="font-medium group-hover:text-primary transition-colors">
-                        {slot.restaurants?.name || 'Unknown Restaurant'}
-                      </span>
-                      <Badge className={getMealPeriodBadge(slot.meal_period)}>
-                        {slot.meal_period}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm">
-                        {slot.confirmedCovers}/{slot.capacity}
-                      </span>
-                      <Badge variant={slot.occupancy >= 80 ? 'destructive' : slot.occupancy >= 50 ? 'default' : 'secondary'}>
-                        {slot.occupancy}%
-                      </Badge>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Utensils className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                <p>No slots scheduled today</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        {/* Today's Restaurants */}
+        <OperationsSection
+          title="Today's Restaurants"
+          icon={Utensils}
+          iconColor="text-chart-3"
+          viewAllHref="/staff/restaurants/slots"
+          loading={loadingSlots}
+          emptyIcon={Utensils}
+          emptyMessage="No slots scheduled today"
+          hasItems={!!(tonightSlots && tonightSlots.length > 0)}
+          collapsibleMobile
+          defaultCollapsed
+        >
+          {tonightSlots?.slice(0, 6).map((slot: any) => (
+            <OperationsListItem
+              key={slot.id}
+              href={`/staff/restaurants/slots/${slot.id}`}
+              time={slot.start_time.slice(0, 5)}
+              title={slot.restaurants?.name || 'Unknown Restaurant'}
+              capacity={`${slot.confirmedCovers}/${slot.capacity}`}
+              occupancy={slot.occupancy}
+              badge={{
+                label: slot.meal_period,
+                className: getMealPeriodBadge(slot.meal_period),
+              }}
+            />
+          ))}
+        </OperationsSection>
+      </section>
 
-      {/* Recent Feedback */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <div>
-            <CardTitle className="text-lg">Recent Feedback</CardTitle>
-            <CardDescription>Latest guest stay feedback</CardDescription>
-          </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/staff/reports/stay-feedback" className="text-primary">
-              View report <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {loadingFeedback ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <FeedbackItemSkeleton key={i} />)}
-            </div>
-          ) : recentFeedback && recentFeedback.length > 0 ? (
-            <div className="space-y-3">
-              {recentFeedback.map((fb: any) => (
-                <div key={fb.id} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-warning/10">
-                    <Star className="h-4 w-4 text-warning fill-warning" />
-                    <span className="font-bold text-warning">{fb.overall_rating}</span>
+      {/* SECTION 4: Analytics & Feedback - Collapsible on mobile */}
+      <Collapsible open={showAnalytics} onOpenChange={setShowAnalytics}>
+        <CollapsibleTrigger asChild>
+          <button className="w-full flex items-center justify-between py-3 px-1 text-left sm:hidden group">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Trends & Feedback
+            </h2>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showAnalytics ? 'rotate-180' : ''}`} />
+          </button>
+        </CollapsibleTrigger>
+        
+        {/* Always visible on desktop */}
+        <div className="hidden sm:block">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1 mb-3">
+            Trends & Feedback
+          </h2>
+        </div>
+
+        <CollapsibleContent className="sm:!block">
+          <div className="grid gap-4 sm:gap-5 lg:gap-6 lg:grid-cols-2 pt-2 sm:pt-0">
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg">Performance Snapshot</CardTitle>
+                <CardDescription>7-day overview</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-muted/30 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Star className="h-5 w-5 text-warning fill-warning" />
+                      <span className="text-2xl font-bold">{stats?.avgRating || '—'}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Avg Rating</p>
                   </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{fb.guests?.full_name || 'Anonymous Guest'}</span>
-                        <span className="text-xs text-muted-foreground">
-                        Checkout: {format(new Date(fb.check_out_date), 'MMM d')}
-                      </span>
+                  <div className="p-4 rounded-xl bg-muted/30 text-center">
+                    <div className="flex items-center justify-center gap-1 mb-1">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <span className="text-2xl font-bold">{stats?.activityPax || 0}</span>
                     </div>
-                    {(fb.highlight_comment || fb.improvement_comment) && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        <MessageSquare className="h-3 w-3 inline mr-1" />
-                        {fb.highlight_comment || fb.improvement_comment}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">Activity Pax</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>No feedback received yet</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+
+            {/* Recent Feedback */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base sm:text-lg">Recent Feedback</CardTitle>
+                    <CardDescription>Latest guest comments</CardDescription>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/staff/reports/stay-feedback" className="text-primary">
+                      View all <ChevronRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingFeedback ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <Skeleton key={i} className="h-16 rounded-lg" />
+                    ))}
+                  </div>
+                ) : recentFeedback && recentFeedback.length > 0 ? (
+                  <div className="space-y-3 max-h-64 overflow-auto">
+                    {recentFeedback.map((fb: any) => (
+                      <div key={fb.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/30">
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-warning/10 shrink-0">
+                          <Star className="h-4 w-4 text-warning fill-warning" />
+                          <span className="font-bold text-sm text-warning">{fb.overall_rating}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="font-medium text-sm">{fb.guests?.full_name || 'Anonymous'}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(fb.check_out_date), 'MMM d')}
+                            </span>
+                          </div>
+                          {(fb.highlight_comment || fb.improvement_comment) && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {fb.highlight_comment || fb.improvement_comment}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">No feedback received yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
