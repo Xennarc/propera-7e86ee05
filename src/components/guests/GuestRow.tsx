@@ -108,10 +108,16 @@ export const GuestRow = memo(function GuestRow({
     <div
       onClick={onNavigate}
       className={cn(
-        'group grid gap-3 items-center border-b border-border/50 cursor-pointer',
-        'hover:bg-accent/50 transition-colors',
-        isCompact ? 'py-2 px-3' : 'py-4 px-4',
-        isSelected && 'bg-primary/5',
+        'group grid gap-3 items-center cursor-pointer',
+        'border-b border-border/30',
+        'transition-all duration-150',
+        // Improved hover with left accent
+        'hover:bg-muted/40 relative',
+        'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-0.5 before:bg-transparent before:transition-colors',
+        'hover:before:bg-primary/60',
+        // Increased padding for better spacing
+        isCompact ? 'py-3 px-3' : 'py-5 px-4',
+        isSelected && 'bg-primary/5 before:bg-primary',
         // Grid columns
         showSelection ? 'grid-cols-[auto_1fr_auto_auto_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto_auto_auto_auto]'
       )}
@@ -132,9 +138,10 @@ export const GuestRow = memo(function GuestRow({
       {/* Guest name + badges + email */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Name - 16px semibold per spec */}
           <span className={cn(
             'font-semibold text-foreground truncate',
-            isCompact ? 'text-sm' : 'text-base'
+            isCompact ? 'text-sm' : 'text-base leading-tight'
           )}>
             {guest.full_name}
           </span>
@@ -160,15 +167,18 @@ export const GuestRow = memo(function GuestRow({
         )}
       </div>
 
-      {/* Room pill - click to copy */}
+      {/* Room pill - monospace badge style */}
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             onClick={handleCopyRoom}
             className={cn(
-              'font-mono text-sm bg-muted px-2 py-1 rounded',
-              'hover:bg-muted/80 transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-ring'
+              'font-mono text-sm font-medium',
+              'bg-muted/60 dark:bg-midnight-800/60 px-2.5 py-1 rounded-lg',
+              'border border-border/40',
+              'hover:bg-muted transition-colors',
+              'focus:outline-none focus:ring-2 focus:ring-ring',
+              'min-w-[48px] text-center'
             )}
           >
             {guest.room_number || '-'}

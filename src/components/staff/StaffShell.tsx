@@ -143,8 +143,9 @@ export function StaffShell() {
             onCommandBarOpen={() => setCommandBarOpen(true)}
           />
 
-          <main className="flex-1 overflow-auto pb-20 lg:pb-0">
-            <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
+          <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+            {/* Improved padding scale: tighter on mobile, generous on desktop */}
+            <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
               <ErrorBoundary
                 fallback={<RouteErrorFallback />}
                 onReset={() => window.location.reload()}

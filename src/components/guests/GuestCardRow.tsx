@@ -79,13 +79,19 @@ export const GuestCardRow = memo(function GuestCardRow({
     <div
       onClick={onNavigate}
       className={cn(
-        'relative p-4 bg-card border border-border/50 rounded-lg cursor-pointer',
-        'hover:bg-accent/30 hover:border-border transition-all',
-        'active:scale-[0.99]',
-        isSelected && 'ring-2 ring-primary/30 bg-primary/5'
+        // Premium mobile card styling
+        'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer',
+        'transition-all duration-200',
+        'hover:bg-accent/30 hover:border-border/60',
+        'hover:shadow-soft',
+        'active:scale-[0.98]',
+        // Focus ring for accessibility
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        isSelected && 'ring-2 ring-primary/30 bg-primary/5 border-primary/30'
       )}
       role="article"
       aria-label={`Guest: ${guest.full_name}`}
+      tabIndex={0}
     >
       {/* Selection checkbox (top-left) */}
       {showSelection && (
@@ -122,26 +128,32 @@ export const GuestCardRow = memo(function GuestCardRow({
       </div>
 
       {/* Main content */}
-      <div className={cn('space-y-2', showSelection && 'pl-8')}>
-        {/* Name + VIP + Room */}
-        <div className="flex items-center gap-2 flex-wrap pr-16">
-          <span className="font-semibold text-foreground">{guest.full_name}</span>
+      <div className={cn('space-y-3', showSelection && 'pl-8')}>
+        {/* Name + VIP badges - 16px per spec */}
+        <div className="flex items-center gap-2 flex-wrap pr-12">
+          <span className="font-semibold text-foreground text-base">{guest.full_name}</span>
           {guest.is_vip && (
             <Crown className="h-4 w-4 text-amber-500 shrink-0" />
           )}
           {guest.loyalty_tier && (
             <Star className="h-4 w-4 text-primary shrink-0" />
           )}
+        </div>
+
+        {/* Room + Status inline */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleCopyRoom}
-            className="font-mono text-sm bg-muted px-2 py-0.5 rounded hover:bg-muted/80 transition-colors"
+            className={cn(
+              "font-mono text-sm font-medium",
+              "bg-muted/60 dark:bg-midnight-800/60 px-2.5 py-1 rounded-lg",
+              "border border-border/40",
+              "hover:bg-muted transition-colors"
+            )}
           >
             Room {guest.room_number || '-'}
           </button>
-        </div>
 
-        {/* Status + Dates */}
-        <div className="flex items-center gap-2 flex-wrap text-sm">
           <Badge 
             variant="outline"
             className={cn(
@@ -152,10 +164,14 @@ export const GuestCardRow = memo(function GuestCardRow({
             {status.label}
             {status.countdown && ` (${status.countdown})`}
           </Badge>
-          <span className="text-muted-foreground">
-            {safeFormatDate(guest.check_in_date, 'MMM d')} - {safeFormatDate(guest.check_out_date, 'MMM d')}
-            <span className="ml-1 opacity-60">({nights}n)</span>
+        </div>
+
+        {/* Dates as secondary metadata row */}
+        <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+          <span>
+            {safeFormatDate(guest.check_in_date, 'MMM d')} – {safeFormatDate(guest.check_out_date, 'MMM d')}
           </span>
+          <span className="opacity-60">({nights} nights)</span>
         </div>
 
         {/* Flags row */}
