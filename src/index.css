@@ -2092,3 +2092,117 @@ select:focus,
 .dark [data-radix-popper-content-wrapper] {
   --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
 }
+
+/* ========================================
+   PHASE 2: MOBILE-SAFE UTILITIES
+   No-Zoom Improvements
+   ======================================== */
+
+/* Mobile-safe minimum text sizes */
+@layer utilities {
+  /* Replace text-2xs (10px) with mobile-safe minimum */
+  .text-mobile-min {
+    font-size: 0.6875rem; /* 11px */
+    line-height: 1rem;
+  }
+  @media (min-width: 640px) {
+    .text-mobile-min {
+      font-size: 0.75rem; /* 12px */
+      line-height: 1rem;
+    }
+  }
+  
+  /* Badge text - readable on mobile */
+  .text-badge-mobile {
+    font-size: 0.6875rem; /* 11px */
+    line-height: 1rem;
+  }
+  
+  /* Navigation label - clear at a glance */
+  .text-nav-label {
+    font-size: 0.6875rem; /* 11px */
+    line-height: 1rem;
+    font-weight: 500;
+  }
+  @media (min-width: 640px) {
+    .text-nav-label {
+      font-size: 0.75rem; /* 12px */
+    }
+  }
+  
+  /* Minimum touch target helper */
+  .touch-target-44 {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .touch-target-48 {
+    min-height: 48px;
+    min-width: 48px;
+  }
+}
+
+/* Staff Portal enhanced cards */
+.staff-card-elevated {
+  @apply rounded-2xl border border-border/40 bg-card shadow-medium transition-all duration-200;
+}
+
+.staff-card-elevated:hover {
+  @apply shadow-elevated border-border/60;
+}
+
+/* Sticky header with glass blur */
+.staff-header-sticky {
+  @apply sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/30;
+}
+
+/* Section dividers */
+.staff-section-divider {
+  @apply h-px bg-gradient-to-r from-transparent via-border/50 to-transparent my-6;
+}
+
+/* Mobile action bar for forms */
+.staff-mobile-action-bar {
+  @apply fixed bottom-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-md border-t border-border/30 p-4;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+  .staff-mobile-action-bar {
+    position: static;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+  }
+}
+
+/* Card list item for mobile tables */
+.staff-card-list-item {
+  @apply p-4 sm:p-5 rounded-xl border border-border/40 bg-card transition-all duration-200;
+}
+
+.staff-card-list-item:hover {
+  @apply border-primary/30 shadow-md bg-primary/5;
+}
+
+.staff-card-list-item:active {
+  @apply scale-[0.99];
+}
+
+/* Form sections */
+.form-section {
+  @apply space-y-6 pb-6 border-b border-border/30;
+}
+
+.form-section:last-child {
+  @apply border-0;
+}
+
+.form-section-title {
+  @apply text-sm font-semibold text-foreground/90 mb-4;
+}
+
+.form-field-group {
+  @apply space-y-4;
+}

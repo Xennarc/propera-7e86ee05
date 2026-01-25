@@ -11,7 +11,8 @@ interface EnhancedFilterBarProps {
 export function EnhancedFilterBar({ children, className }: EnhancedFilterBarProps) {
   return (
     <div className={cn('space-y-3', className)}>
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+      {/* Mobile: stack vertically with full-width items, Desktop: horizontal row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
         {children}
       </div>
     </div>
@@ -107,26 +108,27 @@ interface FilterSearchProps {
 
 export function FilterSearch({ value, onChange, placeholder = 'Search...', className }: FilterSearchProps) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative w-full sm:w-auto', className)}>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className={cn(
-          'h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm',
+          // Mobile: 48px height for touch, desktop: 36px
+          'h-12 sm:h-9 w-full sm:w-64 rounded-xl border border-input bg-background px-4 sm:px-3 py-3 sm:py-1 text-base sm:text-sm',
           'ring-offset-background placeholder:text-muted-foreground',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          'pr-8'
+          'pr-10 sm:pr-8'
         )}
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute right-3 sm:right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5 sm:h-4 sm:w-4" />
         </button>
       )}
     </div>
