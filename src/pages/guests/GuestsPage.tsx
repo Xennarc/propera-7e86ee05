@@ -65,9 +65,10 @@ function GuestsPageContent() {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // CRITICAL: Safely extract resortId - never use currentResort.id directly
-  // This is the SINGLE source of truth for resort scoping in this component
+  // CRITICAL: Safely extract resortId and resortCode - never use currentResort.* directly
+  // These are the SINGLE sources of truth for resort scoping in this component
   const resortId: string | undefined = currentResort?.id;
+  const resortCode: string | undefined = currentResort?.code;
 
   // Debug logging for null resort issues (single-fire)
   const hasLoggedNullWarning = useRef(false);
@@ -362,24 +363,26 @@ function GuestsPageContent() {
 
                   {/* Guest rows */}
                   <div className="divide-y divide-border/30">
-                    {filteredGuests.map(guest => (
-                      <GuestRow
-                        key={guest.id}
-                        guest={guest}
-                        prearrivalStatus={prearrivalStatuses?.[guest.id]}
-                        isSelected={selectedGuests.has(guest.id)}
-                        onSelect={(checked) => handleSelectGuest(guest.id, checked)}
-                        onPreview={() => handleOpenPreview(guest)}
-                        onNavigate={() => handleNavigateToDetail(guest)}
-                        onEdit={() => handleEditGuest(guest)}
-                        onDelete={() => setDeleteGuest(guest)}
-                        onSendEmail={canSendPrearrival(guest) ? () => handleSendEmailSingle(guest) : undefined}
-                        showSelection={prearrivalEnabled}
-                        showPrearrival={prearrivalEnabled}
-                        isCompact={preferences.density === 'compact'}
-                        isReadOnly={isReadOnly}
-                      />
-                    ))}
+                    {filteredGuests
+                      .filter((guest): guest is Guest => guest != null && !!guest.id)
+                      .map(guest => (
+                        <GuestRow
+                          key={guest.id}
+                          guest={guest}
+                          prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                          isSelected={selectedGuests.has(guest.id)}
+                          onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                          onPreview={() => handleOpenPreview(guest)}
+                          onNavigate={() => handleNavigateToDetail(guest)}
+                          onEdit={() => handleEditGuest(guest)}
+                          onDelete={() => setDeleteGuest(guest)}
+                          onSendEmail={canSendPrearrival(guest) ? () => handleSendEmailSingle(guest) : undefined}
+                          showSelection={prearrivalEnabled}
+                          showPrearrival={prearrivalEnabled}
+                          isCompact={preferences.density === 'compact'}
+                          isReadOnly={isReadOnly}
+                        />
+                      ))}
                   </div>
                 </div>
               )}
@@ -387,19 +390,21 @@ function GuestsPageContent() {
               {/* Mobile: Card rows */}
               {isMobile && (
                 <div className="p-3 space-y-3">
-                  {filteredGuests.map(guest => (
-                    <GuestCardRow
-                      key={guest.id}
-                      guest={guest}
-                      prearrivalStatus={prearrivalStatuses?.[guest.id]}
-                      isSelected={selectedGuests.has(guest.id)}
-                      onSelect={(checked) => handleSelectGuest(guest.id, checked)}
-                      onPreview={() => handleOpenPreview(guest)}
-                      onNavigate={() => handleNavigateToDetail(guest)}
-                      showSelection={prearrivalEnabled}
-                      showPrearrival={prearrivalEnabled}
-                    />
-                  ))}
+                  {filteredGuests
+                    .filter((guest): guest is Guest => guest != null && !!guest.id)
+                    .map(guest => (
+                      <GuestCardRow
+                        key={guest.id}
+                        guest={guest}
+                        prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                        isSelected={selectedGuests.has(guest.id)}
+                        onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                        onPreview={() => handleOpenPreview(guest)}
+                        onNavigate={() => handleNavigateToDetail(guest)}
+                        showSelection={prearrivalEnabled}
+                        showPrearrival={prearrivalEnabled}
+                      />
+                    ))}
                 </div>
               )}
 
@@ -434,13 +439,13 @@ function GuestsPageContent() {
         isReadOnly={isReadOnly}
       />
 
-      {resortId && currentResort && (
+      {resortId && resortCode && (
         <GuestDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           guest={editingGuest}
           resortId={resortId}
-          resortCode={currentResort.code}
+          resortCode={resortCode}
           onSuccess={() => {
             // React Query will auto-refetch via invalidation
           }}
