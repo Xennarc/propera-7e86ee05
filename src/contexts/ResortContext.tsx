@@ -19,7 +19,8 @@ export function ResortProvider({ children }: { children: ReactNode }) {
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [currentResort, setCurrentResortState] = useState<Resort | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, isSuperAdmin, memberships } = useAuth();
+  const { user, isSuperAdmin, memberships, userDataLoading } = useAuth();
+  const superAdmin = isSuperAdmin();
 
   const setCurrentResort = (resort: Resort | null) => {
     setCurrentResortState(resort);
@@ -55,6 +56,12 @@ export function ResortProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
+    
+    // Wait for user data (including memberships) to finish loading
+    if (userDataLoading) {
+      return;
+    }
+    
     setLoading(true);
     
     if (isSuperAdmin()) {
@@ -83,8 +90,8 @@ export function ResortProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (user) fetchResorts();
-  }, [user, memberships.length, isSuperAdmin()]);
+    if (user && !userDataLoading) fetchResorts();
+  }, [user, memberships.length, superAdmin, userDataLoading]);
 
   return (
     <ResortContext.Provider value={{ resorts, currentResort, setCurrentResort, loading, refetch: fetchResorts }}>
