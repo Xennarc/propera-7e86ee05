@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
+import { initErrorCapture } from '@/lib/debug-error-capture';
+import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { StaffSidebar } from './StaffSidebar';
 import { StaffTopbar } from './StaffTopbar';
 import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
 import { StaffDebugPanel } from './StaffDebugPanel';
+import { StaffDebugConsole } from './StaffDebugConsole';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -19,11 +22,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ShieldX } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
-  const { showDebugPanel } = useStaffDebugMode();
+  const { isDebugMode, showDebugPanel } = useStaffDebugMode();
+  const queryClient = useQueryClient();
   
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
   const { loading: resortLoading } = useResort();
@@ -31,6 +36,18 @@ export function StaffShell() {
 
   // Prefetch common resort data
   usePrefetchResortData();
+  
+  // Initialize error capture and query tracking when debug mode is active
+  useEffect(() => {
+    if (isDebugMode) {
+      const cleanupErrors = initErrorCapture();
+      const cleanupQueries = initQueryTracker(queryClient);
+      return () => {
+        cleanupErrors();
+        cleanupQueries();
+      };
+    }
+  }, [isDebugMode, queryClient]);
 
   // Loading states
   if (loading) {
@@ -137,8 +154,11 @@ export function StaffShell() {
           onOpenChange={setCommandBarOpen}
         />
 
-        {/* Debug Panel */}
+        {/* Debug Panel (legacy) */}
         {showDebugPanel && <StaffDebugPanel />}
+        
+        {/* Debug Console (new) */}
+        {showDebugPanel && <StaffDebugConsole />}
       </div>
     </TooltipProvider>
   );
