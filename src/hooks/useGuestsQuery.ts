@@ -13,10 +13,17 @@ interface UseGuestsQueryOptions {
  * Includes window focus refetching for instant sync across tabs.
  */
 export function useGuestsQuery({ resortId, enabled = true }: UseGuestsQueryOptions) {
+  // CRITICAL: Treat empty string or undefined resortId as invalid
+  const hasValidResortId = !!resortId && resortId.length > 0;
+  
   return useQuery({
-    queryKey: queryKeys.guests.list(resortId || ''),
+    queryKey: queryKeys.guests.list(hasValidResortId ? resortId : '__no_resort__'),
     queryFn: async () => {
-      if (!resortId) return [];
+      // Double-check resortId is valid before querying
+      if (!hasValidResortId) {
+        console.warn('[useGuestsQuery] queryFn called without valid resortId');
+        return [];
+      }
       
       const { data, error } = await supabase
         .from('guests')
@@ -30,7 +37,8 @@ export function useGuestsQuery({ resortId, enabled = true }: UseGuestsQueryOptio
 
       return (data || []) as Guest[];
     },
-    enabled: enabled && !!resortId,
+    // CRITICAL: Only enable with valid resort ID (not empty string)
+    enabled: enabled && hasValidResortId,
     staleTime: 30 * 1000, // 30 seconds - considers data fresh for 30s
     refetchOnWindowFocus: true, // Refetch when tab becomes active
     refetchOnMount: true,

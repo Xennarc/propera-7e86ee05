@@ -28,9 +28,17 @@ interface UsePrearrivalStatusesOptions {
 }
 
 export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: UsePrearrivalStatusesOptions) {
+  // CRITICAL: Treat empty string resortId as invalid - never query with it
+  const hasValidResortId = !!resortId && resortId.length > 0;
+  
   return useQuery({
-    queryKey: ['prearrival-statuses', resortId, guestIds],
+    queryKey: ['prearrival-statuses', hasValidResortId ? resortId : '__no_resort__', guestIds],
     queryFn: async (): Promise<Record<string, GuestPrearrivalStatus>> => {
+      // Double-check before querying
+      if (!hasValidResortId) {
+        console.warn('[usePrearrivalStatuses] queryFn called without valid resortId');
+        return {};
+      }
       if (guestIds.length === 0) return {};
 
       // Fetch prearrival profiles and outbound messages in parallel
@@ -121,7 +129,8 @@ export function usePrearrivalStatuses({ guestIds, resortId, enabled = true }: Us
 
       return result;
     },
-    enabled: enabled && guestIds.length > 0 && !!resortId,
+    // CRITICAL: Only enable when we have a valid resort ID (not empty string)
+    enabled: enabled && guestIds.length > 0 && hasValidResortId,
     staleTime: 30000, // 30 seconds
   });
 }
