@@ -58,6 +58,20 @@ export function getGuestAccessUrl(token: string): string {
 }
 
 /**
+ * Generate a QR login URL for instant login (query param format)
+ */
+export function getQrLoginUrl(token: string): string {
+  return `${PRODUCTION_URL}/guest/qr?t=${token}`;
+}
+
+/**
+ * Generate a QR login URL for confirmation flow (path param format)
+ */
+export function getQrConfirmUrl(token: string): string {
+  return `${PRODUCTION_URL}/guest/qr/${token}`;
+}
+
+/**
  * Generate a resort marketing page URL
  */
 export function getResortMarketingUrl(resortCode: string): string {

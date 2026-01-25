@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import { QrCode, Copy, Check, Clock, AlertTriangle, Zap, ShieldCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { getQrLoginUrl, getQrConfirmUrl } from '@/lib/url-utils';
 
 interface GuestQrLoginManagerProps {
   guestId: string;
@@ -120,18 +121,12 @@ export function GuestQrLoginManager({
 
   const getQrUrl = () => {
     if (!generatedToken) return '';
-    // Use production URL format: https://propera.cc/guest/qr?t=TOKEN
-    // For dev, use current origin
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? window.location.origin 
-      : 'https://propera.cc';
     
+    // Use centralized URL utilities for consistent production URLs
     if (tokenType === 'instant') {
-      // Instant login uses query param format
-      return `${baseUrl}/guest/qr?t=${generatedToken}`;
+      return getQrLoginUrl(generatedToken);
     } else {
-      // Confirm flow uses path param format
-      return `${baseUrl}/guest/qr/${generatedToken}`;
+      return getQrConfirmUrl(generatedToken);
     }
   };
 
