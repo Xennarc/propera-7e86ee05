@@ -3,16 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Profile, GlobalRole } from '@/types/database';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Users, Shield, Crown, Search } from 'lucide-react';
+import { Users, Shield, Crown, Search, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 interface UserWithProfile extends Profile {
   email?: string;
@@ -36,6 +38,7 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserWithProfile | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [newGlobalRole, setNewGlobalRole] = useState<GlobalRole>('STANDARD');
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,6 +90,7 @@ export default function UserManagementPage() {
 
       toast.success(`Updated ${selectedUser.full_name}'s global role to ${GLOBAL_ROLE_LABELS[newGlobalRole]}`);
       setRoleDialogOpen(false);
+      setConfirmDialogOpen(false);
       fetchUsers();
     } catch (error) {
       console.error('Error updating global role:', error);
@@ -102,6 +106,19 @@ export default function UserManagementPage() {
     setRoleDialogOpen(true);
   };
 
+  const handleRoleChangeSubmit = () => {
+    // Check if this is a critical change requiring confirmation
+    const isEscalatingToSuperAdmin = selectedUser?.global_role === 'STANDARD' && newGlobalRole === 'SUPER_ADMIN';
+    const isRevokingSuperAdmin = selectedUser?.global_role === 'SUPER_ADMIN' && newGlobalRole === 'STANDARD';
+    
+    if (isEscalatingToSuperAdmin || isRevokingSuperAdmin) {
+      setRoleDialogOpen(false);
+      setConfirmDialogOpen(true);
+    } else {
+      handleUpdateGlobalRole();
+    }
+  };
+
   const filteredUsers = users.filter(u => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -110,6 +127,10 @@ export default function UserManagementPage() {
       u.department?.toLowerCase().includes(query)
     );
   });
+
+  // Check if changing to/from Super Admin
+  const isEscalatingToSuperAdmin = selectedUser?.global_role === 'STANDARD' && newGlobalRole === 'SUPER_ADMIN';
+  const isRevokingSuperAdmin = selectedUser?.global_role === 'SUPER_ADMIN' && newGlobalRole === 'STANDARD';
 
   if (!isSuperAdmin()) {
     return (
@@ -153,45 +174,56 @@ export default function UserManagementPage() {
           description={searchQuery ? "No users match your search" : "Users will appear here after they sign up"}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-2">
           {filteredUsers.map((userItem) => (
-            <Card key={userItem.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      {userItem.global_role === 'SUPER_ADMIN' ? (
-                        <Crown className="h-5 w-5 text-destructive" />
-                      ) : (
-                        <Users className="h-5 w-5 text-primary" />
+            <Card 
+              key={userItem.id} 
+              className={
+                userItem.id === user?.id 
+                  ? "bg-primary/5 border-primary/20" 
+                  : undefined
+              }
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  {/* Avatar */}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
+                    {userItem.global_role === 'SUPER_ADMIN' ? (
+                      <Crown className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <Users className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-foreground truncate">
+                        {userItem.full_name || 'Unnamed User'}
+                      </span>
+                      {userItem.id === user?.id && (
+                        <Badge variant="outline" className="text-xs shrink-0">You</Badge>
                       )}
                     </div>
-                    <div>
-                      <CardTitle className="text-base">
-                        {userItem.full_name || 'Unnamed User'}
-                        {userItem.id === user?.id && (
-                          <Badge variant="outline" className="ml-2 text-xs">You</Badge>
-                        )}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {userItem.department || 'No department'}
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {userItem.department || 'No department'}
+                    </p>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
+                  
+                  {/* Role Badge */}
                   <Badge
                     variant="outline"
                     className={GLOBAL_ROLE_COLORS[userItem.global_role]}
                   >
                     {GLOBAL_ROLE_LABELS[userItem.global_role]}
                   </Badge>
+                  
+                  {/* Action */}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => openRoleDialog(userItem)}
+                    className="shrink-0"
                   >
                     Change Role
                   </Button>
@@ -202,7 +234,7 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* Change Global Role Dialog */}
+      {/* Role Selection Dialog */}
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -211,7 +243,20 @@ export default function UserManagementPage() {
               Update global role for {selectedUser?.full_name || 'this user'}
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          
+          {/* Warning for Super Admin escalation */}
+          {isEscalatingToSuperAdmin && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Elevated Access Warning</AlertTitle>
+              <AlertDescription>
+                Granting Super Admin will give this user full platform access including all resorts and system settings.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="py-4 space-y-3">
+            <label className="text-sm font-medium">Select Role</label>
             <Select value={newGlobalRole} onValueChange={(value) => setNewGlobalRole(value as GlobalRole)}>
               <SelectTrigger>
                 <SelectValue />
@@ -227,22 +272,50 @@ export default function UserManagementPage() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {newGlobalRole === 'SUPER_ADMIN' 
                 ? 'Super Admins have full access to all resorts and can manage the entire platform.'
                 : 'Standard users can only access resorts where they have memberships.'}
             </p>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateGlobalRole} disabled={saving}>
+            <Button 
+              onClick={handleRoleChangeSubmit} 
+              disabled={saving || newGlobalRole === selectedUser?.global_role}
+              variant={isEscalatingToSuperAdmin ? "destructive" : "default"}
+            >
               {saving ? 'Saving...' : 'Update Role'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Critical Confirmation Dialog for Super Admin changes */}
+      <ConfirmationDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        title={isEscalatingToSuperAdmin ? "Grant Super Admin Access?" : "Revoke Super Admin Access?"}
+        description={
+          isEscalatingToSuperAdmin 
+            ? `You are about to grant ${selectedUser?.full_name || 'this user'} Super Admin privileges.`
+            : `You are about to revoke ${selectedUser?.full_name || 'this user'}'s Super Admin privileges.`
+        }
+        impact={
+          isEscalatingToSuperAdmin 
+            ? "They will have full platform access including all resorts and system settings."
+            : "They will lose access to all resorts except where they have explicit memberships."
+        }
+        variant="critical"
+        confirmLabel={isEscalatingToSuperAdmin ? "Grant Super Admin" : "Revoke Access"}
+        onConfirm={handleUpdateGlobalRole}
+        isLoading={saving}
+        requireTyping={isRevokingSuperAdmin ? selectedUser?.full_name || undefined : undefined}
+        countdown={isEscalatingToSuperAdmin ? 3 : undefined}
+      />
     </div>
   );
 }

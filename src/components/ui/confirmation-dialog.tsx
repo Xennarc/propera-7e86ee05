@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -8,10 +9,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Trash2, XCircle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Trash2, CheckCircle, ShieldAlert } from 'lucide-react';
 
-type ConfirmationVariant = 'default' | 'destructive' | 'warning';
+type ConfirmationVariant = 'default' | 'destructive' | 'warning' | 'critical';
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -25,6 +28,10 @@ interface ConfirmationDialogProps {
   onConfirm: () => void;
   variant?: ConfirmationVariant;
   isLoading?: boolean;
+  /** Require typing this text to confirm (for critical actions) */
+  requireTyping?: string;
+  /** Countdown seconds before confirm button is enabled */
+  countdown?: number;
 }
 
 const variantConfig = {
@@ -46,6 +53,12 @@ const variantConfig = {
     iconColor: 'text-warning',
     buttonClass: 'bg-warning text-warning-foreground hover:bg-warning/90',
   },
+  critical: {
+    icon: ShieldAlert,
+    iconBg: 'bg-destructive/15',
+    iconColor: 'text-destructive',
+    buttonClass: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+  },
 };
 
 export function ConfirmationDialog({
@@ -59,9 +72,44 @@ export function ConfirmationDialog({
   onConfirm,
   variant = 'default',
   isLoading,
+  requireTyping,
+  countdown,
 }: ConfirmationDialogProps) {
+  const [typedValue, setTypedValue] = useState('');
+  const [countdownValue, setCountdownValue] = useState(countdown ?? 0);
+  
   const config = variantConfig[variant];
   const Icon = config.icon;
+
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      setTypedValue('');
+      setCountdownValue(countdown ?? 0);
+    }
+  }, [open, countdown]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!open || countdownValue <= 0) return;
+    
+    const timer = setInterval(() => {
+      setCountdownValue((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [open, countdownValue]);
+
+  // Determine if confirm button should be enabled
+  const typingValid = !requireTyping || typedValue === requireTyping;
+  const countdownComplete = countdownValue <= 0;
+  const canConfirm = typingValid && countdownComplete && !isLoading;
+
+  const handleConfirm = () => {
+    if (canConfirm) {
+      onConfirm();
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -84,16 +132,46 @@ export function ConfirmationDialog({
             </div>
           </div>
         </AlertDialogHeader>
+
+        {/* Require typing confirmation */}
+        {requireTyping && (
+          <div className="space-y-2 mt-4">
+            <Label htmlFor="confirm-input" className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-semibold text-foreground">{requireTyping}</span> to confirm
+            </Label>
+            <Input
+              id="confirm-input"
+              value={typedValue}
+              onChange={(e) => setTypedValue(e.target.value)}
+              placeholder={requireTyping}
+              className={cn(
+                "font-mono",
+                typedValue && typedValue !== requireTyping && "border-destructive focus-visible:ring-destructive"
+              )}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+          </div>
+        )}
+
         <AlertDialogFooter className="mt-4 gap-2 sm:gap-2">
           <AlertDialogCancel disabled={isLoading}>
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
-            disabled={isLoading}
-            className={config.buttonClass}
+            onClick={handleConfirm}
+            disabled={!canConfirm}
+            className={cn(config.buttonClass, !canConfirm && "opacity-50 cursor-not-allowed")}
           >
-            {isLoading ? 'Please wait...' : confirmLabel}
+            {isLoading ? (
+              'Please wait...'
+            ) : countdownValue > 0 ? (
+              `Wait ${countdownValue}s...`
+            ) : (
+              confirmLabel
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
