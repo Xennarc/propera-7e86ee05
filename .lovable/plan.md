@@ -1,36 +1,32 @@
 
-# Fix: Guest List Not Showing on /staff/guests
+# Fix: "Cannot read properties of null (reading 'id')" Error
 
-## Root Cause Analysis
+## Root Cause
 
-The guest list fails to display due to a **race condition** in `ResortContext.tsx`. When a user logs in:
+The error occurs because `currentResort` from `ResortContext` can become `null` during state transitions, and several components access `currentResort.id` or `currentResort.name` directly after an early-return guard. Due to React's asynchronous state updates, the guard may pass in one render cycle but `currentResort` could become `null` before the component finishes rendering.
 
-1. `AuthContext` begins fetching user profile and resort memberships asynchronously
-2. `ResortContext`'s `useEffect` runs immediately with `memberships = []` (not yet loaded)
-3. Because `memberships.length === 0`, the code early-returns with `loading: false` and empty resorts
-4. `GuestsPage` renders with `currentResort = null`, showing "Please select a resort first" or empty state
-5. When memberships finally load, the effect *should* re-run, but there's a secondary bug in the dependency array
-
-**Secondary Issue**: The dependency array includes `isSuperAdmin()` as a function call, which is a React anti-pattern that can cause stale closures and missed updates.
+This is particularly problematic after the recent fix to `ResortContext.tsx` that added the `userDataLoading` guard - during re-fetches or auth state changes, `currentResort` may be briefly `null`.
 
 ---
 
-## Technical Fix
+## Fix Strategy
 
-### File: `src/contexts/ResortContext.tsx`
+**Two-pronged approach:**
 
-**Change 1: Import `userDataLoading` from AuthContext**
+1. **Fix ResortContext to maintain `currentResort` during loading** - Don't clear `currentResort` when refetching
+2. **Add defensive optional chaining in key components** - Belt-and-suspenders safety
 
-Add `userDataLoading` to the destructured values from `useAuth()`:
+---
 
-```typescript
-const { user, isSuperAdmin, memberships, userDataLoading } = useAuth();
-```
+## Code Changes
 
-**Change 2: Add guard in `fetchResorts` to wait for user data**
+### Change 1: Fix ResortContext.tsx - Preserve currentResort during refetch
 
-Before deciding there are no memberships, ensure user data has finished loading:
+The issue is that when `userDataLoading` changes or memberships are refetched, we return early but `loading` was previously set. We should not clear `currentResort` unless the user logs out.
 
+**File:** `src/contexts/ResortContext.tsx`
+
+**Before (line 51-67):**
 ```typescript
 const fetchResorts = async () => {
   if (!user) {
@@ -40,101 +36,117 @@ const fetchResorts = async () => {
     return;
   }
   
-  // ADD THIS GUARD: Don't fetch until user data (memberships) is loaded
+  // Wait for user data (including memberships) to finish loading
   if (userDataLoading) {
-    return; // Wait for userDataLoading to be false
+    return;
   }
   
   setLoading(true);
-  // ... rest of function unchanged
-};
+  // ...
 ```
 
-**Change 3: Fix the `useEffect` dependency array**
-
-Replace `isSuperAdmin()` function call with a stable reference:
-
+**After:**
 ```typescript
-// Store the result in a variable for stable dependency
-const superAdmin = isSuperAdmin();
+const fetchResorts = async () => {
+  if (!user) {
+    setResorts([]);
+    setCurrentResortState(null);
+    setLoading(false);
+    return;
+  }
+  
+  // Wait for user data (including memberships) to finish loading
+  if (userDataLoading) {
+    return;
+  }
+  
+  // Only show loading state if we don't have any resorts yet
+  // This prevents flicker and null access during refetch
+  if (resorts.length === 0) {
+    setLoading(true);
+  }
+  // ...rest of function unchanged
+```
 
+---
+
+### Change 2: Add optional chaining to TodayHub.tsx
+
+**File:** `src/components/staff/TodayHub.tsx`
+
+**Line 203 - Change:**
+```typescript
+// Before
+<h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+  Today at {currentResort.name}
+</h1>
+
+// After  
+<h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+  Today at {currentResort?.name ?? 'Resort'}
+</h1>
+```
+
+---
+
+### Change 3: Add optional chaining to OnboardingBanner.tsx
+
+**File:** `src/components/onboarding/OnboardingBanner.tsx`
+
+**Line 82 - Change:**
+```typescript
+// Before
+<h3 className="font-semibold">Finish setting up {currentResort?.name}</h3>
+
+// This is already safe, but double-check line 50 (in fetchOnboardingState)
+// Line 50 is inside an if(currentResort) check, so it's safe
+```
+
+---
+
+### Change 4: Fix StaffShell to show loader during userDataLoading
+
+The `StaffShell` already shows a loader during `userDataLoading` (lines 52-56), which is correct. However, we should ensure `resortLoading` is also true when we're waiting for memberships.
+
+**File:** `src/contexts/ResortContext.tsx`
+
+The loading state should not be set to `false` until we have actually fetched resorts. Currently in the fix, we return early when `userDataLoading` is true but don't reset loading. Let's ensure loading stays true:
+
+**Update the effect (lines 90-92):**
+```typescript
 useEffect(() => {
-  if (user && !userDataLoading) fetchResorts();
+  // Keep loading true while waiting for user data
+  if (userDataLoading) {
+    setLoading(true);
+    return;
+  }
+  if (user) fetchResorts();
 }, [user, memberships.length, superAdmin, userDataLoading]);
 ```
 
 ---
 
-## Complete Code Change
+## Summary of Changes
 
-```text
-File: src/contexts/ResortContext.tsx
-
-Line 22 - Add userDataLoading:
-  const { user, isSuperAdmin, memberships, userDataLoading } = useAuth();
-
-Lines 51-57 - Add userDataLoading guard:
-  const fetchResorts = async () => {
-    if (!user) {
-      setResorts([]);
-      setCurrentResortState(null);
-      setLoading(false);
-      return;
-    }
-    
-    // Wait for user data (including memberships) to finish loading
-    if (userDataLoading) {
-      return;
-    }
-    
-    setLoading(true);
-    // ... rest unchanged
-
-Lines 85-87 - Fix useEffect:
-  const superAdmin = isSuperAdmin();
-  
-  useEffect(() => {
-    if (user && !userDataLoading) fetchResorts();
-  }, [user, memberships.length, superAdmin, userDataLoading]);
-```
+| File | Change |
+|------|--------|
+| `src/contexts/ResortContext.tsx` | Only set `loading(true)` when no resorts exist; ensure loading stays true during `userDataLoading` |
+| `src/components/staff/TodayHub.tsx` | Add optional chaining to `currentResort?.name` in header |
 
 ---
 
 ## Why This Fixes the Issue
 
-| Problem | Solution |
-|---------|----------|
-| Effect runs before memberships are loaded | Added `userDataLoading` guard to wait |
-| `isSuperAdmin()` in dependency array causes issues | Store result in `superAdmin` variable |
-| Early return with empty resorts | Guard prevents premature decision |
-
----
-
-## Data Flow After Fix
-
-```text
-1. User logs in
-2. AuthContext sets userDataLoading = true, fetches profile + memberships
-3. ResortContext effect runs → userDataLoading is true → returns early (stays in loading state)
-4. AuthContext completes → userDataLoading = false, memberships populated
-5. ResortContext effect re-runs → userDataLoading is false → fetches resorts correctly
-6. currentResort is set → GuestsPage query runs → guest list displays
-```
-
----
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/contexts/ResortContext.tsx` | Add `userDataLoading` import, add guard in `fetchResorts`, fix `useEffect` dependency array |
+1. **Loading stays true during userDataLoading** → `StaffShell` shows loader instead of rendering child components
+2. **Only set loading when no resorts** → Prevents flicker and maintains `currentResort` during refetch
+3. **Optional chaining in JSX** → Defensive programming catches any edge cases
 
 ---
 
 ## Testing
 
 After the fix:
-1. Log in as a staff user → Guest list should load
-2. Switch resorts → Guest list should update
-3. Refresh page while logged in → Guest list should load without "Please select a resort" flash
-4. Log in as super admin → All resorts accessible, guest list loads
+1. Log in as staff user → Dashboard loads with resort name
+2. Refresh the page → No "Cannot read properties of null" error
+3. Switch resorts → Smooth transition without errors
+4. Navigate to /staff/guests → Guest list displays correctly
