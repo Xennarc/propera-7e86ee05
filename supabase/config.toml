@@ -15,8 +15,6 @@ verify_jwt = true
 [functions.create-staff-user]
 verify_jwt = true
 
-[functions.send-prearrival-link]
-verify_jwt = true
 
 [functions.send-guest-credentials]
 verify_jwt = true
