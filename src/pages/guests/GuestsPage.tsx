@@ -65,8 +65,9 @@ function GuestsPageContent() {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Safely extract resortId to use consistently across all hooks
-  const resortId = currentResort?.id;
+  // CRITICAL: Safely extract resortId - never use currentResort.id directly
+  // This is the SINGLE source of truth for resort scoping in this component
+  const resortId: string | undefined = currentResort?.id;
 
   // Debug logging for null resort issues (single-fire)
   const hasLoggedNullWarning = useRef(false);
@@ -75,6 +76,7 @@ function GuestsPageContent() {
       hasLoggedNullWarning.current = true;
       console.warn('[GuestsPage] currentResort is null after loading', {
         resortLoading,
+        hasResortId: !!resortId,
         pathname: window.location.pathname,
       });
     }
@@ -82,14 +84,17 @@ function GuestsPageContent() {
     if (currentResort) {
       hasLoggedNullWarning.current = false;
     }
-  }, [currentResort, resortLoading]);
+  }, [currentResort, resortLoading, resortId]);
 
   // UI preferences
   const { preferences, toggleDensity } = useGuestListPreferences();
 
+  // CRITICAL: All data hooks must be gated by !!resortId
+  // Never pass empty string as resortId - it's a bug, not a fallback
+  
   // Use React Query for guests - enables instant sync
   const { data: guests = [], isLoading: loading } = useGuestsQuery({
-    resortId: resortId,
+    resortId,
     enabled: !!resortId,
   });
 
@@ -98,9 +103,13 @@ function GuestsPageContent() {
 
   // Check if prearrival is enabled for this resort
   const { data: prearrivalSettings } = useQuery({
-    queryKey: ['prearrival-settings', resortId ?? 'none'],
+    queryKey: ['prearrival-settings', resortId ?? '__no_resort__'],
     queryFn: async () => {
-      if (!resortId) return null;
+      // Double-check resortId is valid before querying
+      if (!resortId) {
+        console.warn('[GuestsPage] prearrivalSettings queryFn called without resortId');
+        return null;
+      }
       const { data, error } = await supabase
         .from('prearrival_settings')
         .select('is_enabled')
@@ -118,10 +127,15 @@ function GuestsPageContent() {
   usePrearrivalListRealtime();
 
   // Fetch prearrival statuses for all guests
-  const guestIds = useMemo(() => guests.map(g => g.id), [guests]);
+  // CRITICAL: Only compute guestIds when guests array is valid and resortId exists
+  const guestIds = useMemo(() => {
+    if (!resortId || !guests) return [];
+    return guests.map(g => g.id);
+  }, [guests, resortId]);
+  
   const { data: prearrivalStatuses } = usePrearrivalStatuses({
     guestIds,
-    resortId: resortId || '',
+    resortId: resortId ?? '', // Hook internally checks for empty string
     enabled: prearrivalEnabled && guestIds.length > 0 && !!resortId,
   });
 
@@ -141,10 +155,11 @@ function GuestsPageContent() {
   } = useGuestFilters(guests, prearrivalStatuses, prearrivalEnabled);
 
   const handleDelete = async () => {
-    if (!deleteGuest || !currentResort) return;
+    // CRITICAL: Use resortId (the extracted safe variable), not currentResort.id
+    if (!deleteGuest || !resortId) return;
     
     deleteGuestMutation.mutate(
-      { guestId: deleteGuest.id, resortId: currentResort.id },
+      { guestId: deleteGuest.id, resortId },
       {
         onSuccess: () => {
           setDeleteGuest(null);
@@ -257,7 +272,7 @@ function GuestsPageContent() {
         description="Manage resort guests and their stays"
         action={
           <DemoActionWrapper isReadOnly={isReadOnly} tooltipText="Creating guests is disabled in demo mode">
-            <Button onClick={() => { if (!currentResort) return; setEditingGuest(null); setDialogOpen(true); }} disabled={isReadOnly}>
+            <Button onClick={() => { if (!resortId) return; setEditingGuest(null); setDialogOpen(true); }} disabled={isReadOnly}>
               <Plus className="mr-2 h-4 w-4" />
               Add Guest
             </Button>
@@ -310,7 +325,7 @@ function GuestsPageContent() {
               description={hasActiveFilters ? 'Try adjusting your filters' : 'Add your first guest to get started'}
               action={
                 !hasActiveFilters && !isReadOnly && (
-                  <Button onClick={() => { if (!currentResort) return; setEditingGuest(null); setDialogOpen(true); }}>
+                  <Button onClick={() => { if (!resortId) return; setEditingGuest(null); setDialogOpen(true); }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Guest
                   </Button>
@@ -419,12 +434,12 @@ function GuestsPageContent() {
         isReadOnly={isReadOnly}
       />
 
-      {currentResort && (
+      {resortId && currentResort && (
         <GuestDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
           guest={editingGuest}
-          resortId={currentResort.id}
+          resortId={resortId}
           resortCode={currentResort.code}
           onSuccess={() => {
             // React Query will auto-refetch via invalidation
@@ -454,7 +469,7 @@ function GuestsPageContent() {
       </AlertDialog>
 
       {/* Send Pre-Arrival Email Dialog */}
-      {currentResort && (
+      {resortId && (
         <SendPrearrivalEmailDialog
           open={sendEmailDialogOpen}
           onOpenChange={setSendEmailDialogOpen}
