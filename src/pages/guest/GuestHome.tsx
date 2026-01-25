@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles, Calendar, X, ClipboardCheck } from 'lucide-react';
+import { Sun, Sunset, Moon, ChevronRight, Compass, Sparkles, Calendar, ClipboardCheck } from 'lucide-react';
 import {
   IconActivities,
   IconRestaurants,
@@ -50,8 +50,7 @@ export default function GuestHome() {
   const { activeStay, isLoading: stayLoading } = useActiveStay();
   const { data: prearrivalData } = usePrearrivalData();
 
-  // Pre-arrival nudge state
-  const [prearrivalNudgeDismissed, setPrearrivalNudgeDismissed] = useState(false);
+  // Pre-arrival wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
 
   // Show pre-arrival home if guest hasn't checked in yet
@@ -238,11 +237,10 @@ export default function GuestHome() {
       )}
 
       <div className="space-y-6">
-      {/* Soft Pre-arrival Nudge for In-Stay Guests */}
+      {/* Pre-arrival Nudge for In-Stay Guests - persistent until completed */}
       {!isPrearrival && 
        prearrivalData?.settings?.is_enabled && 
-       prearrivalData?.profile?.prearrival_status !== 'completed' &&
-       !prearrivalNudgeDismissed && (
+       prearrivalData?.profile?.prearrival_status !== 'completed' && (
         <Card className="guest-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -257,13 +255,6 @@ export default function GuestHome() {
                   Share your preferences in 2 minutes to help us personalize your stay.
                 </p>
               </div>
-              <button
-                onClick={() => setPrearrivalNudgeDismissed(true)}
-                className="shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
             <Button 
               size="sm" 

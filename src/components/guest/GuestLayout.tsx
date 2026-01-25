@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
 import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
+import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   IconStay,
@@ -255,7 +256,9 @@ export function GuestLayout() {
         className="flex-1 overflow-auto guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
       >
         <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
-          <Outlet />
+          <GuestPortalGate>
+            <Outlet />
+          </GuestPortalGate>
         </div>
       </main>
 
