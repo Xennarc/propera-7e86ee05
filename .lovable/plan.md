@@ -1,371 +1,335 @@
 
-# Portal Behavior Unification Plan (Phase 1)
+# Phase 2: PIN Login as Canonical Auth Path
 
-## Overview
-Unify the Guest Portal so **both pre-arrival and in-house guests** use the exact same routes, layout, and UI shell. The only difference: guests accessing the portal **before their check-in date** (in resort timezone) see a skippable Pre-Arrival Form interstitial on first visit.
+## Executive Summary
+Make PIN-based login the robust, canonical authentication method for guests. The current implementation is **mostly complete** but needs:
+1. **Pre-arrival support** — currently blocks guests before check-in date
+2. **Rate limiting** — was removed and needs to be re-added
+3. **Error response refinement** — ensure consistent, safe error messages
 
-## Current State Analysis
+---
 
-### Existing Architecture
-| Component | Current Behavior |
-|-----------|------------------|
-| `GuestHome.tsx` | Already routes to `GuestPrearrivalHome` if `isPrearrival` is true |
-| `useIsPrearrivalGuest()` | Uses browser's local date (not resort timezone) |
-| `useActiveStay()` | Fetches stay with `status` field (pre_arrival, in_house, checked_out) |
-| `usePrearrivalData()` | Fetches profile with `prearrival_status` (not_started, partial, completed) |
-| `PrearrivalWizard` | Full dialog-based form for arrival details, preferences, occasions |
-| `GuestLayout.tsx` | Same shell for all guests (header + bottom nav) |
-| Staff `PreArrivalSubmissionCard.tsx` | Already shows submission data in Guest Detail page |
+## Current State
 
-### What Works Today
-- Same portal routes (`/guest/*`) for all guests
-- Pre-arrival checklist shown on `GuestPrearrivalHome`
-- Staff can view pre-arrival submissions via `PreArrivalSubmissionCard`
-- `PrearrivalWizard` handles form submission
+### What Already Works
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `guests.portal_pin_hash` | ✅ Exists | SHA-256 hashed, never stored plain |
+| `guests.portal_enabled` | ✅ Exists | Boolean gate for portal access |
+| `guests.portal_pin_last4` | ✅ Exists | For staff-side masking (••••1234) |
+| `generate_guest_pin` RPC | ✅ Works | Generates 4-digit PIN, hashes, stores |
+| `guest_portal_login` RPC | ⚠️ Partial | Works but blocks pre-arrival, no rate limiting |
+| `ResortGuestLogin.tsx` | ✅ Works | UI at `/resort/:code/guest/login` |
+| `GuestAuthContext.login()` | ✅ Works | Client-side SHA-256 hashing before RPC call |
+| Case-insensitive last name | ✅ Works | `LOWER(g.full_name) LIKE '%' || LOWER(p_last_name) || '%'` |
 
-### What Needs Improvement
-1. **`useIsPrearrivalGuest` uses browser timezone** — should use resort timezone
-2. **No interstitial/gate** — guests go directly to pre-arrival home without explicit prompt
-3. **No skip mechanism** — guests can't dismiss the prompt for the session
-4. **No persistent "Complete Pre-Arrival" card** on the regular home page after check-in
-5. **Staff detail page already shows data** via `PreArrivalSubmissionCard` ✓
+### Issues to Fix
+
+| Issue | Impact | Solution |
+|-------|--------|----------|
+| Pre-arrival blocked | High | Remove `check_out_date >= CURRENT_DATE` OR add `check_in_date >= CURRENT_DATE - 7 days` logic |
+| No rate limiting | Medium | Re-add `check_rate_limit` call to RPC |
+| Room number case sensitive | Low | Add `LOWER()` to room number comparison |
 
 ---
 
 ## Implementation Plan
 
-### Task 1: Update `useIsPrearrivalGuest` to Use Resort Timezone
+### Task 1: Update `guest_portal_login` RPC (Database Migration)
 
-**File:** `src/hooks/usePrearrivalData.ts`
+**Goal**: Allow pre-arrival guests while maintaining security + add rate limiting back.
 
-**Current Logic (uses browser timezone):**
-```typescript
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+**New Logic**:
+```sql
+CREATE OR REPLACE FUNCTION public.guest_portal_login(
+  p_resort_id uuid,
+  p_room_number text,
+  p_last_name text,
+  p_pin_hash text
+)
+RETURNS TABLE(
+  guest_id uuid,
+  full_name text,
+  room_number text,
+  check_in_date date,
+  check_out_date date,
+  resort_id uuid,
+  resort_name text,
+  resort_code text,
+  resort_logo_url text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_identifier text;
+BEGIN
+  -- Rate limiting: 10 attempts per 15 minutes per room/resort
+  v_identifier := LOWER(TRIM(p_room_number)) || '-' || p_resort_id::text;
+  PERFORM check_rate_limit('guest_portal_login', v_identifier, 10, 15);
 
-const checkInDate = new Date(guest.checkInDate);
-checkInDate.setHours(0, 0, 0, 0);
+  RETURN QUERY
+  SELECT 
+    g.id as guest_id,
+    g.full_name,
+    g.room_number,
+    g.check_in_date,
+    g.check_out_date,
+    r.id as resort_id,
+    r.name as resort_name,
+    r.code as resort_code,
+    r.login_logo_url as resort_logo_url
+  FROM guests g
+  JOIN resorts r ON r.id = g.resort_id
+  WHERE g.resort_id = p_resort_id
+    -- Case-insensitive room number matching (trimmed)
+    AND LOWER(TRIM(g.room_number)) = LOWER(TRIM(p_room_number))
+    -- Case-insensitive last name substring match (trimmed)
+    AND LOWER(g.full_name) LIKE '%' || LOWER(TRIM(p_last_name)) || '%'
+    -- Portal must be enabled with valid PIN
+    AND g.portal_enabled = true
+    AND g.portal_pin_hash IS NOT NULL
+    AND g.portal_pin_hash = p_pin_hash
+    -- Allow pre-arrival (up to 14 days before check-in) through checkout
+    AND g.check_in_date <= CURRENT_DATE + INTERVAL '14 days'
+    AND g.check_out_date >= CURRENT_DATE
+  LIMIT 1;
 
-const diffTime = checkInDate.getTime() - today.getTime();
-```
-
-**New Logic (uses resort timezone):**
-```typescript
-import { nowInTimezone } from '@/lib/timezone-utils';
-import { startOfDay, differenceInDays, parseISO } from 'date-fns';
-
-export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArrival: number } {
-  const { guest } = useGuestAuth();
-  
-  if (!guest) {
-    return { isPrearrival: false, daysUntilArrival: 0 };
-  }
-
-  // Get "today" in the resort's timezone
-  const resortTimezone = guest.resortTimezone || 'UTC';
-  const nowLocal = nowInTimezone(resortTimezone);
-  const todayStart = startOfDay(nowLocal);
-  
-  // Parse check-in date (stored as YYYY-MM-DD)
-  const checkInDate = startOfDay(parseISO(guest.checkInDate));
-
-  const daysUntilArrival = differenceInDays(checkInDate, todayStart);
-
-  return {
-    isPrearrival: daysUntilArrival > 0,
-    daysUntilArrival: Math.max(0, daysUntilArrival),
-  };
-}
-```
-
----
-
-### Task 2: Create `GuestPortalGate` Wrapper Component
-
-**New File:** `src/components/guest/GuestPortalGate.tsx`
-
-This component wraps the `<Outlet />` in `GuestLayout` and shows a pre-arrival prompt interstitial when appropriate.
-
-**Logic:**
-1. Check if `isPrearrival` is true (using updated hook)
-2. Check if `prearrivalData.profile.prearrival_status !== 'completed'`
-3. Check if NOT recently skipped (localStorage key `preArrivalSkippedUntil`)
-4. If all conditions met → show `PreArrivalPromptScreen`
-5. Else → render `<Outlet />` (normal portal)
-
-**Component Structure:**
-```typescript
-interface GuestPortalGateProps {
-  children: React.ReactNode;
-}
-
-export function GuestPortalGate({ children }: GuestPortalGateProps) {
-  const { isPrearrival } = useIsPrearrivalGuest();
-  const { data: prearrivalData, isLoading } = usePrearrivalData();
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [wizardOpen, setWizardOpen] = useState(false);
-
-  useEffect(() => {
-    // Skip if loading or not pre-arrival
-    if (isLoading || !isPrearrival) {
-      setShowPrompt(false);
-      return;
-    }
-
-    // Skip if pre-arrival not enabled for this resort
-    if (!prearrivalData?.settings?.is_enabled) {
-      setShowPrompt(false);
-      return;
-    }
-
-    // Skip if already completed
-    if (prearrivalData?.profile?.prearrival_status === 'completed') {
-      setShowPrompt(false);
-      return;
-    }
-
-    // Check localStorage skip marker
-    const skippedUntil = localStorage.getItem('preArrivalSkippedUntil');
-    if (skippedUntil) {
-      const skipExpiry = new Date(skippedUntil);
-      if (skipExpiry > new Date()) {
-        setShowPrompt(false);
-        return;
-      }
-      // Expired, clean up
-      localStorage.removeItem('preArrivalSkippedUntil');
-    }
-
-    setShowPrompt(true);
-  }, [isPrearrival, prearrivalData, isLoading]);
-
-  const handleSkip = () => {
-    // Skip for 24 hours
-    const skipUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    localStorage.setItem('preArrivalSkippedUntil', skipUntil.toISOString());
-    setShowPrompt(false);
-  };
-
-  const handleComplete = () => {
-    setWizardOpen(true);
-  };
-
-  const handleWizardClose = (open: boolean) => {
-    setWizardOpen(open);
-    if (!open) {
-      // After wizard closes, re-check status
-      // The query will auto-refetch and update prearrivalData
-      setShowPrompt(false);
-    }
-  };
-
-  if (isLoading) {
-    return children; // Don't block during loading
-  }
-
-  if (showPrompt) {
-    return (
-      <>
-        <PreArrivalPromptScreen
-          onComplete={handleComplete}
-          onSkip={handleSkip}
-          guestName={...}
-          checkInDate={...}
-          settings={prearrivalData?.settings}
-        />
-        <PrearrivalWizard
-          open={wizardOpen}
-          onOpenChange={handleWizardClose}
-          profile={prearrivalData?.profile || null}
-          settings={prearrivalData?.settings!}
-          checkInDate={guest.checkInDate}
-        />
-      </>
+  -- Update last_login_at if found
+  IF FOUND THEN
+    UPDATE guests SET last_login_at = NOW() 
+    WHERE id = (
+      SELECT g.id FROM guests g
+      WHERE g.resort_id = p_resort_id
+        AND LOWER(TRIM(g.room_number)) = LOWER(TRIM(p_room_number))
+        AND LOWER(g.full_name) LIKE '%' || LOWER(TRIM(p_last_name)) || '%'
+        AND g.portal_enabled = true
+        AND g.portal_pin_hash = p_pin_hash
+      LIMIT 1
     );
-  }
+  END IF;
+END;
+$$;
+```
 
-  return <>{children}</>;
+**Key Changes**:
+1. **Re-add rate limiting**: `check_rate_limit('guest_portal_login', v_identifier, 10, 15)` — 10 attempts per 15 minutes
+2. **Pre-arrival support**: Allow login up to 14 days before check-in (`check_in_date <= CURRENT_DATE + 14 days`)
+3. **Case-insensitive room number**: `LOWER(TRIM(g.room_number)) = LOWER(TRIM(p_room_number))`
+4. **Whitespace trimming**: All inputs are trimmed for robustness
+
+---
+
+### Task 2: Add Rate Limit Error Handling in Frontend
+
+**File**: `src/contexts/GuestAuthContext.tsx`
+
+**Current error handling** (line 233-236):
+```typescript
+if (error) {
+  console.error('Login error:', error);
+  return { error: 'We couldn\'t sign you in. Please try again or contact reception.' };
+}
+```
+
+**Enhanced error handling**:
+```typescript
+if (error) {
+  console.error('Login error:', error);
+  // Check for rate limit error (without exposing details)
+  if (error.message?.includes('Rate limit exceeded')) {
+    return { error: 'Too many login attempts. Please wait a few minutes and try again.' };
+  }
+  return { error: 'We couldn\'t sign you in. Please try again or contact reception.' };
 }
 ```
 
 ---
 
-### Task 3: Create `PreArrivalPromptScreen` Component
+### Task 3: Improve Input Validation in Login UI
 
-**New File:** `src/components/guest/prearrival/PreArrivalPromptScreen.tsx`
+**File**: `src/pages/guest/ResortGuestLogin.tsx`
 
-A full-screen or modal interstitial with:
-- Resort branding/logo
-- Welcome message: "Welcome, {firstName}!"
-- Check-in countdown
-- Primary CTA: "Complete Pre-Arrival" → opens wizard
-- Secondary CTA: "Skip for now" → sets localStorage marker
+**Current validation**: Basic required field check
 
-**Design:**
-```text
-+-------------------------------------------+
-|       [Resort Logo]                       |
-|                                           |
-|     Welcome, James!                       |
-|     Your stay begins in 5 days            |
-|                                           |
-|   Help us prepare for your arrival by     |
-|   sharing a few preferences.              |
-|                                           |
-|  +-----------------------------------+    |
-|  |     Complete Pre-Arrival (2 min)  |    | ← Primary Button
-|  +-----------------------------------+    |
-|                                           |
-|         Skip for now →                    | ← Text link
-|                                           |
-+-------------------------------------------+
+**Enhanced validation** (client-side, before API call):
+```typescript
+const validateInputs = () => {
+  const errors: string[] = [];
+  
+  if (!formData.roomNumber.trim()) {
+    errors.push('Room number is required');
+  }
+  
+  if (!formData.lastName.trim()) {
+    errors.push('Last name is required');
+  } else if (formData.lastName.trim().length < 2) {
+    errors.push('Last name must be at least 2 characters');
+  }
+  
+  if (!formData.pin.trim()) {
+    errors.push('PIN is required');
+  } else if (!/^\d{4,6}$/.test(formData.pin)) {
+    errors.push('PIN must be 4-6 digits');
+  }
+  
+  return errors;
+};
+```
+
+This is already mostly done in `GuestAuthContext.login()` (lines 214-220), but adding visual feedback in the UI would improve UX.
+
+---
+
+### Task 4: Security Audit — Ensure No PIN Exposure
+
+**Current State**: ✅ Secure
+- PIN is hashed client-side via `hashPin()` before transmission
+- RPC receives `p_pin_hash`, never the raw PIN
+- No raw PIN appears in logs, error messages, or network payloads
+- `portal_pin_last4` is for masking only (staff sees "••••1234")
+
+**Verification Points**:
+| Location | Check | Status |
+|----------|-------|--------|
+| `GuestAuthContext.tsx` | `hashPin()` called before RPC | ✅ Lines 203, 208 |
+| `guest_portal_login` RPC | Receives `p_pin_hash` only | ✅ Verified |
+| Error messages | Never mention PIN value | ✅ All generic |
+| Console logs | No PIN in `console.error()` | ✅ Verified |
+
+---
+
+## File Changes Summary
+
+| File | Change Type | Description |
+|------|-------------|-------------|
+| `supabase/migrations/XXXXXX_improve_guest_portal_login.sql` | **Create** | Update RPC with rate limiting + pre-arrival support |
+| `src/contexts/GuestAuthContext.tsx` | **Minor Edit** | Enhanced rate limit error message |
+| `src/pages/guest/ResortGuestLogin.tsx` | **Optional** | No changes required (validation already in context) |
+
+---
+
+## Migration SQL
+
+```sql
+-- Improve guest_portal_login: add rate limiting, pre-arrival support, case-insensitive room matching
+CREATE OR REPLACE FUNCTION public.guest_portal_login(
+  p_resort_id uuid,
+  p_room_number text,
+  p_last_name text,
+  p_pin_hash text
+)
+RETURNS TABLE(
+  guest_id uuid,
+  full_name text,
+  room_number text,
+  check_in_date date,
+  check_out_date date,
+  resort_id uuid,
+  resort_name text,
+  resort_code text,
+  resort_logo_url text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_identifier text;
+BEGIN
+  -- Rate limiting: 10 attempts per 15 minutes per room/resort combination
+  v_identifier := LOWER(TRIM(p_room_number)) || '-' || p_resort_id::text;
+  PERFORM check_rate_limit('guest_portal_login', v_identifier, 10, 15);
+
+  RETURN QUERY
+  SELECT 
+    g.id as guest_id,
+    g.full_name,
+    g.room_number,
+    g.check_in_date,
+    g.check_out_date,
+    r.id as resort_id,
+    r.name as resort_name,
+    r.code as resort_code,
+    r.login_logo_url as resort_logo_url
+  FROM guests g
+  JOIN resorts r ON r.id = g.resort_id
+  WHERE g.resort_id = p_resort_id
+    -- Case-insensitive room number matching with trimming
+    AND LOWER(TRIM(g.room_number)) = LOWER(TRIM(p_room_number))
+    -- Case-insensitive last name substring match with trimming
+    AND LOWER(g.full_name) LIKE '%' || LOWER(TRIM(p_last_name)) || '%'
+    -- Portal must be enabled with valid PIN hash
+    AND g.portal_enabled = true
+    AND g.portal_pin_hash IS NOT NULL
+    AND g.portal_pin_hash = p_pin_hash
+    -- Allow pre-arrival guests (up to 14 days before check-in) through checkout date
+    AND g.check_in_date <= CURRENT_DATE + INTERVAL '14 days'
+    AND g.check_out_date >= CURRENT_DATE
+  LIMIT 1;
+
+  -- Update last_login_at timestamp if guest was found
+  IF FOUND THEN
+    UPDATE guests SET last_login_at = NOW() 
+    WHERE id = (
+      SELECT g.id FROM guests g
+      WHERE g.resort_id = p_resort_id
+        AND LOWER(TRIM(g.room_number)) = LOWER(TRIM(p_room_number))
+        AND LOWER(g.full_name) LIKE '%' || LOWER(TRIM(p_last_name)) || '%'
+        AND g.portal_enabled = true
+        AND g.portal_pin_hash = p_pin_hash
+      LIMIT 1
+    );
+  END IF;
+END;
+$$;
+
+-- Add index to optimize rate_limit_logs queries if not exists
+CREATE INDEX IF NOT EXISTS idx_rate_limit_logs_lookup 
+ON rate_limit_logs (endpoint, identifier, created_at);
 ```
 
 ---
 
-### Task 4: Integrate Gate into `GuestLayout`
+## Testing Plan
 
-**File:** `src/components/guest/GuestLayout.tsx`
+### Manual Test Cases
 
-**Current:**
-```tsx
-<main ref={mainRef} className="...">
-  <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
-    <Outlet />
-  </div>
-</main>
-```
-
-**Updated:**
-```tsx
-import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
-
-// In the return:
-<main ref={mainRef} className="...">
-  <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
-    <GuestPortalGate>
-      <Outlet />
-    </GuestPortalGate>
-  </div>
-</main>
-```
+| Test Case | Input | Expected Result |
+|-----------|-------|-----------------|
+| Valid in-house guest | Room 101, Smith, 1234 | ✅ Login success |
+| Valid pre-arrival guest (7 days before) | Room 102, Jones, 5678 | ✅ Login success |
+| Pre-arrival 15+ days out | Future guest | ❌ "Details not found" |
+| Wrong PIN | Correct room/name, wrong PIN | ❌ "Details not found" |
+| Wrong last name | Correct room/PIN, wrong name | ❌ "Details not found" |
+| Checked-out guest | Past checkout date | ❌ "Details not found" |
+| Rate limit hit | 11 rapid attempts | ❌ "Too many attempts" |
+| Case mismatch | "SMITH" vs "smith" | ✅ Login success |
+| Room with spaces | " 101 " | ✅ Trimmed, matches |
+| Portal disabled | `portal_enabled = false` | ❌ "Details not found" |
 
 ---
 
-### Task 5: Add "Complete Pre-Arrival" Card to Regular Home
-
-**File:** `src/pages/guest/GuestHome.tsx`
-
-The current code already has a "Soft Pre-arrival Nudge" card (lines 242-278) for in-stay guests who haven't completed pre-arrival:
-
-```tsx
-{!isPrearrival && 
- prearrivalData?.settings?.is_enabled && 
- prearrivalData?.profile?.prearrival_status !== 'completed' &&
- !prearrivalNudgeDismissed && (
-  <Card className="...">
-    ...
-    <Button onClick={() => setWizardOpen(true)}>
-      Complete Now
-    </Button>
-  </Card>
-)}
-```
-
-**Enhancement:** Make this card persistent (not dismissible) until completed. Add visual distinction to show it's optional but helpful.
-
-Current has `!prearrivalNudgeDismissed` — we'll keep the dismiss capability but the card will reappear on next session if still not completed.
-
----
-
-### Task 6: Verify Staff Pre-Arrival Data Display
-
-**Files to verify (no changes needed):**
-- `src/pages/guests/GuestDetailPage.tsx` — Already imports and renders `PreArrivalSubmissionCard`
-- `src/components/staff/PreArrivalSubmissionCard.tsx` — Already displays:
-  - Status badge (Completed/Not Started)
-  - Arrival details (time, flight, transfer)
-  - Dietary & allergies
-  - Water comfort level
-  - Special occasions
-  - Special requests
-  - Last updated timestamp
-
-**Current Integration (lines 115-122 in GuestDetailPage):**
-```tsx
-const { 
-  stay: activeStay, 
-  accessLinks, 
-  submission,  // ← Pre-arrival data
-  isLoading: stayLoading,
-  refetch: refetchStay 
-} = useStaffGuestStay(id || '', guest?.resort_id || currentResort?.id || '');
-```
-
-**Staff section rendering (already exists):**
-```tsx
-<PreArrivalSubmissionCard 
-  submission={submission} 
-  isLoading={stayLoading} 
-/>
-```
-
-✅ **No changes needed** — Staff already sees pre-arrival data with status.
-
----
-
-## File Summary
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/hooks/usePrearrivalData.ts` | **Modify** | Update `useIsPrearrivalGuest` to use resort timezone |
-| `src/components/guest/GuestPortalGate.tsx` | **Create** | Gate wrapper that shows pre-arrival prompt |
-| `src/components/guest/prearrival/PreArrivalPromptScreen.tsx` | **Create** | Full-screen interstitial with CTAs |
-| `src/components/guest/GuestLayout.tsx` | **Modify** | Wrap `<Outlet />` with `<GuestPortalGate>` |
-| `src/pages/guest/GuestHome.tsx` | **Minor** | Enhance existing nudge card behavior |
-| Staff files | **None** | Already displays pre-arrival data correctly |
-
----
-
-## Backward Compatibility
+## Security Considerations
 
 | Concern | Mitigation |
 |---------|------------|
-| Existing sessions | `useIsPrearrivalGuest` still returns same shape, just with correct timezone |
-| Token-based logins | Unaffected — all login routes lead to same portal |
-| In-house guests | Never see the prompt (isPrearrival = false) |
-| Completed pre-arrival | Never see prompt (status check) |
-| Skipped guests | Can still browse activities, make bookings, use all features |
+| Brute force PIN attempts | Rate limiting: 10/15min per room |
+| PIN enumeration | Generic error messages ("Details not found") |
+| Cross-resort access | `p_resort_id` required, validated |
+| PIN in transit | Client-side SHA-256 hash before transmission |
+| PIN in logs | Never logged anywhere |
+| Pre-arrival too early | 14-day window prevents far-future abuse |
 
 ---
 
-## Acceptance Criteria Validation
+## Backwards Compatibility
 
-| Criteria | Implementation |
-|----------|----------------|
-| Guest with future start date sees pre-arrival prompt | ✅ `GuestPortalGate` checks `isPrearrival` + status |
-| Prompt is skippable | ✅ "Skip for now" sets 24h localStorage marker |
-| Skipping goes to portal home | ✅ `setShowPrompt(false)` renders children |
-| Skip doesn't block bookings | ✅ All routes remain accessible |
-| In-stay guest never sees prompt | ✅ `isPrearrival: false` bypasses gate |
-| Staff sees pre-arrival data | ✅ Already implemented via `PreArrivalSubmissionCard` |
-| No existing routes break | ✅ Additive wrapper only |
-
----
-
-## Technical Notes
-
-### Timezone Calculation
-The key fix is using `nowInTimezone(resortTimezone)` instead of `new Date()`:
-- A guest accessing the portal at 11pm in New York for a Maldives resort (UTC+5) should see "pre-arrival" based on Maldives time, not NY time
-- If it's Jan 25 in Maldives and check-in is Jan 26, they should see the prompt
-
-### Skip Duration
-- 24 hours chosen as balance between "not annoying" and "reminding them"
-- Stored as ISO timestamp for accurate expiry across page reloads
-- Clears automatically when expired
-
-### Loading States
-- Gate doesn't block during `isLoading` to prevent flash
-- Wizard loading is handled by existing `PrearrivalWizard` component
-
+| Component | Impact |
+|-----------|--------|
+| QR login tokens | ✅ Unaffected — separate system |
+| Access link tokens | ✅ Unaffected — separate table |
+| Existing PIN logins | ✅ Same hash format (SHA-256) |
+| Staff PIN generation | ✅ Uses existing `generate_guest_pin` |
+| Mobile app | ✅ Same API contract |
