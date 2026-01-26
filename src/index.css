@@ -271,8 +271,8 @@
 
   html {
     @apply scroll-smooth;
-    /* Prevent horizontal scroll on mobile */
-    overflow-x: hidden;
+    /* Allow horizontal scroll when needed */
+    overflow-x: auto;
   }
 
   body {
@@ -280,10 +280,10 @@
     font-family: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "cv11", "ss01";
     letter-spacing: -0.01em;
-    /* Prevent horizontal scroll and touch scroll escape */
-    overflow-x: hidden;
+    /* Allow horizontal scroll when needed */
+    overflow-x: auto;
     overscroll-behavior-x: none;
-    touch-action: pan-y pinch-zoom;
+    touch-action: pan-x pan-y pinch-zoom;
   }
 
   /* Improved focus styles with Lime glow */
