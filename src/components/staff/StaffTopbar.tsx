@@ -1,8 +1,6 @@
-import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { StaffBreadcrumbs } from '@/components/layout/StaffBreadcrumbs';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
+import { CompactModeToggle } from './CompactModeToggle';
 import {
   Menu,
   Search,
@@ -105,6 +104,9 @@ export function StaffTopbar({ onMenuClick, onCommandBarOpen, onQuickOpsOpen }: S
           >
             <Search className="h-5 w-5" />
           </Button>
+
+          {/* Mobile Compact Mode Toggle */}
+          <CompactModeToggle />
 
           <ThemeToggle className="text-muted-foreground hover:text-foreground" />
           <NotificationBell />
