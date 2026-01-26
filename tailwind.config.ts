@@ -292,6 +292,20 @@ export default {
         "display": ["3rem", { lineHeight: "1.15", letterSpacing: "0.02em" }],
         "headline": ["2rem", { lineHeight: "1.25", letterSpacing: "0.02em" }],
       },
+      height: {
+        'screen-dvh': '100dvh',
+        'screen-svh': '100svh',
+      },
+      maxHeight: {
+        'screen-dvh': '100dvh',
+        'screen-svh': '100svh',
+        '90dvh': '90dvh',
+        '85dvh': '85dvh',
+      },
+      minHeight: {
+        'screen-dvh': '100dvh',
+        'screen-svh': '100svh',
+      },
       spacing: {
         "18": "4.5rem",
         "22": "5.5rem",

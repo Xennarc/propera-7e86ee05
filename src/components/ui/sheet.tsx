@@ -34,12 +34,13 @@ const sheetVariants = cva(
     variants: {
       side: {
         top: "inset-x-0 top-0 border-b border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        // Bottom sheets: safe area + max height using dvh
         bottom:
-          "inset-x-0 bottom-0 border-t border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        // Mobile: 85% width for better visibility, sm: 75%, with max-width
-        left: "inset-y-0 left-0 h-full w-[85%] sm:w-3/4 border-r border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          "inset-x-0 bottom-0 max-h-[85dvh] border-t border-border/30 dark:border-midnight-700/50 pb-[env(safe-area-inset-bottom)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        // Mobile: 85% width for better visibility, sm: 75%, with max-width and dvh height
+        left: "inset-y-0 left-0 h-full max-h-[100dvh] w-[85%] sm:w-3/4 border-r border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-[85%] sm:w-3/4 border-l border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "inset-y-0 right-0 h-full max-h-[100dvh] w-[85%] sm:w-3/4 border-l border-border/30 dark:border-midnight-700/50 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
       },
     },
     defaultVariants: {
