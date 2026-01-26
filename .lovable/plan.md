@@ -1,281 +1,292 @@
 
-# Guest List Mobile Accessibility Fixes
+# Guest List Mobile Horizontal Overflow Fix
 
 ## Problem Summary
 
-The `/staff/guests` page has multiple mobile usability issues causing content to overflow and be inaccessible:
-
-1. **Toolbar overflow**: The `GuestListToolbar` contains too many elements on a single row with fixed widths (`min-w-[200px]` on search, `w-[180px]` on filter dropdown, `w-[160px]` on sort) that cause horizontal overflow
-2. **Summary Strip**: Stat chips are wide and may overflow without proper containment
-3. **Card layout**: Guest cards work well but the overall container lacks proper viewport constraints
-4. **Bulk Action Bar**: Fixed at bottom with `left-1/2 -translate-x-1/2` positioning may conflict with mobile bottom nav
-5. **Missing keyboard safety**: The page doesn't account for on-screen keyboard when searching
+On mobile screens, the `/staff/guests` page content overflows horizontally, making some UI elements inaccessible without horizontal scrolling. This violates the "No Pinch-Zoom" mobile standard.
 
 ---
 
-## Design Principles
+## Root Causes Identified
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Stack on mobile** | Toolbar elements stack vertically on xs/sm screens |
-| **Full-width inputs** | Search and filters use full width on mobile |
-| **Contained scroll** | Summary strip and card list scroll independently |
-| **Safe positioning** | Bulk action bar respects bottom nav and keyboard |
-| **Touch targets** | All interactive elements 44px+ |
+| Component | Issue |
+|-----------|-------|
+| `GuestsPage.tsx` | The main `Card` lacks `overflow-hidden`, allowing child content to spill out |
+| `GuestsSummaryStrip.tsx` | Stat chips have no `max-w` constraint and cause horizontal bleed on narrow screens |
+| `GuestCardRow.tsx` | Name truncation uses `max-w-[200px]` which is too wide + padding creates overflow |
+| `GuestListToolbar.tsx` | Filters row uses `flex-wrap` but individual items may still cause overflow |
+| `PageHeader` | Title + action button may collide on very narrow screens |
+
+---
+
+## Solution: Strict Width Containment
+
+Apply `overflow-hidden` at container boundaries and use relative widths (`max-w-full`) instead of fixed pixel widths on mobile.
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Toolbar Mobile Redesign
+### Change 1: GuestsPage.tsx - Add Overflow Containment
 
-**File: `src/components/guests/GuestListToolbar.tsx`**
+Add `overflow-hidden` to the outer page wrapper and the main Card to prevent any child from causing horizontal scroll.
 
-Current issue: All elements in a single flex row with fixed min-widths causing overflow.
+```tsx
+// Line 268: Current
+<div className="space-y-6 animate-fade-in">
 
-Changes:
-1. Stack toolbar into 2-3 rows on mobile:
-   - Row 1: Search input (full width)
-   - Row 2: Filter dropdown + Sort + Density toggle
-   - Row 3 (conditional): Active filter badges
-2. Remove fixed widths on mobile, use responsive widths
-3. Ensure touch targets are 44px+
-
-```text
-MOBILE LAYOUT:
-┌─────────────────────────────────────────┐
-│ [Search........................] [Clear]│
-├─────────────────────────────────────────┤
-│ [All Guests ▼]  [Sort ▼]  [⊞] [⚙ +2]   │
-├─────────────────────────────────────────┤
-│ Active: [VIP ×] [In-House ×]            │
-└─────────────────────────────────────────┘
+// Change to:
+<div className="space-y-6 animate-fade-in overflow-x-hidden">
 ```
 
-Key changes:
-- Line 141: Change `flex flex-wrap` to a responsive column layout
-- Line 173: Change `min-w-[200px]` to `w-full sm:min-w-[200px] sm:flex-1`
-- Line 144: Change `w-[180px]` to `w-full sm:w-[180px]`
-- Line 236: Change `w-[160px]` to `flex-1 sm:w-[160px]`
+```tsx
+// Line 296: Current  
+<Card>
 
-### Phase 2: Summary Strip Containment
+// Change to:
+<Card className="overflow-hidden">
+```
 
-**File: `src/components/guests/GuestsSummaryStrip.tsx`**
+Also ensure the CardContent respects boundaries:
+```tsx
+// Line 297: Current
+<CardContent className="p-0">
 
-The component already has `overflow-x-auto` and `snap-x` which is good. Enhance with:
-1. Add `flex-nowrap` to prevent wrapping
-2. Ensure chips have consistent minimum touch target sizes (44px height)
-3. Add gradient fade on edges to indicate scrollability
+// Change to:
+<CardContent className="p-0 overflow-hidden">
+```
 
-Key changes:
-- Line 116-117: Increase button padding from `px-3 py-2` to `px-4 py-2.5` for better touch targets
+### Change 2: GuestsSummaryStrip.tsx - Constrain to Viewport
 
-### Phase 3: Card Container Scroll
+The chip container already has `overflow-x-auto` which is correct. Add `max-w-full` to ensure it doesn't extend beyond parent:
 
-**File: `src/pages/guests/GuestsPage.tsx`**
+```tsx
+// Line 99-104: Current
+<div 
+  className={cn(
+    'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
+    className
+  )}
+>
 
-Add proper scroll containment for the guest card list on mobile:
+// Change to:
+<div 
+  className={cn(
+    'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full',
+    className
+  )}
+>
+```
 
-1. Wrap the mobile cards in a container with `overflow-y-auto` and max height
-2. Ensure cards don't trigger horizontal scroll
+### Change 3: GuestCardRow.tsx - Responsive Name Truncation
 
-Key changes:
-- Line 391-408: Wrap in ScrollArea with proper height constraints
-- Change `p-3 space-y-3` to `p-3 space-y-3 overflow-x-hidden`
+The current `max-w-[200px]` on the name is a fixed pixel width. On very narrow screens (320px), this can overflow.
 
-### Phase 4: Bulk Action Bar Safety
+```tsx
+// Line 133-134: Current
+<div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden">
+  <span className="font-semibold text-foreground text-base truncate max-w-[200px]">{guest.full_name}</span>
 
-**File: `src/components/guests/GuestBulkActionBar.tsx`**
+// Change to:
+<div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden min-w-0">
+  <span className="font-semibold text-foreground text-base truncate max-w-[calc(100%-3rem)]">{guest.full_name}</span>
+```
 
-Current issue: Fixed at `bottom-4` which conflicts with mobile bottom nav (approx 80px tall).
+Using `calc(100% - 3rem)` accounts for the VIP/loyalty icons. The parent `min-w-0` enables flex child shrinking.
 
-Changes:
-1. Use keyboard inset hook for keyboard awareness
-2. Add proper bottom offset on mobile to sit above MobileBottomNav
-3. Use `pb-[env(safe-area-inset-bottom)]` for notch devices
+### Change 4: GuestListToolbar.tsx - Constrain Filter Row
 
-Key changes:
-- Line 88-95: Add responsive bottom positioning
-- Change `bottom-4` to `bottom-20 lg:bottom-4` to clear mobile nav
-- Add keyboard awareness with `useKeyboardInset`
+The filters row can overflow on very narrow screens. Add `overflow-hidden` and ensure proper width constraints:
 
-### Phase 5: Guest Card Row Optimization
+```tsx
+// Line 160-161: Current
+<div className="flex flex-wrap items-center gap-2">
 
-**File: `src/components/guests/GuestCardRow.tsx`**
+// Change to:
+<div className="flex flex-wrap items-center gap-2 w-full overflow-hidden">
+```
 
-Minor refinements:
-1. Ensure text doesn't overflow card boundaries
-2. Add `overflow-hidden` to prevent any text leaks
-3. Ensure the preview button has proper touch target
+For the Select triggers, ensure they use proper responsive widths:
 
-Key changes:
-- Line 83: Add `overflow-hidden` to main container
-- Line 133: Add `overflow-hidden truncate` to name container for very long names
+```tsx
+// Line 163-166: Legacy filter dropdown - already has w-full sm:w-[180px] ✓
 
-### Phase 6: Preview Drawer Mobile Safety
+// Line 247-249: Sort dropdown - already has flex-1 sm:flex-none sm:w-[160px] ✓
+```
 
-**File: `src/components/guests/GuestPreviewDrawer.tsx`**
+These are fine. The issue is likely the parent not constraining.
 
-Already well structured with flex layout. Minor enhancement:
-1. Ensure footer respects safe area inset
+Add to the root wrapper:
 
-Key changes:
-- Line 296: Add `pb-[env(safe-area-inset-bottom)]` to SheetFooter
+```tsx
+// Line 139: Current
+<div className={cn('space-y-3', className)}>
+
+// Change to:
+<div className={cn('space-y-3 w-full overflow-hidden', className)}>
+```
+
+### Change 5: PageHeader Mobile Optimization
+
+On very narrow screens, the page title and action button can collide. The current layout uses `flex-col sm:flex-row` which should stack on mobile, but let's ensure the title truncates properly:
+
+```tsx
+// Line 53: Current (in page-header.tsx)
+<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
+
+// Change to:
+<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
+```
+
+Also add `min-w-0` to enable truncation in flex context:
+
+```tsx
+// Line 33: Current
+<div className="space-y-1 min-w-0">
+
+// Already has min-w-0 ✓
+```
+
+### Change 6: GuestRow.tsx - Desktop Table Containment
+
+For desktop view, the grid columns may cause overflow. Add proper containment:
+
+```tsx
+// Lines 342-348 in GuestsPage.tsx: Current desktop header
+<div className={cn(
+  'grid gap-3 items-center border-b border-border bg-muted/30 text-sm font-medium text-muted-foreground',
+  preferences.density === 'compact' ? 'py-2 px-3' : 'py-3 px-4',
+  prearrivalEnabled 
+    ? 'grid-cols-[auto_1fr_auto_auto_auto_auto_auto]' 
+    : 'grid-cols-[1fr_auto_auto_auto_auto_auto]'
+)}>
+
+// The issue: Many 'auto' columns can expand beyond viewport
+// Change to: Use minmax for the name column and constrain actions
+
+// For desktop (non-mobile), add overflow-hidden to the wrapper:
+<div className="overflow-hidden">
+  {/* Desktop header and rows */}
+</div>
+```
 
 ---
 
 ## Files to Modify
 
-| File | Change Type | Priority |
-|------|-------------|----------|
-| `src/components/guests/GuestListToolbar.tsx` | Major - stack layout on mobile | High |
-| `src/pages/guests/GuestsPage.tsx` | Medium - scroll containment | High |
-| `src/components/guests/GuestBulkActionBar.tsx` | Medium - safe positioning | High |
-| `src/components/guests/GuestsSummaryStrip.tsx` | Minor - touch target sizes | Medium |
-| `src/components/guests/GuestCardRow.tsx` | Minor - overflow prevention | Medium |
-| `src/components/guests/GuestPreviewDrawer.tsx` | Minor - safe area footer | Low |
+| File | Change | Priority |
+|------|--------|----------|
+| `src/pages/guests/GuestsPage.tsx` | Add `overflow-hidden` to wrapper, Card, and CardContent | High |
+| `src/components/guests/GuestsSummaryStrip.tsx` | Add `max-w-full` to chip container | High |
+| `src/components/guests/GuestCardRow.tsx` | Change name truncation to `max-w-[calc(100%-3rem)]`, add `min-w-0` | High |
+| `src/components/guests/GuestListToolbar.tsx` | Add `w-full overflow-hidden` to root wrapper | High |
+| `src/components/ui/page-header.tsx` | Add `truncate` to title for safety | Medium |
 
 ---
 
 ## Detailed Code Changes
 
-### GuestListToolbar.tsx - Mobile Stack Layout
+### GuestsPage.tsx
 
 ```tsx
-// Current (line 139):
-<div className={cn('space-y-3', className)}>
-  <div className="flex flex-wrap items-center gap-2">
+// Line 268
+- <div className="space-y-6 animate-fade-in">
++ <div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
 
-// Change to:
-<div className={cn('space-y-3', className)}>
-  {/* Search row - full width on mobile */}
-  <div className="flex gap-2">
-    <SearchInput
-      value={search}
-      onChange={onSearchChange}
-      placeholder="Search name, room, email..."
-      className="flex-1"
-    />
-    {hasActiveFilters && (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onClearFilters}
-        className="shrink-0 h-10 w-10"
-      >
-        <X className="h-4 w-4" />
-      </Button>
-    )}
-  </div>
-  
-  {/* Filters row - wraps on mobile */}
-  <div className="flex flex-wrap items-center gap-2">
-    {/* Filter dropdown */}
-    <Select ...>
-      <SelectTrigger className="w-full sm:w-[180px] h-10 bg-background">
-        ...
-      </SelectTrigger>
-    </Select>
-    
-    {/* Sort */}
-    <Select ...>
-      <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px] h-10 bg-background">
-        ...
-      </SelectTrigger>
-    </Select>
-    
-    {/* Filters popover + Density toggle */}
-    <div className="flex items-center gap-2 ml-auto">
-      <Popover>...</Popover>
-      <Button variant="outline" size="icon" className="h-10 w-10">...</Button>
-    </div>
-  </div>
+// Line 296
+- <Card>
++ <Card className="overflow-hidden w-full">
+
+// Line 297  
+- <CardContent className="p-0">
++ <CardContent className="p-0 overflow-hidden">
+
+// Line 340 (desktop wrapper)
+- <div className="overflow-hidden">
++ <div className="overflow-x-hidden w-full">
 ```
 
-### GuestBulkActionBar.tsx - Safe Positioning
+### GuestsSummaryStrip.tsx
 
 ```tsx
-// Current (line 88-95):
-<div
+// Line 99-104
+<div 
   className={cn(
-    'fixed bottom-4 left-1/2 -translate-x-1/2 z-50',
-    ...
+-   'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
++   'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full w-full',
+    className
   )}
 >
-
-// Change to:
-import { useKeyboardInset } from '@/hooks/useKeyboardInset';
-
-export const GuestBulkActionBar = memo(function GuestBulkActionBar({...}) {
-  const { keyboardInset, isKeyboardOpen } = useKeyboardInset();
-  
-  // Hide when keyboard is open to not conflict with input
-  if (isKeyboardOpen) return null;
-  
-  return (
-    <div
-      className={cn(
-        'fixed left-1/2 -translate-x-1/2 z-40',
-        // Sit above mobile nav on mobile, normal on desktop
-        'bottom-20 lg:bottom-4',
-        'pb-[env(safe-area-inset-bottom)]',
-        ...
-      )}
-    >
 ```
 
-### GuestsPage.tsx - Mobile Card Container
+### GuestCardRow.tsx
 
 ```tsx
-// Current (line 391-408):
-{isMobile && (
-  <div className="p-3 space-y-3">
-    {filteredGuests...}
-  </div>
-)}
+// Line 82-83: Add overflow-hidden to card
+- 'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden',
++ 'relative p-4 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden w-full',
 
-// Change to:
-{isMobile && (
-  <div className="overflow-x-hidden">
-    <div className="p-3 space-y-3 pb-24">
-      {filteredGuests
-        .filter(...)
-        .map(guest => (
-          <GuestCardRow ... />
-        ))}
-    </div>
-  </div>
-)}
+// Line 131: Add min-w-0 to main content
+- <div className={cn('space-y-3', showSelection && 'pl-8')}>
++ <div className={cn('space-y-3 min-w-0 overflow-hidden', showSelection && 'pl-8')}>
+
+// Line 133: Responsive name container
+- <div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden">
++ <div className="flex items-center gap-2 flex-wrap pr-10 overflow-hidden min-w-0 max-w-full">
+
+// Line 134: Responsive name width
+- <span className="font-semibold text-foreground text-base truncate max-w-[200px]">{guest.full_name}</span>
++ <span className="font-semibold text-foreground text-base truncate max-w-[70%]">{guest.full_name}</span>
+```
+
+### GuestListToolbar.tsx
+
+```tsx
+// Line 139
+- <div className={cn('space-y-3', className)}>
++ <div className={cn('space-y-3 w-full max-w-full overflow-hidden', className)}>
+
+// Line 141
+- <div className="flex gap-2">
++ <div className="flex gap-2 w-full max-w-full">
+
+// Line 161
+- <div className="flex flex-wrap items-center gap-2">
++ <div className="flex flex-wrap items-center gap-2 w-full max-w-full">
+```
+
+### page-header.tsx
+
+```tsx
+// Line 53
+- <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
++ <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground break-words">
 ```
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify on mobile:
+After implementation, verify on mobile (320px - 428px widths):
 
-- [ ] Toolbar doesn't overflow horizontally
-- [ ] Search input is full width and usable
-- [ ] Filter/sort dropdowns are accessible
+- [ ] No horizontal scrollbar appears on the page
+- [ ] Guest names truncate properly with ellipsis
 - [ ] Summary strip scrolls horizontally with snap points
-- [ ] Guest cards display all information without cutoff
-- [ ] Tapping a card navigates to detail page
-- [ ] Preview button (eye icon) has adequate touch target
-- [ ] Bulk action bar sits above mobile bottom nav
-- [ ] Keyboard doesn't overlap search input
-- [ ] No pinch-zoom required to read content
-- [ ] No horizontal scroll at any point
+- [ ] Toolbar filters wrap and stay within bounds
+- [ ] Guest cards display fully without cutoff
+- [ ] All action buttons are accessible
+- [ ] Preview drawer opens correctly
+- [ ] Page title doesn't overflow header
 
 ---
 
 ## Summary
 
-This plan fixes mobile accessibility on the Guests page by:
+This fix applies strict horizontal containment by:
 
-1. **Stacking the toolbar** - Search goes full-width, filters wrap below
-2. **Containing scroll** - Cards scroll vertically within bounds
-3. **Safe positioning** - Bulk actions clear the mobile nav
-4. **Touch optimization** - All targets meet 44px minimum
-5. **Overflow prevention** - No horizontal scroll leaks
+1. **Adding `overflow-hidden`** at container boundaries (page wrapper, Card, CardContent)
+2. **Using relative widths** (`max-w-full`, `w-full`, percentage-based) instead of fixed pixel widths
+3. **Enabling flex shrinking** with `min-w-0` on flex containers
+4. **Allowing controlled horizontal scroll** only within the summary strip
 
-All changes are UI/layout only - no business logic, data fetching, or component behavior will be modified.
+All changes are CSS/layout only - no business logic modifications.
