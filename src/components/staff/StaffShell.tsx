@@ -143,7 +143,7 @@ export function StaffShell() {
             onCommandBarOpen={() => setCommandBarOpen(true)}
           />
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
+          <main className="flex-1 overflow-y-auto overflow-x-auto pb-24 lg:pb-0">
             {/* Improved padding scale: tighter on mobile, generous on desktop */}
             <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
               <ErrorBoundary
