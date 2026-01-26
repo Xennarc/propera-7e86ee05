@@ -1,39 +1,33 @@
 
-# Phase 1: Shell & Navigation Foundation - Mobile-First Optimization
+# Phase 2: High-Traffic Dashboard Overhaul - Mobile-First Optimization
 
 ## Executive Summary
 
-This phase focuses on elevating the Staff Portal's navigation infrastructure to a world-class mobile experience. The existing architecture already has solid foundations — the goal is to refine, polish, and enhance the glassmorphism aesthetic while ensuring all touch targets meet accessibility standards (44x44px minimum).
+This phase transforms the Staff Portal dashboards (`ResortAdminHome.tsx` and `TodayHub.tsx`) into high-speed mobile command centers. The focus is on reducing vertical scroll fatigue, surfacing actionable items immediately, and providing quick-action shortcuts through a Smart FAB.
 
 ---
 
 ## Current State Analysis
 
-### StaffShell.tsx
-- **Good**: Already has mobile sidebar Sheet, MobileBottomNav, responsive padding
-- **Issues**: 
-  - No keyboard-aware bottom nav hiding
-  - Shell could benefit from cleaner mobile header integration
-
-### MobileBottomNav.tsx
-- **Good**: Glassmorphism styling (`surface-glass-strong`), safe-area support, 48px touch targets
+### ResortAdminHome.tsx (608 lines)
+- **Good**: Already has `NeedsAttentionCard` at top, `PriorityCardGrid`, and `OperationsSection` components
 - **Issues**:
-  - Not keyboard-aware (blocks form inputs when keyboard opens)
-  - Icon pill background is small (w-10 h-7) — could be more prominent
-  - "More" sheet grid could use refinement
+  - Operations sections (Activities, Restaurants) use vertical lists that require scrolling
+  - No horizontal scroll pattern for sessions/slots on mobile
+  - Quick actions are in the header — not discoverable on scroll
+  - Typography doesn't scale down enough on mobile
 
-### StaffSidebar.tsx
-- **Good**: Collapsible accordion groups, resort switcher, role-based visibility
+### TodayHub.tsx (570 lines)
+- **Good**: Has tabs for filtering, `QuickStatCard` components
 - **Issues**:
-  - Trigger touch targets are 48px but nav items are 40px (py-2.5)
-  - No visual indication of group collapse/expand animation
-  - Admin section could use stronger visual separation
+  - Three-column grid on desktop doesn't collapse elegantly on mobile
+  - Sessions/slots use `ScrollArea` with fixed height (400px) — not ideal for mobile
+  - Quick actions at bottom are easy to miss
+  - No FAB for quick actions
 
-### StaffTopbar.tsx
-- **Good**: Responsive design, glassmorphism, command bar trigger
-- **Issues**:
-  - Mobile view shows menu + logo + search + theme + notifications + avatar — too crowded
-  - Breadcrumbs hidden on mobile but no page context indicator
+### NeedsAttentionCard.tsx
+- **Good**: Priority badges, clear hierarchy, "All Clear" empty state
+- **Issues**: Not sticky — scrolls with content, loses urgency on long pages
 
 ---
 
@@ -41,108 +35,221 @@ This phase focuses on elevating the Staff Portal's navigation infrastructure to 
 
 | Principle | Implementation |
 |-----------|----------------|
-| **Touch-first** | All interactive elements min 44x44px |
-| **Keyboard-safe** | Bottom nav hides when keyboard opens |
-| **Glassmorphism** | Consistent `surface-glass-strong` on fixed elements |
-| **Minimal distraction** | Condense topbar on mobile, clear hierarchy |
-| **Smooth transitions** | Subtle animations for expand/collapse |
+| **Priority Stack** | Needs Attention sticky on mobile, always visible |
+| **Horizontal Carousels** | Activities/Dining use snap-scroll carousels on mobile |
+| **Smart FAB** | Floating action button with expandable quick actions |
+| **Micro-interactions** | Haptic-style visual feedback (scale on press) |
+| **Scaled Typography** | Smaller headings on mobile for more above-fold content |
 
 ---
 
 ## Implementation Plan
 
-### 1. MobileBottomNav Enhancement
+### 1. New Component: Smart FAB (`SmartFAB.tsx`)
 
-**File: `src/components/layout/MobileBottomNav.tsx`**
+**File: `src/components/staff/dashboard/SmartFAB.tsx`** (NEW)
 
-Changes:
-1. **Add keyboard detection** — Hide nav when keyboard is open using `useKeyboardInset` hook
-2. **Increase icon pill size** — From `w-10 h-7` to `w-12 h-8` for better visual weight
-3. **Enhanced glassmorphism** — Add subtle top-edge gradient glow
-4. **Improve "More" sheet** — Cleaner grid spacing, larger card touch targets
-5. **Add micro-animations** — Subtle scale on tap, smooth active state transitions
+A floating action button positioned above the bottom nav that expands to show quick actions.
+
+Features:
+- Fixed position: `bottom-24 right-4` (above MobileBottomNav)
+- Glassmorphism styling with primary accent
+- Expands on tap to reveal 3 actions
+- Hides when keyboard is open (like MobileBottomNav)
+- Smooth spring animation on expand/collapse
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│    ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐   ┌───────┐   │
-│    │  🏠   │   │  👥   │   │  📅   │   │  🍽️   │   │  •••  │   │
-│    │ Home  │   │Guests │   │Activ. │   │Dining │   │ More  │   │
-│    └───────┘   └───────┘   └───────┘   └───────┘   └───────┘   │
-│                                                                 │
-│  ───────────── env(safe-area-inset-bottom) ──────────────────  │
-└─────────────────────────────────────────────────────────────────┘
-          ↑ Glassmorphism blur + subtle top-edge gradient
+Collapsed:
+┌───────┐
+│   +   │  ← 56px round button, primary color, subtle shadow
+└───────┘
+
+Expanded:
+              ┌──────────────────┐
+              │ 👤 Check-in Guest│
+              ├──────────────────┤
+              │ ✉️ New Request    │
+              ├──────────────────┤
+              │ 📅 New Booking   │
+              └──────────────────┘
+                    ┌───────┐
+                    │   ×   │  ← Rotated plus to indicate close
+                    └───────┘
 ```
 
-### 2. StaffTopbar Mobile Optimization
+Actions:
+1. **Check-in Guest** → `/staff/guests/new` (UserPlus icon)
+2. **New Request** → `/staff/guest-requests/new` (MessageSquare icon)
+3. **New Booking** → `/staff/activities/sessions/new` (Calendar icon)
 
-**File: `src/components/staff/StaffTopbar.tsx`**
+### 2. New Component: HorizontalCardCarousel (`HorizontalCardCarousel.tsx`)
+
+**File: `src/components/staff/dashboard/HorizontalCardCarousel.tsx`** (NEW)
+
+A mobile-optimized horizontal scroll container for session/slot cards.
+
+Features:
+- Native CSS snap scrolling (`snap-x snap-mandatory`)
+- No embla-carousel overhead for simple use cases
+- Cards sized at ~280px width with `snap-start`
+- Fade gradient on edges to indicate scrollability
+- Desktop fallback: Regular grid layout
+
+```text
+Mobile:
+┌─────────────────────────────────────────────────────────┐
+│ Today's Activities                          View all → │
+├─────────────────────────────────────────────────────────┤
+│ ┌────────────┐ ┌────────────┐ ┌────────────┐           │
+│ │ 08:00      │ │ 10:30      │ │ 14:00      │  ← scroll │
+│ │ Kayaking   │ │ Yoga       │ │ Snorkel    │           │
+│ │ 8/10 pax   │ │ 12/15 pax  │ │ 4/8 pax    │           │
+│ └────────────┘ └────────────┘ └────────────┘           │
+└─────────────────────────────────────────────────────────┘
+
+Desktop: Regular 2-column grid (unchanged)
+```
+
+### 3. New Component: SessionCard (`SessionCard.tsx`)
+
+**File: `src/components/staff/dashboard/SessionCard.tsx`** (NEW)
+
+A compact card for activity sessions designed for horizontal carousels.
+
+Features:
+- Fixed width (~280px) for carousel consistency
+- Time prominently displayed
+- Activity name with occupancy badge
+- Tap feedback with scale animation
+- High-contrast occupancy indicator (green/yellow/red)
+
+### 4. New Component: SlotCard (`SlotCard.tsx`)
+
+**File: `src/components/staff/dashboard/SlotCard.tsx`** (NEW)
+
+Similar to SessionCard but for restaurant time slots.
+
+Features:
+- Meal period badge (Breakfast/Lunch/Dinner)
+- Restaurant name and time
+- Covers count with capacity
+- Same card styling as SessionCard
+
+### 5. Modify: NeedsAttentionCard - Sticky Behavior
+
+**File: `src/components/staff/dashboard/NeedsAttentionCard.tsx`**
 
 Changes:
-1. **Condense mobile header** — Replace separate logo + resort name with unified "Resort Branding" area
-2. **Add compact page context** — Show current page title on mobile (optional fade breadcrumb)
-3. **Group right-side actions** — Combine search + theme + notifications into overflow menu on very narrow screens
-4. **Compact user avatar** — Smaller avatar with no name on mobile, full display on tablet+
+1. Add `sticky` prop for enabling sticky positioning
+2. When sticky: `sticky top-16 z-20` (below DashboardHeader)
+3. Add subtle shadow when stuck to visually separate from content
+4. Reduce header padding when sticky for compactness
 
-Mobile Layout (< 768px):
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  [☰]  [🏝️ Resort Name]                      [🔍] [🔔] [👤]   │
-│  ─────────────────────────────────────────────────────────────  │
-│        └── Tappable resort brand area          └── Compact     │
-│            (can expand to switcher)                 actions    │
-└─────────────────────────────────────────────────────────────────┘
+```tsx
+interface NeedsAttentionCardProps {
+  // ... existing props
+  sticky?: boolean; // Enable sticky positioning on mobile
+}
 ```
 
-Desktop Layout (≥ 1024px):
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  [Dashboard > Guests > Details]    [🔍 Search ⌘K] [🌙] [🔔] [Name ▼]│
-└─────────────────────────────────────────────────────────────────┘
-```
+### 6. Modify: ResortAdminHome.tsx
 
-### 3. StaffSidebar Accordion Refinement
-
-**File: `src/components/staff/StaffSidebar.tsx`**
+**File: `src/pages/dashboards/ResortAdminHome.tsx`**
 
 Changes:
-1. **Increase nav item touch targets** — Ensure all items are min 44px height
-2. **Animate chevron rotation** — Smooth 180° rotate on group expand
-3. **Add subtle expand animation** — Use Tailwind animate-accordion-down/up
-4. **Stronger Admin section visual** — Gradient border or distinct background wash
-5. **Compact resort switcher** — Slightly reduced padding when space is tight
+1. **Add SmartFAB** — Import and render at bottom of component
+2. **Sticky NeedsAttentionCard** — Add `sticky` prop for mobile
+3. **Replace OperationsSection** with `HorizontalCardCarousel` on mobile for Activities and Restaurants
+4. **Typography scaling** — Reduce `h2` section headers from `text-sm` to `text-xs` on mobile
+5. **Mobile-first layout** — Ensure proper stacking order
 
-Navigation Item Structure:
+Layout changes:
 ```text
-┌──────────────────────────────────────────────────────────────┐
-│  [Icon]  Operations                              [▼ chevron] │  ← 48px touch target
-│  ────────────────────────────────────────────────────────────│
-│    │                                                         │
-│    ├── [Icon]  Dashboard                                     │  ← 44px each
-│    ├── [Icon]  Today's View                                  │
-│    └── [Icon]  Team Directory                                │
-└──────────────────────────────────────────────────────────────┘
+MOBILE LAYOUT:
+┌─────────────────────────────────────────────────────────┐
+│ DashboardHeader (sticky)                                │
+├─────────────────────────────────────────────────────────┤
+│ NeedsAttentionCard (sticky below header)                │
+├─────────────────────────────────────────────────────────┤
+│ TODAY AT A GLANCE                                       │
+│ [Guests] [Arrivals] [Departures] [Covers]  ← 2×2 grid  │
+├─────────────────────────────────────────────────────────┤
+│ TODAY'S ACTIVITIES                          View all → │
+│ [Card 1] [Card 2] [Card 3] ←←←  Horizontal scroll      │
+├─────────────────────────────────────────────────────────┤
+│ DINING TODAY                                View all → │
+│ [Slot 1] [Slot 2] [Slot 3] ←←←  Horizontal scroll      │
+├─────────────────────────────────────────────────────────┤
+│ Trends & Feedback (collapsed by default)                │
+└─────────────────────────────────────────────────────────┘
+                                              ┌───────┐
+                                              │   +   │ ← FAB
+                                              └───────┘
 ```
 
-### 4. StaffShell Keyboard-Safe Layout
+### 7. Modify: TodayHub.tsx
 
-**File: `src/components/staff/StaffShell.tsx`**
+**File: `src/components/staff/TodayHub.tsx`**
 
 Changes:
-1. **Pass keyboard state to MobileBottomNav** — Allow conditional hiding
-2. **Adjust main content padding** — When keyboard open, remove bottom padding
-3. **Ensure content scrolls above keyboard** — Main area remains accessible
+1. **Add SmartFAB** — Same as ResortAdminHome
+2. **Replace column layout** with stacked cards on mobile
+3. **Use HorizontalCardCarousel** for sessions/slots sections
+4. **Remove Quick Actions card** at bottom (replaced by FAB)
+5. **Typography scaling** — Smaller heading on mobile
 
-### 5. Global Touch Target Audit
+### 8. Modify: PriorityCard - Micro-interactions
 
-**Files: Various nav/button components**
+**File: `src/components/staff/dashboard/PriorityCard.tsx`**
 
-Ensure minimum 44x44px hit areas:
-- `CollapsibleTrigger` in sidebar: Increase to `py-3 px-3` = 48px
-- Navigation links: Ensure `py-2.5` on small icons gives 44px+ with icon height
-- Mobile bottom nav items: Already 48px ✓
-- "More" sheet cards: Increase from `p-4 min-h-[80px]` to `min-h-[88px]`
+Changes:
+1. Add stronger `active:scale-[0.97]` for tap feedback
+2. Add subtle `transition-transform duration-100` for snappier feel
+3. Add `ring` on focus for accessibility
+
+### 9. CSS Additions
+
+**File: `src/index.css`**
+
+Add new utility classes:
+
+```css
+/* Horizontal scroll carousel */
+.carousel-scroll {
+  @apply flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Carousel card snap */
+.carousel-card {
+  @apply snap-start shrink-0;
+  scroll-margin-left: 1rem;
+}
+
+/* Fade edges for scroll indication */
+.carousel-container {
+  @apply relative;
+}
+.carousel-container::after {
+  content: '';
+  @apply absolute right-0 top-0 bottom-0 w-8 pointer-events-none;
+  background: linear-gradient(to right, transparent, hsl(var(--background)));
+}
+
+/* FAB animation */
+.fab-expanded .fab-action {
+  @apply animate-fade-in;
+}
+
+/* Sticky shadow when stuck */
+.sticky-shadow {
+  box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.05);
+}
+```
 
 ---
 
@@ -150,43 +257,37 @@ Ensure minimum 44x44px hit areas:
 
 | File | Change Type |
 |------|-------------|
-| `src/components/layout/MobileBottomNav.tsx` | Major enhancement — keyboard-safe, styling |
-| `src/components/staff/StaffTopbar.tsx` | Moderate — mobile condensed layout |
-| `src/components/staff/StaffSidebar.tsx` | Minor — touch targets, animations |
-| `src/components/staff/StaffShell.tsx` | Minor — keyboard state coordination |
+| `src/components/staff/dashboard/SmartFAB.tsx` | **NEW** — Floating action button |
+| `src/components/staff/dashboard/HorizontalCardCarousel.tsx` | **NEW** — Horizontal scroll container |
+| `src/components/staff/dashboard/SessionCard.tsx` | **NEW** — Activity session card for carousel |
+| `src/components/staff/dashboard/SlotCard.tsx` | **NEW** — Restaurant slot card for carousel |
+| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | Modify — Add sticky behavior |
+| `src/components/staff/dashboard/PriorityCard.tsx` | Minor — Enhanced micro-interactions |
+| `src/components/staff/dashboard/index.ts` | Update — Export new components |
+| `src/pages/dashboards/ResortAdminHome.tsx` | Major — Integrate all new components |
+| `src/components/staff/TodayHub.tsx` | Major — Integrate FAB and carousels |
+| `src/index.css` | Minor — Add carousel utility classes |
 
 ---
 
-## CSS/Style Additions
+## Component Architecture
 
-Add to `src/index.css`:
-
-```css
-/* Enhanced bottom nav gradient edge */
-.surface-glass-nav {
-  @apply surface-glass-strong;
-  box-shadow: 0 -1px 0 0 hsl(var(--border) / 0.2),
-              0 -4px 20px 0 hsl(var(--background) / 0.3);
-}
-
-/* Dark mode refinement */
-.dark .surface-glass-nav {
-  box-shadow: 0 -1px 0 0 hsl(var(--midnight-700) / 0.3),
-              0 -4px 20px 0 hsl(var(--midnight-950) / 0.5);
-}
-
-/* Bottom nav hide transition */
-.bottom-nav-hidden {
-  transform: translateY(100%);
-  opacity: 0;
-  transition: transform 0.2s ease-out, opacity 0.15s ease-out;
-}
-
-.bottom-nav-visible {
-  transform: translateY(0);
-  opacity: 1;
-  transition: transform 0.25s ease-out, opacity 0.2s ease-out;
-}
+```text
+ResortAdminHome.tsx
+├── DashboardHeader (sticky)
+├── NeedsAttentionCard (sticky on mobile)
+├── PriorityCardGrid
+│   └── PriorityCard × 4
+├── section: Today's Activities
+│   ├── Desktop: OperationsSection (existing)
+│   └── Mobile: HorizontalCardCarousel
+│       └── SessionCard × n
+├── section: Dining Today
+│   ├── Desktop: OperationsSection (existing)
+│   └── Mobile: HorizontalCardCarousel
+│       └── SlotCard × n
+├── section: Trends & Feedback (collapsible)
+└── SmartFAB (fixed position)
 ```
 
 ---
@@ -195,13 +296,35 @@ Add to `src/index.css`:
 
 | Element | Animation | Duration |
 |---------|-----------|----------|
-| Bottom nav hide | translateY(100%) + opacity 0 | 200ms ease-out |
-| Bottom nav show | translateY(0) + opacity 1 | 250ms ease-out |
-| Sidebar group expand | animate-accordion-down | 200ms |
-| Sidebar group collapse | animate-accordion-up | 200ms |
-| Chevron rotate | rotate 0 ↔ 180deg | 200ms |
-| Nav item hover | scale(1.01) | 150ms |
-| Active state | bg-primary/15 fade-in | 200ms |
+| FAB expand | scale 1 → 1.1, actions slide up | 200ms spring |
+| FAB collapse | scale 1.1 → 1, actions fade out | 150ms ease-out |
+| FAB icon rotate | 0 → 45deg | 200ms |
+| Card tap | scale 1 → 0.97 | 100ms ease-out |
+| Carousel scroll | native momentum | system |
+| Sticky shadow | opacity 0 → 1 on stick | 150ms |
+
+---
+
+## Responsive Breakpoints
+
+| Component | Mobile (<768px) | Tablet (768-1024px) | Desktop (>1024px) |
+|-----------|-----------------|---------------------|-------------------|
+| NeedsAttentionCard | Sticky below header | Static | Static |
+| PriorityCardGrid | 2 columns | 2 columns | 4 columns |
+| Activities section | Horizontal carousel | 2-column grid | List in card |
+| Dining section | Horizontal carousel | 2-column grid | List in card |
+| SmartFAB | Visible | Visible | Hidden (use header actions) |
+| Typography (h2) | text-xs uppercase | text-sm | text-sm |
+
+---
+
+## Touch Target Compliance
+
+All interactive elements maintain minimum 44×44px touch targets:
+- FAB main button: 56×56px
+- FAB action items: 48×48px
+- SessionCard/SlotCard: Full card is tappable (~280×120px)
+- Carousel scroll: Edge-to-edge swipe area
 
 ---
 
@@ -209,75 +332,40 @@ Add to `src/index.css`:
 
 | Requirement | Implementation |
 |-------------|----------------|
-| Touch targets | Min 44x44px on all nav items |
-| Focus visible | Ring on keyboard navigation |
-| Motion reduced | Respect `prefers-reduced-motion` |
-| Screen reader | Proper aria-labels on nav items |
-| Color contrast | All text passes WCAG AA |
-
----
-
-## Keyboard Visibility Logic
-
-```typescript
-// In MobileBottomNav.tsx
-const { isKeyboardOpen } = useKeyboardInset();
-
-return (
-  <nav 
-    className={cn(
-      "fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-nav",
-      isKeyboardOpen ? "bottom-nav-hidden" : "bottom-nav-visible"
-    )}
-    // ...
-  >
-```
-
----
-
-## Visual Refinements Summary
-
-### MobileBottomNav
-- Larger icon pills with pill-shaped active background
-- Subtle gradient shadow at top edge
-- Smoother active state with scale micro-animation
-- Keyboard-safe auto-hide
-
-### StaffTopbar (Mobile)
-- Resort brand as single tappable unit (logo + name)
-- Compact action buttons grouped right
-- No visible breadcrumbs (page context in page header instead)
-- Cleaner visual balance
-
-### StaffSidebar (Drawer)
-- Animated chevron rotation on expand
-- Smoother accordion transitions
-- Slightly larger touch targets throughout
-- Admin section with subtle visual distinction
+| FAB label | `aria-label="Quick actions"` |
+| Expanded state | `aria-expanded="true/false"` |
+| Carousel role | `role="list"` with `role="listitem"` cards |
+| Focus trap | FAB actions trap focus when expanded |
+| Reduced motion | Disable FAB animations, instant transitions |
+| Screen reader | Announce FAB open/close state changes |
 
 ---
 
 ## Testing Checklist
 
-- [ ] iOS Safari: Keyboard opens → bottom nav hides → keyboard closes → nav returns
-- [ ] Android Chrome: Same test
-- [ ] All nav items have 44px+ touch targets
-- [ ] Accordion animations are smooth
-- [ ] Reduced motion: Animations disabled
-- [ ] Dark mode: All glass effects render correctly
-- [ ] Resort switcher: Works in sidebar and topbar
-- [ ] "More" sheet: Cards are easy to tap
-- [ ] Landscape orientation: Layout doesn't break
+- [ ] FAB appears only on mobile/tablet (<1024px)
+- [ ] FAB hides when keyboard opens
+- [ ] FAB expands with smooth animation
+- [ ] FAB actions navigate correctly
+- [ ] Horizontal carousel scrolls with momentum
+- [ ] Carousel snaps to card boundaries
+- [ ] NeedsAttentionCard sticks below header on mobile
+- [ ] Sticky shadow appears when stuck
+- [ ] Card tap feedback is snappy
+- [ ] All touch targets are 44px+
+- [ ] Dark mode styling is correct
+- [ ] Reduced motion preference is respected
 
 ---
 
 ## Summary
 
-This phase establishes a rock-solid navigation foundation that:
+This phase delivers a high-speed mobile dashboard experience:
 
-1. **Feels premium** — Glassmorphism, smooth animations, polished transitions
-2. **Works everywhere** — Touch-optimized, keyboard-safe, responsive
-3. **Doesn't interfere** — Bottom nav hides for forms, sidebar collapses cleanly
-4. **Follows standards** — 44px touch targets, accessible, motion-safe
+1. **Priority Stack** — NeedsAttentionCard sticky at top for constant visibility
+2. **Horizontal Carousels** — Activities and Dining sections use swipeable cards on mobile
+3. **Smart FAB** — Floating action button with Check-in, Request, and Booking shortcuts
+4. **Micro-interactions** — Snappy tap feedback on cards
+5. **Scaled Typography** — More content above the fold without sacrificing readability
 
-No business logic, routing, or data handling is modified — purely UI shell enhancements.
+No business logic, data fetching, or routing is modified — purely UI presentation changes.
