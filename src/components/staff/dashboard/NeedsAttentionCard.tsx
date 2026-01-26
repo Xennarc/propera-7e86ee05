@@ -41,6 +41,8 @@ interface NeedsAttentionCardProps {
   fullySessions?: number;
   /** Loading state */
   loading?: boolean;
+  /** Enable sticky positioning on mobile */
+  sticky?: boolean;
   /** Additional className */
   className?: string;
 }
@@ -54,8 +56,13 @@ export function NeedsAttentionCard({
   vipArrivals = [],
   fullySessions = 0,
   loading = false,
+  sticky = false,
   className,
 }: NeedsAttentionCardProps) {
+  // Sticky classes for mobile
+  const stickyClasses = sticky 
+    ? "md:static md:top-auto md:z-auto sticky top-16 z-20 sticky-shadow" 
+    : "";
   // Build attention items list
   const attentionItems: AttentionItem[] = [];
 
@@ -117,7 +124,7 @@ export function NeedsAttentionCard({
 
   if (loading) {
     return (
-      <Card className={cn("border-warning/30", className)}>
+      <Card className={cn("border-warning/30", stickyClasses, className)}>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-5 rounded" />
@@ -138,7 +145,7 @@ export function NeedsAttentionCard({
   // All clear state
   if (!hasItems) {
     return (
-      <Card className={cn("border-success/30 bg-success/5", className)}>
+      <Card className={cn("border-success/30 bg-success/5", stickyClasses, className)}>
         <CardContent className="py-8">
           <div className="flex flex-col items-center text-center">
             <div className="h-12 w-12 rounded-full bg-success/10 flex items-center justify-center mb-3">
@@ -155,7 +162,7 @@ export function NeedsAttentionCard({
   }
 
   return (
-    <Card className={cn("border-warning/30", className)}>
+    <Card className={cn("border-warning/30", stickyClasses, className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">

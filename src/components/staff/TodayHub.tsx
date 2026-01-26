@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { SmartFAB } from '@/components/staff/dashboard';
 import {
   Calendar,
   Users,
@@ -516,6 +517,9 @@ export function TodayHub({ className }: TodayHubProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Smart FAB for quick actions (mobile only) */}
+      <SmartFAB />
     </div>
   );
 }

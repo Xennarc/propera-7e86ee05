@@ -94,12 +94,13 @@ export function PriorityCard({
   }
 
   return (
-    <Link to={href} className="block group">
+    <Link to={href} className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
       <Card 
         className={cn(
-          "transition-all duration-200 border-border/40",
+          "transition-all duration-100 border-border/40",
           styles.hoverBorder,
-          "hover:shadow-md hover:bg-muted/30 active:scale-[0.98]",
+          "hover:shadow-md hover:bg-muted/30",
+          "active:scale-[0.97]",
           className
         )}
       >
