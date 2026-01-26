@@ -265,7 +265,7 @@ function GuestsPageContent() {
   const someSelected = selectedGuests.size > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
       {isReadOnly && <DemoReadOnlyBanner />}
       
       <PageHeader
@@ -293,8 +293,8 @@ function GuestsPageContent() {
       )}
 
       {/* Filters and List */}
-      <Card>
-        <CardContent className="p-0">
+      <Card className="overflow-hidden w-full">
+        <CardContent className="p-0 overflow-hidden">
           {/* Toolbar */}
           <div className="p-4 border-b border-border/50">
             <GuestListToolbar
@@ -337,7 +337,7 @@ function GuestsPageContent() {
             <>
               {/* Desktop: Table-like rows */}
               {!isMobile && (
-                <div className="overflow-hidden">
+                <div className="overflow-x-hidden w-full">
                   {/* Header row */}
                   <div className={cn(
                     'grid gap-3 items-center border-b border-border bg-muted/30 text-sm font-medium text-muted-foreground',

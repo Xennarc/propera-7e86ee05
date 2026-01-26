@@ -136,9 +136,9 @@ export const GuestListToolbar = memo(function GuestListToolbar({
   const activeFilterCount = statusFilters.length + flagFilters.length;
 
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn('space-y-3 w-full max-w-full overflow-hidden', className)}>
       {/* Search row - full width on mobile */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 w-full max-w-full">
         <SearchInput
           value={search}
           onChange={onSearchChange}
@@ -158,7 +158,7 @@ export const GuestListToolbar = memo(function GuestListToolbar({
       </div>
 
       {/* Filters row - wraps on mobile */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 w-full max-w-full">
         {/* Legacy filter dropdown */}
         <Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
           <SelectTrigger className="w-full sm:w-[180px] h-10 bg-background">
