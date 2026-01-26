@@ -21,6 +21,10 @@ import {
   OperationsSection,
   OperationsListItem,
   NeedsAttentionCard,
+  SmartFAB,
+  HorizontalCardCarousel,
+  SessionCard,
+  SlotCard,
 } from '@/components/staff/dashboard';
 
 export default function ResortAdminHome() {
@@ -391,17 +395,18 @@ export default function ResortAdminHome() {
       {/* Onboarding Banner */}
       <OnboardingBanner />
 
-      {/* SECTION 1: Needs Attention - Always first on mobile */}
+      {/* SECTION 1: Needs Attention - Always first on mobile, sticky */}
       <NeedsAttentionCard
         openRequests={formattedRequests}
         vipArrivals={formattedVipArrivals}
         fullySessions={stats?.fullyBookedSessions || 0}
         loading={isLoading || loadingRequests}
+        sticky
       />
 
       {/* SECTION 2: Today at a Glance - Priority Metrics */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
+        <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
           Today at a Glance
         </h2>
         <PriorityCardGrid>
@@ -444,8 +449,56 @@ export default function ResortAdminHome() {
         </PriorityCardGrid>
       </section>
 
-      {/* SECTION 3: Operations - Activities & Restaurants */}
-      <section className="grid gap-4 sm:gap-5 lg:gap-6 lg:grid-cols-2">
+      {/* SECTION 3: Operations - Mobile Carousels + Desktop OperationsSections */}
+      
+      {/* Mobile: Horizontal Carousels */}
+      <div className="space-y-5 md:hidden">
+        <HorizontalCardCarousel
+          title="Today's Activities"
+          icon={<Calendar className="h-4 w-4 text-primary" />}
+          viewAllHref="/staff/activities/sessions"
+          hasItems={!!(todaySessions && todaySessions.length > 0)}
+          emptyMessage="No sessions scheduled today"
+          mobileOnly={false}
+        >
+          {todaySessions?.slice(0, 6).map((session: any) => (
+            <SessionCard
+              key={session.id}
+              id={session.id}
+              activityName={session.activities?.name || 'Unknown Activity'}
+              startTime={session.start_time}
+              endTime={session.end_time}
+              confirmedPax={session.confirmedPax}
+              capacity={session.capacity}
+            />
+          ))}
+        </HorizontalCardCarousel>
+
+        <HorizontalCardCarousel
+          title="Dining Today"
+          icon={<Utensils className="h-4 w-4 text-chart-3" />}
+          viewAllHref="/staff/restaurants/slots"
+          hasItems={!!(tonightSlots && tonightSlots.length > 0)}
+          emptyMessage="No slots scheduled today"
+          mobileOnly={false}
+        >
+          {tonightSlots?.slice(0, 6).map((slot: any) => (
+            <SlotCard
+              key={slot.id}
+              id={slot.id}
+              restaurantName={slot.restaurants?.name || 'Unknown Restaurant'}
+              mealPeriod={slot.meal_period}
+              startTime={slot.start_time}
+              endTime={slot.end_time}
+              confirmedCovers={slot.confirmedCovers}
+              capacity={slot.capacity}
+            />
+          ))}
+        </HorizontalCardCarousel>
+      </div>
+
+      {/* Tablet/Desktop: Original OperationsSections grid */}
+      <section className="hidden md:grid gap-4 sm:gap-5 lg:gap-6 lg:grid-cols-2">
         {/* Today's Activities */}
         <OperationsSection
           title="Today's Activities"
@@ -603,6 +656,9 @@ export default function ResortAdminHome() {
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Smart FAB for quick actions (mobile only) */}
+      <SmartFAB />
     </div>
   );
 }

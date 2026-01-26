@@ -2229,3 +2229,40 @@ select:focus,
 .form-field-group {
   @apply space-y-4;
 }
+
+/* ========================================
+   DASHBOARD CAROUSEL UTILITIES
+   ======================================== */
+
+/* Horizontal scroll carousel */
+.carousel-scroll {
+  @apply flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.carousel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Carousel card snap */
+.carousel-card {
+  @apply snap-start shrink-0;
+  scroll-margin-left: 1rem;
+}
+
+/* Fade edges for scroll indication */
+.carousel-container {
+  @apply relative;
+}
+
+.carousel-container::after {
+  content: '';
+  @apply absolute right-0 top-0 bottom-2 w-8 pointer-events-none;
+  background: linear-gradient(to right, transparent, hsl(var(--background)));
+}
+
+/* Sticky shadow when stuck */
+.sticky-shadow {
+  box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.05);
+}
