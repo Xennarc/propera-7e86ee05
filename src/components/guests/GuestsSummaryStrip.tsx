@@ -98,7 +98,7 @@ export const GuestsSummaryStrip = memo(function GuestsSummaryStrip({
   return (
     <div 
       className={cn(
-        'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
+        'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full w-full',
         className
       )}
     >
