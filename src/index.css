@@ -271,6 +271,8 @@
 
   html {
     @apply scroll-smooth;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
   body {
@@ -278,6 +280,10 @@
     font-family: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "cv11", "ss01";
     letter-spacing: -0.01em;
+    /* Prevent horizontal scroll and touch scroll escape */
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    touch-action: pan-y pinch-zoom;
   }
 
   /* Improved focus styles with Lime glow */
@@ -2205,4 +2211,55 @@ select:focus,
 
 .form-field-group {
   @apply space-y-4;
+}
+
+/* ========================================
+   VIEWPORT SAFE UTILITIES
+   Dynamic viewport units for mobile
+   ======================================== */
+
+@layer utilities {
+  /* Use dvh with vh fallback for full viewport height */
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  .h-screen-safe {
+    height: 100vh;
+    height: 100dvh;
+  }
+  
+  /* Small viewport height (always excludes browser chrome) */
+  .min-h-screen-svh {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+  
+  .h-screen-svh {
+    height: 100vh;
+    height: 100svh;
+  }
+  
+  /* Dynamic scroll container - uses available space */
+  .scroll-container-safe {
+    max-height: calc(100vh - var(--header-height, 4rem));
+    max-height: calc(100dvh - var(--header-height, 4rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  
+  /* Safe area inset utilities */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }

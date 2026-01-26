@@ -31,8 +31,8 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        // Larger radius, better mobile feel
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-3xl border bg-background",
+        // Larger radius, better mobile feel, max height using dvh
+        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto max-h-[90dvh] flex-col rounded-t-3xl border bg-background",
         className,
       )}
       {...props}
@@ -52,8 +52,12 @@ const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 DrawerHeader.displayName = "DrawerHeader";
 
 const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  // Larger padding and gap for mobile
-  <div className={cn("mt-auto flex flex-col gap-3 p-5", className)} {...props} />
+  // Larger padding and gap for mobile, with safe area inset
+  <div 
+    className={cn("mt-auto flex flex-col gap-3 p-5", className)} 
+    style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+    {...props} 
+  />
 );
 DrawerFooter.displayName = "DrawerFooter";
 

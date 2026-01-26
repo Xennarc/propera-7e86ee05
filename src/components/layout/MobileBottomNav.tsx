@@ -2,6 +2,7 @@ import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
 import { useNavAccess } from '@/hooks/useNavAccess';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import {
@@ -42,6 +43,12 @@ export function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
   const { canViewNavItem } = useNavAccess();
+  const { isKeyboardOpen } = useKeyboardInset();
+
+  // Hide when keyboard is open to not obstruct form inputs
+  if (isKeyboardOpen) {
+    return null;
+  }
 
   const isActive = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');

@@ -38,9 +38,9 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Mobile-first: nearly full width with safe margin, max-h to prevent overflow
+        // Mobile-first: nearly full width with safe margin, max-h using dvh to prevent overflow
         "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] sm:w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
-        "max-h-[90vh] overflow-y-auto",
+        "max-h-[90vh] max-h-[90dvh] overflow-y-auto",
         "gap-4 border border-border/30 bg-card p-5 sm:p-6 shadow-2xl shadow-black/20",
         "duration-200 rounded-2xl sm:rounded-3xl",
         "dark:bg-midnight-900 dark:border-midnight-700/50",

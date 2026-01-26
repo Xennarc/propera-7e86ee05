@@ -123,7 +123,7 @@ export function StaffShell() {
         noIndex={true}
       />
       
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-screen-safe w-full bg-background">
         {/* Desktop Sidebar - with gradient stroke */}
         <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
           <StaffSidebar />
@@ -143,7 +143,7 @@ export function StaffShell() {
             onCommandBarOpen={() => setCommandBarOpen(true)}
           />
 
-          <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
             {/* Improved padding scale: tighter on mobile, generous on desktop */}
             <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
               <ErrorBoundary
