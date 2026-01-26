@@ -5,7 +5,6 @@ import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
-import { useStaffMobileDensity } from '@/hooks/useStaffMobileDensity';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { StaffSidebar } from './StaffSidebar';
@@ -31,7 +30,6 @@ export function StaffShell() {
   const [quickOpsOpen, setQuickOpsOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
-  const { isCompact } = useStaffMobileDensity();
   const queryClient = useQueryClient();
   
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
@@ -127,10 +125,7 @@ export function StaffShell() {
         noIndex={true}
       />
       
-      <div 
-        className="flex min-h-screen-safe w-full bg-background"
-        data-density={isCompact ? 'compact' : 'standard'}
-      >
+      <div className="flex min-h-screen-safe w-full bg-background">
         {/* Desktop Sidebar - with gradient stroke */}
         <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
           <StaffSidebar />
