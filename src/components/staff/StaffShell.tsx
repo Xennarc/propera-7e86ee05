@@ -13,6 +13,7 @@ import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
 import { StaffDebugPanel } from './StaffDebugPanel';
 import { StaffDebugConsole } from './StaffDebugConsole';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { MobileQuickOps } from './MobileQuickOps';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -26,6 +27,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [quickOpsOpen, setQuickOpsOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
   const queryClient = useQueryClient();
@@ -141,6 +143,7 @@ export function StaffShell() {
           <StaffTopbar
             onMenuClick={() => setMobileMenuOpen(true)}
             onCommandBarOpen={() => setCommandBarOpen(true)}
+            onQuickOpsOpen={() => setQuickOpsOpen(true)}
           />
 
           <main className="flex-1 overflow-y-auto overflow-x-auto pb-24 lg:pb-0">
@@ -163,6 +166,13 @@ export function StaffShell() {
         <StaffCommandBar
           open={commandBarOpen}
           onOpenChange={setCommandBarOpen}
+        />
+
+        {/* Mobile Quick Ops */}
+        <MobileQuickOps
+          open={quickOpsOpen}
+          onOpenChange={setQuickOpsOpen}
+          onSearchOpen={() => setCommandBarOpen(true)}
         />
 
         {/* Debug Panel (legacy) */}
