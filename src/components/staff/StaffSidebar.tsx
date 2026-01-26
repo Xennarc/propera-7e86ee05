@@ -36,7 +36,6 @@ import {
   Plane,
   Clock,
   ChevronDown,
-  ChevronRight,
   Building2,
   Crown,
   LogOut,
@@ -282,27 +281,26 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
               >
                 <CollapsibleTrigger
                   className={cn(
-                    // Increased padding for better touch targets
-                    'flex w-full items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150',
+                    // 48px touch target for accessibility
+                    'flex w-full items-center gap-3 px-3 py-3 min-h-[48px] rounded-xl text-sm font-medium transition-all duration-200',
                     'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                    'hover:scale-[1.01]',
+                    'active:scale-[0.98]',
                     isGroupActive(group) && 'text-sidebar-foreground'
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className="h-5 w-5 shrink-0" />
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">{group.title}</span>
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
-                      )}
+                      <ChevronDown className={cn(
+                        "h-4 w-4 shrink-0 transition-transform duration-200",
+                        !isOpen && "-rotate-90"
+                      )} />
                     </>
                   )}
                 </CollapsibleTrigger>
 
-                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5">
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5 animate-accordion-down data-[state=closed]:animate-accordion-up">
                   {group.items.map((item) => {
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
@@ -313,8 +311,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           cn(
-                            // Larger touch targets (44px+)
-                            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
+                            // 44px touch targets
+                            'flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm transition-all duration-200',
                             isActive
                               ? 'bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-2 border-sidebar-primary -ml-[2px] pl-[14px]'
                               : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
@@ -336,7 +334,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
             );
           })}
 
-          {/* Admin Group */}
+          {/* Admin Group - with stronger visual distinction */}
           {isAdmin && groupHasVisibleItems(adminGroup) && (
             <div className="pt-4 mt-4 border-t border-sidebar-border/30">
               <Collapsible
@@ -345,26 +343,26 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
               >
                 <CollapsibleTrigger
                   className={cn(
-                    'flex w-full items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-150',
+                    // 48px touch target, admin styling
+                    'flex w-full items-center gap-3 px-3 py-3 min-h-[48px] rounded-xl text-sm font-medium transition-all duration-200',
                     'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                    'hover:scale-[1.01]',
+                    'active:scale-[0.98]',
                     isGroupActive(adminGroup) && 'text-sidebar-foreground'
                   )}
                 >
-                  <Settings className="h-4 w-4 shrink-0" />
+                  <Settings className="h-5 w-5 shrink-0" />
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">Admin</span>
-                      {openGroups['admin'] ? (
-                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform" />
-                      )}
+                      <ChevronDown className={cn(
+                        "h-4 w-4 shrink-0 transition-transform duration-200",
+                        !openGroups['admin'] && "-rotate-90"
+                      )} />
                     </>
                   )}
                 </CollapsibleTrigger>
 
-                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5">
+                <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-primary/30 space-y-0.5 animate-accordion-down data-[state=closed]:animate-accordion-up">
                   {adminGroup.items.map((item) => {
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
 
@@ -375,7 +373,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                         onClick={onNavigate}
                         className={({ isActive }) =>
                           cn(
-                            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
+                            // 44px touch targets
+                            'flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm transition-all duration-200',
                             isActive
                               ? 'bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-2 border-sidebar-primary -ml-[2px] pl-[14px]'
                               : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'

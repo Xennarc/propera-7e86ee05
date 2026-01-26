@@ -2,6 +2,7 @@ import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
 import { useNavAccess } from '@/hooks/useNavAccess';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import {
@@ -42,6 +43,7 @@ export function MobileBottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
   const { canViewNavItem } = useNavAccess();
+  const { isKeyboardOpen } = useKeyboardInset();
 
   const isActive = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
@@ -55,7 +57,12 @@ export function MobileBottomNav() {
   );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-strong border-t border-border/20"
+    <nav 
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-50 lg:hidden surface-glass-nav border-t border-border/20",
+        "transition-all duration-200 ease-out",
+        isKeyboardOpen ? "translate-y-full opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+      )}
       style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center justify-around h-16 px-1">
@@ -75,13 +82,14 @@ export function MobileBottomNav() {
               )}
             >
               <div className={cn(
-                "flex items-center justify-center w-10 h-7 rounded-lg transition-colors",
-                active && "bg-primary/15"
+                // Larger icon pill for better visual weight
+                "flex items-center justify-center w-12 h-8 rounded-xl transition-all duration-200",
+                active && "bg-primary/15 scale-105"
               )}>
-                <Icon className={cn("h-5 w-5", active && "text-primary")} />
+                <Icon className={cn("h-5 w-5 transition-colors", active && "text-primary")} />
               </div>
               <span className={cn(
-                "text-[10px] font-medium leading-none",
+                "text-[10px] font-medium leading-none transition-colors",
                 active && "text-primary font-semibold"
               )}>
                 {item.label}
@@ -97,7 +105,7 @@ export function MobileBottomNav() {
               "flex flex-col items-center justify-center gap-1 min-w-[56px] min-h-[48px] py-1.5 px-2 rounded-xl",
               "text-muted-foreground transition-all duration-200 active:scale-95"
             )}>
-              <div className="flex items-center justify-center w-10 h-7 rounded-lg">
+              <div className="flex items-center justify-center w-12 h-8 rounded-xl">
                 <MoreHorizontal className="h-5 w-5" />
               </div>
               <span className="text-[10px] font-medium leading-none">More</span>
@@ -117,16 +125,16 @@ export function MobileBottomNav() {
                     to={item.href}
                     onClick={() => setMoreOpen(false)}
                     className={cn(
-                      // 48px+ touch targets
-                      "flex flex-col items-center justify-center gap-2.5 p-4 min-h-[80px] rounded-2xl border",
+                      // 48px+ touch targets with larger min-height
+                      "flex flex-col items-center justify-center gap-2.5 p-4 min-h-[88px] rounded-2xl border",
                       "transition-all duration-200 active:scale-[0.97]",
                       "bg-muted/30 border-border/30 dark:bg-midnight-800/50 dark:border-midnight-700/50",
                       active && "bg-primary/10 border-primary/30 text-primary"
                     )}
                   >
-                    <Icon className={cn("h-6 w-6", active && "text-primary")} />
+                    <Icon className={cn("h-6 w-6 transition-colors", active && "text-primary")} />
                     <span className={cn(
-                      "text-xs font-medium text-center leading-tight",
+                      "text-xs font-medium text-center leading-tight transition-colors",
                       active && "text-primary font-semibold"
                     )}>
                       {item.label}
