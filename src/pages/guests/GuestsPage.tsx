@@ -389,22 +389,24 @@ function GuestsPageContent() {
 
               {/* Mobile: Card rows */}
               {isMobile && (
-                <div className="p-3 space-y-3">
-                  {filteredGuests
-                    .filter((guest): guest is Guest => guest != null && !!guest.id)
-                    .map(guest => (
-                      <GuestCardRow
-                        key={guest.id}
-                        guest={guest}
-                        prearrivalStatus={prearrivalStatuses?.[guest.id]}
-                        isSelected={selectedGuests.has(guest.id)}
-                        onSelect={(checked) => handleSelectGuest(guest.id, checked)}
-                        onPreview={() => handleOpenPreview(guest)}
-                        onNavigate={() => handleNavigateToDetail(guest)}
-                        showSelection={prearrivalEnabled}
-                        showPrearrival={prearrivalEnabled}
-                      />
-                    ))}
+                <div className="overflow-x-hidden">
+                  <div className="p-3 space-y-3 pb-24">
+                    {filteredGuests
+                      .filter((guest): guest is Guest => guest != null && !!guest.id)
+                      .map(guest => (
+                        <GuestCardRow
+                          key={guest.id}
+                          guest={guest}
+                          prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                          isSelected={selectedGuests.has(guest.id)}
+                          onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                          onPreview={() => handleOpenPreview(guest)}
+                          onNavigate={() => handleNavigateToDetail(guest)}
+                          showSelection={prearrivalEnabled}
+                          showPrearrival={prearrivalEnabled}
+                        />
+                      ))}
+                  </div>
                 </div>
               )}
 
