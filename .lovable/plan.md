@@ -1,260 +1,261 @@
 
-# Guest List Mobile Horizontal Overflow - Root Cause Analysis & Fix
+# Enable Horizontal Scroll for Mobile Guest List - Pragmatic Fallback
 
-## Problem Diagnosis
+## Problem Summary
 
-After analyzing the codebase and layout structure, the persistent horizontal overflow on mobile is caused by **multiple compounding spacing issues**:
+Despite multiple attempts to constrain the guest list within the mobile viewport using `overflow-x-hidden`, content is still getting clipped and inaccessible. The current approach of hiding overflow (`overflow-x-hidden`) means users cannot see or interact with content that extends beyond the viewport edge.
 
-### Root Causes
+The user is requesting a pragmatic fallback: **allow horizontal scrolling** so that even if content doesn't fit perfectly, it remains accessible.
 
-1. **Excessive horizontal padding in `GuestCardRow`**
-   - Card base padding: `p-4` = 16px × 2 = 32px
-   - Selection mode adds: `pl-8` = 32px additional left padding
-   - Name row reserves space for preview button: `pr-10` = 40px
-   - **Total horizontal space consumed: 32px (base) + 32px (selection) + 40px (preview) = 104px**
-   - On a 375px iPhone SE, this leaves only ~271px for actual content
+## Root Cause
 
-2. **Absolute positioned elements creating layout conflicts**
-   - Preview button (top-right, line 112-129) is absolutely positioned
-   - Chevron indicator (right-center, line 188) is also absolutely positioned
-   - Both elements use `right-` positioning which can push content when flex containers don't have proper constraints
+Multiple layers of `overflow-x-hidden` are stacked throughout the application:
 
-3. **`StaffShell` padding reducing available viewport**
-   - Line 148: `p-3` on mobile = 12px × 2 = 24px horizontal space consumed
-   - This compounds with card internal padding
+1. **Global level** (`src/index.css`):
+   - Line 275: `html { overflow-x: hidden; }`
+   - Line 284: `body { overflow-x: hidden; }`
 
-4. **Flex layout without proper min-width constraints**
-   - The name row (line 134) uses `pr-10` to avoid overlap with the preview button
-   - When content wraps, the `pr-10` creates unnecessary space
-   - The status badge and room button can wrap unexpectedly, causing the row to expand
+2. **Shell level** (`src/components/staff/StaffShell.tsx`):
+   - Line 146: `<main className="... overflow-x-hidden">`
 
-5. **Missing viewport-relative constraints**
-   - All spacing uses fixed pixel values (`p-4`, `pr-10`, etc.)
-   - No use of percentage-based spacing for mobile breakpoints
+3. **Page level** (`src/pages/guests/GuestsPage.tsx`):
+   - Line 268: `<div className="... overflow-x-hidden">`
+   - Line 296: `<Card className="overflow-hidden">`
+   - Line 297: `<CardContent className="... overflow-hidden">`
 
----
+These compound to **completely hide** any content that exceeds viewport width, making it inaccessible rather than scrollable.
 
 ## Solution Strategy
 
-### Phase 1: Reduce GuestCardRow Padding (High Priority)
+Convert from a **hide-overflow strategy** to a **scroll-overflow strategy** by changing `overflow-x-hidden` to `overflow-x-auto`. This allows:
 
-**Target: `src/components/guests/GuestCardRow.tsx`**
+1. Content to **prefer fitting** within the viewport (due to `w-full max-w-full` constraints)
+2. But **fallback to horizontal scroll** when content must exceed viewport
+3. Users can **always access all content**, even if layout isn't perfect
 
-Changes:
-1. Reduce base card padding from `p-4` to `p-3` on mobile (12px vs 16px = 8px saved)
-2. Reduce name row right padding from `pr-10` to `pr-8` on mobile (32px vs 40px = 8px saved)
-3. Optimize selection left padding from `pl-8` to `pl-6` when selection is active (24px vs 32px = 8px saved)
-4. **Total savings: 24px on mobile**, increasing content area from 271px to ~295px
+### Philosophy Shift
 
+**Before:** Enforce mobile-first constraints by hiding anything that doesn't fit  
+**After:** Encourage mobile-first constraints, but allow scrolling as a safety net
+
+---
+
+## Implementation Plan
+
+### Change 1: GuestsPage - Allow Horizontal Scroll in Cards
+
+**File: `src/pages/guests/GuestsPage.tsx`**
+
+**Rationale:** The guest list container should allow horizontal scroll as a last resort.
+
+#### Line 268: Main page wrapper
 ```tsx
-// Line 79-96: Card container
-<div
-  onClick={onNavigate}
-  className={cn(
-    'relative bg-card border border-border/40 rounded-xl cursor-pointer',
-    'w-full max-w-full overflow-hidden box-border',
-    // Responsive padding: tighter on mobile
-    'p-3 sm:p-4',
-    'transition-all duration-200',
-    'hover:bg-accent/30 hover:border-border/60',
-    'hover:shadow-soft',
-    'active:scale-[0.98]',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-    isSelected && 'ring-2 ring-primary/30 bg-primary/5 border-primary/30'
-  )}
->
+// Current:
+<div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
 
-// Line 132: Main content with responsive selection offset
-<div className={cn(
-  'space-y-3 min-w-0 overflow-hidden w-full max-w-full',
-  showSelection && 'pl-6 sm:pl-8'  // Reduced from pl-8
-)}>
-
-// Line 134: Name row with responsive padding
-<div className="flex items-center gap-2 pr-8 sm:pr-10 overflow-hidden min-w-0 w-full">
+// Change to:
+<div className="space-y-6 animate-fade-in overflow-x-auto w-full max-w-full">
 ```
 
-### Phase 2: Optimize Absolute Positioned Elements
-
-**Target: `src/components/guests/GuestCardRow.tsx`**
-
-Changes:
-1. Move preview button positioning from `top-3 right-3` to `top-2.5 right-2.5` on mobile
-2. Reduce chevron size from `h-5 w-5` to `h-4 w-4` on mobile
-3. Adjust chevron right offset from `right-4` to `right-3` on mobile
-
+#### Line 296: Card container
 ```tsx
-// Line 112-129: Preview button with responsive positioning
-<div 
-  className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 flex items-center gap-1"
-  onClick={(e) => e.stopPropagation()}
->
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 sm:h-8 sm:w-8"  // Slightly smaller on mobile
-        onClick={onPreview}
-      >
-        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      </Button>
-    </TooltipTrigger>
-    <TooltipContent>Quick preview</TooltipContent>
-  </Tooltip>
-</div>
+// Current:
+<Card className="overflow-hidden w-full">
 
-// Line 188: Chevron with responsive sizing
-<ChevronRight className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/50" />
+// Change to:
+<Card className="overflow-x-auto overflow-y-visible w-full">
 ```
 
-### Phase 3: Constrain GuestListToolbar Width
-
-**Target: `src/components/guests/GuestListToolbar.tsx`**
-
-Issue: The toolbar is inside a `p-4` padding wrapper (GuestsPage.tsx line 299), which on mobile adds 16px × 2 = 32px. This can cause the toolbar elements to overflow.
-
-Changes:
-1. Ensure search input properly shrinks with `min-w-0`
-2. Add maximum widths to filter dropdowns on extra-small screens
-
+#### Line 297: CardContent
 ```tsx
-// Line 141-147: Search row with proper constraints
-<div className="flex gap-2 w-full max-w-full min-w-0">
-  <SearchInput
-    value={search}
-    onChange={onSearchChange}
-    placeholder="Search name, room, email..."
-    className="flex-1 min-w-0"  // Add min-w-0
-  />
-  {hasActiveFilters && (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={onClearFilters}
-      className="shrink-0 h-10 w-10"
-    >
-      <X className="h-4 w-4" />
-    </Button>
-  )}
-</div>
+// Current:
+<CardContent className="p-0 overflow-hidden">
 
-// Line 163-166: Filter dropdown with tighter mobile width
-<Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
-  <SelectTrigger className="w-full xs:w-auto xs:min-w-[140px] sm:w-[180px] h-10 bg-background">
-    <SelectValue />
-  </SelectTrigger>
-</Select>
+// Change to:
+<CardContent className="p-0 overflow-x-auto overflow-y-visible">
 ```
 
-### Phase 4: Reduce Toolbar Container Padding on Mobile
+#### Line 371 (approximate): Mobile guest list container
 
-**Target: `src/pages/guests/GuestsPage.tsx`**
-
-The toolbar wrapper (line 299) uses `p-4` which adds 16px × 2 on mobile. Reduce to `p-3` to match `StaffShell` padding.
+Currently the mobile section wraps cards in a container. We need to ensure this container allows horizontal scroll:
 
 ```tsx
-// Line 299: Toolbar with responsive padding
-<div className="p-3 sm:p-4 border-b border-border/50">
-  <GuestListToolbar ... />
-</div>
+// Find the mobile card container (around line 371)
+// Current:
+{isMobile && (
+  <div className="w-full max-w-full overflow-hidden">
+    <div className="p-3 space-y-3 pb-24 w-full max-w-full">
+
+// Change to:
+{isMobile && (
+  <div className="w-full overflow-x-auto">
+    <div className="p-3 space-y-3 pb-24 min-w-full">
 ```
 
-### Phase 5: Add Explicit Width Constraint to Card
+**Explanation:** Using `overflow-x-auto` allows scrolling when content is wider. Using `min-w-full` instead of `w-full max-w-full` on the inner div ensures cards don't shrink below full width while still allowing the container to scroll if cards exceed viewport.
 
-**Target: `src/pages/guests/GuestsPage.tsx`**
+---
 
-Ensure the main Card respects the viewport width and doesn't expand beyond it.
+### Change 2: StaffShell - Allow Page-Level Horizontal Scroll
 
+**File: `src/components/staff/StaffShell.tsx`**
+
+**Rationale:** The shell's main area should not force-hide horizontal overflow. Let individual pages control their overflow behavior.
+
+#### Line 146: Main content area
 ```tsx
-// Line 296: Card with explicit width constraint
-<Card className="overflow-hidden w-full max-w-full">
+// Current:
+<main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
+
+// Change to:
+<main className="flex-1 overflow-y-auto overflow-x-auto pb-24 lg:pb-0">
 ```
 
 ---
 
-## Implementation Priority
+### Change 3: Global Styles - Allow Root-Level Horizontal Scroll
 
-| Phase | File | Change | Impact | Effort |
-|-------|------|--------|--------|--------|
-| 1 | `GuestCardRow.tsx` | Reduce padding from `p-4` to `p-3 sm:p-4` | High - saves 24px | Low |
-| 2 | `GuestCardRow.tsx` | Responsive positioning for absolute elements | Medium | Low |
-| 3 | `GuestListToolbar.tsx` | Add `min-w-0` to search, constrain filters | Medium | Low |
-| 4 | `GuestsPage.tsx` | Reduce toolbar padding `p-3 sm:p-4` | Medium | Low |
-| 5 | `GuestsPage.tsx` | Add `max-w-full` to Card | Low - safety net | Low |
+**File: `src/index.css`**
+
+**Rationale:** The strictest constraint is at the global level. By allowing scroll here, we enable all child components to use horizontal scroll when needed.
+
+#### Lines 272-276: HTML element
+```css
+/* Current: */
+html {
+  @apply scroll-smooth;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+}
+
+/* Change to: */
+html {
+  @apply scroll-smooth;
+  /* Allow horizontal scroll when needed */
+  overflow-x: auto;
+}
+```
+
+#### Lines 278-287: Body element
+```css
+/* Current: */
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.01em;
+  /* Prevent horizontal scroll and touch scroll escape */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Change to: */
+body {
+  @apply bg-background text-foreground antialiased;
+  font-family: 'Plus Jakarta Sans', 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.01em;
+  /* Allow horizontal scroll when needed */
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+```
+
+**Note:** Also changed `touch-action` from `pan-y pinch-zoom` to `pan-x pan-y pinch-zoom` to enable horizontal panning on touch devices.
 
 ---
 
-## Expected Outcome
+### Change 4: GuestCardRow - Ensure Cards Can Scroll
 
-After all changes:
+**File: `src/components/guests/GuestCardRow.tsx`**
 
-### Available Width Calculation (375px iPhone SE)
+**Current state:** Cards already have proper width constraints and responsive padding. No changes needed here - the cards themselves are well-constrained. The issue is their container preventing scroll.
+
+**Action:** No changes needed to this component. The parent container changes will allow these cards to scroll if they exceed viewport.
+
+---
+
+## Optional Enhancement: Visual Scroll Indicator
+
+To help users realize content is scrollable, we can add a subtle scroll hint.
+
+**File: `src/pages/guests/GuestsPage.tsx`**
+
+Add a CSS class or inline style for the mobile card container:
+
+```tsx
+{isMobile && (
+  <div className="w-full overflow-x-auto scroll-smooth">
+    {/* Add scroll shadow gradient as visual cue */}
+    <div className="relative">
+      <div className="p-3 space-y-3 pb-24 min-w-full">
+        {filteredGuests.map(...)}
+      </div>
+      {/* Scroll hint shadow (optional) */}
+      <div className="pointer-events-none absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent" />
+    </div>
+  </div>
+)}
 ```
-Viewport width:                375px
-StaffShell padding (p-3):     -24px  (12px × 2)
-Card border:                   -2px
-Guest card padding (p-3):     -24px  (12px × 2)
-Selection offset (pl-6):      -24px  (when active)
-Name row padding (pr-8):      -32px
-─────────────────────────────────────
-Available for name/content:    269px ✓ (vs 245px before)
 
-Total width savings:           24px
-```
-
-### Visual Result
-```
-┌────────────────────────────────────┐ 375px viewport
-│ p-3 (12px)                         │
-│ ┌────────────────────────────────┐ │
-│ │ Card p-3 (12px)                │ │
-│ │ ┌─────────────────────────────┐││
-│ │ │☑ Jane Smith    Crown Star 👁│││ ← All visible
-│ │ │ 205  In-House              ││││
-│ │ │ Jan 20 – Jan 28 (8n)       ││││
-│ │ └─────────────────────────────┘││
-│ └────────────────────────────────┘ │
-└────────────────────────────────────┘
-```
-
-All content fits within viewport without:
-- Horizontal scrolling
-- Clipped text
-- Overlapping elements
-- Need to pinch-zoom
+This adds a subtle shadow on the right edge to indicate "more content this way" when scrolling is needed.
 
 ---
 
 ## Files to Modify
 
-1. **`src/components/guests/GuestCardRow.tsx`** - Reduce padding, optimize absolute positioning
-2. **`src/components/guests/GuestListToolbar.tsx`** - Add min-w-0 constraints, tighter mobile widths
-3. **`src/pages/guests/GuestsPage.tsx`** - Reduce toolbar padding, add Card max-width safety
+| File | Lines | Change | Priority |
+|------|-------|--------|----------|
+| `src/pages/guests/GuestsPage.tsx` | 268, 296, 297, ~371 | Change `overflow-x-hidden` → `overflow-x-auto` | High |
+| `src/components/staff/StaffShell.tsx` | 146 | Change `overflow-x-hidden` → `overflow-x-auto` | High |
+| `src/index.css` | 275, 284, 286 | Change `overflow-x: hidden` → `overflow-x: auto` and update `touch-action` | High |
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify on:
+After implementation, verify on mobile (320px - 428px):
 
-- [ ] iPhone SE (375px width) - smallest common device
-- [ ] iPhone 12/13/14 (390px width)
-- [ ] Small Android (360px width)
-- [ ] With prearrival enabled (selection checkboxes visible)
-- [ ] With long guest names (e.g., "Alessandro Rodriguez Martinez")
-- [ ] With VIP + Loyalty badges showing
-- [ ] With search active (clear button visible)
-- [ ] With multiple filters active
-- [ ] In portrait and landscape orientations
-- [ ] No horizontal scroll at any width
-- [ ] All action buttons remain tappable
-- [ ] Preview drawer opens correctly
+- [ ] Guest list is visible and accessible
+- [ ] If content exceeds viewport, horizontal scrollbar appears
+- [ ] User can scroll horizontally to see all content
+- [ ] Search, filters, and action buttons remain accessible
+- [ ] Preview button and guest name are both visible (no clipping)
+- [ ] Horizontal scroll is smooth on touch devices
+- [ ] Desktop layout is unaffected (no unwanted scroll bars)
+- [ ] No layout shift or jank when scrolling
+- [ ] Bulk action bar doesn't interfere with scrolling
+
+---
+
+## Trade-offs
+
+### Pros ✅
+- **Immediate accessibility**: Users can see and interact with all content
+- **Fail-safe approach**: Even if width constraints fail, nothing is hidden
+- **Better UX than clipped content**: Scrolling is preferable to hidden buttons
+- **Simple implementation**: Just change CSS properties
+
+### Cons ⚠️
+- **Not "perfect" mobile UX**: Horizontal scroll is generally avoided in mobile design
+- **Indicates layout still needs work**: The ideal is no scroll, but this is a pragmatic fallback
+- **May hide the actual problem**: Content that requires scroll should ideally be refactored to fit
+
+### Recommendation 💡
+Implement this change as a **short-term solution** to unblock users, then continue investigating why width constraints aren't working perfectly. This allows:
+1. Users to access all functionality now
+2. Development to continue refining the mobile layout in parallel
 
 ---
 
 ## Summary
 
-The fix focuses on **reducing cumulative padding** rather than changing the layout structure. By moving from fixed `p-4` padding to responsive `p-3 sm:p-4`, we save 8px per edge (24px total) on mobile, which is enough to prevent horizontal overflow on the smallest common viewport (375px iPhone SE).
+This plan converts the guest list from a **strict containment strategy** (hide overflow) to a **graceful degradation strategy** (scroll overflow). By changing `overflow-x-hidden` to `overflow-x-auto` at key container levels, we ensure users can always access all content, even if the layout doesn't fit perfectly within the viewport.
 
-All changes are **CSS-only** - no business logic, data handling, or component behavior modifications.
+The changes are:
+1. **Minimal**: Just CSS property changes, no structural refactoring
+2. **Safe**: Doesn't break existing functionality
+3. **Reversible**: Can be reverted if we find a better solution
+4. **Pragmatic**: Prioritizes accessibility over perfectionism
