@@ -265,7 +265,7 @@ function GuestsPageContent() {
   const someSelected = selectedGuests.size > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in overflow-x-auto w-full max-w-full">
+    <div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
       {isReadOnly && <DemoReadOnlyBanner />}
       
       <PageHeader
@@ -293,8 +293,8 @@ function GuestsPageContent() {
       )}
 
       {/* Filters and List */}
-      <Card className="overflow-x-auto overflow-y-visible w-full">
-        <CardContent className="p-0 overflow-x-auto overflow-y-visible">
+      <Card className="overflow-hidden w-full max-w-full">
+        <CardContent className="p-0 overflow-hidden max-w-full">
           {/* Toolbar */}
           <div className="p-3 sm:p-4 border-b border-border/50">
             <GuestListToolbar
@@ -389,8 +389,8 @@ function GuestsPageContent() {
 
               {/* Mobile: Card rows */}
               {isMobile && (
-                <div className="w-full overflow-x-auto">
-                  <div className="p-3 space-y-3 pb-24 min-w-full">
+                <div className="w-full max-w-full overflow-hidden">
+                  <div className="p-3 space-y-3 pb-24 w-full max-w-full">
                     {filteredGuests
                       .filter((guest): guest is Guest => guest != null && !!guest.id)
                       .map(guest => (
