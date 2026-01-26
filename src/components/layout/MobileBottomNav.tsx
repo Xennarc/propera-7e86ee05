@@ -1,6 +1,6 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
+import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell, MessageSquare } from 'lucide-react';
 import { useNavAccess } from '@/hooks/useNavAccess';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { ResortRole } from '@/types/database';
@@ -23,14 +23,17 @@ interface NavItem {
   tierFeature?: TierFeature;
 }
 
+// Primary destinations - most used for mobile operations
 const primaryNavItems: NavItem[] = [
   { label: 'Home', href: '/staff/dashboard', icon: Home, resortRoles: null },
   { label: 'Guests', href: '/staff/guests', icon: Users, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
+  { label: 'Requests', href: '/staff/guest-requests', icon: MessageSquare, resortRoles: null },
   { label: 'Activities', href: '/staff/activities/sessions', icon: Calendar, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-  { label: 'Dining', href: '/staff/restaurants/slots', icon: UtensilsCrossed, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
 ];
 
+// Secondary destinations - in "More" sheet
 const moreNavItems: NavItem[] = [
+  { label: 'Dining', href: '/staff/restaurants/slots', icon: UtensilsCrossed, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
   { label: 'Notifications', href: '/staff/notifications', icon: Bell, resortRoles: null },
   { label: 'Pre-Arrival', href: '/staff/prearrival', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
   { label: 'Reports', href: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
