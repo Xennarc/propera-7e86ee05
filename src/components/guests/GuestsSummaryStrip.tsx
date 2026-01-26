@@ -113,7 +113,7 @@ export const GuestsSummaryStrip = memo(function GuestsSummaryStrip({
             key={`${chip.key}-${index}`}
             onClick={() => handleClick(chip)}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all',
+              'flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all min-h-[44px]',
               'hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring',
               'snap-start shrink-0',
               isActive

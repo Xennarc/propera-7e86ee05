@@ -80,7 +80,7 @@ export const GuestCardRow = memo(function GuestCardRow({
       onClick={onNavigate}
       className={cn(
         // Premium mobile card styling
-        'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer',
+        'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden',
         'transition-all duration-200',
         'hover:bg-accent/30 hover:border-border/60',
         'hover:shadow-soft',
@@ -130,8 +130,8 @@ export const GuestCardRow = memo(function GuestCardRow({
       {/* Main content */}
       <div className={cn('space-y-3', showSelection && 'pl-8')}>
         {/* Name + VIP badges - 16px per spec */}
-        <div className="flex items-center gap-2 flex-wrap pr-12">
-          <span className="font-semibold text-foreground text-base">{guest.full_name}</span>
+        <div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden">
+          <span className="font-semibold text-foreground text-base truncate max-w-[200px]">{guest.full_name}</span>
           {guest.is_vip && (
             <Crown className="h-4 w-4 text-amber-500 shrink-0" />
           )}

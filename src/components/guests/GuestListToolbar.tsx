@@ -137,11 +137,31 @@ export const GuestListToolbar = memo(function GuestListToolbar({
 
   return (
     <div className={cn('space-y-3', className)}>
-      {/* Main toolbar row */}
+      {/* Search row - full width on mobile */}
+      <div className="flex gap-2">
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Search name, room, email..."
+          className="flex-1"
+        />
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClearFilters}
+            className="shrink-0 h-10 w-10"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Filters row - wraps on mobile */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Legacy filter dropdown */}
         <Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
-          <SelectTrigger className="w-[180px] bg-background">
+          <SelectTrigger className="w-full sm:w-[180px] h-10 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -164,14 +184,6 @@ export const GuestListToolbar = memo(function GuestListToolbar({
             )}
           </SelectContent>
         </Select>
-
-        {/* Search */}
-        <SearchInput
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Search name, room, email..."
-          className="flex-1 min-w-[200px] max-w-sm"
-        />
 
         {/* Advanced filters popover */}
         <Popover>
@@ -233,7 +245,7 @@ export const GuestListToolbar = memo(function GuestListToolbar({
 
         {/* Sort */}
         <Select value={sortBy} onValueChange={(v) => onSortChange(v as GuestSortOption)}>
-          <SelectTrigger className="w-[160px] bg-background">
+          <SelectTrigger className="flex-1 sm:flex-none sm:w-[160px] h-10 bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -245,39 +257,28 @@ export const GuestListToolbar = memo(function GuestListToolbar({
           </SelectContent>
         </Select>
 
-        {/* Density toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onDensityToggle}
-              className="shrink-0"
-            >
-              {density === 'compact' ? (
-                <LayoutList className="h-4 w-4" />
-              ) : (
-                <LayoutGrid className="h-4 w-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {density === 'compact' ? 'Switch to comfortable view' : 'Switch to compact view'}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Clear filters */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearFilters}
-            className="gap-1 text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-            Clear
-          </Button>
-        )}
+        {/* Density toggle + Filters popover grouped */}
+        <div className="flex items-center gap-2 ml-auto">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onDensityToggle}
+                className="shrink-0 h-10 w-10"
+              >
+                {density === 'compact' ? (
+                  <LayoutList className="h-4 w-4" />
+                ) : (
+                  <LayoutGrid className="h-4 w-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {density === 'compact' ? 'Switch to comfortable view' : 'Switch to compact view'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Active filters chips */}

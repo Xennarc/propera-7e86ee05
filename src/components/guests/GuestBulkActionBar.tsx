@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Guest } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 interface GuestBulkActionBarProps {
   selectedGuests: Guest[];
@@ -26,6 +27,7 @@ export const GuestBulkActionBar = memo(function GuestBulkActionBar({
   className,
 }: GuestBulkActionBarProps) {
   const { toast } = useToast();
+  const { isKeyboardOpen } = useKeyboardInset();
   const count = selectedGuests.length;
 
   const handleCopyNames = useCallback(() => {
@@ -83,14 +85,18 @@ export const GuestBulkActionBar = memo(function GuestBulkActionBar({
     });
   }, [selectedGuests, count, toast]);
 
-  if (count === 0) return null;
+  // Hide when keyboard is open or no selection
+  if (count === 0 || isKeyboardOpen) return null;
 
   return (
     <div
       className={cn(
-        'fixed bottom-4 left-1/2 -translate-x-1/2 z-50',
+        'fixed left-1/2 -translate-x-1/2 z-40',
+        // Sit above mobile nav on mobile, normal on desktop
+        'bottom-20 lg:bottom-4',
         'flex items-center gap-2 p-2 pl-4 rounded-full',
         'bg-background/95 backdrop-blur-sm border shadow-lg',
+        'pb-[env(safe-area-inset-bottom)]',
         className
       )}
     >
