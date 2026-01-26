@@ -265,7 +265,7 @@ function GuestsPageContent() {
   const someSelected = selectedGuests.size > 0;
 
   return (
-    <div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
+    <div className="space-y-6 animate-fade-in">
       {isReadOnly && <DemoReadOnlyBanner />}
       
       <PageHeader
@@ -293,10 +293,10 @@ function GuestsPageContent() {
       )}
 
       {/* Filters and List */}
-      <Card className="overflow-hidden w-full max-w-full">
-        <CardContent className="p-0 overflow-hidden max-w-full">
+      <Card>
+        <CardContent className="p-0">
           {/* Toolbar */}
-          <div className="p-3 sm:p-4 border-b border-border/50">
+          <div className="p-4 border-b border-border/50">
             <GuestListToolbar
               search={filters.search}
               onSearchChange={setSearch}
@@ -337,7 +337,7 @@ function GuestsPageContent() {
             <>
               {/* Desktop: Table-like rows */}
               {!isMobile && (
-                <div className="overflow-x-hidden w-full">
+                <div className="overflow-hidden">
                   {/* Header row */}
                   <div className={cn(
                     'grid gap-3 items-center border-b border-border bg-muted/30 text-sm font-medium text-muted-foreground',
@@ -389,24 +389,22 @@ function GuestsPageContent() {
 
               {/* Mobile: Card rows */}
               {isMobile && (
-                <div className="w-full max-w-full overflow-hidden">
-                  <div className="p-3 space-y-3 pb-24 w-full max-w-full">
-                    {filteredGuests
-                      .filter((guest): guest is Guest => guest != null && !!guest.id)
-                      .map(guest => (
-                        <GuestCardRow
-                          key={guest.id}
-                          guest={guest}
-                          prearrivalStatus={prearrivalStatuses?.[guest.id]}
-                          isSelected={selectedGuests.has(guest.id)}
-                          onSelect={(checked) => handleSelectGuest(guest.id, checked)}
-                          onPreview={() => handleOpenPreview(guest)}
-                          onNavigate={() => handleNavigateToDetail(guest)}
-                          showSelection={prearrivalEnabled}
-                          showPrearrival={prearrivalEnabled}
-                        />
-                      ))}
-                  </div>
+                <div className="p-3 space-y-3">
+                  {filteredGuests
+                    .filter((guest): guest is Guest => guest != null && !!guest.id)
+                    .map(guest => (
+                      <GuestCardRow
+                        key={guest.id}
+                        guest={guest}
+                        prearrivalStatus={prearrivalStatuses?.[guest.id]}
+                        isSelected={selectedGuests.has(guest.id)}
+                        onSelect={(checked) => handleSelectGuest(guest.id, checked)}
+                        onPreview={() => handleOpenPreview(guest)}
+                        onNavigate={() => handleNavigateToDetail(guest)}
+                        showSelection={prearrivalEnabled}
+                        showPrearrival={prearrivalEnabled}
+                      />
+                    ))}
                 </div>
               )}
 

@@ -50,7 +50,7 @@ export function PageHeader({
               ))}
             </nav>
           )}
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground break-words">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
             {title}
           </h1>
           {description && (

@@ -13,7 +13,6 @@ import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
 import { StaffDebugPanel } from './StaffDebugPanel';
 import { StaffDebugConsole } from './StaffDebugConsole';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
-import { MobileQuickOps } from './MobileQuickOps';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -27,7 +26,6 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [quickOpsOpen, setQuickOpsOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
   const queryClient = useQueryClient();
@@ -125,7 +123,7 @@ export function StaffShell() {
         noIndex={true}
       />
       
-      <div className="flex min-h-screen-safe w-full bg-background">
+      <div className="flex min-h-screen w-full bg-background">
         {/* Desktop Sidebar - with gradient stroke */}
         <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
           <StaffSidebar />
@@ -143,12 +141,11 @@ export function StaffShell() {
           <StaffTopbar
             onMenuClick={() => setMobileMenuOpen(true)}
             onCommandBarOpen={() => setCommandBarOpen(true)}
-            onQuickOpsOpen={() => setQuickOpsOpen(true)}
           />
 
-          <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0 max-w-full">
+          <main className="flex-1 overflow-auto pb-24 lg:pb-0">
             {/* Improved padding scale: tighter on mobile, generous on desktop */}
-            <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto w-full overflow-x-hidden">
+            <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
               <ErrorBoundary
                 fallback={<RouteErrorFallback />}
                 onReset={() => window.location.reload()}
@@ -166,13 +163,6 @@ export function StaffShell() {
         <StaffCommandBar
           open={commandBarOpen}
           onOpenChange={setCommandBarOpen}
-        />
-
-        {/* Mobile Quick Ops */}
-        <MobileQuickOps
-          open={quickOpsOpen}
-          onOpenChange={setQuickOpsOpen}
-          onSearchOpen={() => setCommandBarOpen(true)}
         />
 
         {/* Debug Panel (legacy) */}

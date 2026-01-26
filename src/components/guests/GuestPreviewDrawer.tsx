@@ -293,7 +293,7 @@ export function GuestPreviewDrawer({
           </div>
         </ScrollArea>
 
-        <SheetFooter className="p-4 border-t" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+        <SheetFooter className="p-4 border-t">
           <Button 
             onClick={onNavigateToDetail} 
             className="w-full"

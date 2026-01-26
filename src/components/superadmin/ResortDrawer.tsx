@@ -328,7 +328,7 @@ export function ResortDrawer({ resort, open, onOpenChange, writeMode = false }: 
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-xl flex flex-col h-full max-h-[100dvh] overflow-hidden">
+        <SheetContent className="w-full sm:max-w-xl overflow-hidden">
           <SheetHeader className="pb-4">
             <div className="flex items-start justify-between">
               <div>
@@ -372,8 +372,8 @@ export function ResortDrawer({ resort, open, onOpenChange, writeMode = false }: 
               <TabsTrigger value="audit" className="text-xs">Audit</TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 min-h-0">
-              <TabsContent value="overview" className="space-y-4 mt-0 pr-4">
+            <ScrollArea className="h-[calc(100vh-280px)]">
+              <TabsContent value="overview" className="space-y-4 mt-0">
                 {loadingMetrics ? (
                   <div className="space-y-3">
                     <Skeleton className="h-20 w-full" />

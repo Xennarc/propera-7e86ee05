@@ -79,10 +79,8 @@ export const GuestCardRow = memo(function GuestCardRow({
     <div
       onClick={onNavigate}
       className={cn(
-        // Premium mobile card styling - strict width containment
-        // Responsive padding: p-3 on mobile, p-4 on sm+
-        'relative p-3 sm:p-4 bg-card border border-border/40 rounded-xl cursor-pointer',
-        'w-full max-w-full overflow-hidden box-border',
+        // Premium mobile card styling
+        'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer',
         'transition-all duration-200',
         'hover:bg-accent/30 hover:border-border/60',
         'hover:shadow-soft',
@@ -95,10 +93,10 @@ export const GuestCardRow = memo(function GuestCardRow({
       aria-label={`Guest: ${guest.full_name}`}
       tabIndex={0}
     >
-      {/* Selection checkbox (top-left) - responsive positioning */}
+      {/* Selection checkbox (top-left) */}
       {showSelection && (
         <div 
-          className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3"
+          className="absolute top-3 left-3"
           onClick={(e) => e.stopPropagation()}
         >
           <Checkbox
@@ -109,9 +107,9 @@ export const GuestCardRow = memo(function GuestCardRow({
         </div>
       )}
 
-      {/* Preview button (top-right) - responsive positioning and sizing */}
+      {/* Preview button (top-right) */}
       <div 
-        className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center gap-1"
+        className="absolute top-3 right-3 flex items-center gap-1"
         onClick={(e) => e.stopPropagation()}
       >
         <Tooltip>
@@ -119,47 +117,47 @@ export const GuestCardRow = memo(function GuestCardRow({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 sm:h-8 sm:w-8"
+              className="h-8 w-8"
               onClick={onPreview}
             >
-              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <Eye className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Quick preview</TooltipContent>
         </Tooltip>
       </div>
 
-      {/* Main content - responsive selection offset */}
-      <div className={cn('space-y-2 sm:space-y-3 min-w-0 overflow-hidden w-full max-w-full', showSelection && 'pl-6 sm:pl-8')}>
-        {/* Name + VIP badges - responsive right padding for preview button */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pr-8 sm:pr-10 overflow-hidden min-w-0 w-full">
-          <span className="font-semibold text-foreground text-[15px] sm:text-base truncate flex-1 min-w-0">{guest.full_name}</span>
+      {/* Main content */}
+      <div className={cn('space-y-3', showSelection && 'pl-8')}>
+        {/* Name + VIP badges - 16px per spec */}
+        <div className="flex items-center gap-2 flex-wrap pr-12">
+          <span className="font-semibold text-foreground text-base">{guest.full_name}</span>
           {guest.is_vip && (
-            <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 shrink-0" />
+            <Crown className="h-4 w-4 text-amber-500 shrink-0" />
           )}
           {guest.loyalty_tier && (
-            <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary shrink-0" />
+            <Star className="h-4 w-4 text-primary shrink-0" />
           )}
         </div>
 
-        {/* Room + Status inline - responsive sizing */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap w-full min-w-0">
+        {/* Room + Status inline */}
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={handleCopyRoom}
             className={cn(
-              "font-mono text-xs sm:text-sm font-medium shrink-0",
-              "bg-muted/60 dark:bg-midnight-800/60 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg",
+              "font-mono text-sm font-medium",
+              "bg-muted/60 dark:bg-midnight-800/60 px-2.5 py-1 rounded-lg",
               "border border-border/40",
               "hover:bg-muted transition-colors"
             )}
           >
-            {guest.room_number || '-'}
+            Room {guest.room_number || '-'}
           </button>
 
           <Badge 
             variant="outline"
             className={cn(
-              'font-medium shrink-0 text-xs',
+              'font-medium',
               statusVariantMap[status.variant]
             )}
           >
@@ -168,12 +166,12 @@ export const GuestCardRow = memo(function GuestCardRow({
           </Badge>
         </div>
 
-        {/* Dates as secondary metadata row - responsive text size */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs sm:text-sm text-muted-foreground w-full min-w-0">
-          <span className="truncate">
+        {/* Dates as secondary metadata row */}
+        <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+          <span>
             {safeFormatDate(guest.check_in_date, 'MMM d')} – {safeFormatDate(guest.check_out_date, 'MMM d')}
           </span>
-          <span className="opacity-60 shrink-0">({nights}n)</span>
+          <span className="opacity-60">({nights} nights)</span>
         </div>
 
         {/* Flags row */}
@@ -185,8 +183,8 @@ export const GuestCardRow = memo(function GuestCardRow({
         )}
       </div>
 
-      {/* Chevron indicator - responsive positioning and size */}
-      <ChevronRight className="absolute right-2.5 sm:right-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/50" />
+      {/* Chevron indicator */}
+      <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50" />
     </div>
   );
 }, (prev, next) => {

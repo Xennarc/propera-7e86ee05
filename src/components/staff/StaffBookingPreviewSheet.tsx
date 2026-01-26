@@ -205,8 +205,8 @@ export function StaffBookingPreviewSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="sm:max-w-md flex flex-col h-full max-h-[100dvh]">
-          <SheetHeader className="space-y-3 flex-shrink-0">
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader className="space-y-3">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-2">
                 {isActivity ? (
@@ -228,7 +228,7 @@ export function StaffBookingPreviewSheet({
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="flex-1 min-h-0 mt-6">
+          <ScrollArea className="h-[calc(100vh-16rem)] mt-6">
             <div className="space-y-6 pr-4">
               {/* Guest & Party Info */}
               <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
@@ -318,7 +318,7 @@ export function StaffBookingPreviewSheet({
           </ScrollArea>
 
           {/* Quick Actions */}
-          <div className="flex-shrink-0 mt-6 pt-4 border-t space-y-3 pb-[env(safe-area-inset-bottom)]">
+          <div className="mt-6 pt-4 border-t space-y-3">
             <Button
               variant="outline"
               className="w-full"

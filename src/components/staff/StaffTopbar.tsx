@@ -23,17 +23,15 @@ import {
   LogOut,
   ChevronDown,
   Command,
-  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StaffTopbarProps {
   onMenuClick: () => void;
   onCommandBarOpen: () => void;
-  onQuickOpsOpen?: () => void;
 }
 
-export function StaffTopbar({ onMenuClick, onCommandBarOpen, onQuickOpsOpen }: StaffTopbarProps) {
+export function StaffTopbar({ onMenuClick, onCommandBarOpen }: StaffTopbarProps) {
   const { user, profile, signOut } = useAuth();
   const { currentResort } = useResort();
 
@@ -83,18 +81,6 @@ export function StaffTopbar({ onMenuClick, onCommandBarOpen, onQuickOpsOpen }: S
               <Command className="h-3 w-3" />K
             </kbd>
           </Button>
-
-          {/* Mobile Quick Ops */}
-          {onQuickOpsOpen && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onQuickOpsOpen}
-              className="md:hidden text-primary hover:text-primary/80 hover:bg-primary/10"
-            >
-              <Zap className="h-5 w-5" />
-            </Button>
-          )}
 
           {/* Mobile search */}
           <Button

@@ -136,32 +136,12 @@ export const GuestListToolbar = memo(function GuestListToolbar({
   const activeFilterCount = statusFilters.length + flagFilters.length;
 
   return (
-    <div className={cn('space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden', className)}>
-      {/* Search row - full width on mobile with proper min-width constraint */}
-      <div className="flex gap-2 w-full max-w-full min-w-0">
-        <SearchInput
-          value={search}
-          onChange={onSearchChange}
-          placeholder="Search name, room..."
-          className="flex-1 min-w-0"
-        />
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClearFilters}
-            className="shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Filters row - wraps on mobile with tighter gaps */}
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full max-w-full min-w-0">
-        {/* Legacy filter dropdown - responsive width */}
+    <div className={cn('space-y-3', className)}>
+      {/* Main toolbar row */}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Legacy filter dropdown */}
         <Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
-          <SelectTrigger className="flex-1 min-w-[120px] max-w-full sm:flex-none sm:w-[180px] h-9 sm:h-10 bg-background text-xs sm:text-sm">
+          <SelectTrigger className="w-[180px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -172,27 +152,35 @@ export const GuestListToolbar = memo(function GuestListToolbar({
             {prearrivalEnabled && (
               <>
                 <SelectItem value="arriving-72h">
-                  Arriving 72h {stats?.arriving72h ? `(${stats.arriving72h})` : ''}
+                  Arriving Next 72h {stats?.arriving72h ? `(${stats.arriving72h})` : ''}
                 </SelectItem>
                 <SelectItem value="prearrival-pending">
-                  Pre-Arrival Pending
+                  Pre-Arrival Incomplete
                 </SelectItem>
                 <SelectItem value="prearrival-completed">
-                  Pre-Arrival Done {stats?.prearrivalCompleted ? `(${stats.prearrivalCompleted})` : ''}
+                  Pre-Arrival Complete {stats?.prearrivalCompleted ? `(${stats.prearrivalCompleted})` : ''}
                 </SelectItem>
               </>
             )}
           </SelectContent>
         </Select>
 
-        {/* Advanced filters popover - responsive sizing */}
+        {/* Search */}
+        <SearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Search name, room, email..."
+          className="flex-1 min-w-[200px] max-w-sm"
+        />
+
+        {/* Advanced filters popover */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-9 sm:h-10 px-2.5 sm:px-3 shrink-0">
-              <SlidersHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Button variant="outline" size="sm" className="gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">Filters</span>
               {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="h-4 sm:h-5 px-1 sm:px-1.5 text-[10px] sm:text-xs">
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs">
                   {activeFilterCount}
                 </Badge>
               )}
@@ -243,9 +231,9 @@ export const GuestListToolbar = memo(function GuestListToolbar({
           </PopoverContent>
         </Popover>
 
-        {/* Sort - hidden on very small screens, shown on xs+ */}
+        {/* Sort */}
         <Select value={sortBy} onValueChange={(v) => onSortChange(v as GuestSortOption)}>
-          <SelectTrigger className="hidden xs:flex flex-1 min-w-[100px] max-w-[140px] sm:flex-none sm:w-[160px] h-9 sm:h-10 bg-background text-xs sm:text-sm">
+          <SelectTrigger className="w-[160px] bg-background">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -257,28 +245,39 @@ export const GuestListToolbar = memo(function GuestListToolbar({
           </SelectContent>
         </Select>
 
-        {/* Density toggle - responsive sizing */}
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto shrink-0">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onDensityToggle}
-                className="shrink-0 h-9 w-9 sm:h-10 sm:w-10"
-              >
-                {density === 'compact' ? (
-                  <LayoutList className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                ) : (
-                  <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {density === 'compact' ? 'Switch to comfortable view' : 'Switch to compact view'}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        {/* Density toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onDensityToggle}
+              className="shrink-0"
+            >
+              {density === 'compact' ? (
+                <LayoutList className="h-4 w-4" />
+              ) : (
+                <LayoutGrid className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {density === 'compact' ? 'Switch to comfortable view' : 'Switch to compact view'}
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Clear filters */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClearFilters}
+            className="gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </Button>
+        )}
       </div>
 
       {/* Active filters chips */}

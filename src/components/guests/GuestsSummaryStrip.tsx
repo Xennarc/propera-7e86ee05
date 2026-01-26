@@ -98,7 +98,7 @@ export const GuestsSummaryStrip = memo(function GuestsSummaryStrip({
   return (
     <div 
       className={cn(
-        'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full w-full',
+        'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
         className
       )}
     >
@@ -113,7 +113,7 @@ export const GuestsSummaryStrip = memo(function GuestsSummaryStrip({
             key={`${chip.key}-${index}`}
             onClick={() => handleClick(chip)}
             className={cn(
-              'flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all min-h-[44px]',
+              'flex items-center gap-2 px-3 py-2 rounded-lg border transition-all',
               'hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring',
               'snap-start shrink-0',
               isActive
