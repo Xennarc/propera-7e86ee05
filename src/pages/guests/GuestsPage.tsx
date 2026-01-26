@@ -296,7 +296,7 @@ function GuestsPageContent() {
       <Card className="overflow-hidden w-full">
         <CardContent className="p-0 overflow-hidden">
           {/* Toolbar */}
-          <div className="p-4 border-b border-border/50">
+          <div className="p-3 sm:p-4 border-b border-border/50">
             <GuestListToolbar
               search={filters.search}
               onSearchChange={setSearch}
