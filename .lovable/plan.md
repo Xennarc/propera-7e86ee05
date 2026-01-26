@@ -1,292 +1,260 @@
 
-# Guest List Mobile Horizontal Overflow Fix
+# Guest List Mobile Horizontal Overflow - Root Cause Analysis & Fix
 
-## Problem Summary
+## Problem Diagnosis
 
-On mobile screens, the `/staff/guests` page content overflows horizontally, making some UI elements inaccessible without horizontal scrolling. This violates the "No Pinch-Zoom" mobile standard.
+After analyzing the codebase and layout structure, the persistent horizontal overflow on mobile is caused by **multiple compounding spacing issues**:
+
+### Root Causes
+
+1. **Excessive horizontal padding in `GuestCardRow`**
+   - Card base padding: `p-4` = 16px × 2 = 32px
+   - Selection mode adds: `pl-8` = 32px additional left padding
+   - Name row reserves space for preview button: `pr-10` = 40px
+   - **Total horizontal space consumed: 32px (base) + 32px (selection) + 40px (preview) = 104px**
+   - On a 375px iPhone SE, this leaves only ~271px for actual content
+
+2. **Absolute positioned elements creating layout conflicts**
+   - Preview button (top-right, line 112-129) is absolutely positioned
+   - Chevron indicator (right-center, line 188) is also absolutely positioned
+   - Both elements use `right-` positioning which can push content when flex containers don't have proper constraints
+
+3. **`StaffShell` padding reducing available viewport**
+   - Line 148: `p-3` on mobile = 12px × 2 = 24px horizontal space consumed
+   - This compounds with card internal padding
+
+4. **Flex layout without proper min-width constraints**
+   - The name row (line 134) uses `pr-10` to avoid overlap with the preview button
+   - When content wraps, the `pr-10` creates unnecessary space
+   - The status badge and room button can wrap unexpectedly, causing the row to expand
+
+5. **Missing viewport-relative constraints**
+   - All spacing uses fixed pixel values (`p-4`, `pr-10`, etc.)
+   - No use of percentage-based spacing for mobile breakpoints
 
 ---
 
-## Root Causes Identified
+## Solution Strategy
 
-| Component | Issue |
-|-----------|-------|
-| `GuestsPage.tsx` | The main `Card` lacks `overflow-hidden`, allowing child content to spill out |
-| `GuestsSummaryStrip.tsx` | Stat chips have no `max-w` constraint and cause horizontal bleed on narrow screens |
-| `GuestCardRow.tsx` | Name truncation uses `max-w-[200px]` which is too wide + padding creates overflow |
-| `GuestListToolbar.tsx` | Filters row uses `flex-wrap` but individual items may still cause overflow |
-| `PageHeader` | Title + action button may collide on very narrow screens |
+### Phase 1: Reduce GuestCardRow Padding (High Priority)
 
----
+**Target: `src/components/guests/GuestCardRow.tsx`**
 
-## Solution: Strict Width Containment
-
-Apply `overflow-hidden` at container boundaries and use relative widths (`max-w-full`) instead of fixed pixel widths on mobile.
-
----
-
-## Implementation Plan
-
-### Change 1: GuestsPage.tsx - Add Overflow Containment
-
-Add `overflow-hidden` to the outer page wrapper and the main Card to prevent any child from causing horizontal scroll.
+Changes:
+1. Reduce base card padding from `p-4` to `p-3` on mobile (12px vs 16px = 8px saved)
+2. Reduce name row right padding from `pr-10` to `pr-8` on mobile (32px vs 40px = 8px saved)
+3. Optimize selection left padding from `pl-8` to `pl-6` when selection is active (24px vs 32px = 8px saved)
+4. **Total savings: 24px on mobile**, increasing content area from 271px to ~295px
 
 ```tsx
-// Line 268: Current
-<div className="space-y-6 animate-fade-in">
-
-// Change to:
-<div className="space-y-6 animate-fade-in overflow-x-hidden">
-```
-
-```tsx
-// Line 296: Current  
-<Card>
-
-// Change to:
-<Card className="overflow-hidden">
-```
-
-Also ensure the CardContent respects boundaries:
-```tsx
-// Line 297: Current
-<CardContent className="p-0">
-
-// Change to:
-<CardContent className="p-0 overflow-hidden">
-```
-
-### Change 2: GuestsSummaryStrip.tsx - Constrain to Viewport
-
-The chip container already has `overflow-x-auto` which is correct. Add `max-w-full` to ensure it doesn't extend beyond parent:
-
-```tsx
-// Line 99-104: Current
-<div 
+// Line 79-96: Card container
+<div
+  onClick={onNavigate}
   className={cn(
-    'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
-    className
+    'relative bg-card border border-border/40 rounded-xl cursor-pointer',
+    'w-full max-w-full overflow-hidden box-border',
+    // Responsive padding: tighter on mobile
+    'p-3 sm:p-4',
+    'transition-all duration-200',
+    'hover:bg-accent/30 hover:border-border/60',
+    'hover:shadow-soft',
+    'active:scale-[0.98]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+    isSelected && 'ring-2 ring-primary/30 bg-primary/5 border-primary/30'
   )}
 >
 
-// Change to:
-<div 
-  className={cn(
-    'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full',
-    className
-  )}
->
-```
-
-### Change 3: GuestCardRow.tsx - Responsive Name Truncation
-
-The current `max-w-[200px]` on the name is a fixed pixel width. On very narrow screens (320px), this can overflow.
-
-```tsx
-// Line 133-134: Current
-<div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden">
-  <span className="font-semibold text-foreground text-base truncate max-w-[200px]">{guest.full_name}</span>
-
-// Change to:
-<div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden min-w-0">
-  <span className="font-semibold text-foreground text-base truncate max-w-[calc(100%-3rem)]">{guest.full_name}</span>
-```
-
-Using `calc(100% - 3rem)` accounts for the VIP/loyalty icons. The parent `min-w-0` enables flex child shrinking.
-
-### Change 4: GuestListToolbar.tsx - Constrain Filter Row
-
-The filters row can overflow on very narrow screens. Add `overflow-hidden` and ensure proper width constraints:
-
-```tsx
-// Line 160-161: Current
-<div className="flex flex-wrap items-center gap-2">
-
-// Change to:
-<div className="flex flex-wrap items-center gap-2 w-full overflow-hidden">
-```
-
-For the Select triggers, ensure they use proper responsive widths:
-
-```tsx
-// Line 163-166: Legacy filter dropdown - already has w-full sm:w-[180px] ✓
-
-// Line 247-249: Sort dropdown - already has flex-1 sm:flex-none sm:w-[160px] ✓
-```
-
-These are fine. The issue is likely the parent not constraining.
-
-Add to the root wrapper:
-
-```tsx
-// Line 139: Current
-<div className={cn('space-y-3', className)}>
-
-// Change to:
-<div className={cn('space-y-3 w-full overflow-hidden', className)}>
-```
-
-### Change 5: PageHeader Mobile Optimization
-
-On very narrow screens, the page title and action button can collide. The current layout uses `flex-col sm:flex-row` which should stack on mobile, but let's ensure the title truncates properly:
-
-```tsx
-// Line 53: Current (in page-header.tsx)
-<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
-
-// Change to:
-<h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground truncate">
-```
-
-Also add `min-w-0` to enable truncation in flex context:
-
-```tsx
-// Line 33: Current
-<div className="space-y-1 min-w-0">
-
-// Already has min-w-0 ✓
-```
-
-### Change 6: GuestRow.tsx - Desktop Table Containment
-
-For desktop view, the grid columns may cause overflow. Add proper containment:
-
-```tsx
-// Lines 342-348 in GuestsPage.tsx: Current desktop header
+// Line 132: Main content with responsive selection offset
 <div className={cn(
-  'grid gap-3 items-center border-b border-border bg-muted/30 text-sm font-medium text-muted-foreground',
-  preferences.density === 'compact' ? 'py-2 px-3' : 'py-3 px-4',
-  prearrivalEnabled 
-    ? 'grid-cols-[auto_1fr_auto_auto_auto_auto_auto]' 
-    : 'grid-cols-[1fr_auto_auto_auto_auto_auto]'
+  'space-y-3 min-w-0 overflow-hidden w-full max-w-full',
+  showSelection && 'pl-6 sm:pl-8'  // Reduced from pl-8
 )}>
 
-// The issue: Many 'auto' columns can expand beyond viewport
-// Change to: Use minmax for the name column and constrain actions
+// Line 134: Name row with responsive padding
+<div className="flex items-center gap-2 pr-8 sm:pr-10 overflow-hidden min-w-0 w-full">
+```
 
-// For desktop (non-mobile), add overflow-hidden to the wrapper:
-<div className="overflow-hidden">
-  {/* Desktop header and rows */}
+### Phase 2: Optimize Absolute Positioned Elements
+
+**Target: `src/components/guests/GuestCardRow.tsx`**
+
+Changes:
+1. Move preview button positioning from `top-3 right-3` to `top-2.5 right-2.5` on mobile
+2. Reduce chevron size from `h-5 w-5` to `h-4 w-4` on mobile
+3. Adjust chevron right offset from `right-4` to `right-3` on mobile
+
+```tsx
+// Line 112-129: Preview button with responsive positioning
+<div 
+  className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 flex items-center gap-1"
+  onClick={(e) => e.stopPropagation()}
+>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 sm:h-8 sm:w-8"  // Slightly smaller on mobile
+        onClick={onPreview}
+      >
+        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>Quick preview</TooltipContent>
+  </Tooltip>
+</div>
+
+// Line 188: Chevron with responsive sizing
+<ChevronRight className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground/50" />
+```
+
+### Phase 3: Constrain GuestListToolbar Width
+
+**Target: `src/components/guests/GuestListToolbar.tsx`**
+
+Issue: The toolbar is inside a `p-4` padding wrapper (GuestsPage.tsx line 299), which on mobile adds 16px × 2 = 32px. This can cause the toolbar elements to overflow.
+
+Changes:
+1. Ensure search input properly shrinks with `min-w-0`
+2. Add maximum widths to filter dropdowns on extra-small screens
+
+```tsx
+// Line 141-147: Search row with proper constraints
+<div className="flex gap-2 w-full max-w-full min-w-0">
+  <SearchInput
+    value={search}
+    onChange={onSearchChange}
+    placeholder="Search name, room, email..."
+    className="flex-1 min-w-0"  // Add min-w-0
+  />
+  {hasActiveFilters && (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={onClearFilters}
+      className="shrink-0 h-10 w-10"
+    >
+      <X className="h-4 w-4" />
+    </Button>
+  )}
+</div>
+
+// Line 163-166: Filter dropdown with tighter mobile width
+<Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
+  <SelectTrigger className="w-full xs:w-auto xs:min-w-[140px] sm:w-[180px] h-10 bg-background">
+    <SelectValue />
+  </SelectTrigger>
+</Select>
+```
+
+### Phase 4: Reduce Toolbar Container Padding on Mobile
+
+**Target: `src/pages/guests/GuestsPage.tsx`**
+
+The toolbar wrapper (line 299) uses `p-4` which adds 16px × 2 on mobile. Reduce to `p-3` to match `StaffShell` padding.
+
+```tsx
+// Line 299: Toolbar with responsive padding
+<div className="p-3 sm:p-4 border-b border-border/50">
+  <GuestListToolbar ... />
 </div>
 ```
+
+### Phase 5: Add Explicit Width Constraint to Card
+
+**Target: `src/pages/guests/GuestsPage.tsx`**
+
+Ensure the main Card respects the viewport width and doesn't expand beyond it.
+
+```tsx
+// Line 296: Card with explicit width constraint
+<Card className="overflow-hidden w-full max-w-full">
+```
+
+---
+
+## Implementation Priority
+
+| Phase | File | Change | Impact | Effort |
+|-------|------|--------|--------|--------|
+| 1 | `GuestCardRow.tsx` | Reduce padding from `p-4` to `p-3 sm:p-4` | High - saves 24px | Low |
+| 2 | `GuestCardRow.tsx` | Responsive positioning for absolute elements | Medium | Low |
+| 3 | `GuestListToolbar.tsx` | Add `min-w-0` to search, constrain filters | Medium | Low |
+| 4 | `GuestsPage.tsx` | Reduce toolbar padding `p-3 sm:p-4` | Medium | Low |
+| 5 | `GuestsPage.tsx` | Add `max-w-full` to Card | Low - safety net | Low |
+
+---
+
+## Expected Outcome
+
+After all changes:
+
+### Available Width Calculation (375px iPhone SE)
+```
+Viewport width:                375px
+StaffShell padding (p-3):     -24px  (12px × 2)
+Card border:                   -2px
+Guest card padding (p-3):     -24px  (12px × 2)
+Selection offset (pl-6):      -24px  (when active)
+Name row padding (pr-8):      -32px
+─────────────────────────────────────
+Available for name/content:    269px ✓ (vs 245px before)
+
+Total width savings:           24px
+```
+
+### Visual Result
+```
+┌────────────────────────────────────┐ 375px viewport
+│ p-3 (12px)                         │
+│ ┌────────────────────────────────┐ │
+│ │ Card p-3 (12px)                │ │
+│ │ ┌─────────────────────────────┐││
+│ │ │☑ Jane Smith    Crown Star 👁│││ ← All visible
+│ │ │ 205  In-House              ││││
+│ │ │ Jan 20 – Jan 28 (8n)       ││││
+│ │ └─────────────────────────────┘││
+│ └────────────────────────────────┘ │
+└────────────────────────────────────┘
+```
+
+All content fits within viewport without:
+- Horizontal scrolling
+- Clipped text
+- Overlapping elements
+- Need to pinch-zoom
 
 ---
 
 ## Files to Modify
 
-| File | Change | Priority |
-|------|--------|----------|
-| `src/pages/guests/GuestsPage.tsx` | Add `overflow-hidden` to wrapper, Card, and CardContent | High |
-| `src/components/guests/GuestsSummaryStrip.tsx` | Add `max-w-full` to chip container | High |
-| `src/components/guests/GuestCardRow.tsx` | Change name truncation to `max-w-[calc(100%-3rem)]`, add `min-w-0` | High |
-| `src/components/guests/GuestListToolbar.tsx` | Add `w-full overflow-hidden` to root wrapper | High |
-| `src/components/ui/page-header.tsx` | Add `truncate` to title for safety | Medium |
-
----
-
-## Detailed Code Changes
-
-### GuestsPage.tsx
-
-```tsx
-// Line 268
-- <div className="space-y-6 animate-fade-in">
-+ <div className="space-y-6 animate-fade-in overflow-x-hidden w-full max-w-full">
-
-// Line 296
-- <Card>
-+ <Card className="overflow-hidden w-full">
-
-// Line 297  
-- <CardContent className="p-0">
-+ <CardContent className="p-0 overflow-hidden">
-
-// Line 340 (desktop wrapper)
-- <div className="overflow-hidden">
-+ <div className="overflow-x-hidden w-full">
-```
-
-### GuestsSummaryStrip.tsx
-
-```tsx
-// Line 99-104
-<div 
-  className={cn(
--   'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1',
-+   'flex gap-2 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-1 -mx-1 px-1 max-w-full w-full',
-    className
-  )}
->
-```
-
-### GuestCardRow.tsx
-
-```tsx
-// Line 82-83: Add overflow-hidden to card
-- 'relative p-5 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden',
-+ 'relative p-4 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden w-full',
-
-// Line 131: Add min-w-0 to main content
-- <div className={cn('space-y-3', showSelection && 'pl-8')}>
-+ <div className={cn('space-y-3 min-w-0 overflow-hidden', showSelection && 'pl-8')}>
-
-// Line 133: Responsive name container
-- <div className="flex items-center gap-2 flex-wrap pr-12 overflow-hidden">
-+ <div className="flex items-center gap-2 flex-wrap pr-10 overflow-hidden min-w-0 max-w-full">
-
-// Line 134: Responsive name width
-- <span className="font-semibold text-foreground text-base truncate max-w-[200px]">{guest.full_name}</span>
-+ <span className="font-semibold text-foreground text-base truncate max-w-[70%]">{guest.full_name}</span>
-```
-
-### GuestListToolbar.tsx
-
-```tsx
-// Line 139
-- <div className={cn('space-y-3', className)}>
-+ <div className={cn('space-y-3 w-full max-w-full overflow-hidden', className)}>
-
-// Line 141
-- <div className="flex gap-2">
-+ <div className="flex gap-2 w-full max-w-full">
-
-// Line 161
-- <div className="flex flex-wrap items-center gap-2">
-+ <div className="flex flex-wrap items-center gap-2 w-full max-w-full">
-```
-
-### page-header.tsx
-
-```tsx
-// Line 53
-- <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
-+ <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground break-words">
-```
+1. **`src/components/guests/GuestCardRow.tsx`** - Reduce padding, optimize absolute positioning
+2. **`src/components/guests/GuestListToolbar.tsx`** - Add min-w-0 constraints, tighter mobile widths
+3. **`src/pages/guests/GuestsPage.tsx`** - Reduce toolbar padding, add Card max-width safety
 
 ---
 
 ## Testing Checklist
 
-After implementation, verify on mobile (320px - 428px widths):
+After implementation, verify on:
 
-- [ ] No horizontal scrollbar appears on the page
-- [ ] Guest names truncate properly with ellipsis
-- [ ] Summary strip scrolls horizontally with snap points
-- [ ] Toolbar filters wrap and stay within bounds
-- [ ] Guest cards display fully without cutoff
-- [ ] All action buttons are accessible
+- [ ] iPhone SE (375px width) - smallest common device
+- [ ] iPhone 12/13/14 (390px width)
+- [ ] Small Android (360px width)
+- [ ] With prearrival enabled (selection checkboxes visible)
+- [ ] With long guest names (e.g., "Alessandro Rodriguez Martinez")
+- [ ] With VIP + Loyalty badges showing
+- [ ] With search active (clear button visible)
+- [ ] With multiple filters active
+- [ ] In portrait and landscape orientations
+- [ ] No horizontal scroll at any width
+- [ ] All action buttons remain tappable
 - [ ] Preview drawer opens correctly
-- [ ] Page title doesn't overflow header
 
 ---
 
 ## Summary
 
-This fix applies strict horizontal containment by:
+The fix focuses on **reducing cumulative padding** rather than changing the layout structure. By moving from fixed `p-4` padding to responsive `p-3 sm:p-4`, we save 8px per edge (24px total) on mobile, which is enough to prevent horizontal overflow on the smallest common viewport (375px iPhone SE).
 
-1. **Adding `overflow-hidden`** at container boundaries (page wrapper, Card, CardContent)
-2. **Using relative widths** (`max-w-full`, `w-full`, percentage-based) instead of fixed pixel widths
-3. **Enabling flex shrinking** with `min-w-0` on flex containers
-4. **Allowing controlled horizontal scroll** only within the summary strip
-
-All changes are CSS/layout only - no business logic modifications.
+All changes are **CSS-only** - no business logic, data handling, or component behavior modifications.
