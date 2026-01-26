@@ -509,6 +509,29 @@
     @apply text-muted-foreground;
   }
 
+  /* === Enhanced Bottom Navigation Glass === */
+  .surface-glass-nav {
+    @apply backdrop-blur-xl;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--border) / 0.2),
+      0 -4px 20px 0 hsl(var(--background) / 0.3);
+  }
+
+  .dark .surface-glass-nav {
+    background: hsl(var(--midnight-900) / 0.85);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--midnight-700) / 0.4),
+      0 -4px 24px 0 hsl(var(--midnight-950) / 0.6);
+  }
+
+  :root:not(.dark) .surface-glass-nav {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--border) / 0.15),
+      0 -4px 16px 0 hsl(var(--background) / 0.2);
+  }
+
   /* === Glass Morphism === */
   .glass {
     @apply backdrop-blur-xl border border-border/30;

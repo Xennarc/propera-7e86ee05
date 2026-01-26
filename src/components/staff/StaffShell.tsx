@@ -5,6 +5,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { StaffSidebar } from './StaffSidebar';
@@ -23,11 +24,13 @@ import { Button } from '@/components/ui/button';
 import { ShieldX } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
+  const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
   
   const { user, profile, loading, userDataLoading, signOut } = useAuth();
@@ -143,7 +146,10 @@ export function StaffShell() {
             onCommandBarOpen={() => setCommandBarOpen(true)}
           />
 
-          <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+          <main className={cn(
+            "flex-1 overflow-auto transition-[padding] duration-200",
+            isKeyboardOpen ? "pb-4" : "pb-24 lg:pb-0"
+          )}>
             {/* Improved padding scale: tighter on mobile, generous on desktop */}
             <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
               <ErrorBoundary
