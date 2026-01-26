@@ -389,8 +389,8 @@ function GuestsPageContent() {
 
               {/* Mobile: Card rows */}
               {isMobile && (
-                <div className="overflow-x-hidden">
-                  <div className="p-3 space-y-3 pb-24">
+                <div className="w-full max-w-full overflow-hidden">
+                  <div className="p-3 space-y-3 pb-24 w-full max-w-full">
                     {filteredGuests
                       .filter((guest): guest is Guest => guest != null && !!guest.id)
                       .map(guest => (

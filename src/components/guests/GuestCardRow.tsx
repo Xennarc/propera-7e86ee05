@@ -79,8 +79,9 @@ export const GuestCardRow = memo(function GuestCardRow({
     <div
       onClick={onNavigate}
       className={cn(
-        // Premium mobile card styling
-        'relative p-4 bg-card border border-border/40 rounded-xl cursor-pointer overflow-hidden w-full',
+        // Premium mobile card styling - strict width containment
+        'relative p-4 bg-card border border-border/40 rounded-xl cursor-pointer',
+        'w-full max-w-full overflow-hidden box-border',
         'transition-all duration-200',
         'hover:bg-accent/30 hover:border-border/60',
         'hover:shadow-soft',
@@ -128,10 +129,10 @@ export const GuestCardRow = memo(function GuestCardRow({
       </div>
 
       {/* Main content */}
-      <div className={cn('space-y-3 min-w-0 overflow-hidden', showSelection && 'pl-8')}>
+      <div className={cn('space-y-3 min-w-0 overflow-hidden w-full max-w-full', showSelection && 'pl-8')}>
         {/* Name + VIP badges - 16px per spec */}
-        <div className="flex items-center gap-2 flex-wrap pr-10 overflow-hidden min-w-0 max-w-full">
-          <span className="font-semibold text-foreground text-base truncate max-w-[70%]">{guest.full_name}</span>
+        <div className="flex items-center gap-2 pr-10 overflow-hidden min-w-0 w-full">
+          <span className="font-semibold text-foreground text-base truncate flex-1 min-w-0">{guest.full_name}</span>
           {guest.is_vip && (
             <Crown className="h-4 w-4 text-amber-500 shrink-0" />
           )}
@@ -141,23 +142,23 @@ export const GuestCardRow = memo(function GuestCardRow({
         </div>
 
         {/* Room + Status inline */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap w-full min-w-0">
           <button
             onClick={handleCopyRoom}
             className={cn(
-              "font-mono text-sm font-medium",
+              "font-mono text-sm font-medium shrink-0",
               "bg-muted/60 dark:bg-midnight-800/60 px-2.5 py-1 rounded-lg",
               "border border-border/40",
               "hover:bg-muted transition-colors"
             )}
           >
-            Room {guest.room_number || '-'}
+            {guest.room_number || '-'}
           </button>
 
           <Badge 
             variant="outline"
             className={cn(
-              'font-medium',
+              'font-medium shrink-0',
               statusVariantMap[status.variant]
             )}
           >
@@ -167,11 +168,11 @@ export const GuestCardRow = memo(function GuestCardRow({
         </div>
 
         {/* Dates as secondary metadata row */}
-        <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
-          <span>
+        <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground w-full min-w-0">
+          <span className="truncate">
             {safeFormatDate(guest.check_in_date, 'MMM d')} – {safeFormatDate(guest.check_out_date, 'MMM d')}
           </span>
-          <span className="opacity-60">({nights} nights)</span>
+          <span className="opacity-60 shrink-0">({nights}n)</span>
         </div>
 
         {/* Flags row */}
