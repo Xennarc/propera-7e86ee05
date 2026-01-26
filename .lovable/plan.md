@@ -1,433 +1,445 @@
 
-# Staff Portal Admin UI Refinement - Premium, Safe, and Clear
+# Staff Portal Mobile Viewport & Auto-Fit Fixes
 
 ## Executive Summary
 
-This plan transforms the Staff Portal Settings & Admin pages into a calm, organized, and confidence-inspiring experience. The goal is to make admins feel **powerful but safe** — able to find settings quickly, understand their impact, and execute changes without fear of accidental damage.
+This plan addresses viewport and auto-fit issues in the Staff Portal to ensure proper mobile rendering. The goal is to eliminate content hidden behind browser UI, prevent keyboard overlap on form inputs, and ensure all pages are fully usable on mobile without pinch-zoom.
 
 ---
 
-## Current State Analysis
+## Current Issues Identified
 
-### Settings Hub (`SettingsPage.tsx`)
-- **Issue**: Flat grid of 13+ cards with no grouping — overwhelming for non-technical users
-- **Issue**: No visual distinction between routine settings and dangerous operations
-- **Issue**: Same card style for everything — no hierarchy
+### 1. Viewport Height Strategy
+| Location | Current | Issue |
+|----------|---------|-------|
+| `index.html` | `min-height: 100vh` | 100vh on mobile includes the browser chrome, causing content to be cut off at the bottom |
+| `StaffShell.tsx:126` | `min-h-screen` | Same issue - main wrapper uses 100vh equivalent |
+| `AppLayout.tsx:100` | `min-h-screen` | Alternative layout has same problem |
 
-### Individual Settings Pages (Prearrival, Branding, Requests, Staff, etc.)
-- **Issue**: Long scrolling forms without clear section boundaries
-- **Issue**: Destructive actions (delete, remove) styled same as routine buttons
-- **Issue**: No confirmation patterns for high-impact changes
-- **Issue**: Mobile views are cramped, requiring horizontal scrolling on some tables
+### 2. Hard-coded Scroll Heights
+| Component | Current | Issue |
+|-----------|---------|-------|
+| `StaffBookingPreviewSheet.tsx:231` | `h-[calc(100vh-16rem)]` | Uses 100vh, not dynamic viewport |
+| `ResortDrawer.tsx:375` | `h-[calc(100vh-280px)]` | Same issue |
 
-### Access & Permissions (UserManagementPage, ResortStaffPage, etc.)
-- **Issue**: Small cards for user management — hard to scan at volume
-- **Issue**: Role changes lack proper warning for escalation
-- **Issue**: Delete membership buttons are prominent and easy to misclick
+### 3. Keyboard Handling Gaps
+- `useKeyboardInset` hook exists but is not integrated into the main `StaffShell`
+- `MobileActionBar` has safe area padding but no keyboard-aware adjustment
+- `MobileBottomNav` is fixed at bottom but doesn't move when keyboard opens
 
----
-
-## Design Principles for Admin UI
-
-| Principle | Implementation |
-|-----------|----------------|
-| **Group by domain** | Settings organized into: Resort, Staff, Configuration, System |
-| **Read before edit** | Show current state clearly before allowing changes |
-| **Separate danger zones** | Destructive actions in visually distinct sections |
-| **Confirm thoughtfully** | Proportional confirmation based on impact |
-| **Mobile = accordions** | Convert multi-section pages to collapsible accordions on small screens |
+### 4. Missing Safe Area Coverage
+- The bottom sheets and dialogs don't consistently use safe area insets
+- Some modals use `max-h-[90vh]` instead of `90dvh`
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Settings Hub Reorganization
+### Phase 1: Global Viewport Strategy
 
-**File: `src/pages/settings/SettingsPage.tsx`**
+**File: `index.html`**
 
-Transform the flat grid into **grouped sections** with headers and descriptions:
+Update critical CSS to use dynamic viewport units:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Settings                                                       │
-│  Configure your resort operations                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  GUEST EXPERIENCE                                               │
-│  Configure how guests interact with your resort                 │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
-│  │ Pre-Arrival      │ │ Guest Portal     │ │ Guest Portal     │ │
-│  │ Settings         │ │ Branding         │ │ Links            │ │
-│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
-│                                                                 │
-│  OPERATIONS                                                     │
-│  Manage day-to-day operational settings                         │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
-│  │ Guest Requests   │ │ Resort Directory │ │ Pricing & Taxes  │ │
-│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
-│                                                                 │
-│  STAFF & ACCESS                                                 │
-│  Manage your team                                               │
-│  ┌──────────────────┐ ┌──────────────────┐                      │
-│  │ Resort Staff     │ │ Platform Users   │                      │
-│  │                  │ │ (Super Admin)    │                      │
-│  └──────────────────┘ └──────────────────┘                      │
-│                                                                 │
-│  SYSTEM (Super Admin only)                                      │
-│  Platform-wide configuration                                    │
-│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ │
-│  │ Resorts          │ │ Subscription     │ │ Booking Health   │ │
-│  │                  │ │ Tiers            │ │                  │ │
-│  └──────────────────┘ └──────────────────┘ └──────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```text
+Current (line 138-140):
+  min-height: 100vh;
+  #root { min-height: 100vh; }
+
+Change to:
+  min-height: 100vh;
+  min-height: 100dvh; /* Modern browsers: dynamic viewport */
+  #root { 
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
 ```
 
-**Changes:**
-1. Add `SettingsSection` component to group cards by domain
-2. Add section headers with icons and descriptions
-3. Reduce card density — remove redundant "Manage X" buttons, make entire card clickable
-4. Add subtle background wash to different sections for visual grouping
-5. Super Admin sections get a distinctive border/badge
+**File: `src/index.css`**
 
-### Phase 2: New Shared Components
+Add new viewport-safe utility classes:
 
-**File: `src/components/admin/SettingsSection.tsx`** (NEW)
-
-Reusable section component for grouping settings:
-
-```tsx
-interface SettingsSectionProps {
-  title: string;
-  description?: string;
-  icon?: LucideIcon;
-  badge?: 'admin' | 'super-admin';
-  children: ReactNode;
-  collapsible?: boolean; // For mobile accordion behavior
+```css
+/* Dynamic viewport utilities */
+@layer utilities {
+  /* Use dvh with vh fallback */
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  .h-screen-safe {
+    height: 100vh;
+    height: 100dvh;
+  }
+  
+  /* Small viewport height (always excludes browser chrome) */
+  .min-h-screen-svh {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+  
+  /* Dynamic scroll container - uses available space */
+  .scroll-container-safe {
+    max-height: calc(100vh - var(--header-height, 4rem));
+    max-height: calc(100dvh - var(--header-height, 4rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 ```
 
-Features:
-- Mobile: Renders as `Collapsible` accordion
-- Desktop: Static open section with header
-- Badges for role-restricted sections
+### Phase 2: Staff Shell Layout Fix
 
-**File: `src/components/admin/SettingsCard.tsx`** (NEW)
-
-Simplified settings navigation card:
-
-```tsx
-interface SettingsCardProps {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  href: string;
-  feature?: TierFeature;
-  disabled?: boolean;
-  badge?: React.ReactNode;
-}
-```
-
-Features:
-- Entire card is clickable (not nested button)
-- Disabled state with tooltip explanation
-- Tier badge integration
-- Hover animation (subtle lift)
-
-**File: `src/components/admin/DangerZone.tsx`** (NEW)
-
-Dedicated component for destructive actions:
-
-```tsx
-interface DangerZoneProps {
-  title?: string; // Default: "Danger Zone"
-  description?: string;
-  children: ReactNode;
-}
-```
-
-Features:
-- Red/destructive border accent
-- Warning icon
-- Collapsed by default on mobile
-- Requires explicit expansion to access destructive buttons
-
-### Phase 3: Form Page Improvements
-
-**File: `src/pages/settings/PrearrivalSettingsPage.tsx`**
-
-Improvements:
-1. Add sticky save button at bottom on mobile (use `MobileActionBar`)
-2. Wrap form sections in `Accordion` on mobile (< sm breakpoint)
-3. Increase spacing between cards (`space-y-6` → `space-y-8`)
-4. Add section dividers with labels
-
-**File: `src/pages/settings/ResortBrandingPage.tsx`**
-
-Improvements:
-1. Already has good tab structure — enhance mobile tab layout
-2. Add "Reset to Defaults" to a dedicated danger zone at bottom
-3. Improve color picker touch targets
-
-**File: `src/pages/settings/RequestsSettingsPage.tsx`**
-
-Improvements:
-1. Already uses tabs — ensure touch targets are 44px+
-2. Tab labels should show on mobile (currently hidden with `hidden sm:inline`)
-
-### Phase 4: Staff Management UI Refinements
-
-**File: `src/pages/settings/ResortStaffPage.tsx`**
+**File: `src/components/staff/StaffShell.tsx`**
 
 Changes:
-1. Convert card grid to a cleaner list layout on desktop
-2. Add role-based grouping option (Group by Role toggle)
-3. Increase action button spacing to prevent misclicks
-4. Delete confirmation should require typing staff name
-5. Add visual distinction for "yourself" row (subtle highlight)
+1. Replace `min-h-screen` with `min-h-screen-safe` (new utility)
+2. Add keyboard-aware wrapper around MobileBottomNav
+3. Apply consistent overflow handling
 
-Before (Current):
-```
-┌──────────────────────────────────────┐
-│ [Avatar] John Doe       [View][Edit] │
-│          @johndoe       [Key][Delete]│
-│          Resort Admin                │
-└──────────────────────────────────────┘
-```
-
-After (Improved):
-```
-┌──────────────────────────────────────────────────────────────┐
-│ [Avatar] John Doe                              Resort Admin  │
-│          @johndoe • Front Office                             │
-│          ─────────────────────────────────────────────────── │
-│                        [View Profile]  [Edit Access]  [...] │
-└──────────────────────────────────────────────────────────────┘
-```
-
-**File: `src/pages/settings/UserManagementPage.tsx`**
-
-Changes:
-1. Add warning banner for Super Admin role assignment
-2. Super Admin changes require confirmation dialog
-3. Add "Last login" metadata for user insights
-4. Improve search to include username
-
-### Phase 5: Resorts Management Refinements
-
-**File: `src/pages/settings/ResortsPage.tsx`**
-
-Changes:
-1. Add status filter chips (Active/Inactive/Demo)
-2. Demo resorts should have a distinct visual style (dashed border, muted background)
-3. Delete resort should require typing resort code to confirm
-4. Move "Create Demo" to a less prominent position (dropdown or secondary row)
-
-### Phase 6: Mobile Accordion Pattern
-
-For pages with multiple form sections, implement accordion behavior on mobile:
-
-**Files affected:**
-- `PrearrivalSettingsPage.tsx`
-- `ResortBrandingPage.tsx` (already has tabs, may not need)
-- `ResortStaffPage.tsx` (user cards → list with expand)
-
-Pattern:
 ```tsx
-// Mobile: Accordion
-<Accordion type="single" collapsible className="sm:hidden">
-  <AccordionItem value="section-1">
-    <AccordionTrigger>Portal Settings</AccordionTrigger>
-    <AccordionContent>
-      {/* Form fields */}
-    </AccordionContent>
-  </AccordionItem>
-</Accordion>
+// Line 126: Change main wrapper
+<div className="flex min-h-screen-safe w-full bg-background">
 
-// Desktop: Regular cards
-<div className="hidden sm:block space-y-6">
-  <Card>...</Card>
-  <Card>...</Card>
+// Line 146: Main content area - ensure proper overflow
+<main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
+```
+
+### Phase 3: Mobile Bottom Navigation Keyboard Safety
+
+**File: `src/components/layout/MobileBottomNav.tsx`**
+
+Integrate `useKeyboardInset` to hide navigation when keyboard is open:
+
+```tsx
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+
+export function MobileBottomNav() {
+  const { isKeyboardOpen } = useKeyboardInset();
+  // ... existing code
+
+  // Hide when keyboard is open to not obstruct input
+  if (isKeyboardOpen) {
+    return null;
+  }
+
+  return (
+    <nav 
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden ..."
+      // ... rest
+    >
+```
+
+This prevents the bottom nav from covering form inputs when the keyboard is open.
+
+### Phase 4: Mobile Action Bar Keyboard Safety
+
+**File: `src/components/ui/mobile-action-bar.tsx`**
+
+Enhance with keyboard awareness:
+
+```tsx
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+
+const MobileActionBar = React.forwardRef<HTMLDivElement, MobileActionBarProps>(
+  ({ className, alwaysVisible = false, children, ...props }, ref) => {
+    const { keyboardInset, isKeyboardOpen } = useKeyboardInset();
+    
+    return (
+      <div
+        ref={ref}
+        style={{
+          // Move above keyboard when open
+          bottom: isKeyboardOpen ? keyboardInset : 0,
+          transition: 'bottom 0.2s ease-out',
+        }}
+        className={cn(
+          "fixed left-0 right-0 z-40",
+          // ... rest
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+```
+
+### Phase 5: Fix ScrollArea Heights in Sheets
+
+**File: `src/components/staff/StaffBookingPreviewSheet.tsx`**
+
+Replace hard-coded 100vh calculations with dynamic values:
+
+```tsx
+// Line 231: Current
+<ScrollArea className="h-[calc(100vh-16rem)] mt-6">
+
+// Change to use flex layout instead
+<div className="flex-1 overflow-hidden mt-6">
+  <ScrollArea className="h-full">
+    {/* content */}
+  </ScrollArea>
 </div>
 ```
 
-### Phase 7: Confirmation Dialog Improvements
+Better approach: Restructure the sheet to use flex layout where the scrollable area fills remaining space:
 
-**File: `src/components/ui/confirmation-dialog.tsx`**
-
-Already exists with variants. Enhance with:
-1. Add `requireTyping` prop for high-impact actions
-2. Add `countdown` prop (3-second delay before confirm is enabled)
-3. Improve icon/color associations
-
-**New variant: `critical`**
 ```tsx
-variant: 'critical', // Red background on confirm button, requires typing
+<SheetContent side="right" className="flex flex-col h-full max-h-[100dvh]">
+  <SheetHeader className="flex-shrink-0">
+    {/* header content */}
+  </SheetHeader>
+  
+  <ScrollArea className="flex-1 min-h-0 mt-6">
+    {/* scrollable content */}
+  </ScrollArea>
+  
+  <div className="flex-shrink-0 pt-4 border-t">
+    {/* action buttons */}
+  </div>
+</SheetContent>
 ```
 
-Usage for:
-- Delete resort
-- Remove Super Admin
-- Delete staff member
-- Purge data
+**File: `src/components/superadmin/ResortDrawer.tsx`**
 
----
+Apply same pattern - replace `h-[calc(100vh-280px)]` with flex layout.
 
-## Files to Modify
+### Phase 6: Sheet Component Safe Heights
 
-### Core Settings Hub
-| File | Change Type |
-|------|-------------|
-| `src/pages/settings/SettingsPage.tsx` | Major refactor — grouped sections |
+**File: `src/components/ui/sheet.tsx`**
 
-### New Components
-| File | Purpose |
-|------|---------|
-| `src/components/admin/SettingsSection.tsx` | Section grouping with collapsible mobile |
-| `src/components/admin/SettingsCard.tsx` | Simplified navigation card |
-| `src/components/admin/DangerZone.tsx` | Container for destructive actions |
-| `src/components/admin/index.ts` | Export barrel |
+Add max-height constraint using dvh:
 
-### Settings Pages
-| File | Change Type |
-|------|-------------|
-| `src/pages/settings/PrearrivalSettingsPage.tsx` | Mobile accordion, sticky save |
-| `src/pages/settings/ResortBrandingPage.tsx` | Reset button to danger zone |
-| `src/pages/settings/RequestsSettingsPage.tsx` | Mobile tab label improvements |
-| `src/pages/settings/ResortStaffPage.tsx` | List layout, better actions |
-| `src/pages/settings/UserManagementPage.tsx` | Super Admin warnings |
-| `src/pages/settings/ResortsPage.tsx` | Status filters, safer delete |
+```tsx
+const sheetVariants = cva(
+  "fixed z-50 gap-4 bg-background dark:bg-midnight-900 p-5 sm:p-6 shadow-xl transition ease-in-out ...",
+  {
+    variants: {
+      side: {
+        // Add max-height for mobile safety
+        left: "inset-y-0 left-0 h-full max-h-[100dvh] w-[85%] sm:w-3/4 ...",
+        right: "inset-y-0 right-0 h-full max-h-[100dvh] w-[85%] sm:w-3/4 ...",
+        // Bottom sheets need safe area
+        bottom: "inset-x-0 bottom-0 max-h-[85dvh] ... pb-[env(safe-area-inset-bottom)]",
+      },
+    },
+  }
+);
+```
 
-### UI Components
-| File | Change Type |
-|------|-------------|
-| `src/components/ui/confirmation-dialog.tsx` | Add `requireTyping` prop |
+### Phase 7: Dialog Safe Heights
 
----
+**File: `src/components/ui/dialog.tsx`**
 
-## Visual Design Specifications
+Update max-height to use dvh:
 
-### Section Groupings
+```tsx
+<DialogPrimitive.Content
+  className={cn(
+    // Change max-h-[90vh] to dvh
+    "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-2rem)] sm:w-full max-w-lg translate-x-[-50%] translate-y-[-50%]",
+    "max-h-[90vh] max-h-[90dvh] overflow-y-auto",
+    // ... rest
+  )}
+>
+```
+
+### Phase 8: Drawer Component Safe Area
+
+**File: `src/components/ui/drawer.tsx`**
+
+Add safe area padding to drawer footer:
+
+```tsx
+const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div 
+    className={cn("mt-auto flex flex-col gap-3 p-5", className)} 
+    style={{ 
+      paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' 
+    }}
+    {...props} 
+  />
+);
+```
+
+Also constrain drawer max height:
+
+```tsx
+<DrawerPrimitive.Content
+  className={cn(
+    "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto max-h-[90dvh] flex-col rounded-t-3xl border bg-background",
+    className,
+  )}
+>
+```
+
+### Phase 9: Keyboard Safe Drawer Integration
+
+**File: `src/components/ui/keyboard-safe-drawer.tsx`**
+
+This component already exists and handles keyboard well. Ensure it's used for all form-based drawers:
+
+- The footer already uses `keyboardInset` for dynamic padding
+- The scroll container already accounts for keyboard
+- This should be the default pattern for any drawer containing form inputs
+
+### Phase 10: Prevent Horizontal Scroll
+
+**File: `src/index.css`**
+
+Add global horizontal scroll prevention:
+
 ```css
-.settings-section {
-  @apply space-y-4 pb-8;
-}
-
-.settings-section-header {
-  @apply flex items-center gap-3 mb-4;
-}
-
-.settings-section-title {
-  @apply text-lg font-semibold text-foreground;
-}
-
-.settings-section-description {
-  @apply text-sm text-muted-foreground;
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+  
+  /* Prevent touch-scroll horizontal leaks */
+  body {
+    touch-action: pan-y;
+  }
 }
 ```
 
-### Danger Zone Styling
-```css
-.danger-zone {
-  @apply border-l-4 border-destructive/50 bg-destructive/5 rounded-lg p-4 mt-8;
-}
+Add to `StaffShell`:
 
-.danger-zone-title {
-  @apply flex items-center gap-2 text-destructive font-semibold mb-2;
+```tsx
+<main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
+```
+
+### Phase 11: Input Focus Auto-Scroll
+
+Create a new hook/utility for auto-scrolling inputs into view:
+
+**File: `src/hooks/useInputAutoScroll.ts`** (NEW)
+
+```tsx
+import { useEffect } from 'react';
+
+/**
+ * useInputAutoScroll - Automatically scrolls focused inputs into view
+ * 
+ * Attach to any scrollable container that contains form inputs.
+ * When an input receives focus, it will be scrolled into view with
+ * enough padding to remain visible above the keyboard.
+ */
+export function useInputAutoScroll(containerRef: React.RefObject<HTMLElement>) {
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable;
+      
+      if (!isInput) return;
+
+      // Delay to let keyboard animate open
+      setTimeout(() => {
+        const targetRect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Check if element is below visible area
+        const visibleBottom = containerRect.bottom - 200; // 200px buffer for keyboard
+        
+        if (targetRect.bottom > visibleBottom) {
+          const scrollAmount = targetRect.bottom - visibleBottom + 40;
+          container.scrollBy({
+            top: scrollAmount,
+            behavior: 'smooth'
+          });
+        }
+      }, 150);
+    };
+
+    container.addEventListener('focusin', handleFocus);
+    return () => container.removeEventListener('focusin', handleFocus);
+  }, [containerRef]);
 }
 ```
 
-### Admin Badge Variations
-```css
-.admin-badge {
-  @apply text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded;
-}
+### Phase 12: Tailwind Config Update
 
-.admin-badge--super-admin {
-  @apply bg-destructive/10 text-destructive border border-destructive/20;
-}
+**File: `tailwind.config.ts`**
 
-.admin-badge--admin {
-  @apply bg-primary/10 text-primary border border-primary/20;
+Add dvh/svh utilities if not already available through plugins:
+
+```ts
+extend: {
+  height: {
+    'screen-dvh': '100dvh',
+    'screen-svh': '100svh',
+  },
+  maxHeight: {
+    'screen-dvh': '100dvh',
+    'screen-svh': '100svh',
+    '90dvh': '90dvh',
+    '85dvh': '85dvh',
+  },
+  minHeight: {
+    'screen-dvh': '100dvh',
+    'screen-svh': '100svh',
+  },
 }
 ```
 
 ---
 
-## Mobile Optimization Summary
+## Files to Modify Summary
 
-| Pattern | When to Use |
-|---------|-------------|
-| **Accordion sections** | Forms with 3+ cards/sections |
-| **Tabs** | Already used in Branding, Requests — keep but optimize |
-| **Sticky action bar** | Forms with single primary save action |
-| **Bottom sheet for edit** | Staff member edit, role change dialogs |
-| **Full-width cards** | User list, resort list on mobile |
-
----
-
-## Safety & Confirmation Levels
-
-| Action | Confirmation Level |
-|--------|-------------------|
-| Save settings | None (reversible) |
-| Remove staff from resort | Simple confirm dialog |
-| Change own role | Warning + confirm |
-| Delete staff account | Confirm + type name |
-| Grant Super Admin | Dedicated dialog with warning |
-| Revoke Super Admin | Confirm + type name |
-| Delete resort | Critical dialog + type code |
+| File | Change Type | Priority |
+|------|-------------|----------|
+| `index.html` | Update critical CSS to use dvh | High |
+| `src/index.css` | Add viewport-safe utilities | High |
+| `tailwind.config.ts` | Add dvh/svh utilities | High |
+| `src/components/staff/StaffShell.tsx` | Use min-h-screen-safe, fix overflow | High |
+| `src/components/layout/MobileBottomNav.tsx` | Hide when keyboard open | High |
+| `src/components/ui/mobile-action-bar.tsx` | Keyboard-aware positioning | High |
+| `src/components/ui/sheet.tsx` | Add max-h-[100dvh], safe area | Medium |
+| `src/components/ui/dialog.tsx` | Use max-h-[90dvh] | Medium |
+| `src/components/ui/drawer.tsx` | Max height + safe area footer | Medium |
+| `src/components/staff/StaffBookingPreviewSheet.tsx` | Flex layout instead of calc | Medium |
+| `src/components/superadmin/ResortDrawer.tsx` | Flex layout instead of calc | Medium |
+| `src/hooks/useInputAutoScroll.ts` | NEW - auto-scroll inputs | Medium |
 
 ---
 
-## Accessibility Considerations
+## Testing Checklist
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Section headers | Semantic `h2` for section titles, `h3` for card titles |
-| Focus management | Return focus after dialog close |
-| Screen reader | Announce role changes, destructive action warnings |
-| Touch targets | All buttons 44px+ minimum |
-| Keyboard navigation | Tab order through sections, Escape to close |
+After implementation, verify:
 
----
-
-## Implementation Phases
-
-### Phase 1: Foundation (Create new components)
-1. Create `SettingsSection` component
-2. Create `SettingsCard` component  
-3. Create `DangerZone` component
-4. Create export barrel
-
-### Phase 2: Settings Hub Transformation
-5. Refactor `SettingsPage.tsx` with grouped sections
-6. Implement mobile accordion behavior
-
-### Phase 3: Staff Management Polish
-7. Improve `ResortStaffPage.tsx` layout
-8. Add warnings to `UserManagementPage.tsx`
-9. Enhance confirmation dialogs
-
-### Phase 4: Form Pages Mobile Optimization
-10. Add accordions to `PrearrivalSettingsPage.tsx`
-11. Improve mobile tabs in `RequestsSettingsPage.tsx`
-12. Add sticky save buttons where needed
-
-### Phase 5: Safety Enhancements
-13. Add `requireTyping` to confirmation dialog
-14. Implement critical confirmations for resort delete
-15. Add danger zones to relevant pages
+- [ ] **iOS Safari**: Staff portal fits without content behind address bar
+- [ ] **Android Chrome**: Same test - no content behind system UI
+- [ ] **Keyboard Open (iOS)**: Form inputs scroll into view, action buttons remain visible
+- [ ] **Keyboard Open (Android)**: Same test
+- [ ] **Bottom Nav**: Hides when keyboard opens, reappears when closes
+- [ ] **MobileActionBar**: Moves above keyboard when input focused
+- [ ] **Sheets**: Right sheets don't overflow, scroll internally
+- [ ] **Bottom Sheets**: Respect safe area on iPhone with notch
+- [ ] **Dialogs**: Don't overflow on small screens (iPhone SE)
+- [ ] **Orientation Change**: Layout adapts correctly
+- [ ] **No Horizontal Scroll**: None at any breakpoint
+- [ ] **No Pinch-Zoom Required**: All content readable and tappable
 
 ---
 
 ## Summary
 
-This refinement transforms the admin experience from a flat, overwhelming list of options into a structured, confident interface where:
+This plan systematically fixes mobile viewport issues by:
 
-1. **Settings are discoverable** — grouped by domain with clear descriptions
-2. **Mobile is usable** — accordions, sticky actions, no cramped tables
-3. **Destructive actions are safe** — visually separated, properly confirmed
-4. **Hierarchy is clear** — Super Admin sections are distinct from resort settings
-5. **Non-technical users feel confident** — plain language, helpful descriptions, reversible where possible
+1. **Adopting dynamic viewport units (dvh/svh)** - Ensures content respects actual visible viewport
+2. **Hiding bottom nav when keyboard opens** - Prevents obstruction of form inputs
+3. **Making action bars keyboard-aware** - Primary CTAs remain visible above keyboard
+4. **Using flex layouts instead of calc(100vh)** - More robust height calculations
+5. **Adding safe area insets consistently** - Handles notches and home indicators
+6. **Preventing horizontal overflow** - Global CSS rules prevent scroll escape
 
-The changes are purely visual and interaction-layer — no business logic, permissions, or data persistence will be modified.
+All changes are additive and non-breaking - no business logic, routes, or data handling will be modified.
