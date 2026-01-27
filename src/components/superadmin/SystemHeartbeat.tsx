@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SystemHeartbeatProps {
   className?: string;
@@ -16,31 +17,33 @@ export function SystemHeartbeat({ className }: SystemHeartbeatProps) {
   const [latency, setLatency] = useState<number>(45);
   const [isVisible, setIsVisible] = useState(true);
 
-  // Simulate latency checks (in production, this would be a real API ping)
+  // Real Supabase connection health check
   useEffect(() => {
     const checkLatency = async () => {
       try {
         const start = performance.now();
-        // Use a lightweight endpoint check
-        await fetch('/api/health', { method: 'HEAD' }).catch(() => {});
-        const end = performance.now();
-        const measuredLatency = Math.round(end - start);
+        // Lightweight query to measure actual database latency
+        const { error } = await supabase.from('resorts').select('id').limit(1).maybeSingle();
+        const measuredLatency = Math.round(performance.now() - start);
         
-        // Simulate realistic latency variation
-        const simulatedLatency = Math.max(20, Math.min(500, measuredLatency + Math.random() * 30 - 15));
-        setLatency(Math.round(simulatedLatency));
-        
-        if (simulatedLatency < 100) {
+        if (error && error.message.includes('Failed to fetch')) {
+          // Actual connection failure
+          setStatus('critical');
+          setLatency(999);
+        } else if (measuredLatency < 150) {
           setStatus('healthy');
-        } else if (simulatedLatency < 300) {
+          setLatency(measuredLatency);
+        } else if (measuredLatency < 400) {
           setStatus('degraded');
+          setLatency(measuredLatency);
         } else {
           setStatus('critical');
+          setLatency(measuredLatency);
         }
       } catch {
-        // Fallback to simulated healthy state
-        setLatency(45 + Math.random() * 20);
-        setStatus('healthy');
+        // Network error - critical status
+        setStatus('critical');
+        setLatency(999);
       }
     };
 
