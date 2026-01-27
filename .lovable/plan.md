@@ -1,294 +1,142 @@
 
-# Resort Branding: Portal-Wide Color Application
+# Keep Propera System Colors as Guest Portal Default
 
-## Executive Summary
+## Summary
 
-This implementation will extend resort branding colors (primary + accent) from the login page to the entire guest portal. Currently, branding only affects the login screen — this update will make the guest experience feel fully customized to each resort's brand identity.
-
----
-
-## Current State Analysis
-
-### What Works Now
-- **Login page** (`ResortGuestLogin.tsx`): Applies `login_primary_color` to the submit button via inline styles
-- **GuestLayout.tsx**: Fetches branding via `useResortBranding` hook but only uses the logo and resort name
-- **CSS Variables**: Login page sets `--resort-primary` and `--resort-accent` but these are not consumed anywhere
-
-### What's Missing
-| Feature | Status |
-|---------|--------|
-| Primary color on buttons | Only on login button |
-| Primary color on nav indicators | Uses hardcoded `--lime-400` |
-| Primary color on cards/highlights | Uses hardcoded `--primary` |
-| Accent color usage | Not used anywhere |
-| Brand theme (Light/Dark/Auto) | Saved but not enforced |
+Currently, when a resort hasn't set custom branding colors, the guest portal uses hardcoded defaults (`#0E7490` teal and `#D8C7A6` sand) that don't match Propera's actual design system. This update will ensure the guest portal uses Propera's signature **Astro Lime** and **Blurple** colors by default, only switching to resort-specific colors when they've been explicitly configured.
 
 ---
 
-## Solution Architecture
+## Current Problem
 
-### Core Approach: CSS Custom Properties
+| Setting | Current Default | Should Be |
+|---------|-----------------|-----------|
+| `login_primary_color` | `#0E7490` (teal) | Propera Lime `#C3FF2E` |
+| `login_accent_color` | `#D8C7A6` (sand) | Propera Blurple `#5865F2` |
 
-Rather than modifying every component with inline styles, we'll set CSS custom properties at the `GuestLayout` root level. This cascades branding colors to all child components automatically.
-
-```text
-GuestLayout (sets --guest-primary, --guest-accent)
-├── Header (uses --guest-primary for logo fallback bg)
-├── NavItem (uses --guest-primary for active indicator)
-├── GuestHome
-│   ├── Cards (use --guest-primary for highlights)
-│   └── Buttons (use --guest-primary)
-├── Activities Browser
-│   └── Action buttons (use --guest-primary)
-└── All other guest pages...
+The CSS fallbacks in `index.css` are already correct:
+```css
+--primary: var(--guest-primary, var(--lime-400));
+--accent: var(--guest-accent, var(--blurple-500));
 ```
 
+But the `getBrandingWithDefaults()` function overrides these by always providing non-null values that get converted to CSS variables.
+
 ---
 
-## Implementation Plan
+## Solution
 
-### 1. Create GuestBrandingProvider Component
+### Approach: Let CSS Handle Defaults
 
-**File: `src/components/guest/GuestBrandingProvider.tsx`** (NEW)
+Instead of providing fallback hex colors in TypeScript, we'll:
 
-A wrapper component that:
-1. Consumes branding from the existing `useResortBranding` hook
-2. Converts hex colors to HSL for CSS variable compatibility
-3. Injects CSS variables into a `<style>` tag or inline styles
-4. Optionally enforces `brand_theme` on the guest portal
+1. Update `DEFAULT_BRANDING` to use `null` for colors (meaning "no custom branding")
+2. Modify `getBrandingWithDefaults()` to **not** provide default colors when none are set
+3. The CSS `var()` fallbacks will then kick in automatically, using Propera's lime/blurple
 
-```text
-Props: { children, resortId }
-Output: Wraps children with CSS variables applied to a container div
-```
+This ensures the guest portal uses Propera's system colors until a resort **actively chooses** to customize.
 
-Key features:
-- Converts hex to HSL (e.g., `#0E7490` → `188 82% 31%`)
-- Sets `--guest-primary` and `--guest-accent` CSS variables
-- Falls back to default Propera colors when no branding is set
-- Handles `brand_theme` by adding/removing dark class
+---
 
-### 2. Create Utility: Hex to HSL Converter
+## Implementation Details
 
-**File: `src/lib/color-utils.ts`** (NEW)
+### File: `src/hooks/useResortBranding.ts`
 
-A small utility for converting hex colors to HSL values that work with CSS variables.
+**Change 1**: Update `DEFAULT_BRANDING` to use `null` for colors
 
 ```typescript
-// Example output
-hexToHSL('#0E7490') // Returns "188 82% 31%"
-```
-
-### 3. Update GuestLayout to Apply Branding Variables
-
-**File: `src/components/guest/GuestLayout.tsx`**
-
-Changes:
-1. Apply branding CSS variables to the root container via inline `style` prop
-2. Use the new `hexToHSL` utility to convert colors
-3. Optionally enforce `brand_theme` via the `next-themes` provider
-
-Updated root container:
-```tsx
-<div 
-  className="flex min-h-screen flex-col bg-background"
-  style={{
-    '--guest-primary': hexToHSL(branding.login_primary_color),
-    '--guest-accent': hexToHSL(branding.login_accent_color),
-  }}
->
-```
-
-### 4. Add Guest-Scoped CSS Variables to index.css
-
-**File: `src/index.css`**
-
-Add new CSS variable overrides that apply only within the guest portal:
-
-```css
-/* Guest Portal Branding Overrides */
-.guest-branded {
-  --primary: var(--guest-primary, var(--lime-400));
-  --accent: var(--guest-accent, var(--blurple-500));
-  --ring: var(--guest-primary, var(--lime-400));
-}
-```
-
-This means any component using `bg-primary`, `text-primary`, `border-primary` will automatically use the resort's brand color.
-
-### 5. Update Navigation Indicator Colors
-
-**File: `src/components/guest/GuestLayout.tsx`** (NavItem component)
-
-The active indicator currently uses hardcoded lime:
-```tsx
 // Before
-<span className="... bg-primary shadow-[0_0_6px_hsl(var(--lime-400))]" />
+export const DEFAULT_BRANDING: Partial<ResortBranding> = {
+  login_primary_color: '#0E7490',
+  login_accent_color: '#D8C7A6',
+  brand_theme: 'LIGHT',
+};
 
-// After - uses CSS variable which inherits from guest branding
-<span className="... bg-primary shadow-[0_0_6px_hsl(var(--guest-primary))]" />
+// After
+export const DEFAULT_BRANDING: Partial<ResortBranding> = {
+  login_primary_color: null,  // Use Propera system colors by default
+  login_accent_color: null,   // Use Propera system colors by default
+  brand_theme: 'AUTO',        // Follow system preference by default
+};
 ```
 
-### 6. Update Guest Component Highlights
+**Change 2**: Update `getBrandingWithDefaults()` to preserve null values for colors
 
-The following components use `bg-primary/10`, `text-primary`, etc. which will automatically inherit the branding once CSS variables are set:
+```typescript
+// Before
+return {
+  ...branding,
+  login_primary_color: branding.login_primary_color || DEFAULT_BRANDING.login_primary_color!,
+  login_accent_color: branding.login_accent_color || DEFAULT_BRANDING.login_accent_color!,
+  brand_theme: branding.brand_theme || DEFAULT_BRANDING.brand_theme!,
+};
 
-| Component | Current | After Branding |
-|-----------|---------|----------------|
-| `GuestQuickActions.tsx` | Category-specific colors | No change needed (category colors stay) |
-| `GuestSectionHeader.tsx` | `text-primary` | Auto-inherits branding |
-| `GuestStayProgress.tsx` | `bg-primary`, gradient | Auto-inherits branding |
-| `GuestTodayTimeline.tsx` | `bg-primary/10`, `text-primary` | Auto-inherits branding |
-| `GuestBookingCard.tsx` | Category colors | No change (intentional) |
-| `GuestHome.tsx` | `bg-primary/10`, buttons | Auto-inherits branding |
-| `GuestActivitiesBrowser.tsx` | Buttons | Auto-inherits branding |
-| `GuestRestaurantBrowser.tsx` | Buttons | Auto-inherits branding |
+// After
+return {
+  ...branding,
+  // Don't override null colors - let CSS defaults handle Propera system colors
+  login_primary_color: branding.login_primary_color,
+  login_accent_color: branding.login_accent_color,
+  brand_theme: branding.brand_theme || 'AUTO',
+};
+```
 
-Most components will automatically inherit the new colors because they use Tailwind's `primary` color which maps to the CSS variable.
+### File: `src/components/guest/GuestLayout.tsx`
 
-### 7. Update Button Glow Effect
+The existing code already handles null values correctly:
 
-**File: `src/index.css`**
+```typescript
+const guestPrimaryHSL = hexToHSL(branding.login_primary_color);
+// hexToHSL returns null for null input
 
-The `.glow-lime` class is hardcoded to lime. Add a guest-aware version:
-
-```css
-.guest-branded .glow-primary {
-  box-shadow: 0 0 12px hsl(var(--guest-primary) / 0.4);
+const brandingStyles: React.CSSProperties = {};
+if (guestPrimaryHSL) {
+  // Only sets the variable when there's a custom color
+  (brandingStyles as Record<string, string>)['--guest-primary'] = guestPrimaryHSL;
 }
 ```
 
-### 8. Handle Brand Theme Enforcement
+When `guestPrimaryHSL` is `null`, no CSS variable is set, and the CSS fallback kicks in:
 
-**File: `src/components/guest/GuestLayout.tsx`**
-
-When `brand_theme` is set, override the theme for the guest portal:
-
-```tsx
-import { useTheme } from 'next-themes';
-
-// Inside GuestLayout
-const { setTheme, resolvedTheme } = useTheme();
-
-useEffect(() => {
-  if (branding.brand_theme === 'LIGHT') {
-    setTheme('light');
-  } else if (branding.brand_theme === 'DARK') {
-    setTheme('dark');
-  }
-  // 'AUTO' = do nothing, let system preference win
-}, [branding.brand_theme]);
+```css
+--primary: var(--guest-primary, var(--lime-400));
 ```
 
 ---
 
-## Files to Create
+## Behavior After Changes
 
-| File | Purpose |
-|------|---------|
-| `src/lib/color-utils.ts` | Hex to HSL conversion utility |
+| Scenario | Primary Color | Accent Color |
+|----------|--------------|--------------|
+| No branding set | Astro Lime (`#C3FF2E`) | Blurple (`#5865F2`) |
+| Resort sets primary only | Resort's color | Blurple (`#5865F2`) |
+| Resort sets both colors | Resort's primary | Resort's accent |
+| Resort clears colors | Back to Propera defaults | Back to Propera defaults |
+
+---
+
+## Theme Behavior
+
+Changing `brand_theme` default from `'LIGHT'` to `'AUTO'` means:
+- Guests see light/dark mode based on their system preference
+- Resorts can still force `LIGHT` or `DARK` in their branding settings
+
+---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/guest/GuestLayout.tsx` | Apply CSS variables + enforce brand_theme |
-| `src/index.css` | Add `.guest-branded` CSS variable overrides |
+| File | Change |
+|------|--------|
+| `src/hooks/useResortBranding.ts` | Update `DEFAULT_BRANDING` and `getBrandingWithDefaults()` |
 
----
-
-## CSS Variable Cascade
-
-```text
-:root (global defaults)
-└── .guest-branded (portal container)
-    └── --primary overridden to --guest-primary
-    └── --accent overridden to --guest-accent
-    └── All child components using bg-primary, text-primary, etc.
-        automatically use the resort's brand color
-```
-
----
-
-## Color Conversion Details
-
-The branding stores hex colors (e.g., `#0E7490`), but Tailwind CSS variables use HSL without the `hsl()` wrapper:
-
-```css
---primary: 188 82% 31%; /* NOT hsl(188, 82%, 31%) */
-```
-
-The `hexToHSL` utility will output the correct format:
-
-```typescript
-function hexToHSL(hex: string): string {
-  // Convert #0E7490 → "188 82% 31%"
-  // This format works with Tailwind's hsl() wrapper
-}
-```
-
----
-
-## Fallback Strategy
-
-| Scenario | Behavior |
-|----------|----------|
-| No branding colors set | Uses default Propera theme (lime/blurple) |
-| Invalid hex color | Falls back to default |
-| Branding loading | Shows default until loaded |
-| Brand theme AUTO | Follows system preference |
-
----
-
-## Visual Impact
-
-### Before (No Branding Applied)
-- All resorts see the same lime/blurple Propera theme
-- Login page has custom colors, but portal uses defaults
-
-### After (Branding Applied)
-- Each resort's portal uses their configured primary color for:
-  - Navigation active indicators
-  - Primary buttons
-  - Card highlights and focus rings
-  - Progress bars and charts
-  - Link colors where primary is used
-- Accent color available for secondary highlights
-
----
-
-## Technical Considerations
-
-1. **Performance**: CSS variable changes trigger a repaint but no layout shift
-2. **Caching**: Branding is cached via React Query (30s stale time)
-3. **SSR**: Not applicable (Vite/React is client-side)
-4. **Contrast**: Resorts are responsible for choosing accessible colors
+No other files need changes — the CSS fallbacks and GuestLayout null-handling are already in place.
 
 ---
 
 ## Testing Checklist
 
-- [ ] Branding colors apply to guest portal after login
-- [ ] Navigation indicator uses resort primary color
-- [ ] Buttons use resort primary color
-- [ ] Progress bars use resort primary color
-- [ ] Card highlights use resort primary color
-- [ ] Default Propera colors work when no branding set
-- [ ] Brand theme (LIGHT/DARK) is enforced correctly
-- [ ] Changes reflect immediately after staff saves branding
-- [ ] Dark mode still works correctly with custom colors
-- [ ] Color contrast remains accessible
-
----
-
-## Summary
-
-This implementation creates a seamless branded experience for guests by:
-
-1. **Setting CSS variables** at the GuestLayout level based on resort branding
-2. **Overriding --primary** within `.guest-branded` scope to use resort colors
-3. **Leveraging existing Tailwind classes** — most components already use `bg-primary`, `text-primary`, etc.
-4. **Enforcing brand_theme** to control light/dark mode in the guest portal
-5. **Minimal component changes** — the CSS cascade does most of the work
-
-No business logic or data fetching is modified — purely visual branding application.
+- [ ] Guest portal shows lime/blurple when resort has no custom branding
+- [ ] Guest portal shows custom colors when resort has set them
+- [ ] Clearing branding colors reverts to Propera system colors
+- [ ] Theme follows system preference by default (AUTO mode)
+- [ ] Existing resorts with custom branding are unaffected
