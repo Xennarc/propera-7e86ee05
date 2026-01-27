@@ -710,12 +710,58 @@
     @apply bg-coral/15 text-coral;
   }
 
-  .chip-category-fitness {
+.chip-category-fitness {
     @apply bg-success/15 text-success;
   }
 
   .chip-category-kids {
     @apply bg-primary/10 text-primary;
+  }
+
+  /* ========================================
+     GUEST PORTAL BRANDING OVERRIDES
+     Resort-specific color customization
+     ======================================== */
+
+  /**
+   * .guest-branded scopes resort-specific colors to the guest portal.
+   * When a resort has custom branding, --guest-primary and --guest-accent
+   * are set inline on the container, overriding the default theme colors.
+   * This allows all components using bg-primary, text-primary, etc. to
+   * automatically adopt the resort's brand identity.
+   */
+  .guest-branded {
+    /* Override primary with guest-specific color (falls back to default lime) */
+    --primary: var(--guest-primary, var(--lime-400));
+    --primary-foreground: var(--guest-primary-foreground, var(--midnight-950));
+    
+    /* Override accent with guest-specific color (falls back to default blurple) */
+    --accent: var(--guest-accent, var(--blurple-500));
+    --accent-foreground: var(--guest-accent-foreground, 0 0% 100%);
+    
+    /* Ring color matches primary for focus states */
+    --ring: var(--guest-primary, var(--lime-400));
+  }
+
+  /* Guest-branded glow effect using resort primary color */
+  .guest-branded .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--guest-primary, var(--lime-400)) / 0.35);
+    transition: box-shadow 0.2s ease;
+  }
+
+  .guest-branded .glow-primary:hover,
+  .guest-branded .glow-primary:focus {
+    box-shadow: 0 0 30px hsl(var(--guest-primary, var(--lime-400)) / 0.5);
+  }
+
+  /* Guest navigation active indicator glow */
+  .guest-branded .guest-nav-indicator {
+    box-shadow: 0 0 6px hsl(var(--guest-primary, var(--lime-400)) / 0.7);
+  }
+
+  /* Light mode adjustments for guest branding */
+  :root:not(.dark) .guest-branded {
+    --primary-foreground: 0 0% 100%;
   }
 
   /* ========================================
