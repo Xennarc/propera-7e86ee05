@@ -1,132 +1,261 @@
 
+# Enhance Guest Requests UI in Guest Portal
 
-# Continue Building Request Handling Dashboard
+## Overview
 
-## Current State Analysis
-
-The requests dashboard has a solid foundation with:
-- Lane-based workflow (New → In Progress → Completed)
-- Real-time updates via Supabase subscriptions + 5s polling
-- SLA countdown badges with color-coded urgency
-- Priority sorting and search
-- Keyboard shortcuts (1/2/3 for lanes, R to refresh)
-- Optimistic UI updates for mutations
-
-## Missing Features to Implement
-
-Based on the original plan and comparison with the existing inbox page (`StaffRequestsInboxPage`), these features need to be added:
-
-### 1. Request Detail Drawer Integration
-**Current Gap:** The dashboard cards have an `onOpenDetail` prop but it's not connected to anything.
-
-**Solution:** Integrate the existing `RequestDetailDrawer` component to show full request details, timeline, notes, and advanced actions.
-
-### 2. Filter Sheet Implementation  
-**Current Gap:** The filter sheet opens but shows "Filter options coming soon..."
-
-**Solution:** Implement a proper filter sheet using the existing `FilterSheet` component from `@/components/ui/filter-sheet`, reusing the filter options from `RequestFiltersBar`:
-- Department filter
-- Priority filter  
-- Assigned to filter
-- Multi-item toggle
-
-### 3. Department Data Fetch
-**Current Gap:** Filters need department data to populate the dropdown.
-
-**Solution:** Add department query to the dashboard page.
-
-### 4. Sound Notifications for New Requests (Future Phase)
-**Planned for later:** `useRequestNotifications` hook for audio/desktop notifications on urgent requests.
-
-### 5. Bulk Selection Actions (Future Phase)
-**Planned for later:** Multi-select mode with batch acknowledge/start/complete.
+This plan focuses on improving the guest requests experience based on the current implementation and UX best practices for mobile-first hospitality apps. The screenshot shows a solid foundation with Quick/Multiple mode switcher, category grid, and My Requests navigation - we'll enhance visual polish, micro-interactions, and usability.
 
 ---
 
-## Implementation Details
+## Current State Analysis
 
-### Phase 1: Detail Drawer Integration
+| Component | Current State | Enhancement Opportunity |
+|-----------|--------------|------------------------|
+| Category Grid | 2-column grid with ring icons | Add subtle animations, improved touch feedback |
+| Mode Switcher | Segmented control with pulse hint | More prominent visual differentiation between modes |
+| Header | Static title with My Requests button | Add welcome context, active request badge |
+| Empty States | Basic text + CTA | Friendlier illustrations, contextual tips |
+| Multi-Select Bar | Sticky bottom bar | Add haptic-style micro animations |
+| Loading States | Basic skeletons | Shimmer animations, staggered loading |
 
-**File:** `src/pages/staff/RequestsDashboardPage.tsx`
+---
 
-Changes:
-1. Import `RequestDetailDrawer` from `@/components/staff/RequestDetailDrawer`
-2. Add state for `selectedRequest` and `drawerOpen`
-3. Connect `onOpenDetail` prop in `RequestDashboardCard` to open the drawer
-4. Pass the full request object to the drawer
+## Enhancements
+
+### 1. Enhanced Category Grid (`RequestCategoryGrid.tsx`)
+
+**Visual Improvements:**
+- Add subtle hover/tap animations with Framer Motion
+- Implement staggered reveal animation on mount
+- Add micro-shimmer effect on icon rings
+- Improve dark mode contrast for descriptions
+
+**Code Changes:**
+```typescript
+// Add stagger animation to grid
+<motion.div 
+  className="grid grid-cols-2 gap-3"
+  initial="hidden"
+  animate="visible"
+  variants={{
+    visible: { transition: { staggerChildren: 0.06 } }
+  }}
+>
+  {categories.map((cat) => <CategoryTile ... />)}
+</motion.div>
+
+// Add spring animation to CategoryTile
+<motion.div
+  variants={{
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1 }
+  }}
+  whileHover={{ scale: 1.02, transition: { type: 'spring', stiffness: 400 } }}
+  whileTap={{ scale: 0.97 }}
+>
+```
+
+**Mobile Optimizations:**
+- Increase icon container size from 56px to 60px for better touch targets
+- Add subtle background gradient on active state
+- Improve ring glow effect on tap
+
+---
+
+### 2. Active Request Badge in Header (`GuestRequestsPage.tsx`)
+
+**Feature:** Show a badge with active request count in the header
 
 ```typescript
-// New state
-const [selectedRequest, setSelectedRequest] = useState<StaffServiceRequest | null>(null);
-const [drawerOpen, setDrawerOpen] = useState(false);
+// Fetch active requests count
+const { requests } = useGuestServiceRequests({ guestId, resortId, enabled: !!guest });
+const activeCount = requests.filter(r => 
+  ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS'].includes(r.status)
+).length;
 
-// Handler
-const handleOpenDetail = (request: RequestWithSLA) => {
-  setSelectedRequest(request as unknown as StaffServiceRequest);
-  setDrawerOpen(true);
+// Header UI
+<Button variant="outline" size="sm" asChild className="gap-1.5 relative">
+  <Link to="/guest/requests/my">
+    <ClipboardList className="h-4 w-4" />
+    My Requests
+    {activeCount > 0 && (
+      <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+        {activeCount}
+      </span>
+    )}
+  </Link>
+</Button>
+```
+
+---
+
+### 3. Enhanced Mode Switcher (`RequestModeSwitcher.tsx`)
+
+**Improvements:**
+- Add icon color transition on mode change
+- Improve helper text animation with slide effect
+- Add subtle background pulse on first visit
+- Better visual distinction between modes
+
+```typescript
+// Mode-specific styling
+const modeStyles = {
+  quick: {
+    icon: <Zap className="h-4 w-4" />,
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+    helper: 'One tap, one request'
+  },
+  multi: {
+    icon: <ListChecks className="h-4 w-4" />,
+    color: 'text-primary',
+    bg: 'bg-primary/10',
+    helper: 'Build a list, send together'
+  }
 };
 ```
 
-### Phase 2: Filter Sheet Implementation
+---
 
-**File:** `src/pages/staff/RequestsDashboardPage.tsx`
+### 4. Improved Multi-Select Item Grid (`MultiSelectItemGrid.tsx`)
 
-Changes:
-1. Add department query using Supabase
-2. Replace placeholder Sheet content with proper filter UI
-3. Add filter state management (department, priority, assigned)
-4. Wire filters to `useRequestsDashboard` hook
-
-**New State:**
-```typescript
-const [departmentFilter, setDepartmentFilter] = useState<string>('__all__');
-const [priorityFilter, setPriorityFilter] = useState<StaffRequestPriority | 'all'>('all');
-const [assignedFilter, setAssignedFilter] = useState<string>('__all__');
-const [multiItemFilter, setMultiItemFilter] = useState(false);
-const [filterSheetOpen, setFilterSheetOpen] = useState(false);
-```
-
-**Department Query:**
-```typescript
-const { data: departments = [] } = useQuery({
-  queryKey: ['resort-departments', resortId],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from('departments')
-      .select('key, name')
-      .eq('resort_id', resortId)
-      .eq('is_active', true);
-    return data || [];
-  },
-  enabled: !!resortId,
-});
-```
-
-**Filter Sheet UI:**
-- Use existing `FilterSheet`, `FilterSection`, `FilterTrigger` components
-- Checkboxes for department selection
-- Priority radio options
-- Assigned to options (All / Me / Unassigned)
-- Multi-item toggle
-
-### Phase 3: Permissions Integration
-
-**Current Gap:** No permission checks for actions.
-
-**Solution:** Import and use `useStaffRequestPermissions` to conditionally show actions:
+**Visual Enhancements:**
+- Add subtle confetti/sparkle animation when item selected
+- Improve quantity badge visibility
+- Add category section dividers with icons
+- Better selected state with gradient border
 
 ```typescript
-const { canAssign, canManage, canChangePriority } = useStaffRequestPermissions();
+// Enhanced selected state
+<Card className={cn(
+  'relative overflow-hidden transition-all duration-200',
+  selected && 'ring-2 ring-primary shadow-lg shadow-primary/20',
+  selected && 'before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/5 before:to-transparent'
+)}>
 ```
 
-### Phase 4: Enhanced Card Actions
+**Section Headers:**
+```typescript
+// Enhanced section header
+<div className="flex items-center gap-2 px-1 mb-2">
+  <div className={cn('w-6 h-6 rounded-full flex items-center justify-center border-2', category.ringColor)}>
+    <CategoryIcon className="h-3 w-3" />
+  </div>
+  <h3 className="text-sm font-medium text-foreground">
+    {category?.label || categoryKey}
+  </h3>
+  <span className="text-xs text-muted-foreground">
+    ({categoryItems.length} items)
+  </span>
+</div>
+```
 
-**File:** `src/components/staff/requests-dashboard/RequestDashboardCard.tsx`
+---
 
-Changes:
-1. Add reassign capability for acknowledged/in-progress requests
-2. Improve mobile touch targets
-3. Add notes indication badge
+### 5. Enhanced Multi-Select Bottom Bar (`GuestRequestsPage.tsx`)
+
+**Improvements:**
+- Add count animation when items added/removed
+- Improve button prominence
+- Add subtle shimmer on primary state
+- Better empty state messaging
+
+```typescript
+// Animated count with spring
+<motion.p 
+  key={totalSelectedCount}
+  initial={{ scale: 1.3, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  className="font-semibold"
+>
+  {totalSelectedCount} item{totalSelectedCount !== 1 ? 's' : ''} selected
+</motion.p>
+
+// Add shimmer effect to bar when items selected
+<div className={cn(
+  'rounded-2xl shadow-2xl p-4 transition-all duration-300',
+  'backdrop-blur-xl border',
+  selectedItems.length > 0 && 'animate-shimmer bg-gradient-to-r from-primary via-primary/90 to-primary'
+)}>
+```
+
+---
+
+### 6. Improved Loading & Empty States
+
+**Skeleton Animations:**
+```typescript
+// Add shimmer effect to skeletons
+<Skeleton className="h-24 rounded-2xl animate-shimmer bg-gradient-to-r from-muted via-muted/80 to-muted" />
+```
+
+**Enhanced Empty State for Multi-Select Mode:**
+```typescript
+// When in multi-select with no items visible
+<GuestEmptyState
+  icon={ShoppingBag}
+  title="Select items from above"
+  description="Tap any item to add it to your request"
+  className="py-8"
+/>
+```
+
+---
+
+### 7. Request Quick Sheet Improvements (`RequestQuickSheet.tsx`)
+
+**Enhancements:**
+- Add keyboard-safe drawer integration
+- Improve common suggestions with 2-column grid
+- Add subtle animation on suggestion selection
+- Better visual hierarchy
+
+```typescript
+// Improved suggestions grid
+<div className="grid grid-cols-2 gap-2">
+  {COMMON_REQUESTS.map((suggestion) => (
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      className={cn(
+        "p-3 text-left rounded-xl border transition-all",
+        requestText === suggestion
+          ? "bg-primary text-primary-foreground border-primary shadow-md"
+          : "bg-muted/50 hover:bg-muted border-transparent"
+      )}
+    >
+      <span className="text-sm font-medium">{suggestion}</span>
+    </motion.button>
+  ))}
+</div>
+```
+
+---
+
+### 8. My Requests Page Improvements (`GuestMyRequestsPage.tsx`)
+
+**Enhancements:**
+- Add pull-to-refresh indicator
+- Improve filter chips with animated count badges
+- Add subtle card hover effects
+- Better transition animations between filters
+
+```typescript
+// Enhanced filter chips with spring animation
+<motion.span 
+  layout
+  key={count}
+  initial={{ scale: 1.2 }}
+  animate={{ scale: 1 }}
+  className={cn(
+    'text-xs px-1.5 py-0.5 rounded-full min-w-[20px] tabular-nums',
+    filter === key 
+      ? 'bg-primary-foreground/20 text-primary-foreground' 
+      : 'bg-muted text-muted-foreground'
+  )}
+>
+  {count}
+</motion.span>
+```
 
 ---
 
@@ -134,120 +263,40 @@ Changes:
 
 | File | Changes |
 |------|---------|
-| `src/pages/staff/RequestsDashboardPage.tsx` | Add detail drawer, filter sheet, department query, permissions |
-| `src/components/staff/requests-dashboard/RequestDashboardCard.tsx` | Add notes indicator, improve action layout |
-| `src/components/staff/requests-dashboard/DashboardFilterSheet.tsx` | **NEW** - Extracted filter sheet component for mobile |
+| `src/components/guest/requests/RequestCategoryGrid.tsx` | Stagger animations, enhanced tile interactions |
+| `src/components/guest/requests/RequestModeSwitcher.tsx` | Icon colors, improved helper text |
+| `src/components/guest/requests/MultiSelectItemGrid.tsx` | Section headers with icons, better selected state |
+| `src/pages/guest/GuestRequestsPage.tsx` | Active request badge, animated bottom bar |
+| `src/pages/guest/GuestMyRequestsPage.tsx` | Animated filter counts, improved transitions |
+| `src/components/guest/RequestQuickSheet.tsx` | Grid suggestions, better keyboard handling |
 
 ---
 
-## Component Structure After Changes
+## Mobile UX Considerations
 
-```text
-RequestsDashboardPage
-├── DashboardHeader (title, sync status, shortcuts button)
-├── Urgent Alert Banner (animated, shows when urgent count > 0)
-├── StatusLaneTabs (New / In Progress / Completed)
-├── Search + Filter Bar
-│   ├── Search Input
-│   └── FilterTrigger → opens DashboardFilterSheet
-├── Request Cards List
-│   └── RequestDashboardCard
-│       ├── Priority Badge + SLA Badge
-│       ├── Title + Timestamp
-│       ├── Guest Info + Room
-│       ├── Action Buttons (context-aware)
-│       └── Details Button → opens RequestDetailDrawer
-├── DashboardFilterSheet (mobile bottom drawer)
-│   ├── Department Section
-│   ├── Priority Section
-│   ├── Assigned To Section
-│   └── Options Section (multi-item toggle)
-├── RequestDetailDrawer (existing component)
-└── KeyboardShortcutsModal
-```
+1. **Touch Targets:** All interactive elements maintain 44-48px minimum
+2. **Font Sizes:** Minimum 11px for metadata, 16px for inputs
+3. **Safe Areas:** Bottom bars account for `env(safe-area-inset-bottom)`
+4. **Keyboard Handling:** KeyboardSafeDrawer integration where needed
+5. **Animations:** Respect reduced-motion preferences
 
 ---
 
-## Keyboard Shortcuts (Already Implemented)
+## Animation Performance
 
-| Key | Action |
-|-----|--------|
-| `1` | Switch to New lane |
-| `2` | Switch to In Progress lane |
-| `3` | Switch to Completed lane |
-| `R` | Refresh data |
-| `?` | Show shortcuts modal |
-| `Escape` | Deselect / close drawer |
-
----
-
-## Real-Time Sync Flow (Already Working)
-
-```text
-Guest Request Created
-        │
-        ▼
-service_requests INSERT
-        │
-        ▼
-Supabase Realtime Trigger
-        │
-        ▼
-useRequestsDashboard subscription
-        │
-        ▼
-queryClient.invalidateQueries(['requests-dashboard', resortId])
-        │
-        ▼
-UI updates within ~2-5 seconds
-```
-
----
-
-## Testing Checklist
-
-| Feature | Test Case | Expected |
-|---------|-----------|----------|
-| Detail Drawer | Click "Details" on card | Drawer opens with full request info |
-| Filter Sheet | Tap filter icon on mobile | Bottom sheet slides up |
-| Department Filter | Select specific department | Only that department's requests show |
-| Priority Filter | Select "Urgent" | Only urgent requests show |
-| Assigned Filter | Select "Assigned to Me" | Only my assigned requests show |
-| Filter Clear | Click "Clear all" | All filters reset |
-| Permissions | Non-manager user | Cannot see reassign option |
-
----
-
-## Future Enhancements (Not in This Phase)
-
-1. **Sound Notifications**
-   - `useRequestNotifications` hook
-   - Different tones for URGENT vs HIGH priority
-   - Persist preference in localStorage
-
-2. **Bulk Actions**
-   - Checkbox selection mode
-   - "Acknowledge All" / "Start All" / "Complete All"
-   - Sticky bottom action bar
-
-3. **Department Kanban View**
-   - Toggle between timeline and department columns
-   - Drag-and-drop between lanes
-
-4. **Custom SLA Configuration**
-   - Per-resort SLA targets
-   - Database column additions
+- Use `layout` prop sparingly for list reordering
+- Prefer CSS transitions for simple state changes
+- Use Framer Motion for complex multi-step animations
+- Debounce rapid state changes to prevent animation overlap
 
 ---
 
 ## Summary
 
-This phase focuses on completing the core dashboard functionality by:
+These enhancements focus on:
+1. **Visual Polish:** Stagger animations, micro-interactions, better color transitions
+2. **Usability:** Active request badges, improved touch targets, better feedback
+3. **Delight:** Subtle animations on selection, count springs, shimmer effects
+4. **Consistency:** Unified animation patterns across all request components
 
-1. **Connecting the detail drawer** for full request management
-2. **Implementing proper filters** with mobile-optimized filter sheet
-3. **Adding permissions** to control action visibility
-4. **Improving card UX** with better information display
-
-After this phase, the dashboard will be fully functional for day-to-day request management, with future phases adding advanced features like bulk actions and sound notifications.
-
+The changes maintain the existing functionality while elevating the visual quality and user experience to match premium hospitality standards.
