@@ -1,45 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { getTierInfo, SubscriptionTier } from '@/lib/tier-features';
 import { format, formatDistanceToNow } from 'date-fns';
-import { ActionQueue, ActionQueueItem } from '@/components/superadmin/ActionQueue';
+import { ActionQueue } from '@/components/superadmin/ActionQueue';
 import { ResortDrawer } from '@/components/superadmin/ResortDrawer';
 import { RolloutsPanel } from '@/components/superadmin/RolloutsPanel';
 import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
 import { FounderControls } from '@/components/superadmin/FounderControls';
 import { SecurityAuditPanel } from '@/components/superadmin/SecurityAuditPanel';
+import { SystemHeartbeat } from '@/components/superadmin/SystemHeartbeat';
+import { BentoKPICard } from '@/components/superadmin/BentoKPICard';
+import { BentoGrid } from '@/components/superadmin/BentoGrid';
+import { MissionControlHeader } from '@/components/superadmin/MissionControlHeader';
 import { usePlatformActivityRealtime, EVENT_TYPE_CONFIG } from '@/hooks/usePlatformActivity';
 import { useErrorCount24h } from '@/hooks/usePlatformErrors';
 import { useActionQueueDetectors } from '@/hooks/useActionQueueDetectors';
 import { toast } from 'sonner';
 import {
-  Building2, Users, Calendar, Utensils, TrendingUp, AlertTriangle, AlertCircle,
-  CheckCircle2, ArrowUpRight, ExternalLink, Plane, Activity, Bell, Clock,
-  ChevronRight, Sparkles, Zap, Eye, Radio, Settings, Search, BarChart3,
-  Pencil, Shield, ShieldCheck,
+  Building2, Users, Calendar, Utensils, AlertCircle,
+  CheckCircle2, Plane, Activity, Clock, ChevronRight, Zap, Eye, Settings,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Write Mode Context
 export interface WriteModeState {
@@ -47,59 +36,95 @@ export interface WriteModeState {
   expiresAt: Date | null;
 }
 
-// KPI Card Component
-function KPICard({ title, value, icon: Icon, onClick, loading, variant = 'default' }: { 
-  title: string; value: string | number; icon: React.ComponentType<{ className?: string }>;
-  onClick?: () => void; loading?: boolean; variant?: 'default' | 'primary' | 'success' | 'warning';
-}) {
-  const variantStyles = { default: 'bg-card', primary: 'bg-primary/5 border-primary/20', success: 'bg-success/5 border-success/20', warning: 'bg-warning/5 border-warning/20' };
-  const iconStyles = { default: 'text-muted-foreground', primary: 'text-primary', success: 'text-success', warning: 'text-warning' };
-  return (
-    <Card className={`${variantStyles[variant]} cursor-pointer hover:shadow-md transition-all duration-200 group relative overflow-hidden`} onClick={onClick}>
-      {/* Subtle pulse overlay for live data */}
-      <div className="absolute inset-0 bg-primary/5 animate-pulse rounded-xl opacity-30 pointer-events-none" />
-      <CardContent className="p-4 relative">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">{title}</p>
-            {loading ? <Skeleton className="h-7 w-16" /> : <p className="text-2xl font-bold tracking-tight">{value}</p>}
-          </div>
-          <div className={`p-2 rounded-xl bg-muted/50 ${iconStyles[variant]}`}><Icon className="h-4 w-4" /></div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Resort Health Card
+// Resort Health Card - Glassmorphism style
 function ResortHealthCard({ resort, metrics, onClick }: { 
   resort: { id: string; name: string; code: string; subscription_tier: string; is_demo: boolean };
   metrics: { guests: number; prearrivalRate: number; health: 'good' | 'warning' | 'critical'; sessions: number; covers: number };
   onClick: () => void;
 }) {
   const tierInfo = getTierInfo((resort.subscription_tier || 'ESSENTIAL') as SubscriptionTier);
-  const healthColors = { good: 'bg-success', warning: 'bg-warning', critical: 'bg-destructive' };
+  const healthColors = { 
+    good: 'bg-success', 
+    warning: 'bg-warning', 
+    critical: 'bg-destructive' 
+  };
+  
   return (
-    <Card className="hover:shadow-md transition-all duration-200 cursor-pointer group" onClick={onClick}>
-      <CardContent className="p-4">
+    <Card 
+      className={cn(
+        'group relative overflow-hidden cursor-pointer',
+        'bg-card/60 backdrop-blur-sm border-border/30',
+        'hover:bg-card/80 hover:shadow-lg hover:scale-[1.02]',
+        'transition-all duration-300 ease-out',
+        'active:scale-[0.98]'
+      )} 
+      onClick={onClick}
+    >
+      {/* Subtle gradient overlay on hover */}
+      <div 
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: 'radial-gradient(circle at 50% 0%, hsl(var(--primary)/0.05), transparent 70%)',
+        }}
+      />
+      
+      <CardContent className="p-4 relative">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="font-semibold text-sm">{resort.name}</h4>
-              {resort.is_demo && <Badge variant="outline" className="text-[9px] px-1">DEMO</Badge>}
+              <h4 className="font-semibold text-sm tracking-[-0.01em]">{resort.name}</h4>
+              {resort.is_demo && (
+                <Badge variant="outline" className="text-[9px] px-1.5 bg-muted/50">
+                  DEMO
+                </Badge>
+              )}
             </div>
-            <Badge className={`${tierInfo.color} text-[10px] px-1.5 mt-1`}>{tierInfo.name}</Badge>
+            <Badge className={`${tierInfo.color} text-[10px] px-1.5 mt-1.5`}>
+              {tierInfo.name}
+            </Badge>
           </div>
-          <div className={`h-3 w-3 rounded-full ${healthColors[metrics.health]} ${metrics.health !== 'good' ? 'animate-pulse' : ''}`} />
+          <div className="relative flex h-3 w-3">
+            {metrics.health !== 'good' && (
+              <span className={cn(
+                'absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping',
+                healthColors[metrics.health]
+              )} />
+            )}
+            <span className={cn(
+              'relative inline-flex h-3 w-3 rounded-full',
+              healthColors[metrics.health]
+            )} />
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div><p className="text-muted-foreground">Guests</p><p className="font-semibold">{metrics.guests}</p></div>
-          <div><p className="text-muted-foreground">Sessions</p><p className="font-semibold">{metrics.sessions}</p></div>
-          <div><p className="text-muted-foreground">Pre-arr</p><p className="font-semibold">{metrics.prearrivalRate}%</p></div>
+          <div>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Guests</p>
+            <p className="font-semibold">{metrics.guests}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Sessions</p>
+            <p className="font-semibold">{metrics.sessions}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-[10px] uppercase tracking-wider">Pre-arr</p>
+            <p className="font-semibold">{metrics.prearrivalRate}%</p>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+// Generate mock sparkline data for demo purposes
+function generateSparklineData(baseValue: number, variance: number = 0.2): number[] {
+  const data: number[] = [];
+  let current = baseValue;
+  for (let i = 0; i < 24; i++) {
+    const change = (Math.random() - 0.5) * variance * baseValue;
+    current = Math.max(0, current + change);
+    data.push(Math.round(current));
+  }
+  return data;
 }
 
 export default function CommandCenter() {
@@ -194,6 +219,17 @@ export default function CommandCenter() {
     },
   });
 
+  // Generate sparkline data (memoized to prevent re-renders)
+  const sparklines = useMemo(() => ({
+    resorts: generateSparklineData(kpis?.activeResorts || 3, 0.1),
+    guests: generateSparklineData(kpis?.guestsInHouse || 50, 0.15),
+    arrivals: generateSparklineData(kpis?.upcomingArrivals || 20, 0.25),
+    activities: generateSparklineData(kpis?.activityPax || 30, 0.2),
+    covers: generateSparklineData(kpis?.diningCovers || 40, 0.2),
+    prearrival: generateSparklineData(kpis?.prearrivalRate || 65, 0.1),
+    errors: generateSparklineData(errorCount24h || 2, 0.5),
+  }), [kpis, errorCount24h]);
+
   // Use detected items from hook, with filter support
   const actionItems = (detectedItems || []).filter(item => 
     actionQueueFilter === 'all' || item.severity === actionQueueFilter
@@ -220,7 +256,10 @@ export default function CommandCenter() {
     enabled: resorts.length > 0,
   });
 
-  const handleResortClick = (resort: typeof resorts[0]) => { setSelectedResort(resort); setDrawerOpen(true); };
+  const handleResortClick = (resort: typeof resorts[0]) => { 
+    setSelectedResort(resort); 
+    setDrawerOpen(true); 
+  };
 
   // Handle saved view navigation from FounderControls
   const handleSavedViewChange = (viewId: string) => {
@@ -236,87 +275,88 @@ export default function CommandCenter() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header with Mode Switch */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Sparkles className="h-6 w-6 text-primary" />Command Center</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform overview and global controls</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Write Mode Badge */}
-          {writeMode && writeModeExpiry && (
-            <Badge 
-              variant="destructive" 
-              className="animate-pulse cursor-pointer flex items-center gap-1.5"
-              onClick={handleDisableWriteMode}
-            >
-              <Pencil className="h-3 w-3" />
-              Write Mode ({formatDistanceToNow(writeModeExpiry)})
-            </Badge>
-          )}
+      {/* System Heartbeat - Platform Health */}
+      <SystemHeartbeat />
 
-          {/* Write Mode Toggle */}
-          <AlertDialog open={showWriteModeConfirm} onOpenChange={setShowWriteModeConfirm}>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant={writeMode ? "destructive" : "outline"} 
-                size="sm" 
-                className="gap-1.5"
-                onClick={() => writeMode ? handleDisableWriteMode() : setShowWriteModeConfirm(true)}
-              >
-                <Shield className="h-4 w-4" />
-                {writeMode ? 'Disable Write' : 'Write Mode'}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-warning" />
-                  Enable Write Mode?
-                </AlertDialogTitle>
-                <AlertDialogDescription className="space-y-2">
-                  <p>Write Mode allows you to make real changes to resort settings and configurations.</p>
-                  <ul className="list-disc list-inside text-sm space-y-1 mt-2">
-                    <li>It will automatically disable after <strong>10 minutes</strong> for safety</li>
-                    <li>All actions will be logged to the audit trail</li>
-                    <li>Changes take effect immediately</li>
-                  </ul>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleEnableWriteMode} className="bg-warning text-warning-foreground hover:bg-warning/90">
-                  Enable Write Mode
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+      {/* Mission Control Header */}
+      <MissionControlHeader
+        mode={mode}
+        onModeChange={setMode}
+        includeDemos={includeDemos}
+        onIncludeDemosChange={setIncludeDemos}
+        writeMode={writeMode}
+        writeModeExpiry={writeModeExpiry}
+        onEnableWriteMode={handleEnableWriteMode}
+        onDisableWriteMode={handleDisableWriteMode}
+        showWriteModeConfirm={showWriteModeConfirm}
+        onShowWriteModeConfirmChange={setShowWriteModeConfirm}
+      />
 
-          <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="bg-muted/50 rounded-lg p-1">
-            <TabsList className="grid grid-cols-4 gap-1 bg-transparent">
-              <TabsTrigger value="pulse" className="text-xs gap-1 data-[state=active]:bg-background"><Radio className="h-3 w-3" />Pulse</TabsTrigger>
-              <TabsTrigger value="control" className="text-xs gap-1 data-[state=active]:bg-background"><Settings className="h-3 w-3" />Control</TabsTrigger>
-              <TabsTrigger value="investigate" className="text-xs gap-1 data-[state=active]:bg-background"><Search className="h-3 w-3" />Investigate</TabsTrigger>
-              <TabsTrigger value="security" className="text-xs gap-1 data-[state=active]:bg-background"><ShieldCheck className="h-3 w-3" />Security</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <div className="flex items-center gap-2">
-            <Switch id="include-demos" checked={includeDemos} onCheckedChange={setIncludeDemos} />
-            <Label htmlFor="include-demos" className="text-xs text-muted-foreground cursor-pointer">Demos</Label>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Strip */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-        <KPICard title="Resorts" value={kpis?.activeResorts || 0} icon={Building2} loading={loadingKPIs} variant="primary" onClick={() => navigate('/superadmin/resorts')} />
-        <KPICard title="In-House" value={kpis?.guestsInHouse || 0} icon={Users} loading={loadingKPIs} />
-        <KPICard title="Arrivals 72h" value={kpis?.upcomingArrivals || 0} icon={Plane} loading={loadingKPIs} />
-        <KPICard title="Activity Pax" value={kpis?.activityPax || 0} icon={Calendar} loading={loadingKPIs} variant="success" />
-        <KPICard title="Covers" value={kpis?.diningCovers || 0} icon={Utensils} loading={loadingKPIs} variant="warning" />
-        <KPICard title="Pre-arrival" value={`${kpis?.prearrivalRate || 0}%`} icon={CheckCircle2} loading={loadingKPIs} />
-        <KPICard title="Errors 24h" value={errorCount24h || 0} icon={AlertCircle} loading={false} onClick={() => setMode('investigate')} />
-      </div>
+      {/* Bento KPI Grid */}
+      <BentoGrid>
+        <BentoKPICard 
+          title="Resorts" 
+          value={kpis?.activeResorts || 0} 
+          icon={Building2} 
+          loading={loadingKPIs} 
+          variant="primary"
+          trend={{ value: 12, label: 'vs last month' }}
+          sparklineData={sparklines.resorts}
+          onClick={() => navigate('/superadmin/resorts')} 
+        />
+        <BentoKPICard 
+          title="In-House" 
+          value={kpis?.guestsInHouse || 0} 
+          icon={Users} 
+          loading={loadingKPIs}
+          trend={{ value: 8, label: 'vs yesterday' }}
+          sparklineData={sparklines.guests}
+        />
+        <BentoKPICard 
+          title="Arrivals 72h" 
+          value={kpis?.upcomingArrivals || 0} 
+          icon={Plane} 
+          loading={loadingKPIs}
+          trend={{ value: -3, label: 'vs last week' }}
+          sparklineData={sparklines.arrivals}
+        />
+        <BentoKPICard 
+          title="Activity Pax" 
+          value={kpis?.activityPax || 0} 
+          icon={Calendar} 
+          loading={loadingKPIs} 
+          variant="success"
+          trend={{ value: 15, label: 'vs yesterday' }}
+          sparklineData={sparklines.activities}
+        />
+        <BentoKPICard 
+          title="Covers" 
+          value={kpis?.diningCovers || 0} 
+          icon={Utensils} 
+          loading={loadingKPIs} 
+          variant="warning"
+          trend={{ value: 5, label: 'vs yesterday' }}
+          sparklineData={sparklines.covers}
+        />
+        <BentoKPICard 
+          title="Pre-arrival" 
+          value={`${kpis?.prearrivalRate || 0}%`} 
+          icon={CheckCircle2} 
+          loading={loadingKPIs}
+          trend={{ value: 2, label: 'completion rate' }}
+          sparklineData={sparklines.prearrival}
+        />
+        <BentoKPICard 
+          title="Errors 24h" 
+          value={errorCount24h || 0} 
+          icon={AlertCircle} 
+          loading={false}
+          variant={errorCount24h && errorCount24h > 5 ? 'warning' : 'default'}
+          trend={{ value: errorCount24h && errorCount24h > 0 ? -20 : 0, label: 'vs yesterday' }}
+          sparklineData={sparklines.errors}
+          onClick={() => setMode('investigate')} 
+        />
+      </BentoGrid>
 
       {/* Mode Content */}
       {mode === 'pulse' && (
@@ -329,14 +369,18 @@ export default function CommandCenter() {
               onFilterChange={setActionQueueFilter}
             />
             
-            {/* Real Activity Feed */}
-            <Card>
+            {/* Real Activity Feed - Glassmorphism */}
+            <Card className="bg-card/60 backdrop-blur-sm border-border/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
+                  <div className="p-1.5 rounded-lg bg-muted/50">
+                    <Activity className="h-4 w-4" />
+                  </div>
                   Activity Feed
                   {activityEvents.length > 0 && (
-                    <Badge variant="outline" className="ml-auto text-xs">{activityEvents.length} events</Badge>
+                    <Badge variant="outline" className="ml-auto text-xs bg-muted/50">
+                      {activityEvents.length} events
+                    </Badge>
                   )}
                 </CardTitle>
               </CardHeader>
@@ -352,12 +396,15 @@ export default function CommandCenter() {
                         const config = EVENT_TYPE_CONFIG[event.event_type] || { label: event.event_type, icon: Activity, color: 'text-muted-foreground' };
                         const EventIcon = config.icon;
                         return (
-                          <div key={event.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
-                            <div className={`p-1.5 rounded-lg bg-muted ${config.color}`}>
+                          <div 
+                            key={event.id} 
+                            className="flex items-start gap-3 p-3 bg-muted/20 rounded-xl border border-border/20 hover:bg-muted/30 transition-colors"
+                          >
+                            <div className={`p-1.5 rounded-lg bg-muted/50 ${config.color}`}>
                               <EventIcon className="h-3.5 w-3.5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium">{config.label}</p>
+                              <p className="text-sm font-medium tracking-[-0.01em]">{config.label}</p>
                               <p className="text-xs text-muted-foreground truncate">
                                 {event.actor_name && <span>{event.actor_name}</span>}
                                 {event.target_name && <span> → {event.target_name}</span>}
@@ -397,12 +444,28 @@ export default function CommandCenter() {
       {mode === 'control' && (
         <div className="grid gap-6 lg:grid-cols-2">
           <RolloutsPanel writeMode={writeMode} />
-          <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" />Quick Actions</CardTitle></CardHeader>
+          <Card className="bg-card/60 backdrop-blur-sm border-border/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  <Zap className="h-4 w-4" />
+                </div>
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/feature-flags')}><Settings className="h-4 w-4 mr-2" />Manage Feature Flags</Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/users')}><Users className="h-4 w-4 mr-2" />Invite Staff</Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/support')}><Eye className="h-4 w-4 mr-2" />Support Mode</Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/feature-flags')}>
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Feature Flags
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/users')}>
+                <Users className="h-4 w-4 mr-2" />
+                Invite Staff
+              </Button>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/superadmin/support')}>
+                <Eye className="h-4 w-4 mr-2" />
+                Support Mode
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -419,19 +482,36 @@ export default function CommandCenter() {
         <SecurityAuditPanel />
       )}
 
-      {/* Resort Grid */}
+      {/* Resort Grid - Glassmorphism */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Building2 className="h-5 w-5" />Resort Portfolio</h2>
-          <Button variant="outline" size="sm" onClick={() => navigate('/superadmin/resorts')}>View all<ChevronRight className="h-4 w-4 ml-1" /></Button>
+          <h2 className="text-lg font-semibold tracking-[-0.01em] flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-muted/50">
+              <Building2 className="h-4 w-4" />
+            </div>
+            Resort Portfolio
+          </h2>
+          <Button variant="outline" size="sm" onClick={() => navigate('/superadmin/resorts')}>
+            View all
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
         {loadingResorts ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}</div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {resorts.slice(0, 8).map((resort) => {
               const metrics = resortMetrics?.[resort.id] || { guests: 0, prearrivalRate: 0, health: 'good' as const, sessions: 0, covers: 0 };
-              return <ResortHealthCard key={resort.id} resort={resort} metrics={metrics} onClick={() => handleResortClick(resort)} />;
+              return (
+                <ResortHealthCard 
+                  key={resort.id} 
+                  resort={resort} 
+                  metrics={metrics} 
+                  onClick={() => handleResortClick(resort)} 
+                />
+              );
             })}
           </div>
         )}
