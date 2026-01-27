@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { 
   LayoutGrid, 
   LayoutList,
@@ -31,6 +31,8 @@ import {
 } from '@/hooks/useGuestFilters';
 import { GuestListDensity } from '@/hooks/useGuestListPreferences';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { FilterSheet, FilterTrigger, FilterSection, FilterDivider } from '@/components/ui/filter-sheet';
 
 interface GuestListToolbarProps {
   // Search
@@ -117,6 +119,9 @@ export const GuestListToolbar = memo(function GuestListToolbar({
   onClearFilters,
   className,
 }: GuestListToolbarProps) {
+  const isMobile = useIsMobile();
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
   const toggleStatusFilter = (filter: GuestStatusFilter) => {
     if (statusFilters.includes(filter)) {
       onStatusFiltersChange(statusFilters.filter(f => f !== filter));
@@ -135,6 +140,84 @@ export const GuestListToolbar = memo(function GuestListToolbar({
 
   const activeFilterCount = statusFilters.length + flagFilters.length;
 
+  // Mobile: Compact search + filter trigger
+  if (isMobile) {
+    return (
+      <>
+        <div className={cn('flex gap-2', className)}>
+          <SearchInput
+            value={search}
+            onChange={onSearchChange}
+            placeholder="Search..."
+            className="flex-1"
+          />
+          <FilterTrigger
+            onClick={() => setFilterSheetOpen(true)}
+            activeCount={activeFilterCount}
+          />
+        </div>
+
+        <FilterSheet
+          open={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          title="Guest Filters"
+          activeCount={activeFilterCount}
+          onClear={onClearFilters}
+        >
+          <FilterSection title="Quick Filter">
+            <Select value={legacyFilter} onValueChange={(v) => onLegacyFilterChange(v as LegacyGuestFilter)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Guests</SelectItem>
+                <SelectItem value="in-house">In-House</SelectItem>
+                <SelectItem value="arrivals">Arrivals Today</SelectItem>
+                <SelectItem value="departures">Departures Today</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterSection>
+          <FilterDivider />
+          <FilterSection title="Status">
+            <div className="space-y-2">
+              {STATUS_OPTIONS.map(option => (
+                <label key={option.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                  <Checkbox checked={statusFilters.includes(option.value)} onCheckedChange={() => toggleStatusFilter(option.value)} />
+                  <span className="text-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </FilterSection>
+          <FilterDivider />
+          <FilterSection title="Flags">
+            <div className="space-y-2">
+              {FLAG_OPTIONS.map(option => (
+                <label key={option.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer">
+                  <Checkbox checked={flagFilters.includes(option.value)} onCheckedChange={() => toggleFlagFilter(option.value)} />
+                  <span className="text-sm">{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </FilterSection>
+          <FilterDivider />
+          <FilterSection title="Sort By">
+            <Select value={sortBy} onValueChange={(v) => onSortChange(v as GuestSortOption)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterSection>
+        </FilterSheet>
+      </>
+    );
+  }
+
+  // Desktop: Full inline toolbar
   return (
     <div className={cn('space-y-3', className)}>
       {/* Main toolbar row */}
