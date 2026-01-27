@@ -1,12 +1,14 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTheme } from 'next-themes';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { hexToHSL } from '@/lib/color-utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
 import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
@@ -55,9 +57,9 @@ const NavItem = memo(({ item, isActive, label, isPrearrivalRestricted }: {
           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
       )}
     >
-      {/* Unified lime dot indicator */}
+      {/* Active indicator using guest branding */}
       {isActive && (
-        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_6px_hsl(var(--lime-400))]" />
+        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary guest-nav-indicator" />
       )}
       <div className="relative">
         <Icon className={cn(
@@ -90,6 +92,7 @@ export function GuestLayout() {
   const { t } = useTranslation();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -119,6 +122,24 @@ export function GuestLayout() {
   // Fetch branding dynamically from DB - this ensures immediate updates after staff saves
   const { data: brandingData } = useResortBranding(guest?.resortId);
   const branding = getBrandingWithDefaults(brandingData);
+
+  // Convert branding colors to HSL for CSS variables
+  const guestPrimaryHSL = hexToHSL(branding.login_primary_color);
+  const guestAccentHSL = hexToHSL(branding.login_accent_color);
+
+  // Enforce brand_theme when set by resort
+  useEffect(() => {
+    if (!branding.brand_theme || branding.brand_theme === 'AUTO') {
+      // AUTO = follow system preference, don't force anything
+      return;
+    }
+    
+    if (branding.brand_theme === 'LIGHT') {
+      setTheme('light');
+    } else if (branding.brand_theme === 'DARK') {
+      setTheme('dark');
+    }
+  }, [branding.brand_theme, setTheme]);
 
   // Check if loyalty program is enabled for this resort
   const { data: loyaltyProgram } = useQuery({
@@ -200,8 +221,20 @@ export function GuestLayout() {
     );
   }
 
+  // Build CSS variable overrides for guest branding
+  const brandingStyles: React.CSSProperties = {};
+  if (guestPrimaryHSL) {
+    (brandingStyles as Record<string, string>)['--guest-primary'] = guestPrimaryHSL;
+  }
+  if (guestAccentHSL) {
+    (brandingStyles as Record<string, string>)['--guest-accent'] = guestAccentHSL;
+  }
+
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div 
+      className="guest-branded flex min-h-screen flex-col bg-background"
+      style={brandingStyles}
+    >
       {/* Mobile-optimized Header with glassmorphism */}
       <header className={cn(
         "sticky top-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
