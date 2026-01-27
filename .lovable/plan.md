@@ -1,142 +1,173 @@
 
-# Keep Propera System Colors as Guest Portal Default
+# Consolidate Resort Deletion: Remove Legacy delete-resort Function
 
-## Summary
+## Problem Summary
 
-Currently, when a resort hasn't set custom branding colors, the guest portal uses hardcoded defaults (`#0E7490` teal and `#D8C7A6` sand) that don't match Propera's actual design system. This update will ensure the guest portal uses Propera's signature **Astro Lime** and **Blurple** colors by default, only switching to resort-specific colors when they've been explicitly configured.
+The codebase has two resort deletion paths:
 
----
+| Path | Edge Function | Storage Cleanup | Progress Tracking | Used By |
+|------|---------------|-----------------|-------------------|---------|
+| Purge System | `purge-resort` | Yes (60+ tables + storage) | Yes via `resort_purge_jobs` | `ResortSettingsDrawer` Danger Zone |
+| Legacy Delete | `delete-resort` | No (relies on CASCADE only) | No | `ResortActionsMenu` quick action |
 
-## Current Problem
-
-| Setting | Current Default | Should Be |
-|---------|-----------------|-----------|
-| `login_primary_color` | `#0E7490` (teal) | Propera Lime `#C3FF2E` |
-| `login_accent_color` | `#D8C7A6` (sand) | Propera Blurple `#5865F2` |
-
-The CSS fallbacks in `index.css` are already correct:
-```css
---primary: var(--guest-primary, var(--lime-400));
---accent: var(--guest-accent, var(--blurple-500));
-```
-
-But the `getBrandingWithDefaults()` function overrides these by always providing non-null values that get converted to CSS variables.
-
----
+The legacy `delete-resort` function is problematic because:
+- It **skips storage cleanup** (orphaned files in `activity-images` and `resort-branding` buckets)
+- It provides **no progress feedback** for the user
+- It **duplicates functionality** that the purge system already handles comprehensively
 
 ## Solution
 
-### Approach: Let CSS Handle Defaults
+Consolidate all deletion paths to use the `purge-resort` system by:
 
-Instead of providing fallback hex colors in TypeScript, we'll:
-
-1. Update `DEFAULT_BRANDING` to use `null` for colors (meaning "no custom branding")
-2. Modify `getBrandingWithDefaults()` to **not** provide default colors when none are set
-3. The CSS `var()` fallbacks will then kick in automatically, using Propera's lime/blurple
-
-This ensures the guest portal uses Propera's system colors until a resort **actively chooses** to customize.
+1. **Removing** the `delete-resort` edge function entirely
+2. **Updating** `ResortActionsMenu` to use the purge system
+3. **Cleaning up** the unused `deleteMutation` from `ResortSettingsDrawer`
+4. **Removing** the function config from `supabase/config.toml`
 
 ---
 
 ## Implementation Details
 
-### File: `src/hooks/useResortBranding.ts`
+### 1. Delete Legacy Edge Function
 
-**Change 1**: Update `DEFAULT_BRANDING` to use `null` for colors
+**Action:** Delete the entire `supabase/functions/delete-resort/` folder
 
-```typescript
-// Before
-export const DEFAULT_BRANDING: Partial<ResortBranding> = {
-  login_primary_color: '#0E7490',
-  login_accent_color: '#D8C7A6',
-  brand_theme: 'LIGHT',
-};
+This function is obsolete now that the comprehensive purge system exists.
 
-// After
-export const DEFAULT_BRANDING: Partial<ResortBranding> = {
-  login_primary_color: null,  // Use Propera system colors by default
-  login_accent_color: null,   // Use Propera system colors by default
-  brand_theme: 'AUTO',        // Follow system preference by default
-};
-```
+### 2. Update ResortActionsMenu to Use Purge System
 
-**Change 2**: Update `getBrandingWithDefaults()` to preserve null values for colors
+**File:** `src/components/superadmin/ResortActionsMenu.tsx`
 
-```typescript
-// Before
-return {
-  ...branding,
-  login_primary_color: branding.login_primary_color || DEFAULT_BRANDING.login_primary_color!,
-  login_accent_color: branding.login_accent_color || DEFAULT_BRANDING.login_accent_color!,
-  brand_theme: branding.brand_theme || DEFAULT_BRANDING.brand_theme!,
-};
+Changes:
+- Import `usePurgeJob` hook
+- Replace the simple delete dialog with a purge-aware dialog (matching the drawer's UX)
+- Use `startPurge()` instead of the legacy edge function call
+- Add progress/status display for running purge jobs
 
-// After
-return {
-  ...branding,
-  // Don't override null colors - let CSS defaults handle Propera system colors
-  login_primary_color: branding.login_primary_color,
-  login_accent_color: branding.login_accent_color,
-  brand_theme: branding.brand_theme || 'AUTO',
-};
-```
+The updated component will:
+- Show the same triple-confirmation UI (resort code + DELETE + checkbox)
+- Trigger the purge job via `startPurge()`
+- Display purge progress inline while running
+- Handle retry for failed purge jobs
 
-### File: `src/components/guest/GuestLayout.tsx`
+### 3. Clean Up ResortSettingsDrawer
 
-The existing code already handles null values correctly:
+**File:** `src/components/superadmin/ResortSettingsDrawer.tsx`
 
-```typescript
-const guestPrimaryHSL = hexToHSL(branding.login_primary_color);
-// hexToHSL returns null for null input
+Changes:
+- Remove the unused `deleteMutation` (lines 221-265) which calls `delete-resort`
+- The drawer already correctly uses `handlePurgeRequest` for deletion
 
-const brandingStyles: React.CSSProperties = {};
-if (guestPrimaryHSL) {
-  // Only sets the variable when there's a custom color
-  (brandingStyles as Record<string, string>)['--guest-primary'] = guestPrimaryHSL;
-}
-```
+### 4. Remove Config Entry
 
-When `guestPrimaryHSL` is `null`, no CSS variable is set, and the CSS fallback kicks in:
+**File:** `supabase/config.toml`
 
-```css
---primary: var(--guest-primary, var(--lime-400));
+Remove the `[functions.delete-resort]` section.
+
+---
+
+## Updated Flow After Consolidation
+
+```text
+User clicks "Delete Resort" (from either location)
+    │
+    ▼
+Triple Confirmation UI
+(resort code + DELETE + I understand checkbox)
+    │
+    ▼
+request_resort_purge RPC
+(creates job in resort_purge_jobs)
+    │
+    ▼
+purge-resort Edge Function
+    ├── Delete 60+ tables (ordered)
+    ├── Delete storage files
+    └── Update job progress
+    │
+    ▼
+Resort Deleted + Audit Logged
 ```
 
 ---
 
-## Behavior After Changes
+## Files to Delete
 
-| Scenario | Primary Color | Accent Color |
-|----------|--------------|--------------|
-| No branding set | Astro Lime (`#C3FF2E`) | Blurple (`#5865F2`) |
-| Resort sets primary only | Resort's color | Blurple (`#5865F2`) |
-| Resort sets both colors | Resort's primary | Resort's accent |
-| Resort clears colors | Back to Propera defaults | Back to Propera defaults |
-
----
-
-## Theme Behavior
-
-Changing `brand_theme` default from `'LIGHT'` to `'AUTO'` means:
-- Guests see light/dark mode based on their system preference
-- Resorts can still force `LIGHT` or `DARK` in their branding settings
-
----
+| File/Folder | Reason |
+|-------------|--------|
+| `supabase/functions/delete-resort/` | Legacy function, replaced by purge-resort |
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/hooks/useResortBranding.ts` | Update `DEFAULT_BRANDING` and `getBrandingWithDefaults()` |
+| File | Changes |
+|------|---------|
+| `src/components/superadmin/ResortActionsMenu.tsx` | Use `usePurgeJob` hook instead of direct edge function call |
+| `src/components/superadmin/ResortSettingsDrawer.tsx` | Remove unused `deleteMutation` |
+| `supabase/config.toml` | Remove `[functions.delete-resort]` section |
 
-No other files need changes — the CSS fallbacks and GuestLayout null-handling are already in place.
+---
+
+## Technical Details
+
+### ResortActionsMenu Changes
+
+The current delete dialog in `ResortActionsMenu` only has two confirmations (code + DELETE word). After this change, it will:
+
+1. Import and use `usePurgeJob(resort.id)` hook
+2. Replace `deleteMutation` with calls to `startPurge()`
+3. Add the "I understand" checkbox for consistency
+4. Show purge status when a job is running/failed
+5. Add optional reason field for audit trail
+
+### State Management
+
+The `usePurgeJob` hook already handles:
+- Job polling every 2 seconds while running
+- Query invalidation on completion
+- Error handling with toast notifications
+
+### Audit Trail
+
+The `purge-resort` function already logs to `admin_audit_logs`:
+- `resort_purge_started`
+- `resort_purge_completed`
+- `resort_purge_failed`
+
+This is more comprehensive than the legacy function's single `resort_deleted` log.
+
+---
+
+## Edge Cases Handled
+
+| Scenario | Handling |
+|----------|----------|
+| User closes dialog during purge | Job continues in background, status visible on reopen |
+| Purge fails mid-way | Job marked as failed, user can retry |
+| Demo resort deletion | Requires additional "DELETE DEMO" confirmation |
+| Multiple purge attempts | Only one job can be active per resort (queued/running) |
 
 ---
 
 ## Testing Checklist
 
-- [ ] Guest portal shows lime/blurple when resort has no custom branding
-- [ ] Guest portal shows custom colors when resort has set them
-- [ ] Clearing branding colors reverts to Propera system colors
-- [ ] Theme follows system preference by default (AUTO mode)
-- [ ] Existing resorts with custom branding are unaffected
+- [ ] Delete resort from `ResortActionsMenu` uses purge system
+- [ ] Delete resort from `ResortSettingsDrawer` Danger Zone still works
+- [ ] Storage files are cleaned up on deletion
+- [ ] Purge progress is visible during deletion
+- [ ] Failed purge can be retried
+- [ ] Audit logs show purge actions
+- [ ] No references to `delete-resort` remain in codebase
+- [ ] Edge function is removed from deployment
+
+---
+
+## Summary
+
+This consolidation ensures that **every resort deletion path**:
+- Cleans up all 60+ related tables in the correct order
+- Removes files from storage buckets
+- Provides progress tracking and retry capability
+- Logs comprehensive audit trail
+- Uses consistent triple-confirmation UX
+
+The legacy `delete-resort` function is completely removed, eliminating the risk of orphaned storage files and inconsistent deletion behavior.
