@@ -286,8 +286,11 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       toast.success('Your request has been submitted!', {
         description: "We'll get to it as soon as possible.",
       });
-      // Invalidate to get the real data with proper ID
+      // Invalidate guest queries
       queryClient.invalidateQueries({ queryKey });
+      // Also invalidate staff dashboard for cross-portal sync
+      queryClient.invalidateQueries({ queryKey: ['requests-dashboard', resortId] });
+      queryClient.invalidateQueries({ queryKey: ['staff-requests', resortId] });
     },
     onError: (error: Error, _, context) => {
       // Rollback on error
@@ -393,7 +396,11 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
           description: "We'll get to it as soon as possible.",
         }
       );
+      // Invalidate guest queries
       queryClient.invalidateQueries({ queryKey });
+      // Also invalidate staff dashboard for cross-portal sync
+      queryClient.invalidateQueries({ queryKey: ['requests-dashboard', resortId] });
+      queryClient.invalidateQueries({ queryKey: ['staff-requests', resortId] });
     },
     onError: (error: Error) => {
       toast.error('Failed to submit request', {

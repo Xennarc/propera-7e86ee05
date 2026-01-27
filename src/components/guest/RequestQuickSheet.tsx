@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useServiceRequestMutations } from '@/hooks/useServiceRequests';
 import {
@@ -14,13 +13,24 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Send, Clock } from 'lucide-react';
+import { Loader2, Send, Clock, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RequestQuickSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const COMMON_REQUESTS = [
+  'Extra towels',
+  'Extra pillows',
+  'Room cleaning',
+  'Wake-up call',
+  'Late checkout',
+  'Iron & ironing board',
+];
+
+const MAX_CHARS = 500;
 
 export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps) {
   const { guest } = useGuestAuth();
@@ -41,21 +51,27 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
         resortId: guest.resortId,
         title: requestText.trim(),
         isAsap,
-        departmentKey: 'FRONT_OFFICE', // Default to front office for quick requests
+        departmentKey: 'FRONT_OFFICE',
       });
 
       setRequestText('');
       onOpenChange(false);
     } catch (error) {
-      // Error is handled by the mutation
+      // Error handled by mutation
     }
   };
 
-  const canSubmit = requestText.trim().length > 0 && !isCreating;
+  const handleSuggestionClick = (suggestion: string) => {
+    setRequestText(suggestion);
+  };
+
+  const canSubmit = requestText.trim().length > 0 && requestText.length <= MAX_CHARS && !isCreating;
+  const charCount = requestText.length;
+  const isOverLimit = charCount > MAX_CHARS;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh]">
+      <DrawerContent className="max-h-[90vh]">
         <DrawerHeader className="text-left">
           <DrawerTitle>How can we help?</DrawerTitle>
           <DrawerDescription>
@@ -63,16 +79,53 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="px-4 py-2 space-y-4">
+        <div className="px-4 py-2 space-y-4 overflow-y-auto">
+          {/* Common Requests */}
           <div className="space-y-2">
-            <Label htmlFor="request-text">Your Request</Label>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Quick suggestions
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_REQUESTS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className={cn(
+                    "px-3 py-1.5 text-sm rounded-full border transition-colors",
+                    requestText === suggestion
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted/50 hover:bg-muted border-transparent"
+                  )}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Request Input */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="request-text">Your Request</Label>
+              <span className={cn(
+                "text-xs",
+                isOverLimit ? "text-destructive" : "text-muted-foreground"
+              )}>
+                {charCount}/{MAX_CHARS}
+              </span>
+            </div>
             <Textarea
               id="request-text"
               placeholder="e.g., Extra towels, room service, wake-up call..."
               value={requestText}
               onChange={(e) => setRequestText(e.target.value)}
               rows={4}
-              className="resize-none"
+              className={cn(
+                "resize-none",
+                isOverLimit && "border-destructive focus-visible:ring-destructive"
+              )}
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
@@ -80,13 +133,14 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
             </p>
           </div>
 
+          {/* ASAP Toggle */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">As Soon As Possible</p>
                 <p className="text-xs text-muted-foreground">
-                  {isAsap ? "We'll get to this right away" : 'Standard timing'}
+                  {isAsap ? "We'll prioritize this request" : 'Standard timing'}
                 </p>
               </div>
             </div>
@@ -95,6 +149,16 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
               onCheckedChange={setIsAsap}
             />
           </div>
+
+          {/* Estimated Response */}
+          {requestText.trim() && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Estimated response: </span>
+                {isAsap ? '10-15 minutes' : '30-60 minutes'}
+              </p>
+            </div>
+          )}
         </div>
 
         <DrawerFooter className="pt-4">

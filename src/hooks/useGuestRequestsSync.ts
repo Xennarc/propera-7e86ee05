@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
@@ -15,7 +15,7 @@ interface UseGuestRequestsSyncOptions {
 
 /**
  * Hook for real-time sync of guest requests between guest and staff portals.
- * Ensures requests created by guests appear immediately in staff queue.
+ * Subscribes to `service_requests` table (the active table).
  */
 export function useGuestRequestsSync({ 
   guestId, 
@@ -25,7 +25,7 @@ export function useGuestRequestsSync({
   const { currentResort } = useResort();
 
   // Debounced invalidation to prevent rapid refetches
-  const invalidateQueries = useDebouncedCallback((queryKey: string[]) => {
+  const invalidateQueries = useDebouncedCallback((queryKey: unknown[]) => {
     queryClient.invalidateQueries({ queryKey });
   }, REALTIME_DEBOUNCE_MS);
 
@@ -35,12 +35,15 @@ export function useGuestRequestsSync({
     
     if (!resortId) return;
 
-    // Debounced invalidations to prevent refetch storms
-    invalidateQueries(['guest-requests', resortId]);
+    // Invalidate staff dashboard queries
+    invalidateQueries(['requests-dashboard', resortId]);
+    
+    // Invalidate legacy query keys for backwards compatibility
     invalidateQueries(['staff-requests', resortId]);
 
     // Invalidate guest-specific request list
     if (changedGuestId) {
+      invalidateQueries(['guest-service-requests', resortId, changedGuestId]);
       invalidateQueries(queryKeys.requests.guest(resortId, changedGuestId));
     }
 
@@ -52,14 +55,15 @@ export function useGuestRequestsSync({
   useEffect(() => {
     if (!enabled || !currentResort?.id) return;
 
-    // Build filter
+    // Build filter - use resort_id for staff, guest_id for guest-specific
     let filter = `resort_id=eq.${currentResort.id}`;
     if (guestId) {
       filter = `guest_id=eq.${guestId}`;
     }
 
-    const channelName = `guest-requests-sync-${currentResort.id}${guestId ? `-${guestId}` : ''}`;
+    const channelName = `service-requests-sync-${currentResort.id}${guestId ? `-${guestId}` : ''}`;
 
+    // Subscribe to service_requests table (the ACTIVE table with data)
     const channel = supabase
       .channel(channelName)
       .on(
@@ -67,7 +71,7 @@ export function useGuestRequestsSync({
         {
           event: '*',
           schema: 'public',
-          table: 'guest_requests',
+          table: 'service_requests', // Fixed: was 'guest_requests' (empty legacy table)
           filter,
         },
         handleRequestChange
