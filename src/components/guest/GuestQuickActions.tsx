@@ -34,24 +34,24 @@ export function GuestQuickActions() {
       icon: IconActivities,
       label: 'Activities',
       href: '/guest/activities',
-      colorClass: 'text-lagoon',
-      bgClass: 'bg-lagoon/10',
+      colorClass: 'text-white',
+      bgClass: 'bg-teal-500',
       description: 'Explore & book',
     },
     {
       icon: IconRestaurants,
       label: 'Dining',
       href: '/guest/restaurants',
-      colorClass: 'text-sunset',
-      bgClass: 'bg-sunset/10',
+      colorClass: 'text-white',
+      bgClass: 'bg-amber-500',
       description: 'Reserve a table',
     },
     {
       icon: IconBookings,
       label: 'Bookings',
       href: '/guest/bookings',
-      colorClass: 'text-orchid',
-      bgClass: 'bg-orchid/10',
+      colorClass: 'text-white',
+      bgClass: 'bg-purple-500',
       description: 'View & manage',
     },
     // Show either "Requests" (with catalog) or "Make a Request" (simple mode)
@@ -60,16 +60,16 @@ export function GuestQuickActions() {
           icon: Bell,
           label: 'Requests',
           href: '/guest/requests',
-          colorClass: 'text-cyan-500',
-          bgClass: 'bg-cyan-500/10',
+          colorClass: 'text-white',
+          bgClass: 'bg-sky-500',
           description: 'Room service & more',
         }
       : {
           icon: MessageSquarePlus,
           label: 'Request',
           onClick: () => setQuickSheetOpen(true),
-          colorClass: 'text-cyan-500',
-          bgClass: 'bg-cyan-500/10',
+          colorClass: 'text-white',
+          bgClass: 'bg-sky-500',
           description: 'Ask for anything',
         },
   ];
@@ -82,18 +82,13 @@ export function GuestQuickActions() {
           const content = (
             <div
               className={cn(
-                "flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all duration-200",
-                "hover:scale-[1.02] active:scale-[0.98]",
+                "flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-200",
+                "hover:scale-[1.02] active:scale-[0.98] hover:shadow-md",
                 action.bgClass
               )}
             >
-              <div className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl",
-                action.bgClass
-              )}>
-                <Icon className={cn("h-5 w-5", action.colorClass)} />
-              </div>
-              <span className={cn("text-xs font-semibold", action.colorClass)}>
+              <Icon className="h-7 w-7 text-white" />
+              <span className="text-xs font-semibold text-white">
                 {action.label}
               </span>
             </div>

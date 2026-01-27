@@ -35,10 +35,12 @@ import { GuestOnboardingTour, useGuestOnboarding } from '@/components/guest/Gues
 import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions';
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
 import { TravelPartyCard } from '@/components/guest/TravelPartyCard';
+import { GuestFeaturedActivities } from '@/components/guest/GuestFeaturedActivities';
 import { useIsPrearrivalGuest, usePrearrivalData } from '@/hooks/usePrearrivalData';
 import { useActiveStay } from '@/hooks/useActiveStay';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
+import { useResortBranding } from '@/hooks/useResortBranding';
 
 export default function GuestHome() {
   const { guest } = useGuestAuth();
@@ -105,14 +107,14 @@ export default function GuestHome() {
     enabled: !!guest,
   });
 
-  // Fetch resort code for activity explorer links
+  // Fetch resort data including hero image
   const { data: resort } = useQuery({
     queryKey: ['guest-resort', guest?.resortId],
     queryFn: async () => {
       if (!guest) return null;
       const { data, error } = await supabase
         .from('resorts')
-        .select('code')
+        .select('code, login_hero_image_url')
         .eq('id', guest.resortId)
         .single();
       if (error) throw error;
@@ -120,6 +122,14 @@ export default function GuestHome() {
     },
     enabled: !!guest,
   });
+
+  // Fallback hero image
+  const heroImage = resort?.login_hero_image_url || 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80';
+
+  // Calculate current day of stay
+  const currentDay = differenceInDays(new Date(), parseISO(guest?.checkInDate || '')) + 1;
+  const totalDays = differenceInDays(parseISO(guest?.checkOutDate || ''), parseISO(guest?.checkInDate || ''));
+  const isCheckoutDay = new Date().toISOString().split('T')[0] === guest?.checkOutDate;
 
   // Session-based dismissed suggestions
   const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
@@ -295,37 +305,35 @@ export default function GuestHome() {
         </Card>
       )}
 
-      {/* Premium Greeting Card */}
-      <Card className="guest-hero border-0 shadow-guest-card overflow-hidden">
-        <CardContent className="p-5 relative z-10">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 shadow-sm">
-              <GreetingIcon className="h-7 w-7 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-                {String(greeting.text)}, {firstName}!
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {todaySchedule.length > 0 
-                  ? String(t('home.eventsToday', { count: Number(todaySchedule.length) || 0 }))
-                  : String(t('home.whatToDo'))}
-              </p>
-            </div>
+      {/* Premium Image Hero Card */}
+      <Card className="relative overflow-hidden rounded-3xl border-0 shadow-guest-card">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
+        
+        {/* Content */}
+        <CardContent className="relative z-10 h-full flex flex-col justify-between p-5 aspect-[2/1]">
+          <div>
+            <h1 className="text-2xl font-bold text-white">
+              {String(greeting.text)}, {firstName}!
+            </h1>
+            <p className="text-white/80 text-sm">
+              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            </p>
           </div>
           
-          {/* Today's Date Display */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-            <Calendar className="h-4 w-4" />
-            <span>{format(new Date(), 'EEEE, MMMM d, yyyy')}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-white/90 text-sm font-medium">
+              {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d')}
+            </span>
+            <Badge className="bg-amber-400 text-black font-semibold rounded-lg px-3 py-1">
+              {isCheckoutDay ? 'Check-out day' : `Day ${currentDay} of ${totalDays}`}
+            </Badge>
           </div>
-          
-          {/* Stay Progress */}
-          <GuestStayProgress 
-            checkInDate={guest.checkInDate} 
-            checkOutDate={guest.checkOutDate}
-            className="pt-3 border-t border-border/30"
-          />
         </CardContent>
       </Card>
 
@@ -367,34 +375,20 @@ export default function GuestHome() {
         
         {todaySchedule.length === 0 ? (
           showNudge ? (
-            <Card className="guest-card border-dashed border-2 bg-gradient-to-br from-primary/5 to-transparent">
+            <Card className="guest-card">
               <CardContent className="p-5">
-                <div className="text-center space-y-4">
-                  <div className="flex justify-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-                      <Compass className="h-7 w-7 text-primary" />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t('home.noPlansDescription')}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Link to="/guest/activities">
-                      <Button className="w-full tap-target">
-                        <IconActivities className="h-4 w-4 mr-2" />
-                        {t('home.exploreActivities')}
-                      </Button>
-                    </Link>
-                    <Link to="/guest/restaurants">
-                      <Button variant="outline" className="w-full tap-target">
-                        <IconRestaurants className="h-4 w-4 mr-2" />
-                        {t('home.exploreDining')}
-                      </Button>
-                    </Link>
-                  </div>
+                <h3 className="text-lg font-bold mb-3">{t('home.noPlansYet')}</h3>
+                <div className="flex gap-2">
+                  <Link to="/guest/activities" className="flex-1">
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target">
+                      {t('home.exploreActivities')}
+                    </Button>
+                  </Link>
+                  <Link to="/guest/restaurants" className="flex-1">
+                    <Button variant="outline" className="w-full font-semibold tap-target">
+                      {t('home.exploreDining')}
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
@@ -434,6 +428,9 @@ export default function GuestHome() {
           </div>
         )}
       </div>
+
+      {/* Featured Activities Grid */}
+      <GuestFeaturedActivities resortId={guest.resortId} />
 
       {/* Upcoming Bookings Preview */}
       {totalUpcomingBookings > todaySchedule.length && (
