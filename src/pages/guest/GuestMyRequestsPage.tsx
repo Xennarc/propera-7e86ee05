@@ -174,22 +174,37 @@ export default function GuestMyRequestsPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <div>
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <h1 className="text-xl font-bold text-foreground">My Requests</h1>
           <p className="text-sm text-muted-foreground">
             {activeCount > 0 ? `${activeCount} active request${activeCount !== 1 ? 's' : ''}` : 'Track your requests'}
           </p>
-        </div>
-        <Button size="sm" asChild className="gap-1.5 shadow-sm">
-          <Link to="/guest/requests">
-            <Plus className="h-4 w-4" />
-            New
-          </Link>
-        </Button>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Button size="sm" asChild className="gap-1.5 shadow-sm">
+            <Link to="/guest/requests">
+              <Plus className="h-4 w-4" />
+              New
+            </Link>
+          </Button>
+        </motion.div>
       </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-2">
+      {/* Filter chips with enhanced animation */}
+      <motion.div 
+        className="flex gap-2"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+      >
         {[
           { key: 'active' as const, label: 'Active', count: activeCount },
           { key: 'completed' as const, label: 'Past', count: completedCount },
@@ -206,20 +221,27 @@ export default function GuestMyRequestsPage() {
             onClick={() => setFilter(key)}
           >
             {label}
-            <motion.span 
-              layout
-              className={cn(
-                'text-xs px-1.5 py-0.5 rounded-full min-w-[20px] tabular-nums',
-                filter === key 
-                  ? 'bg-primary-foreground/20 text-primary-foreground' 
-                  : 'bg-muted text-muted-foreground'
-              )}
-            >
-              {count}
-            </motion.span>
+            <AnimatePresence mode="popLayout">
+              <motion.span 
+                key={`${key}-${count}`}
+                layout
+                initial={{ scale: 1.3, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                className={cn(
+                  'text-xs px-1.5 py-0.5 rounded-full min-w-[20px] tabular-nums text-center',
+                  filter === key 
+                    ? 'bg-primary-foreground/20 text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {count}
+              </motion.span>
+            </AnimatePresence>
           </Button>
         ))}
-      </div>
+      </motion.div>
 
       {/* Loading state */}
       {isLoading && <RequestCardSkeleton count={3} />}
@@ -245,32 +267,46 @@ export default function GuestMyRequestsPage() {
       {!isLoading && groupedRequests.length > 0 && (
         <motion.div layout className="space-y-3">
           <AnimatePresence mode="popLayout">
-            {groupedRequests.map((group) => {
+            {groupedRequests.map((group, index) => {
               if (group.type === 'bundle' && group.submissionId) {
                 return (
-                  <RequestSubmissionCard
+                  <motion.div
                     key={`bundle-${group.submissionId}`}
-                    requests={group.requests}
-                    submissionId={group.submissionId}
-                    onCancel={(requestId) => {
-                      const req = group.requests.find((r) => r.id === requestId);
-                      if (req) setCancelDialog(req);
-                    }}
-                    isCancelling={isCancelling}
-                  />
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                  >
+                    <RequestSubmissionCard
+                      requests={group.requests}
+                      submissionId={group.submissionId}
+                      onCancel={(requestId) => {
+                        const req = group.requests.find((r) => r.id === requestId);
+                        if (req) setCancelDialog(req);
+                      }}
+                      isCancelling={isCancelling}
+                    />
+                  </motion.div>
                 );
               }
               
               // Single request
               const request = group.requests[0];
               return (
-                <RequestCard
+                <motion.div
                   key={request.id}
-                  request={request}
-                  onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
-                  isCancelling={isCancelling}
-                  resortTimezone={guest.resortTimezone}
-                />
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <RequestCard
+                    request={request}
+                    onCancel={request.status === 'NEW' ? () => setCancelDialog(request) : undefined}
+                    isCancelling={isCancelling}
+                    resortTimezone={guest.resortTimezone}
+                  />
+                </motion.div>
               );
             })}
           </AnimatePresence>

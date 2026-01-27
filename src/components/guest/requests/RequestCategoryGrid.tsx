@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -85,6 +86,36 @@ interface RequestCategoryGridProps {
   onSelectCategory: (category: CategoryConfig) => void;
 }
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const tileVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 16, 
+    scale: 0.95 
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 400,
+      damping: 25,
+    },
+  },
+};
+
 const CategoryTile = memo(({ category, onSelect }: { 
   category: CategoryConfig; 
   onSelect: () => void;
@@ -92,46 +123,66 @@ const CategoryTile = memo(({ category, onSelect }: {
   const Icon = category.icon;
   
   return (
-    <Card 
-      className={cn(
-        'group relative overflow-hidden cursor-pointer transition-all duration-300',
-        'hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/10',
-        'active:scale-[0.98] tap-highlight-none',
-        'bg-card/60 backdrop-blur-sm border-border/50'
-      )}
-      onClick={onSelect}
+    <motion.div
+      variants={tileVariants}
+      whileHover={{ scale: 1.03, transition: { type: 'spring', stiffness: 400, damping: 20 } }}
+      whileTap={{ scale: 0.97 }}
     >
-      {/* Larger padding for better touch targets */}
-      <CardContent className="p-5 flex flex-col items-center text-center gap-3">
-        <div className={cn(
-          // Larger icon container for touch (56px = 14 × 4)
-          'w-14 h-14 rounded-full flex items-center justify-center',
-          'border-2 bg-transparent',
-          category.ringColor
-        )}>
-          <Icon className="h-6 w-6" />
-        </div>
+      <Card 
+        className={cn(
+          'group relative overflow-hidden cursor-pointer transition-all duration-300',
+          'hover:shadow-xl hover:shadow-primary/10',
+          'active:shadow-lg tap-highlight-none',
+          'bg-card/60 backdrop-blur-sm border-border/50'
+        )}
+        onClick={onSelect}
+      >
+        {/* Subtle gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all duration-300" />
         
-        <div className="space-y-1">
-          <h3 className="font-semibold text-sm text-foreground">
-            {category.label}
-          </h3>
-          {category.description && (
-            // Minimum 12px (text-xs) for mobile readability (was 11px)
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {category.description}
-            </p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+        {/* Larger padding for better touch targets */}
+        <CardContent className="p-5 flex flex-col items-center text-center gap-3 relative z-10">
+          <motion.div 
+            className={cn(
+              // 60px icon container for touch (15 × 4)
+              'w-[60px] h-[60px] rounded-full flex items-center justify-center',
+              'border-2 bg-transparent transition-all duration-300',
+              'group-hover:shadow-lg',
+              category.ringColor
+            )}
+            whileHover={{ 
+              boxShadow: '0 0 20px currentColor',
+            }}
+          >
+            <Icon className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" />
+          </motion.div>
+          
+          <div className="space-y-1">
+            <h3 className="font-semibold text-sm text-foreground">
+              {category.label}
+            </h3>
+            {category.description && (
+              // Minimum 12px (text-xs) for mobile readability
+              <p className="text-xs text-muted-foreground line-clamp-1 group-hover:text-muted-foreground/80 transition-colors">
+                {category.description}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 });
 CategoryTile.displayName = 'CategoryTile';
 
 export function RequestCategoryGrid({ onSelectCategory }: RequestCategoryGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <motion.div 
+      className="grid grid-cols-2 gap-3"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {categoryConfigs.map((category) => (
         <CategoryTile
           key={category.key}
@@ -139,7 +190,7 @@ export function RequestCategoryGrid({ onSelectCategory }: RequestCategoryGridPro
           onSelect={() => onSelectCategory(category)}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }
 

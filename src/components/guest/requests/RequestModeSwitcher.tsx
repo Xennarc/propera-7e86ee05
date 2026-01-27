@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Zap, ListChecks } from 'lucide-react';
 
@@ -12,6 +12,20 @@ interface RequestModeSwitcherProps {
 }
 
 const FIRST_VISIT_KEY = 'propera_multiselect_hint_shown';
+
+// Mode-specific styling
+const modeConfig = {
+  quick: {
+    color: 'text-amber-500',
+    activeColor: 'text-amber-600',
+    helper: 'One tap, one request',
+  },
+  multi: {
+    color: 'text-primary',
+    activeColor: 'text-primary',
+    helper: 'Build a list, send together',
+  },
+};
 
 export function RequestModeSwitcher({ 
   mode, 
@@ -38,7 +52,7 @@ export function RequestModeSwitcher({
   }, []);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2.5">
       {/* Segmented Control */}
       <div 
         className={cn(
@@ -76,7 +90,17 @@ export function RequestModeSwitcher({
           )}
           onClick={() => onModeChange('quick')}
         >
-          <Zap className="h-4 w-4" />
+          <motion.div
+            animate={{ 
+              color: mode === 'quick' ? 'hsl(var(--amber-500, 38 92% 50%))' : undefined 
+            }}
+            transition={{ duration: 0.2 }}
+          >
+            <Zap className={cn(
+              'h-4 w-4 transition-colors duration-200',
+              mode === 'quick' ? 'text-amber-500' : ''
+            )} />
+          </motion.div>
           <span>Quick</span>
         </button>
 
@@ -96,7 +120,10 @@ export function RequestModeSwitcher({
           )}
           onClick={() => onModeChange('multi')}
         >
-          <ListChecks className="h-4 w-4" />
+          <ListChecks className={cn(
+            'h-4 w-4 transition-colors duration-200',
+            mode === 'multi' ? 'text-primary' : ''
+          )} />
           <span>Multiple</span>
           
           {/* First-time pulse animation */}
@@ -118,18 +145,22 @@ export function RequestModeSwitcher({
         </button>
       </div>
 
-      {/* Helper microcopy */}
-      <motion.p
-        key={mode}
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="text-xs text-muted-foreground text-center px-2"
-      >
-        {mode === 'quick' 
-          ? 'Tap an item to request instantly.' 
-          : 'Select items, then send once.'}
-      </motion.p>
+      {/* Helper microcopy with enhanced animation */}
+      <AnimatePresence mode="wait">
+        <motion.p
+          key={mode}
+          initial={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+          transition={{ duration: 0.2 }}
+          className={cn(
+            'text-xs text-center px-2',
+            mode === 'quick' ? 'text-amber-600/80 dark:text-amber-400/80' : 'text-primary/80'
+          )}
+        >
+          {modeConfig[mode].helper}
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 }

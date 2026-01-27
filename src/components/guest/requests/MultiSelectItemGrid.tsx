@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Check, Circle, Minus, Plus } from 'lucide-react';
+import { Check, Minus, Plus } from 'lucide-react';
 import { CatalogItem } from '@/hooks/useServiceRequests';
 import { categoryConfigs } from './RequestCategoryGrid';
 
@@ -45,14 +45,15 @@ const ItemTile = memo(function ItemTile({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
+      whileTap={{ scale: 0.98 }}
     >
       <Card
         className={cn(
           'relative overflow-hidden cursor-pointer transition-all duration-200',
           'hover:shadow-md active:scale-[0.98] tap-highlight-none',
-          'min-h-[72px]', // Consistent height
+          'min-h-[72px]',
           selected 
-            ? 'ring-2 ring-primary shadow-lg shadow-primary/20 bg-primary/5' 
+            ? 'ring-2 ring-primary shadow-lg shadow-primary/20' 
             : 'hover:border-primary/30'
         )}
         onClick={onToggle}
@@ -67,7 +68,17 @@ const ItemTile = memo(function ItemTile({
           }
         }}
       >
-        <CardContent className="p-3">
+        {/* Selected gradient overlay */}
+        {selected && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 pointer-events-none"
+          />
+        )}
+        
+        <CardContent className="p-3 relative z-10">
           <div className="flex items-start gap-2.5">
             {/* Leading selection indicator */}
             <div className="flex-shrink-0 pt-0.5">
@@ -94,8 +105,9 @@ const ItemTile = memo(function ItemTile({
             <div
               className={cn(
                 'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                'border-2 bg-transparent',
-                category.ringColor
+                'border-2 bg-transparent transition-all duration-200',
+                category.ringColor,
+                selected && 'shadow-sm'
               )}
             >
               <category.icon className="h-4 w-4" />
@@ -106,7 +118,7 @@ const ItemTile = memo(function ItemTile({
               <h4 className="font-medium text-sm text-foreground truncate">
                 {item.title}
               </h4>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {category.label}
               </p>
             </div>
@@ -118,6 +130,7 @@ const ItemTile = memo(function ItemTile({
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
                 >
                   <Badge 
                     variant="default" 
@@ -137,6 +150,7 @@ const ItemTile = memo(function ItemTile({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -158,9 +172,14 @@ const ItemTile = memo(function ItemTile({
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="text-base font-bold tabular-nums w-8 text-center">
+                  <motion.span 
+                    key={quantity}
+                    initial={{ scale: 1.3, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-base font-bold tabular-nums w-8 text-center"
+                  >
                     {quantity}
-                  </span>
+                  </motion.span>
                   <button
                     type="button"
                     className={cn(
@@ -214,15 +233,36 @@ export function MultiSelectItemGrid({
   }, [items]);
 
   return (
-    <div className="space-y-4" role="group" aria-label="Select items">
+    <div className="space-y-5" role="group" aria-label="Select items">
       {Array.from(groupedItems.entries()).map(([categoryKey, categoryItems]) => {
         const category = categoryConfigs.find((c) => c.key === categoryKey);
+        const CategoryIcon = category?.icon;
         
         return (
-          <div key={categoryKey} className="space-y-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
-              {category?.label || categoryKey}
-            </h3>
+          <motion.div 
+            key={categoryKey} 
+            className="space-y-2.5"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Enhanced section header with icon */}
+            <div className="flex items-center gap-2 px-1">
+              {CategoryIcon && (
+                <div className={cn(
+                  'w-6 h-6 rounded-full flex items-center justify-center border-2 bg-transparent',
+                  category?.ringColor
+                )}>
+                  <CategoryIcon className="h-3 w-3" />
+                </div>
+              )}
+              <h3 className="text-sm font-medium text-foreground">
+                {category?.label || categoryKey}
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                ({categoryItems.length})
+              </span>
+            </div>
             <div className="grid grid-cols-2 gap-2">
               {categoryItems.map((item) => {
                 const selected = selectedMap.get(item.id);
@@ -238,7 +278,7 @@ export function MultiSelectItemGrid({
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
