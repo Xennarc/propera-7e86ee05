@@ -1,16 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useRequestsDashboard, RequestWithSLA } from '@/hooks/useRequestsDashboard';
+import { useResortScope } from '@/hooks/sync/useResortScope';
+import { useStaffRequestPermissions, StaffServiceRequest } from '@/hooks/useStaffServiceRequests';
 import { DashboardHeader } from '@/components/staff/requests-dashboard/DashboardHeader';
 import { StatusLaneTabs, StatusLane } from '@/components/staff/requests-dashboard/StatusLaneTabs';
 import { RequestDashboardCard } from '@/components/staff/requests-dashboard/RequestDashboardCard';
 import { KeyboardShortcutsModal } from '@/components/staff/requests-dashboard/KeyboardShortcutsModal';
+import { DashboardFilterSheet } from '@/components/staff/requests-dashboard/DashboardFilterSheet';
+import { RequestDetailDrawer } from '@/components/staff/RequestDetailDrawer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Inbox, Search, Filter, AlertCircle } from 'lucide-react';
+import { Inbox, Search, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StaffRequestStatus, StaffRequestFilters } from '@/hooks/useStaffServiceRequests';
 
@@ -26,9 +30,33 @@ const statusToLane: Record<StaffRequestStatus, StatusLane> = {
 export default function RequestsDashboardPage() {
   const [activeLane, setActiveLane] = useState<StatusLane>('new');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [filters, setFilters] = useState<StaffRequestFilters>({});
+  
+  // Detail drawer state
+  const [selectedRequest, setSelectedRequest] = useState<StaffServiceRequest | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const { resortId, userId } = useResortScope();
+  const { canManage } = useStaffRequestPermissions();
+
+  // Fetch departments for filter
+  const { data: departments = [] } = useQuery({
+    queryKey: ['resort-departments', resortId],
+    queryFn: async () => {
+      if (!resortId) return [];
+      const { data } = await supabase
+        .from('departments')
+        .select('key, name')
+        .eq('resort_id', resortId)
+        .eq('is_active', true)
+        .order('name');
+      return data || [];
+    },
+    enabled: !!resortId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const {
     requests,
@@ -91,7 +119,8 @@ export default function RequestsDashboardPage() {
           setShortcutsOpen(true);
           break;
         case 'escape':
-          setSelectedRequestId(null);
+          setDrawerOpen(false);
+          setSelectedRequest(null);
           break;
       }
     };
@@ -99,6 +128,12 @@ export default function RequestsDashboardPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [refetch]);
+
+  // Handle opening detail drawer
+  const handleOpenDetail = useCallback((request: RequestWithSLA) => {
+    setSelectedRequest(request as unknown as StaffServiceRequest);
+    setDrawerOpen(true);
+  }, []);
 
   const handleAcknowledge = useCallback((id: string) => {
     mutations.acknowledge(id);
@@ -169,26 +204,17 @@ export default function RequestsDashboardPage() {
             placeholder="Search by guest, room, or request..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
+            className="pl-9 h-11"
           />
         </div>
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="shrink-0">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>Filters</SheetTitle>
-            </SheetHeader>
-            <div className="py-4 space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Filter options coming soon...
-              </p>
-            </div>
-          </SheetContent>
-        </Sheet>
+        <DashboardFilterSheet
+          open={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          departments={departments}
+          filters={filters}
+          onFiltersChange={setFilters}
+          currentUserId={userId}
+        />
       </div>
 
       {/* Request Cards */}
@@ -230,7 +256,8 @@ export default function RequestsDashboardPage() {
                   onAcknowledge={() => handleAcknowledge(request.id)}
                   onStart={() => handleStart(request.id)}
                   onComplete={() => handleComplete(request.id)}
-                  onAssignToMe={() => handleAssignToMe(request.id)}
+                  onAssignToMe={canManage ? () => handleAssignToMe(request.id) : undefined}
+                  onOpenDetail={() => handleOpenDetail(request)}
                   isLoading={
                     mutations.isAcknowledging ||
                     mutations.isStarting ||
@@ -243,6 +270,16 @@ export default function RequestsDashboardPage() {
           </AnimatePresence>
         )}
       </div>
+
+      {/* Request Detail Drawer */}
+      <RequestDetailDrawer
+        request={selectedRequest}
+        open={drawerOpen}
+        onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open) setSelectedRequest(null);
+        }}
+      />
 
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal
