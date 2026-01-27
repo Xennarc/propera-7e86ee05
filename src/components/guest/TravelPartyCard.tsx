@@ -38,7 +38,7 @@ export function TravelPartyCard() {
             <h3 className="font-semibold text-foreground text-sm">
               Travel Party
             </h3>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate">
               {hasParty 
                 ? `${Number(adultsCount) || 0} adult${adultsCount !== 1 ? 's' : ''}${childrenCount > 0 ? `, ${Number(childrenCount) || 0} child${childrenCount !== 1 ? 'ren' : ''}` : ''}`
                 : 'Manage your travel party'

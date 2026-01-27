@@ -87,7 +87,7 @@ export function RequestStatusTabs({ activeTab, onTabChange, counts, showArchived
               )}
             >
               {tab.icon}
-              <span className="text-[11px] sm:text-sm font-medium">
+              <span className="text-[11px] sm:text-sm font-medium whitespace-nowrap">
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
               </span>

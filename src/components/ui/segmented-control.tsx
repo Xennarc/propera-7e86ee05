@@ -65,8 +65,8 @@ export function SegmentedControl<T extends string>({
                 {option.icon}
               </span>
             )}
-            <span className="sm:hidden">{option.shortLabel || option.label}</span>
-            <span className="hidden sm:inline">{option.label}</span>
+            <span className="sm:hidden whitespace-nowrap">{option.shortLabel || option.label}</span>
+            <span className="hidden sm:inline whitespace-nowrap">{option.label}</span>
             {option.count !== undefined && option.count > 0 && (
               <Badge
                 variant="secondary"

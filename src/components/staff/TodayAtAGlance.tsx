@@ -205,20 +205,20 @@ export function TodayAtAGlance() {
                 
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-2xl font-bold text-foreground">
+                    <span className="text-2xl font-bold text-foreground whitespace-nowrap">
                       {metric.value}
                     </span>
                     {metric.alert && (
                       // Minimum 11px text for mobile readability
-                      <Badge variant="secondary" className="text-[11px] bg-warning/10 text-warning border-warning/20">
+                      <Badge variant="secondary" className="text-[11px] bg-warning/10 text-warning border-warning/20 whitespace-nowrap">
                         <AlertCircle className="h-3.5 w-3.5 mr-1" />
                         {metric.alert}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-base sm:text-sm font-medium text-foreground">{metric.label}</p>
+                  <p className="text-base sm:text-sm font-medium text-foreground whitespace-nowrap">{metric.label}</p>
                   {metric.subValue && (
-                    <p className="text-sm sm:text-xs text-muted-foreground">{metric.subValue}</p>
+                    <p className="text-sm sm:text-xs text-muted-foreground whitespace-nowrap">{metric.subValue}</p>
                   )}
                 </div>
               </Link>
