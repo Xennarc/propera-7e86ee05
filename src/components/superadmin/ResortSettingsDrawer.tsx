@@ -218,51 +218,8 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
     },
   });
 
-  // Delete mutation - uses backend function to bypass RLS
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (!resort) throw new Error('No resort');
-      
-      const { data, error } = await supabase.functions.invoke('delete-resort', {
-        body: { resortId: resort.id },
-      });
-
-      if (error) throw error;
-      
-      // Check for error in response body
-      if (data?.error) {
-        throw new Error(data.details || data.error);
-      }
-      
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['resorts'] });
-      
-      // Clear current resort if it was the deleted one
-      const currentResort = resorts.find(r => r.id === resort?.id);
-      if (currentResort) {
-        const remaining = resorts.filter(r => r.id !== resort?.id);
-        if (remaining.length > 0) {
-          setCurrentResort(remaining[0]);
-        } else {
-          setCurrentResort(null as any);
-        }
-      }
-      
-      onRefresh();
-      toast.success(`${resort?.name} deleted`);
-      onOpenChange(false);
-      setDeleteDialogOpen(false);
-      setConfirmCode('');
-      setConfirmDelete('');
-    },
-    onError: (error: any) => {
-      console.error('Delete error:', error);
-      const message = error?.message || 'Failed to delete resort';
-      toast.error(`Delete failed: ${message}`);
-    },
-  });
+  // Note: Resort deletion uses the purge system via handlePurgeRequest
+  // The purge-resort edge function handles complete cleanup of all data and storage
 
   // Suspend/Unsuspend mutation
   const suspendMutation = useMutation({

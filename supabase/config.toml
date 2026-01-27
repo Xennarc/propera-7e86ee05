@@ -15,7 +15,6 @@ verify_jwt = true
 [functions.create-staff-user]
 verify_jwt = true
 
-
 [functions.send-guest-credentials]
 verify_jwt = true
 
@@ -38,9 +37,6 @@ schedule = "0 6 */4 * *"
 
 [functions.execute-rollout]
 verify_jwt = true
-
-[functions.delete-resort]
-verify_jwt = false
 
 [functions.purge-resort]
 verify_jwt = false
