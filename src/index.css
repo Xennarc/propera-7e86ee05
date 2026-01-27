@@ -1501,11 +1501,59 @@
   /* === Guest Portal CSS Variables === */
   :root {
     --guest-nav-h: 72px;
+    --guest-content-max-width: 680px;
+    --guest-content-max-width-lg: 920px;
+    --guest-content-max-width-xl: 1100px;
   }
 
   /* Safe bottom padding accounting for nav + safe area */
   .guest-safe-bottom {
     padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  /* === Premium Guest Page Background === */
+  .guest-page-bg {
+    position: relative;
+    min-height: 100vh;
+  }
+
+  .guest-page-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--muted) / 0.3) 30%,
+      hsl(var(--background)) 70%,
+      hsl(var(--muted) / 0.2) 100%
+    );
+  }
+
+  .dark .guest-page-bg::before {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--midnight-950)) 0%,
+      hsl(var(--midnight-900) / 0.5) 30%,
+      hsl(var(--midnight-950)) 70%,
+      hsl(var(--midnight-900) / 0.3) 100%
+    );
+  }
+
+  /* Subtle vignette effect for grounding */
+  .guest-page-bg::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 80% 50% at 50% 100%,
+      transparent 60%,
+      hsl(var(--background) / 0.6) 100%
+    );
   }
 
   /* Glass bar for headers/nav with gradient stroke */
@@ -1519,6 +1567,41 @@
 
   .dark .guest-glass-bar {
     background: hsl(var(--card) / 0.7);
+  }
+
+  /* Enhanced bottom nav with premium separation */
+  .guest-nav-elevated {
+    @apply backdrop-blur-xl;
+    background: hsl(var(--card) / 0.92);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--border) / 0.15),
+      0 -8px 32px -4px rgb(0 0 0 / 0.08),
+      0 -2px 8px 0 rgb(0 0 0 / 0.04);
+  }
+
+  .dark .guest-nav-elevated {
+    background: hsl(var(--card) / 0.88);
+    box-shadow: 
+      0 -1px 0 0 hsl(var(--border) / 0.2),
+      0 -8px 32px -4px rgb(0 0 0 / 0.3),
+      0 -2px 8px 0 rgb(0 0 0 / 0.15);
+  }
+
+  /* Nav item with enhanced active state */
+  .guest-nav-item {
+    @apply flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200;
+  }
+  
+  .guest-nav-item:active {
+    @apply scale-95;
+  }
+
+  .guest-nav-item-active {
+    @apply text-primary;
+  }
+
+  .guest-nav-item-active .guest-nav-icon {
+    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.5));
   }
 
   /* Horizontal chip scroll row with fade edges */
@@ -1550,13 +1633,19 @@
     @apply border-border/80 shadow-soft;
   }
 
-  /* Guest card with subtle animation */
+  /* Guest card with subtle animation - Enhanced premium feel */
   .guest-card {
-    @apply relative bg-card rounded-3xl border border-border/50 overflow-hidden transition-all duration-200;
+    @apply relative bg-card rounded-3xl border border-border/40 overflow-hidden transition-all duration-200;
+    box-shadow: 
+      0 1px 2px 0 rgb(0 0 0 / 0.03),
+      0 2px 8px -2px rgb(0 0 0 / 0.04);
   }
   
   .guest-card:hover {
-    @apply shadow-soft border-border/80;
+    @apply border-border/60;
+    box-shadow: 
+      0 2px 4px 0 rgb(0 0 0 / 0.04),
+      0 4px 16px -4px rgb(0 0 0 / 0.08);
   }
   
   .guest-card-interactive {
@@ -1564,14 +1653,59 @@
   }
   
   .guest-card-interactive:hover {
-    @apply shadow-medium -translate-y-0.5;
+    @apply -translate-y-0.5;
+    box-shadow: 
+      0 4px 8px 0 rgb(0 0 0 / 0.05),
+      0 8px 24px -4px rgb(0 0 0 / 0.1);
   }
   
   .guest-card-interactive:active {
-    @apply translate-y-0 shadow-soft;
+    @apply translate-y-0;
+    box-shadow: 
+      0 1px 2px 0 rgb(0 0 0 / 0.03),
+      0 2px 8px -2px rgb(0 0 0 / 0.04);
+  }
+
+  /* === Premium Hero Card === */
+  .guest-hero-card {
+    @apply relative rounded-3xl overflow-hidden;
+    box-shadow: 
+      0 4px 12px -2px rgb(0 0 0 / 0.15),
+      0 8px 32px -8px rgb(0 0 0 / 0.2);
+  }
+
+  .guest-hero-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgb(0 0 0 / 0.55) 0%,
+      rgb(0 0 0 / 0.35) 40%,
+      rgb(0 0 0 / 0.15) 70%,
+      transparent 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Glass overlay for hero text readability */
+  .guest-hero-glass {
+    position: relative;
+    z-index: 2;
+  }
+
+  .guest-hero-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.1);
+    backdrop-filter: blur(2px);
+    border-radius: inherit;
+    z-index: -1;
   }
   
-  /* Guest hero section */
+  /* Guest hero section fallback */
   .guest-hero {
     @apply relative rounded-3xl overflow-hidden;
     background: linear-gradient(135deg, hsl(var(--lime-400) / 0.08) 0%, hsl(var(--blurple-500) / 0.05) 50%, hsl(var(--sunset-500) / 0.05) 100%);
@@ -1588,13 +1722,26 @@
     pointer-events: none;
   }
   
-  /* Guest navigation bottom bar */
-  .guest-nav-item {
-    @apply flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200;
+  /* === Quick Action Buttons - Premium Polish === */
+  .guest-quick-action {
+    @apply flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-200;
+    box-shadow: 
+      0 2px 6px -1px rgb(0 0 0 / 0.1),
+      0 1px 3px 0 rgb(0 0 0 / 0.06);
   }
-  
-  .guest-nav-item:active {
-    @apply scale-95;
+
+  .guest-quick-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 4px 12px -2px rgb(0 0 0 / 0.15),
+      0 2px 6px 0 rgb(0 0 0 / 0.08);
+  }
+
+  .guest-quick-action:active {
+    transform: scale(0.98) translateY(0);
+    box-shadow: 
+      0 1px 3px -1px rgb(0 0 0 / 0.1),
+      0 1px 2px 0 rgb(0 0 0 / 0.06);
   }
   
   /* Guest booking card accent strip */
@@ -1626,6 +1773,47 @@
 
   .guest-sticky-header.is-compact {
     @apply guest-glass-bar border-b;
+  }
+
+  /* === Section Separators === */
+  .guest-section-divider {
+    @apply relative my-6;
+  }
+
+  .guest-section-divider::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--border) / 0.4) 20%,
+      hsl(var(--border) / 0.4) 80%,
+      transparent 100%
+    );
+  }
+
+  /* === Content Container Widths === */
+  .guest-content-container {
+    @apply w-full mx-auto px-4;
+    max-width: var(--guest-content-max-width);
+  }
+
+  @screen md {
+    .guest-content-container {
+      max-width: var(--guest-content-max-width-lg);
+      @apply px-6;
+    }
+  }
+
+  @screen xl {
+    .guest-content-container {
+      max-width: var(--guest-content-max-width-xl);
+      @apply px-8;
+    }
   }
 }
 
@@ -1666,6 +1854,27 @@
     box-shadow: 
       0 4px 6px -1px rgb(0 0 0 / 0.05),
       0 10px 20px -5px rgb(0 0 0 / 0.08);
+  }
+
+  .shadow-guest-hero {
+    box-shadow: 
+      0 4px 12px -2px rgb(0 0 0 / 0.15),
+      0 8px 32px -8px rgb(0 0 0 / 0.25),
+      0 0 0 1px rgb(0 0 0 / 0.05);
+  }
+
+  /* Premium stay badge */
+  .guest-stay-badge {
+    @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold;
+    background: rgb(255 255 255 / 0.2);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgb(255 255 255 / 0.2);
+    box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.2);
+  }
+
+  .guest-stay-badge-accent {
+    @apply bg-amber-400/90 text-amber-950 border-amber-300/50;
+    box-shadow: 0 2px 8px -2px rgb(251 191 36 / 0.4);
   }
   
   /* ================================

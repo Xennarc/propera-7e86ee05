@@ -246,7 +246,7 @@ export default function GuestHome() {
         />
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-5 md:space-y-6">
       {/* Pre-arrival Nudge for In-Stay Guests - persistent until completed */}
       {!isPrearrival && 
        prearrivalData?.settings?.is_enabled && 
@@ -306,36 +306,41 @@ export default function GuestHome() {
       )}
 
       {/* Premium Image Hero Card */}
-      <Card className="relative overflow-hidden rounded-3xl border-0 shadow-guest-card">
-        {/* Background Image */}
+      <div className="guest-hero-card shadow-guest-hero">
+        {/* Background Image with smooth loading */}
         <div 
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center scale-[1.02] transition-transform duration-700"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
         
-        {/* Content */}
-        <CardContent className="relative z-10 h-full flex flex-col justify-between p-5 aspect-[2/1]">
-          <div>
-            <h1 className="text-2xl font-bold text-white">
+        {/* Multi-layer gradient for premium depth */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/65 via-black/40 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        
+        {/* Content with glass backing for text */}
+        <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 aspect-[2.1/1] sm:aspect-[2.4/1] md:aspect-[2.8/1]">
+          <div className="space-y-0.5">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-sm">
               {String(greeting.text)}, {firstName}!
             </h1>
-            <p className="text-white/80 text-sm">
-              {format(new Date(), 'EEEE, MMMM d, yyyy')}
+            <p className="text-white/75 text-sm sm:text-base font-medium">
+              {format(new Date(), 'EEEE, MMMM d')}
             </p>
           </div>
           
-          <div className="flex items-center justify-between">
-            <span className="text-white/90 text-sm font-medium">
+          <div className="flex items-center justify-between gap-3">
+            <span className="guest-stay-badge">
               {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d')}
             </span>
-            <Badge className="bg-amber-400 text-black font-semibold rounded-lg px-3 py-1">
-              {isCheckoutDay ? 'Check-out day' : `Day ${currentDay} of ${totalDays}`}
-            </Badge>
+            <span className={cn(
+              "guest-stay-badge",
+              isCheckoutDay ? "guest-stay-badge-accent" : "guest-stay-badge-accent"
+            )}>
+              {isCheckoutDay ? '✨ Check-out day' : `Day ${currentDay} of ${totalDays}`}
+            </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Quick Actions Grid */}
       <GuestQuickActions />
@@ -356,7 +361,7 @@ export default function GuestHome() {
       )}
 
       {/* Today's Schedule */}
-      <div>
+      <section>
         <GuestSectionHeader
           title={t('common.today')}
           icon={<IconClock className="h-5 w-5 text-primary" />}
@@ -375,17 +380,18 @@ export default function GuestHome() {
         
         {todaySchedule.length === 0 ? (
           showNudge ? (
-            <Card className="guest-card">
-              <CardContent className="p-5">
-                <h3 className="text-lg font-bold mb-3">{t('home.noPlansYet')}</h3>
-                <div className="flex gap-2">
+            <Card className="guest-card border-primary/10 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent">
+              <CardContent className="p-5 sm:p-6">
+                <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
+                <p className="text-sm text-muted-foreground mb-4">Discover experiences curated for your stay</p>
+                <div className="flex gap-2 sm:gap-3">
                   <Link to="/guest/activities" className="flex-1">
-                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target">
+                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                       {t('home.exploreActivities')}
                     </Button>
                   </Link>
                   <Link to="/guest/restaurants" className="flex-1">
-                    <Button variant="outline" className="w-full font-semibold tap-target">
+                    <Button variant="outline" className="w-full font-semibold tap-target hover:bg-muted/50 transition-all duration-200">
                       {t('home.exploreDining')}
                     </Button>
                   </Link>
@@ -393,9 +399,11 @@ export default function GuestHome() {
               </CardContent>
             </Card>
           ) : (
-            <Card className="guest-card border-dashed bg-muted/20">
-              <CardContent className="py-8 text-center">
-                <IconCalendar className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+            <Card className="guest-card border-dashed border-border/40 bg-muted/10">
+              <CardContent className="py-8 sm:py-10 text-center">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-muted/50 mb-4">
+                  <IconCalendar className="h-7 w-7 text-muted-foreground/50" />
+                </div>
                 <h3 className="font-semibold text-foreground mb-1">Nothing scheduled</h3>
                 <p className="text-sm text-muted-foreground">
                   Your bookings for today will appear here
@@ -427,14 +435,14 @@ export default function GuestHome() {
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Featured Activities Grid */}
       <GuestFeaturedActivities resortId={guest.resortId} />
 
       {/* Upcoming Bookings Preview */}
       {totalUpcomingBookings > todaySchedule.length && (
-        <div>
+        <section>
           <GuestSectionHeader
             title={t('home.upcoming')}
             icon={<Calendar className="h-5 w-5 text-lagoon" />}
@@ -470,7 +478,7 @@ export default function GuestHome() {
                 );
               })}
           </div>
-        </div>
+        </section>
       )}
     </div>
 
