@@ -12,6 +12,7 @@ import { getTierInfo, SubscriptionTier } from '@/lib/tier-features';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ActionQueue } from '@/components/superadmin/ActionQueue';
 import { ResortDrawer } from '@/components/superadmin/ResortDrawer';
+import { ResortQuickDiagnostic } from '@/components/superadmin/ResortQuickDiagnostic';
 import { RolloutsPanel } from '@/components/superadmin/RolloutsPanel';
 import { ErrorExplorer } from '@/components/superadmin/ErrorExplorer';
 import { FounderControls } from '@/components/superadmin/FounderControls';
@@ -20,6 +21,7 @@ import { SystemHeartbeat } from '@/components/superadmin/SystemHeartbeat';
 import { BentoKPICard } from '@/components/superadmin/BentoKPICard';
 import { BentoGrid } from '@/components/superadmin/BentoGrid';
 import { MissionControlHeader } from '@/components/superadmin/MissionControlHeader';
+import { StatusBeacon } from '@/components/superadmin/StatusBeacon';
 import { usePlatformActivityRealtime, EVENT_TYPE_CONFIG } from '@/hooks/usePlatformActivity';
 import { useErrorCount24h } from '@/hooks/usePlatformErrors';
 import { useActionQueueDetectors } from '@/hooks/useActionQueueDetectors';
@@ -36,18 +38,16 @@ export interface WriteModeState {
   expiresAt: Date | null;
 }
 
-// Resort Health Card - Glassmorphism style
+// Resort Health Card - Glassmorphism style with Status Beacon
 function ResortHealthCard({ resort, metrics, onClick }: { 
   resort: { id: string; name: string; code: string; subscription_tier: string; is_demo: boolean };
-  metrics: { guests: number; prearrivalRate: number; health: 'good' | 'warning' | 'critical'; sessions: number; covers: number };
+  metrics: { guests: number; prearrivalRate: number; health: 'good' | 'warning' | 'critical'; sessions: number; covers: number; lastActivity?: string };
   onClick: () => void;
 }) {
   const tierInfo = getTierInfo((resort.subscription_tier || 'ESSENTIAL') as SubscriptionTier);
-  const healthColors = { 
-    good: 'bg-success', 
-    warning: 'bg-warning', 
-    critical: 'bg-destructive' 
-  };
+  
+  // Map health to beacon status
+  const beaconStatus = metrics.health === 'good' ? 'active' : metrics.health === 'warning' ? 'idle' : 'error';
   
   return (
     <Card 
@@ -83,18 +83,8 @@ function ResortHealthCard({ resort, metrics, onClick }: {
               {tierInfo.name}
             </Badge>
           </div>
-          <div className="relative flex h-3 w-3">
-            {metrics.health !== 'good' && (
-              <span className={cn(
-                'absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping',
-                healthColors[metrics.health]
-              )} />
-            )}
-            <span className={cn(
-              'relative inline-flex h-3 w-3 rounded-full',
-              healthColors[metrics.health]
-            )} />
-          </div>
+          {/* Status Beacon - pulsing indicator */}
+          <StatusBeacon status={beaconStatus} size="md" />
         </div>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div>
@@ -134,6 +124,7 @@ export default function CommandCenter() {
   const [includeDemos, setIncludeDemos] = useState(false);
   const [selectedResort, setSelectedResort] = useState<typeof resorts[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [quickDiagOpen, setQuickDiagOpen] = useState(false);
   const [actionQueueFilter, setActionQueueFilter] = useState<'all' | 'P0'>('all');
   const today = new Date().toISOString().split('T')[0];
 
@@ -256,9 +247,17 @@ export default function CommandCenter() {
     enabled: resorts.length > 0,
   });
 
+  // Handle resort click - opens Quick Diagnostic first
   const handleResortClick = (resort: typeof resorts[0]) => { 
     setSelectedResort(resort); 
-    setDrawerOpen(true); 
+    setQuickDiagOpen(true); 
+  };
+
+  // Handle opening full drawer from Quick Diagnostic
+  const handleOpenFullDrawer = (resort: typeof resorts[0]) => {
+    setSelectedResort(resort);
+    setQuickDiagOpen(false);
+    setDrawerOpen(true);
   };
 
   // Handle saved view navigation from FounderControls
@@ -517,6 +516,15 @@ export default function CommandCenter() {
         )}
       </div>
 
+      {/* Quick Diagnostic Drawer - Opens on resort click */}
+      <ResortQuickDiagnostic
+        resort={selectedResort}
+        open={quickDiagOpen}
+        onOpenChange={setQuickDiagOpen}
+        onOpenFullDrawer={handleOpenFullDrawer}
+      />
+
+      {/* Full Resort Drawer */}
       <ResortDrawer 
         resort={selectedResort} 
         open={drawerOpen} 

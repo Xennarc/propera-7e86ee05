@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -42,8 +43,10 @@ import {
   CheckCircle2,
   FileWarning,
   Plus,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ErrorGroupCard, groupErrors } from './ErrorGroupCard';
 
 interface ErrorExplorerProps {
   onResortClick?: (resortId: string) => void;
@@ -55,6 +58,7 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
   const [resortFilter, setResortFilter] = useState<string>('all');
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
   const [searchQuery, setSearchQuery] = useState('');
+  const [groupByMessage, setGroupByMessage] = useState(true);
   const [affectedResortsDialogOpen, setAffectedResortsDialogOpen] = useState(false);
   const [createIncidentDialogOpen, setCreateIncidentDialogOpen] = useState(false);
   const [incidentTitle, setIncidentTitle] = useState('');
@@ -75,6 +79,11 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
     e.route.toLowerCase().includes(searchQuery.toLowerCase()) ||
     e.error_message.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  // Group errors by message
+  const errorGroups = useMemo(() => {
+    return groupErrors(filteredErrors);
+  }, [filteredErrors]);
 
   // Calculate affected resorts from filtered errors
   const affectedResorts = useMemo(() => {
@@ -178,6 +187,18 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
           </SelectContent>
         </Select>
 
+        <div className="flex items-center gap-2 ml-auto">
+          <Label htmlFor="group-toggle" className="text-xs text-muted-foreground flex items-center gap-1 cursor-pointer">
+            <Layers className="h-3.5 w-3.5" />
+            Group
+          </Label>
+          <Switch 
+            id="group-toggle"
+            checked={groupByMessage} 
+            onCheckedChange={setGroupByMessage}
+          />
+        </div>
+
         <div className="flex-1 max-w-xs">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -262,7 +283,12 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Error Log
+              {groupByMessage ? 'Error Groups' : 'Error Log'}
+              {groupByMessage && errorGroups.length > 0 && (
+                <Badge variant="outline" className="text-xs ml-2">
+                  {errorGroups.length} group{errorGroups.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-1" />
@@ -273,68 +299,93 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
         <CardContent>
           {isLoading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 w-full" />)}
             </div>
-          ) : filteredErrors.length > 0 ? (
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-3">
-                {filteredErrors.map(error => (
-                  <div 
-                    key={error.id}
-                    className="p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {getSeverityBadge(error.severity)}
-                          <span className="font-mono text-sm">{error.route}</span>
+          ) : groupByMessage ? (
+            // Grouped View
+            errorGroups.length > 0 ? (
+              <ScrollArea className="h-[500px] pr-2">
+                <div className="space-y-3">
+                  {errorGroups.map(group => (
+                    <ErrorGroupCard 
+                      key={group.key} 
+                      group={group} 
+                      onResolve={handleResolve}
+                      isResolving={resolveError.isPending}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <CheckCircle2 className="h-12 w-12 text-success/30 mb-3" />
+                <p className="font-medium">No errors found</p>
+                <p className="text-sm text-muted-foreground">No errors match your current filters</p>
+              </div>
+            )
+          ) : (
+            // Flat View
+            filteredErrors.length > 0 ? (
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {filteredErrors.map(error => (
+                    <div 
+                      key={error.id}
+                      className="p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            {getSeverityBadge(error.severity)}
+                            <span className="font-mono text-sm">{error.route}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{error.error_message}</p>
+                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(error.created_at), 'MMM d, HH:mm')}
+                            {error.resort_name && (
+                              <>
+                                <span>•</span>
+                                <Building2 className="h-3 w-3" />
+                                {error.resort_name}
+                              </>
+                            )}
+                            {error.user_type && (
+                              <>
+                                <span>•</span>
+                                <span className="capitalize">{error.user_type}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">{error.error_message}</p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(error.created_at), 'MMM d, HH:mm')}
-                          {error.resort_name && (
-                            <>
-                              <span>•</span>
-                              <Building2 className="h-3 w-3" />
-                              {error.resort_name}
-                            </>
-                          )}
-                          {error.user_type && (
-                            <>
-                              <span>•</span>
-                              <span className="capitalize">{error.user_type}</span>
-                            </>
-                          )}
+                        <div className="flex gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleResolve(error.id)}
+                            disabled={resolveError.isPending}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/audit')}>
+                            <Clock className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/support')}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleResolve(error.id)}
-                          disabled={resolveError.isPending}
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/audit')}>
-                          <Clock className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => navigate('/superadmin/support')}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium">No errors found</p>
+                <p className="text-sm text-muted-foreground">No errors match your current filters</p>
               </div>
-            </ScrollArea>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
-              <p className="font-medium">No errors found</p>
-              <p className="text-sm text-muted-foreground">No errors match your current filters</p>
-            </div>
+            )
           )}
         </CardContent>
       </Card>
