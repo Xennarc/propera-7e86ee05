@@ -33,10 +33,11 @@ export interface ResortBranding {
 }
 
 // Default branding values when no custom branding is set
+// Colors are null so CSS fallbacks use Propera system colors (lime/blurple)
 export const DEFAULT_BRANDING: Partial<ResortBranding> = {
-  login_primary_color: '#0E7490',
-  login_accent_color: '#D8C7A6',
-  brand_theme: 'LIGHT',
+  login_primary_color: null,  // Falls back to --lime-400 in CSS
+  login_accent_color: null,   // Falls back to --blurple-500 in CSS
+  brand_theme: 'AUTO',        // Follow system preference by default
 };
 
 /**
@@ -106,9 +107,10 @@ export function getBrandingWithDefaults(branding: ResortBranding | null | undefi
 
   return {
     ...branding,
-    login_primary_color: branding.login_primary_color || DEFAULT_BRANDING.login_primary_color!,
-    login_accent_color: branding.login_accent_color || DEFAULT_BRANDING.login_accent_color!,
-    brand_theme: branding.brand_theme || DEFAULT_BRANDING.brand_theme!,
+    // Don't override null colors - let CSS defaults handle Propera system colors
+    login_primary_color: branding.login_primary_color,
+    login_accent_color: branding.login_accent_color,
+    brand_theme: branding.brand_theme || 'AUTO',
   };
 }
 
