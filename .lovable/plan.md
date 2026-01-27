@@ -1,324 +1,230 @@
 
-# Redesign Guest Portal Homepage
 
-## Overview
+# Fix Text Wrapping and Centering Issues Across Portals
 
-Transform the guest portal homepage from the current card-based layout to a premium, image-rich mobile experience inspired by the reference design. The new layout features a hero card with resort imagery, bold colorful quick action tiles, and a featured activities discovery grid.
+## Problem Analysis
+
+After exploring the codebase, I've identified several categories of text wrapping and centering issues that affect the premium feel of both the staff and guest portals:
+
+### Issue Categories Found
+
+| Issue Type | Description | Impact |
+|------------|-------------|--------|
+| **Missing `text-center` on centered containers** | Some flex containers with `items-center` lack proper text-center for multi-line text | Text appears left-aligned in visually centered areas |
+| **Missing `whitespace-nowrap` on single-line labels** | Labels in badges, tabs, and buttons can wrap unexpectedly on narrow screens | UI elements break across lines awkwardly |
+| **Inconsistent `truncate` usage** | Some titles truncate, others wrap, creating visual inconsistency | Mixed behavior confuses users |
+| **Missing `min-w-0` on flex children** | Flex children with text don't properly truncate without `min-w-0` | Text overflows parent containers |
+| **`text-xs` without `line-clamp` on descriptions** | Long descriptions wrap unpredictably | Inconsistent card heights and visual clutter |
 
 ---
 
-## Design Analysis (Reference vs Current)
+## Affected Components
 
-| Element | Reference Design | Current Implementation | Action |
-|---------|-----------------|----------------------|--------|
-| Hero Card | Full-width image background with greeting, date, stay dates, check-out badge | Solid card with icon, greeting, date, and progress bar | **Redesign** with image background |
-| Quick Actions | 4 solid-colored tiles (teal, amber, purple, cyan) with icons | 4 tiles with transparent backgrounds and ring icons | **Restyle** to bold solid colors |
-| Travel Party | Minimal row with icon, text, chevron | Card with icon, text, badge, chevron | **Simplify** styling |
-| Today Section | "No plans yet?" card with 2 horizontal CTAs | Vertical stack with compass icon | **Horizontal CTA layout** |
-| Featured Activities | 2-column image grid with overlaid text | Not present | **Add new section** |
-| Header | Resort logo + name + room in header bar | Matches (already good) | **Keep current** |
+### Guest Portal
+
+| Component | Issue | Fix |
+|-----------|-------|-----|
+| `GuestQuickActions.tsx` | Label text may wrap on very small screens | Add `whitespace-nowrap` to label spans |
+| `GuestSectionHeader.tsx` | Title can wrap if count is long | Add `whitespace-nowrap` to title wrapper |
+| `GuestEmptyState.tsx` | Title lacks `text-center` consistency | Ensure proper centering classes |
+| `GuestBookingCard.tsx` | Title truncation working but subtitle may wrap | Add `line-clamp-1` to subtitle text |
+| `GuestSmartSuggestions.tsx` | Description uses `line-clamp-2` but title may wrap | Add `line-clamp-1` to titles |
+| `TravelPartyCard.tsx` | Description text can wrap inconsistently | Add `truncate` to description |
+| `RequestCategoryGrid.tsx` | Labels centered but may wrap | Add `whitespace-nowrap` to labels |
+| `GuestTodayTimeline.tsx` | Timeline pill titles truncate but container needs `min-w-0` | Verify `min-w-0` on flex parents |
+| `GuestFeaturedActivities.tsx` | Activity names use `line-clamp-1` ✓ | Already correct |
+| `GuestLayout.tsx` | Nav labels may wrap on very small devices | Add `whitespace-nowrap` to nav labels |
+
+### Staff Portal
+
+| Component | Issue | Fix |
+|-----------|-------|-----|
+| `StaffSidebar.tsx` | Nav item titles could wrap if sidebar is resized | Add `whitespace-nowrap` to nav labels |
+| `StaffTopbar.tsx` | Resort name truncates ✓ but search button text may wrap | Add `whitespace-nowrap` to "Search" text |
+| `NeedsAttentionCard.tsx` | Item titles truncate ✓ but "All Clear" text centered ✓ | Already correct |
+| `RequestStatusTabs.tsx` | Tab labels centered but could wrap on edge cases | Add `whitespace-nowrap` to labels |
+| `StatCard.tsx` | Title uses `truncate` ✓ | Already correct |
+| `PageHeader.tsx` | Title should not wrap, description may wrap (acceptable) | Add `whitespace-nowrap` to titles on mobile |
+| `TodayAtAGlance.tsx` | Metric labels may wrap | Add `whitespace-nowrap` to labels |
+| `TodayHub.tsx` | Various list item titles need consistent truncation | Ensure `truncate` on all list item titles |
+
+### Shared UI Components
+
+| Component | Issue | Fix |
+|-----------|-------|-----|
+| `Badge.tsx` | Already has inline-flex ✓ | Already correct |
+| `Button.tsx` | Has `whitespace-nowrap` ✓ | Already correct |
+| `Tabs.tsx` | TabsTrigger has `whitespace-nowrap` ✓ | Already correct |
+| `SegmentedControl.tsx` | Button labels may wrap | Add `whitespace-nowrap` to label spans |
+| `EmptyState.tsx` | Title and description centered ✓ | Already correct |
+| `Card.tsx` | Content wrapper needs awareness | No changes needed |
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: New Hero Card with Image Background
+### Phase 1: Guest Portal Navigation & Headers
 
-**File:** `src/pages/guest/GuestHome.tsx`
+**File: `src/components/guest/GuestLayout.tsx`**
+- Add `whitespace-nowrap` to nav item labels (line 77-82)
+- Ensures "Activities", "Requests", "Bookings" never wrap
 
-**Changes:**
-1. Query resort's `login_hero_image_url` or use a scenic fallback
-2. Replace the current greeting card with an image-backed hero
-3. Overlay gradient with greeting, date, stay dates, and check-out indicator
+**File: `src/components/guest/GuestSectionHeader.tsx`**
+- Add `whitespace-nowrap` to title `<h2>` tag
+- Prevents section headers from wrapping
 
-**New Hero Structure:**
+### Phase 2: Guest Cards & Content
+
+**File: `src/components/guest/GuestQuickActions.tsx`**
+- Add `whitespace-nowrap text-center` to label spans (line 91-93)
+- Ensures "Activities", "Dining", etc. stay on one line
+
+**File: `src/components/guest/TravelPartyCard.tsx`**
+- Add `truncate` class to description paragraph (line 41-44)
+
+**File: `src/components/guest/GuestSmartSuggestions.tsx`**
+- Add `line-clamp-1` to suggestion titles (line 137-138)
+
+**File: `src/components/guest/GuestTodayTimeline.tsx`**
+- Verify `min-w-0` is on all flex parents with truncating text
+
+**File: `src/components/guest/requests/RequestCategoryGrid.tsx`**
+- Add `whitespace-nowrap` to category labels (line 161-162)
+
+### Phase 3: Staff Portal Navigation & Headers
+
+**File: `src/components/staff/StaffSidebar.tsx`**
+- Add `whitespace-nowrap` to nav item spans (line 324)
+- Prevents menu items from wrapping
+
+**File: `src/components/staff/StaffTopbar.tsx`**
+- Add `whitespace-nowrap` to "Search" span (line 77)
+
+**File: `src/components/ui/page-header.tsx`**
+- Add `whitespace-nowrap` to page title on mobile (line 53)
+
+### Phase 4: Staff Cards & Components
+
+**File: `src/components/staff/TodayAtAGlance.tsx`**
+- Add `whitespace-nowrap` to metric labels
+
+**File: `src/components/staff/requests/RequestStatusTabs.tsx`**
+- Add `whitespace-nowrap` to tab label spans (line 90-92)
+
+**File: `src/components/ui/segmented-control.tsx`**
+- Add `whitespace-nowrap` to label spans (lines 68-69)
+
+### Phase 5: Shared UI Component Hardening
+
+**File: `src/index.css`**
+- Add utility class `.text-balance` for multi-line centered text:
+```css
+.text-balance {
+  text-wrap: balance;
+}
+```
+- Add `.text-nowrap` alias for `whitespace-nowrap` if not present
+
+---
+
+## Code Changes Summary
+
+### Files to Modify (13 files)
+
+| File | Primary Change |
+|------|---------------|
+| `src/components/guest/GuestLayout.tsx` | `whitespace-nowrap` on nav labels |
+| `src/components/guest/GuestSectionHeader.tsx` | `whitespace-nowrap` on title |
+| `src/components/guest/GuestQuickActions.tsx` | `whitespace-nowrap text-center` on labels |
+| `src/components/guest/TravelPartyCard.tsx` | `truncate` on description |
+| `src/components/guest/GuestSmartSuggestions.tsx` | `line-clamp-1` on titles |
+| `src/components/guest/GuestTodayTimeline.tsx` | Verify `min-w-0` patterns |
+| `src/components/guest/requests/RequestCategoryGrid.tsx` | `whitespace-nowrap` on labels |
+| `src/components/staff/StaffSidebar.tsx` | `whitespace-nowrap` on nav items |
+| `src/components/staff/StaffTopbar.tsx` | `whitespace-nowrap` on search text |
+| `src/components/staff/TodayAtAGlance.tsx` | `whitespace-nowrap` on labels |
+| `src/components/staff/requests/RequestStatusTabs.tsx` | `whitespace-nowrap` on tabs |
+| `src/components/ui/segmented-control.tsx` | `whitespace-nowrap` on buttons |
+| `src/components/ui/page-header.tsx` | `whitespace-nowrap` on titles |
+
+---
+
+## Technical Details
+
+### Pattern: Preventing Text Wrap in Flex Items
 ```tsx
-<Card className="relative overflow-hidden rounded-3xl aspect-[2/1]">
-  {/* Background Image */}
-  <div 
-    className="absolute inset-0 bg-cover bg-center"
-    style={{ backgroundImage: `url(${heroImage})` }}
-  />
-  {/* Gradient Overlay */}
-  <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent" />
-  
-  {/* Content */}
-  <CardContent className="relative z-10 h-full flex flex-col justify-between p-5">
-    <div>
-      <h1 className="text-2xl font-bold text-white">{greeting}, {firstName}!</h1>
-      <p className="text-white/80 text-sm">{format(today, 'EEEE, MMMM d, yyyy')}</p>
-    </div>
-    
-    <div className="flex items-center justify-between">
-      <span className="text-white/90 text-sm font-medium">
-        {format(checkIn, 'MMM d')} – {format(checkOut, 'MMM d')}
-      </span>
-      <Badge className="bg-amber-400 text-black font-semibold rounded-lg px-3 py-1">
-        {isCheckoutDay ? 'Check-out day' : `Day ${currentDay} of ${totalDays}`}
-      </Badge>
-    </div>
-  </CardContent>
-</Card>
+// Before (text may wrap)
+<span className="text-xs font-medium">
+  {label}
+</span>
+
+// After (text stays on one line)
+<span className="text-xs font-medium whitespace-nowrap">
+  {label}
+</span>
 ```
 
-### Phase 2: Bold Quick Actions Grid
-
-**File:** `src/components/guest/GuestQuickActions.tsx`
-
-**Changes:**
-1. Replace translucent backgrounds with solid vibrant colors
-2. Use white icons on colored backgrounds
-3. Increase icon size for better visual impact
-4. Remove descriptions for a cleaner look
-
-**New Color Mapping:**
-| Action | Background | Icon |
-|--------|-----------|------|
-| Activities | `bg-teal-500` (lagoon) | White IconActivities |
-| Dining | `bg-amber-500` (sunset) | White IconRestaurants |
-| Bookings | `bg-purple-500` (orchid) | White IconBookings |
-| Request | `bg-sky-500` (cyan) | White Bell/MessageSquarePlus |
-
-**Updated Tile Structure:**
+### Pattern: Centering Text in Flex Containers
 ```tsx
-<div className={cn(
-  "flex flex-col items-center gap-2 p-4 rounded-2xl",
-  "bg-teal-500" // solid color per action
-)}>
-  <Icon className="h-7 w-7 text-white" />
-  <span className="text-xs font-semibold text-white">{label}</span>
+// Before (text left-aligned within centered container)
+<div className="flex flex-col items-center gap-2">
+  <Icon />
+  <span>{label}</span>
+</div>
+
+// After (text visually centered)
+<div className="flex flex-col items-center text-center gap-2">
+  <Icon />
+  <span className="whitespace-nowrap">{label}</span>
 </div>
 ```
 
-### Phase 3: Simplified Travel Party Row
-
-**File:** `src/components/guest/TravelPartyCard.tsx`
-
-**Changes:**
-1. Make the card more compact
-2. Use muted icon styling similar to reference
-3. Simplify to single-line description
-
-**Updated Structure:**
+### Pattern: Truncating Text in Flex Children
 ```tsx
-<Card className="guest-card">
-  <CardContent className="p-3">
-    <Link className="flex items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
-        <Users className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="flex-1">
-        <h3 className="font-semibold text-foreground">Travel Party</h3>
-        <p className="text-xs text-muted-foreground">
-          {hasParty ? `${adultsCount} adults, ${childrenCount} children` : 'Manage your travel party'}
-        </p>
-      </div>
-      <ChevronRight className="h-5 w-5 text-muted-foreground" />
-    </Link>
-  </CardContent>
-</Card>
-```
+// Before (text overflows)
+<div className="flex items-center">
+  <div>
+    <p className="text-sm">{longTitle}</p>
+  </div>
+</div>
 
-### Phase 4: Horizontal "No Plans Yet?" CTAs
-
-**File:** `src/pages/guest/GuestHome.tsx`
-
-**Changes:**
-1. Change the empty state to show a card with horizontal button layout
-2. Use amber/gold primary button and outline secondary
-3. Match the reference's visual style
-
-**Updated Empty State:**
-```tsx
-<Card className="guest-card">
-  <CardContent className="p-5">
-    <h3 className="text-lg font-bold mb-3">No plans yet?</h3>
-    <div className="flex gap-2">
-      <Link to="/guest/activities" className="flex-1">
-        <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold">
-          Explore Activities
-        </Button>
-      </Link>
-      <Link to="/guest/restaurants" className="flex-1">
-        <Button variant="outline" className="w-full font-semibold">
-          View Restaurants
-        </Button>
-      </Link>
-    </div>
-  </CardContent>
-</Card>
-```
-
-### Phase 5: Featured Activities Grid (New Section)
-
-**File:** `src/pages/guest/GuestHome.tsx` + New Component
-
-**New Component:** `src/components/guest/GuestFeaturedActivities.tsx`
-
-**Purpose:** Display a 2-column grid of activity cards with image backgrounds and text overlays
-
-**Data Source:** Query `activities` table for resort, filter by `is_active`, `guest_can_book`, limit to 4 with images
-
-**Component Structure:**
-```tsx
-export function GuestFeaturedActivities({ resortId }: { resortId: string }) {
-  const { data: activities } = useQuery({
-    queryKey: ['guest-featured-activities', resortId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('activities')
-        .select('id, name, category, image_url, short_description')
-        .eq('resort_id', resortId)
-        .eq('is_active', true)
-        .eq('guest_can_book', true)
-        .not('image_url', 'is', null)
-        .limit(4);
-      return data || [];
-    },
-  });
-
-  if (!activities?.length) return null;
-
-  return (
-    <div>
-      <GuestSectionHeader 
-        title="Explore Activities" 
-        icon={<Sparkles className="h-5 w-5 text-primary" />}
-        actionLabel="View All"
-        actionHref="/guest/activities"
-      />
-      <div className="grid grid-cols-2 gap-3">
-        {activities.map((activity) => (
-          <Link key={activity.id} to={`/guest/activity/${activity.id}`}>
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
-              <img 
-                src={activity.image_url || FALLBACK_IMAGE}
-                alt={activity.name}
-                className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <h4 className="text-white font-bold text-sm line-clamp-1">{activity.name}</h4>
-                <p className="text-white/80 text-xs line-clamp-1">{activity.short_description || activity.name}</p>
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
-
-**Fallback Image:**
-```typescript
-const FALLBACK_ACTIVITY_IMAGES: Record<string, string> = {
-  DIVE: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400',
-  WATERSPORT: 'https://images.unsplash.com/photo-1530870110042-98b2cb110834?w=400',
-  EXCURSION: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400',
-  SPA: 'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=400',
-  OTHER: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400',
-};
+// After (text truncates properly)
+<div className="flex items-center">
+  <div className="min-w-0">
+    <p className="text-sm truncate">{longTitle}</p>
+  </div>
+</div>
 ```
 
 ---
 
-## File Changes Summary
+## Testing Checklist
 
-| File | Action | Changes |
-|------|--------|---------|
-| `src/pages/guest/GuestHome.tsx` | Modify | Hero card redesign, horizontal CTAs, add featured activities section |
-| `src/components/guest/GuestQuickActions.tsx` | Modify | Solid color tiles, white icons, simplified labels |
-| `src/components/guest/TravelPartyCard.tsx` | Modify | More compact styling |
-| `src/components/guest/GuestFeaturedActivities.tsx` | **Create** | New 2x2 image grid component |
+After implementation, verify on:
+1. **Mobile (375px)** - iPhone SE/small Android
+2. **Mobile (390-428px)** - Standard iPhone/Android
+3. **Tablet (768px)** - iPad portrait
+4. **Desktop (1024px+)** - Standard laptop
 
----
-
-## Component Layout After Redesign
-
-```text
-GuestHome
-├── Pre-arrival Nudge (conditional)
-├── Feedback Prompt (conditional)
-├── Image Hero Card (NEW)
-│   ├── Background Image (resort hero or fallback)
-│   ├── Gradient Overlay
-│   ├── Greeting + Date
-│   └── Stay Dates + Check-out Badge
-├── Quick Actions Grid (RESTYLED)
-│   └── 4 Bold Colored Tiles
-├── Travel Party Card (SIMPLIFIED)
-├── Smart Suggestions (existing)
-├── Today Section
-│   ├── Section Header
-│   ├── Timeline (if bookings exist)
-│   └── "No plans yet?" with horizontal CTAs (RESTYLED)
-├── Featured Activities (NEW)
-│   └── 2x2 Image Card Grid
-└── Upcoming Bookings Preview (existing)
-```
-
----
-
-## Color Palette for Quick Actions
-
-| Action | Tailwind Class | Hex Approx |
-|--------|---------------|------------|
-| Activities | `bg-teal-500` | #14B8A6 |
-| Dining | `bg-amber-500` | #F59E0B |
-| Bookings | `bg-purple-500` | #A855F7 |
-| Request | `bg-sky-500` | #0EA5E9 |
-
-These match the vibrant app-icon style in the reference while maintaining accessibility.
-
----
-
-## Mobile UX Considerations
-
-1. **Touch Targets:** All tiles maintain 48px minimum tap area
-2. **Image Optimization:** Use `loading="lazy"` for featured activities grid
-3. **Aspect Ratios:** Hero uses 2:1, activity cards use 4:3 for mobile
-4. **Text Readability:** White text on dark gradient overlays (4.5:1 contrast)
-5. **Performance:** Use CSS gradients instead of additional overlay images
-
----
-
-## Data Dependencies
-
-| Data | Source | Required Fields |
-|------|--------|----------------|
-| Resort Hero Image | `resorts.login_hero_image_url` | Already fetched in `useResortBranding` |
-| Featured Activities | `activities` table | `id, name, category, image_url, short_description` |
-| Stay Dates | `guest` context | `checkInDate, checkOutDate` |
-
----
-
-## Fallback Strategy
-
-1. **No Hero Image:** Use scenic beach/resort Unsplash fallback
-2. **No Activity Images:** Use category-specific fallback images
-3. **No Featured Activities:** Hide the section entirely (graceful degradation)
-
----
-
-## Technical Notes
-
-- Reuse existing `GuestSectionHeader` for section titles
-- Use `format` from date-fns for consistent date formatting
-- Follow existing `guest-card` class patterns for consistency
-- Maintain all existing i18n translation keys
-- Keep animations subtle using existing Framer Motion patterns
+Check for:
+- [ ] Nav labels stay on one line
+- [ ] Section headers don't wrap
+- [ ] Quick action labels centered and single-line
+- [ ] Card titles truncate instead of wrap
+- [ ] Empty states text is centered
+- [ ] Badge text never wraps
+- [ ] Tab labels stay compact
 
 ---
 
 ## Summary
 
-This redesign transforms the guest homepage into a visually rich, app-like experience by:
+This plan addresses text wrapping and centering issues across 13 files in both portals by:
 
-1. **Hero Card:** Adding a photo background with stay context overlay
-2. **Quick Actions:** Converting to bold, colorful app-icon style tiles
-3. **Travel Party:** Streamlining to a cleaner, more minimal row
-4. **Empty State:** Horizontal CTA layout for better scannability
-5. **Featured Activities:** New discovery section with image cards
+1. **Consistent `whitespace-nowrap`** on navigation labels, badges, and short descriptive text
+2. **Proper `text-center`** on containers that should center multi-line content
+3. **Correct `truncate` + `min-w-0`** patterns for flex children with dynamic text
+4. **`line-clamp-1/2`** for controlled description text
 
-The changes maintain all existing functionality while significantly enhancing visual appeal and alignment with premium hospitality app standards.
+These changes will create a more polished, consistent UI that maintains the premium aesthetic across all viewport sizes.
+
