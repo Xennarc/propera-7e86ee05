@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useServiceRequestMutations } from '@/hooks/useServiceRequests';
 import {
@@ -80,27 +81,28 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
         </DrawerHeader>
 
         <div className="px-4 py-2 space-y-4 overflow-y-auto">
-          {/* Common Requests */}
+          {/* Common Requests - 2-column grid */}
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
               Quick suggestions
             </Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {COMMON_REQUESTS.map((suggestion) => (
-                <button
+                <motion.button
                   key={suggestion}
                   type="button"
                   onClick={() => handleSuggestionClick(suggestion)}
+                  whileTap={{ scale: 0.95 }}
                   className={cn(
-                    "px-3 py-1.5 text-sm rounded-full border transition-colors",
+                    "p-3 text-left rounded-xl border transition-all min-h-[44px]",
                     requestText === suggestion
-                      ? "bg-primary text-primary-foreground border-primary"
+                      ? "bg-primary text-primary-foreground border-primary shadow-md"
                       : "bg-muted/50 hover:bg-muted border-transparent"
                   )}
                 >
-                  {suggestion}
-                </button>
+                  <span className="text-sm font-medium">{suggestion}</span>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -123,7 +125,7 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
               onChange={(e) => setRequestText(e.target.value)}
               rows={4}
               className={cn(
-                "resize-none",
+                "resize-none text-base", // 16px prevents iOS zoom
                 isOverLimit && "border-destructive focus-visible:ring-destructive"
               )}
               autoFocus
@@ -152,12 +154,16 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
 
           {/* Estimated Response */}
           {requestText.trim() && (
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3 rounded-lg bg-primary/5 border border-primary/10"
+            >
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Estimated response: </span>
                 {isAsap ? '10-15 minutes' : '30-60 minutes'}
               </p>
-            </div>
+            </motion.div>
           )}
         </div>
 

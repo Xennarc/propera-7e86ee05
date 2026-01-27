@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
-import { useRequestCatalog, useServiceRequestMutations, CatalogItem } from '@/hooks/useServiceRequests';
+import { useRequestCatalog, useServiceRequestMutations, useGuestServiceRequests, CatalogItem } from '@/hooks/useServiceRequests';
 import { RequestCategoryGrid, CategoryConfig } from '@/components/guest/requests/RequestCategoryGrid';
 import { RequestCreateSheet } from '@/components/guest/requests/RequestCreateSheet';
 import { MultiSelectItemGrid, SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Link } from 'react-router-dom';
-import { ClipboardList, Sparkles, ArrowRight, Package, X, ShoppingBag } from 'lucide-react';
+import { ClipboardList, Sparkles, ArrowRight, X, ShoppingBag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +46,20 @@ export default function GuestRequestsPage() {
   const { createBundle, isCreatingBundle } = useServiceRequestMutations(
     guest?.guestId || '',
     guest?.resortId || ''
+  );
+
+  // Fetch active requests for badge
+  const { requests } = useGuestServiceRequests({
+    guestId: guest?.guestId || '',
+    resortId: guest?.resortId || '',
+    enabled: !!guest,
+  });
+  
+  const activeCount = useMemo(() => 
+    requests.filter(r => 
+      ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS'].includes(r.status)
+    ).length,
+    [requests]
   );
 
   // Total selected item count
@@ -163,10 +177,6 @@ export default function GuestRequestsPage() {
     setExitDialogOpen(false);
   };
 
-  const handleClearSelection = () => {
-    setSelectedItems([]);
-  };
-
   return (
     <div className="space-y-5 pb-24">
       {/* Header with link to My Requests */}
@@ -186,10 +196,24 @@ export default function GuestRequestsPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Button variant="outline" size="sm" asChild className="gap-1.5">
+          <Button variant="outline" size="sm" asChild className="gap-1.5 relative">
             <Link to="/guest/requests/my">
               <ClipboardList className="h-4 w-4" />
               My Requests
+              {/* Active request count badge */}
+              <AnimatePresence>
+                {activeCount > 0 && (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center shadow-sm"
+                  >
+                    {activeCount > 9 ? '9+' : activeCount}
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </Link>
           </Button>
         </motion.div>
@@ -212,7 +236,10 @@ export default function GuestRequestsPage() {
         {catalogLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-2xl" />
+              <Skeleton 
+                key={i} 
+                className="h-28 rounded-2xl animate-pulse bg-gradient-to-r from-muted via-muted/80 to-muted" 
+              />
             ))}
           </div>
         ) : multiSelectMode ? (
@@ -263,13 +290,22 @@ export default function GuestRequestsPage() {
               {selectedItems.length > 0 ? (
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center">
+                    <motion.div 
+                      className="w-10 h-10 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
+                      animate={{ rotate: [0, -10, 10, 0] }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                    >
                       <ShoppingBag className="h-5 w-5" />
-                    </div>
+                    </motion.div>
                     <div>
-                      <p className="font-semibold">
+                      <motion.p 
+                        key={totalSelectedCount}
+                        initial={{ scale: 1.2, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="font-semibold"
+                      >
                         {totalSelectedCount} item{totalSelectedCount !== 1 ? 's' : ''} selected
-                      </p>
+                      </motion.p>
                       <p className="text-xs text-primary-foreground/70">
                         {selectedItems.length} unique item{selectedItems.length !== 1 ? 's' : ''}
                       </p>
