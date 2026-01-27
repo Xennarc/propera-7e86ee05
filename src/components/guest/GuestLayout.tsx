@@ -57,14 +57,14 @@ const NavItem = memo(({ item, isActive, label, isPrearrivalRestricted }: {
           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
       )}
     >
-      {/* Active indicator using guest branding */}
+      {/* Active indicator using guest branding with glow */}
       {isActive && (
-        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary guest-nav-indicator" />
+        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary guest-nav-indicator shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
       )}
       <div className="relative">
         <Icon className={cn(
-          "h-5 w-5 sm:h-6 sm:w-6 transition-transform",
-          isActive && "scale-110"
+          "h-5 w-5 sm:h-6 sm:w-6 transition-all duration-200 guest-nav-icon",
+          isActive && "scale-110 drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)]"
         )} />
         {/* Lock overlay for pre-arrival restricted items */}
         {isPrearrivalRestricted && (
@@ -238,9 +238,9 @@ export function GuestLayout() {
       {/* Mobile-optimized Header with glassmorphism */}
       <header className={cn(
         "sticky top-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
-        isScrolled ? "border-border/30 shadow-lg shadow-black/5" : "border-transparent"
+        isScrolled ? "border-border/30 shadow-md" : "border-transparent"
       )}>
-        <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg mx-auto">
+        <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto">
           <Link 
             to="/guest/profile" 
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
@@ -287,19 +287,19 @@ export function GuestLayout() {
       {/* Main content with safe-area-aware bottom padding */}
       <main 
         ref={mainRef} 
-        className="flex-1 overflow-auto guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
+        className="flex-1 overflow-auto guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll guest-page-bg"
       >
-        <div className="p-4 max-w-lg mx-auto animate-fade-in contain-layout">
+        <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
           <GuestPortalGate>
             <Outlet />
           </GuestPortalGate>
         </div>
       </main>
 
-      {/* Mobile-optimized Bottom Navigation with glassmorphism + safe area */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 guest-glass-bar border-t border-border/20 contain-layout">
+      {/* Mobile-optimized Bottom Navigation with premium elevation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
         <div 
-          className="flex items-center justify-around px-2 max-w-lg mx-auto"
+          className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
           style={{ 
             height: 'var(--guest-nav-h)', 
             paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
