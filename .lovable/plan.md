@@ -1,371 +1,294 @@
 
-# Phase 2: High-Traffic Dashboard Overhaul - Mobile-First Optimization
+# Resort Branding: Portal-Wide Color Application
 
 ## Executive Summary
 
-This phase transforms the Staff Portal dashboards (`ResortAdminHome.tsx` and `TodayHub.tsx`) into high-speed mobile command centers. The focus is on reducing vertical scroll fatigue, surfacing actionable items immediately, and providing quick-action shortcuts through a Smart FAB.
+This implementation will extend resort branding colors (primary + accent) from the login page to the entire guest portal. Currently, branding only affects the login screen — this update will make the guest experience feel fully customized to each resort's brand identity.
 
 ---
 
 ## Current State Analysis
 
-### ResortAdminHome.tsx (608 lines)
-- **Good**: Already has `NeedsAttentionCard` at top, `PriorityCardGrid`, and `OperationsSection` components
-- **Issues**:
-  - Operations sections (Activities, Restaurants) use vertical lists that require scrolling
-  - No horizontal scroll pattern for sessions/slots on mobile
-  - Quick actions are in the header — not discoverable on scroll
-  - Typography doesn't scale down enough on mobile
+### What Works Now
+- **Login page** (`ResortGuestLogin.tsx`): Applies `login_primary_color` to the submit button via inline styles
+- **GuestLayout.tsx**: Fetches branding via `useResortBranding` hook but only uses the logo and resort name
+- **CSS Variables**: Login page sets `--resort-primary` and `--resort-accent` but these are not consumed anywhere
 
-### TodayHub.tsx (570 lines)
-- **Good**: Has tabs for filtering, `QuickStatCard` components
-- **Issues**:
-  - Three-column grid on desktop doesn't collapse elegantly on mobile
-  - Sessions/slots use `ScrollArea` with fixed height (400px) — not ideal for mobile
-  - Quick actions at bottom are easy to miss
-  - No FAB for quick actions
-
-### NeedsAttentionCard.tsx
-- **Good**: Priority badges, clear hierarchy, "All Clear" empty state
-- **Issues**: Not sticky — scrolls with content, loses urgency on long pages
+### What's Missing
+| Feature | Status |
+|---------|--------|
+| Primary color on buttons | Only on login button |
+| Primary color on nav indicators | Uses hardcoded `--lime-400` |
+| Primary color on cards/highlights | Uses hardcoded `--primary` |
+| Accent color usage | Not used anywhere |
+| Brand theme (Light/Dark/Auto) | Saved but not enforced |
 
 ---
 
-## Design Principles
+## Solution Architecture
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Priority Stack** | Needs Attention sticky on mobile, always visible |
-| **Horizontal Carousels** | Activities/Dining use snap-scroll carousels on mobile |
-| **Smart FAB** | Floating action button with expandable quick actions |
-| **Micro-interactions** | Haptic-style visual feedback (scale on press) |
-| **Scaled Typography** | Smaller headings on mobile for more above-fold content |
+### Core Approach: CSS Custom Properties
+
+Rather than modifying every component with inline styles, we'll set CSS custom properties at the `GuestLayout` root level. This cascades branding colors to all child components automatically.
+
+```text
+GuestLayout (sets --guest-primary, --guest-accent)
+├── Header (uses --guest-primary for logo fallback bg)
+├── NavItem (uses --guest-primary for active indicator)
+├── GuestHome
+│   ├── Cards (use --guest-primary for highlights)
+│   └── Buttons (use --guest-primary)
+├── Activities Browser
+│   └── Action buttons (use --guest-primary)
+└── All other guest pages...
+```
 
 ---
 
 ## Implementation Plan
 
-### 1. New Component: Smart FAB (`SmartFAB.tsx`)
+### 1. Create GuestBrandingProvider Component
 
-**File: `src/components/staff/dashboard/SmartFAB.tsx`** (NEW)
+**File: `src/components/guest/GuestBrandingProvider.tsx`** (NEW)
 
-A floating action button positioned above the bottom nav that expands to show quick actions.
-
-Features:
-- Fixed position: `bottom-24 right-4` (above MobileBottomNav)
-- Glassmorphism styling with primary accent
-- Expands on tap to reveal 3 actions
-- Hides when keyboard is open (like MobileBottomNav)
-- Smooth spring animation on expand/collapse
+A wrapper component that:
+1. Consumes branding from the existing `useResortBranding` hook
+2. Converts hex colors to HSL for CSS variable compatibility
+3. Injects CSS variables into a `<style>` tag or inline styles
+4. Optionally enforces `brand_theme` on the guest portal
 
 ```text
-Collapsed:
-┌───────┐
-│   +   │  ← 56px round button, primary color, subtle shadow
-└───────┘
-
-Expanded:
-              ┌──────────────────┐
-              │ 👤 Check-in Guest│
-              ├──────────────────┤
-              │ ✉️ New Request    │
-              ├──────────────────┤
-              │ 📅 New Booking   │
-              └──────────────────┘
-                    ┌───────┐
-                    │   ×   │  ← Rotated plus to indicate close
-                    └───────┘
+Props: { children, resortId }
+Output: Wraps children with CSS variables applied to a container div
 ```
 
-Actions:
-1. **Check-in Guest** → `/staff/guests/new` (UserPlus icon)
-2. **New Request** → `/staff/guest-requests/new` (MessageSquare icon)
-3. **New Booking** → `/staff/activities/sessions/new` (Calendar icon)
+Key features:
+- Converts hex to HSL (e.g., `#0E7490` → `188 82% 31%`)
+- Sets `--guest-primary` and `--guest-accent` CSS variables
+- Falls back to default Propera colors when no branding is set
+- Handles `brand_theme` by adding/removing dark class
 
-### 2. New Component: HorizontalCardCarousel (`HorizontalCardCarousel.tsx`)
+### 2. Create Utility: Hex to HSL Converter
 
-**File: `src/components/staff/dashboard/HorizontalCardCarousel.tsx`** (NEW)
+**File: `src/lib/color-utils.ts`** (NEW)
 
-A mobile-optimized horizontal scroll container for session/slot cards.
+A small utility for converting hex colors to HSL values that work with CSS variables.
 
-Features:
-- Native CSS snap scrolling (`snap-x snap-mandatory`)
-- No embla-carousel overhead for simple use cases
-- Cards sized at ~280px width with `snap-start`
-- Fade gradient on edges to indicate scrollability
-- Desktop fallback: Regular grid layout
-
-```text
-Mobile:
-┌─────────────────────────────────────────────────────────┐
-│ Today's Activities                          View all → │
-├─────────────────────────────────────────────────────────┤
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐           │
-│ │ 08:00      │ │ 10:30      │ │ 14:00      │  ← scroll │
-│ │ Kayaking   │ │ Yoga       │ │ Snorkel    │           │
-│ │ 8/10 pax   │ │ 12/15 pax  │ │ 4/8 pax    │           │
-│ └────────────┘ └────────────┘ └────────────┘           │
-└─────────────────────────────────────────────────────────┘
-
-Desktop: Regular 2-column grid (unchanged)
+```typescript
+// Example output
+hexToHSL('#0E7490') // Returns "188 82% 31%"
 ```
 
-### 3. New Component: SessionCard (`SessionCard.tsx`)
+### 3. Update GuestLayout to Apply Branding Variables
 
-**File: `src/components/staff/dashboard/SessionCard.tsx`** (NEW)
-
-A compact card for activity sessions designed for horizontal carousels.
-
-Features:
-- Fixed width (~280px) for carousel consistency
-- Time prominently displayed
-- Activity name with occupancy badge
-- Tap feedback with scale animation
-- High-contrast occupancy indicator (green/yellow/red)
-
-### 4. New Component: SlotCard (`SlotCard.tsx`)
-
-**File: `src/components/staff/dashboard/SlotCard.tsx`** (NEW)
-
-Similar to SessionCard but for restaurant time slots.
-
-Features:
-- Meal period badge (Breakfast/Lunch/Dinner)
-- Restaurant name and time
-- Covers count with capacity
-- Same card styling as SessionCard
-
-### 5. Modify: NeedsAttentionCard - Sticky Behavior
-
-**File: `src/components/staff/dashboard/NeedsAttentionCard.tsx`**
+**File: `src/components/guest/GuestLayout.tsx`**
 
 Changes:
-1. Add `sticky` prop for enabling sticky positioning
-2. When sticky: `sticky top-16 z-20` (below DashboardHeader)
-3. Add subtle shadow when stuck to visually separate from content
-4. Reduce header padding when sticky for compactness
+1. Apply branding CSS variables to the root container via inline `style` prop
+2. Use the new `hexToHSL` utility to convert colors
+3. Optionally enforce `brand_theme` via the `next-themes` provider
 
+Updated root container:
 ```tsx
-interface NeedsAttentionCardProps {
-  // ... existing props
-  sticky?: boolean; // Enable sticky positioning on mobile
-}
+<div 
+  className="flex min-h-screen flex-col bg-background"
+  style={{
+    '--guest-primary': hexToHSL(branding.login_primary_color),
+    '--guest-accent': hexToHSL(branding.login_accent_color),
+  }}
+>
 ```
 
-### 6. Modify: ResortAdminHome.tsx
-
-**File: `src/pages/dashboards/ResortAdminHome.tsx`**
-
-Changes:
-1. **Add SmartFAB** — Import and render at bottom of component
-2. **Sticky NeedsAttentionCard** — Add `sticky` prop for mobile
-3. **Replace OperationsSection** with `HorizontalCardCarousel` on mobile for Activities and Restaurants
-4. **Typography scaling** — Reduce `h2` section headers from `text-sm` to `text-xs` on mobile
-5. **Mobile-first layout** — Ensure proper stacking order
-
-Layout changes:
-```text
-MOBILE LAYOUT:
-┌─────────────────────────────────────────────────────────┐
-│ DashboardHeader (sticky)                                │
-├─────────────────────────────────────────────────────────┤
-│ NeedsAttentionCard (sticky below header)                │
-├─────────────────────────────────────────────────────────┤
-│ TODAY AT A GLANCE                                       │
-│ [Guests] [Arrivals] [Departures] [Covers]  ← 2×2 grid  │
-├─────────────────────────────────────────────────────────┤
-│ TODAY'S ACTIVITIES                          View all → │
-│ [Card 1] [Card 2] [Card 3] ←←←  Horizontal scroll      │
-├─────────────────────────────────────────────────────────┤
-│ DINING TODAY                                View all → │
-│ [Slot 1] [Slot 2] [Slot 3] ←←←  Horizontal scroll      │
-├─────────────────────────────────────────────────────────┤
-│ Trends & Feedback (collapsed by default)                │
-└─────────────────────────────────────────────────────────┘
-                                              ┌───────┐
-                                              │   +   │ ← FAB
-                                              └───────┘
-```
-
-### 7. Modify: TodayHub.tsx
-
-**File: `src/components/staff/TodayHub.tsx`**
-
-Changes:
-1. **Add SmartFAB** — Same as ResortAdminHome
-2. **Replace column layout** with stacked cards on mobile
-3. **Use HorizontalCardCarousel** for sessions/slots sections
-4. **Remove Quick Actions card** at bottom (replaced by FAB)
-5. **Typography scaling** — Smaller heading on mobile
-
-### 8. Modify: PriorityCard - Micro-interactions
-
-**File: `src/components/staff/dashboard/PriorityCard.tsx`**
-
-Changes:
-1. Add stronger `active:scale-[0.97]` for tap feedback
-2. Add subtle `transition-transform duration-100` for snappier feel
-3. Add `ring` on focus for accessibility
-
-### 9. CSS Additions
+### 4. Add Guest-Scoped CSS Variables to index.css
 
 **File: `src/index.css`**
 
-Add new utility classes:
+Add new CSS variable overrides that apply only within the guest portal:
 
 ```css
-/* Horizontal scroll carousel */
-.carousel-scroll {
-  @apply flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.carousel-scroll::-webkit-scrollbar {
-  display: none;
-}
-
-/* Carousel card snap */
-.carousel-card {
-  @apply snap-start shrink-0;
-  scroll-margin-left: 1rem;
-}
-
-/* Fade edges for scroll indication */
-.carousel-container {
-  @apply relative;
-}
-.carousel-container::after {
-  content: '';
-  @apply absolute right-0 top-0 bottom-0 w-8 pointer-events-none;
-  background: linear-gradient(to right, transparent, hsl(var(--background)));
-}
-
-/* FAB animation */
-.fab-expanded .fab-action {
-  @apply animate-fade-in;
-}
-
-/* Sticky shadow when stuck */
-.sticky-shadow {
-  box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.05);
+/* Guest Portal Branding Overrides */
+.guest-branded {
+  --primary: var(--guest-primary, var(--lime-400));
+  --accent: var(--guest-accent, var(--blurple-500));
+  --ring: var(--guest-primary, var(--lime-400));
 }
 ```
 
+This means any component using `bg-primary`, `text-primary`, `border-primary` will automatically use the resort's brand color.
+
+### 5. Update Navigation Indicator Colors
+
+**File: `src/components/guest/GuestLayout.tsx`** (NavItem component)
+
+The active indicator currently uses hardcoded lime:
+```tsx
+// Before
+<span className="... bg-primary shadow-[0_0_6px_hsl(var(--lime-400))]" />
+
+// After - uses CSS variable which inherits from guest branding
+<span className="... bg-primary shadow-[0_0_6px_hsl(var(--guest-primary))]" />
+```
+
+### 6. Update Guest Component Highlights
+
+The following components use `bg-primary/10`, `text-primary`, etc. which will automatically inherit the branding once CSS variables are set:
+
+| Component | Current | After Branding |
+|-----------|---------|----------------|
+| `GuestQuickActions.tsx` | Category-specific colors | No change needed (category colors stay) |
+| `GuestSectionHeader.tsx` | `text-primary` | Auto-inherits branding |
+| `GuestStayProgress.tsx` | `bg-primary`, gradient | Auto-inherits branding |
+| `GuestTodayTimeline.tsx` | `bg-primary/10`, `text-primary` | Auto-inherits branding |
+| `GuestBookingCard.tsx` | Category colors | No change (intentional) |
+| `GuestHome.tsx` | `bg-primary/10`, buttons | Auto-inherits branding |
+| `GuestActivitiesBrowser.tsx` | Buttons | Auto-inherits branding |
+| `GuestRestaurantBrowser.tsx` | Buttons | Auto-inherits branding |
+
+Most components will automatically inherit the new colors because they use Tailwind's `primary` color which maps to the CSS variable.
+
+### 7. Update Button Glow Effect
+
+**File: `src/index.css`**
+
+The `.glow-lime` class is hardcoded to lime. Add a guest-aware version:
+
+```css
+.guest-branded .glow-primary {
+  box-shadow: 0 0 12px hsl(var(--guest-primary) / 0.4);
+}
+```
+
+### 8. Handle Brand Theme Enforcement
+
+**File: `src/components/guest/GuestLayout.tsx`**
+
+When `brand_theme` is set, override the theme for the guest portal:
+
+```tsx
+import { useTheme } from 'next-themes';
+
+// Inside GuestLayout
+const { setTheme, resolvedTheme } = useTheme();
+
+useEffect(() => {
+  if (branding.brand_theme === 'LIGHT') {
+    setTheme('light');
+  } else if (branding.brand_theme === 'DARK') {
+    setTheme('dark');
+  }
+  // 'AUTO' = do nothing, let system preference win
+}, [branding.brand_theme]);
+```
+
 ---
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/lib/color-utils.ts` | Hex to HSL conversion utility |
 
 ## Files to Modify
 
-| File | Change Type |
-|------|-------------|
-| `src/components/staff/dashboard/SmartFAB.tsx` | **NEW** — Floating action button |
-| `src/components/staff/dashboard/HorizontalCardCarousel.tsx` | **NEW** — Horizontal scroll container |
-| `src/components/staff/dashboard/SessionCard.tsx` | **NEW** — Activity session card for carousel |
-| `src/components/staff/dashboard/SlotCard.tsx` | **NEW** — Restaurant slot card for carousel |
-| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | Modify — Add sticky behavior |
-| `src/components/staff/dashboard/PriorityCard.tsx` | Minor — Enhanced micro-interactions |
-| `src/components/staff/dashboard/index.ts` | Update — Export new components |
-| `src/pages/dashboards/ResortAdminHome.tsx` | Major — Integrate all new components |
-| `src/components/staff/TodayHub.tsx` | Major — Integrate FAB and carousels |
-| `src/index.css` | Minor — Add carousel utility classes |
+| File | Changes |
+|------|---------|
+| `src/components/guest/GuestLayout.tsx` | Apply CSS variables + enforce brand_theme |
+| `src/index.css` | Add `.guest-branded` CSS variable overrides |
 
 ---
 
-## Component Architecture
+## CSS Variable Cascade
 
 ```text
-ResortAdminHome.tsx
-├── DashboardHeader (sticky)
-├── NeedsAttentionCard (sticky on mobile)
-├── PriorityCardGrid
-│   └── PriorityCard × 4
-├── section: Today's Activities
-│   ├── Desktop: OperationsSection (existing)
-│   └── Mobile: HorizontalCardCarousel
-│       └── SessionCard × n
-├── section: Dining Today
-│   ├── Desktop: OperationsSection (existing)
-│   └── Mobile: HorizontalCardCarousel
-│       └── SlotCard × n
-├── section: Trends & Feedback (collapsible)
-└── SmartFAB (fixed position)
+:root (global defaults)
+└── .guest-branded (portal container)
+    └── --primary overridden to --guest-primary
+    └── --accent overridden to --guest-accent
+    └── All child components using bg-primary, text-primary, etc.
+        automatically use the resort's brand color
 ```
 
 ---
 
-## Animation Specifications
+## Color Conversion Details
 
-| Element | Animation | Duration |
-|---------|-----------|----------|
-| FAB expand | scale 1 → 1.1, actions slide up | 200ms spring |
-| FAB collapse | scale 1.1 → 1, actions fade out | 150ms ease-out |
-| FAB icon rotate | 0 → 45deg | 200ms |
-| Card tap | scale 1 → 0.97 | 100ms ease-out |
-| Carousel scroll | native momentum | system |
-| Sticky shadow | opacity 0 → 1 on stick | 150ms |
+The branding stores hex colors (e.g., `#0E7490`), but Tailwind CSS variables use HSL without the `hsl()` wrapper:
 
----
+```css
+--primary: 188 82% 31%; /* NOT hsl(188, 82%, 31%) */
+```
 
-## Responsive Breakpoints
+The `hexToHSL` utility will output the correct format:
 
-| Component | Mobile (<768px) | Tablet (768-1024px) | Desktop (>1024px) |
-|-----------|-----------------|---------------------|-------------------|
-| NeedsAttentionCard | Sticky below header | Static | Static |
-| PriorityCardGrid | 2 columns | 2 columns | 4 columns |
-| Activities section | Horizontal carousel | 2-column grid | List in card |
-| Dining section | Horizontal carousel | 2-column grid | List in card |
-| SmartFAB | Visible | Visible | Hidden (use header actions) |
-| Typography (h2) | text-xs uppercase | text-sm | text-sm |
+```typescript
+function hexToHSL(hex: string): string {
+  // Convert #0E7490 → "188 82% 31%"
+  // This format works with Tailwind's hsl() wrapper
+}
+```
 
 ---
 
-## Touch Target Compliance
+## Fallback Strategy
 
-All interactive elements maintain minimum 44×44px touch targets:
-- FAB main button: 56×56px
-- FAB action items: 48×48px
-- SessionCard/SlotCard: Full card is tappable (~280×120px)
-- Carousel scroll: Edge-to-edge swipe area
+| Scenario | Behavior |
+|----------|----------|
+| No branding colors set | Uses default Propera theme (lime/blurple) |
+| Invalid hex color | Falls back to default |
+| Branding loading | Shows default until loaded |
+| Brand theme AUTO | Follows system preference |
 
 ---
 
-## Accessibility Considerations
+## Visual Impact
 
-| Requirement | Implementation |
-|-------------|----------------|
-| FAB label | `aria-label="Quick actions"` |
-| Expanded state | `aria-expanded="true/false"` |
-| Carousel role | `role="list"` with `role="listitem"` cards |
-| Focus trap | FAB actions trap focus when expanded |
-| Reduced motion | Disable FAB animations, instant transitions |
-| Screen reader | Announce FAB open/close state changes |
+### Before (No Branding Applied)
+- All resorts see the same lime/blurple Propera theme
+- Login page has custom colors, but portal uses defaults
+
+### After (Branding Applied)
+- Each resort's portal uses their configured primary color for:
+  - Navigation active indicators
+  - Primary buttons
+  - Card highlights and focus rings
+  - Progress bars and charts
+  - Link colors where primary is used
+- Accent color available for secondary highlights
+
+---
+
+## Technical Considerations
+
+1. **Performance**: CSS variable changes trigger a repaint but no layout shift
+2. **Caching**: Branding is cached via React Query (30s stale time)
+3. **SSR**: Not applicable (Vite/React is client-side)
+4. **Contrast**: Resorts are responsible for choosing accessible colors
 
 ---
 
 ## Testing Checklist
 
-- [ ] FAB appears only on mobile/tablet (<1024px)
-- [ ] FAB hides when keyboard opens
-- [ ] FAB expands with smooth animation
-- [ ] FAB actions navigate correctly
-- [ ] Horizontal carousel scrolls with momentum
-- [ ] Carousel snaps to card boundaries
-- [ ] NeedsAttentionCard sticks below header on mobile
-- [ ] Sticky shadow appears when stuck
-- [ ] Card tap feedback is snappy
-- [ ] All touch targets are 44px+
-- [ ] Dark mode styling is correct
-- [ ] Reduced motion preference is respected
+- [ ] Branding colors apply to guest portal after login
+- [ ] Navigation indicator uses resort primary color
+- [ ] Buttons use resort primary color
+- [ ] Progress bars use resort primary color
+- [ ] Card highlights use resort primary color
+- [ ] Default Propera colors work when no branding set
+- [ ] Brand theme (LIGHT/DARK) is enforced correctly
+- [ ] Changes reflect immediately after staff saves branding
+- [ ] Dark mode still works correctly with custom colors
+- [ ] Color contrast remains accessible
 
 ---
 
 ## Summary
 
-This phase delivers a high-speed mobile dashboard experience:
+This implementation creates a seamless branded experience for guests by:
 
-1. **Priority Stack** — NeedsAttentionCard sticky at top for constant visibility
-2. **Horizontal Carousels** — Activities and Dining sections use swipeable cards on mobile
-3. **Smart FAB** — Floating action button with Check-in, Request, and Booking shortcuts
-4. **Micro-interactions** — Snappy tap feedback on cards
-5. **Scaled Typography** — More content above the fold without sacrificing readability
+1. **Setting CSS variables** at the GuestLayout level based on resort branding
+2. **Overriding --primary** within `.guest-branded` scope to use resort colors
+3. **Leveraging existing Tailwind classes** — most components already use `bg-primary`, `text-primary`, etc.
+4. **Enforcing brand_theme** to control light/dark mode in the guest portal
+5. **Minimal component changes** — the CSS cascade does most of the work
 
-No business logic, data fetching, or routing is modified — purely UI presentation changes.
+No business logic or data fetching is modified — purely visual branding application.
