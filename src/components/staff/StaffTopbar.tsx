@@ -74,7 +74,7 @@ export function StaffTopbar({ onMenuClick, onCommandBarOpen }: StaffTopbarProps)
             className="hidden md:flex items-center gap-2 text-muted-foreground hover:text-foreground h-9 px-3"
           >
             <Search className="h-4 w-4" />
-            <span className="text-sm">Search</span>
+            <span className="text-sm whitespace-nowrap">Search</span>
             <kbd className="ml-2 pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-2xs text-muted-foreground">
               <Command className="h-3 w-3" />K
             </kbd>

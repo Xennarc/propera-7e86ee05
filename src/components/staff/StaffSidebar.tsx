@@ -321,9 +321,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                         }
                       >
                         <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
+                        {!collapsed && <span className="whitespace-nowrap">{item.title}</span>}
                         {item.badge && !collapsed && (
-                          <Badge variant="secondary" className="ml-auto text-2xs">
+                          <Badge variant="secondary" className="ml-auto text-2xs whitespace-nowrap">
                             {item.badge}
                           </Badge>
                         )}

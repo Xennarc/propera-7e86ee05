@@ -53,10 +53,10 @@ export function GuestSectionHeader({
     <div className={cn("flex items-center justify-between mb-3", className)}>
       <div className="flex items-center gap-2">
         {renderIcon()}
-        <h2 className="font-semibold text-foreground">
+        <h2 className="font-semibold text-foreground whitespace-nowrap">
           {title}
           {count !== undefined && (
-            <span className={cn("ml-1.5", iconClassName || "text-primary")}>
+            <span className={cn("ml-1.5 whitespace-nowrap", iconClassName || "text-primary")}>
               ({count})
             </span>
           )}

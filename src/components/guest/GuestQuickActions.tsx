@@ -88,7 +88,7 @@ export function GuestQuickActions() {
               )}
             >
               <Icon className="h-7 w-7 text-white" />
-              <span className="text-xs font-semibold text-white">
+              <span className="text-xs font-semibold text-white whitespace-nowrap text-center">
                 {action.label}
               </span>
             </div>

@@ -134,7 +134,7 @@ export function GuestSmartSuggestions({
                   {suggestion.icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-sm text-foreground mb-0.5">
+                  <h4 className="font-semibold text-sm text-foreground mb-0.5 line-clamp-1">
                     {suggestion.title}
                   </h4>
                   <p className="text-xs text-muted-foreground mb-3 line-clamp-2">

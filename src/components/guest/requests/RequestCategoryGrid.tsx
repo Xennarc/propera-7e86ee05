@@ -157,8 +157,8 @@ const CategoryTile = memo(({ category, onSelect }: {
             <Icon className="h-7 w-7 transition-transform duration-300 group-hover:scale-110" />
           </motion.div>
           
-          <div className="space-y-1">
-            <h3 className="font-semibold text-sm text-foreground">
+          <div className="space-y-1 text-center">
+            <h3 className="font-semibold text-sm text-foreground whitespace-nowrap">
               {category.label}
             </h3>
             {category.description && (
