@@ -1,15 +1,15 @@
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ClipboardList,
   Clock,
-  Eye,
-  UserPlus,
   PlayCircle,
   CheckCircle2,
   Archive,
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export type RequestTabStatus = 'all' | 'NEW' | 'ACKNOWLEDGED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED';
 
@@ -20,14 +20,9 @@ interface StatusTabsProps {
   showArchived?: boolean;
 }
 
-const STATUS_TABS: { value: RequestTabStatus; label: string; shortLabel: string; icon: typeof Clock }[] = [
-  { value: 'all', label: 'All Active', shortLabel: 'All', icon: ClipboardList },
-  { value: 'NEW', label: 'New', shortLabel: 'New', icon: Clock },
-  { value: 'IN_PROGRESS', label: 'In Progress', shortLabel: 'Active', icon: PlayCircle },
-  { value: 'COMPLETED', label: 'Completed', shortLabel: 'Done', icon: CheckCircle2 },
-];
-
 export function RequestStatusTabs({ activeTab, onTabChange, counts, showArchived = false }: StatusTabsProps) {
+  const isMobile = useIsMobile();
+  
   // Calculate totals
   const newCount = counts['NEW'] || 0;
   const acknowledgedCount = counts['ACKNOWLEDGED'] || 0;
@@ -43,11 +38,41 @@ export function RequestStatusTabs({ activeTab, onTabChange, counts, showArchived
     return counts[value] || 0;
   };
 
+  // Core tabs for both mobile and desktop
+  const coreOptions: { value: RequestTabStatus; label: string; shortLabel: string; icon: React.ReactNode }[] = [
+    { value: 'all', label: 'All Active', shortLabel: 'All', icon: <ClipboardList className="h-4 w-4" /> },
+    { value: 'NEW', label: 'New', shortLabel: 'New', icon: <Clock className="h-4 w-4" /> },
+    { value: 'IN_PROGRESS', label: 'In Progress', shortLabel: 'Active', icon: <PlayCircle className="h-4 w-4" /> },
+    { value: 'COMPLETED', label: 'Completed', shortLabel: 'Done', icon: <CheckCircle2 className="h-4 w-4" /> },
+  ];
+
+  // Mobile: iOS-style segmented control
+  if (isMobile) {
+    const mobileOptions = coreOptions.map(opt => ({
+      value: opt.value,
+      label: opt.label,
+      shortLabel: opt.shortLabel,
+      icon: opt.icon,
+      count: getCount(opt.value),
+    }));
+
+    return (
+      <div className="w-full overflow-x-auto -mx-4 px-4">
+        <SegmentedControl
+          value={activeTab}
+          onChange={(v) => onTabChange(v as RequestTabStatus)}
+          options={mobileOptions}
+          className="w-full min-w-max"
+        />
+      </div>
+    );
+  }
+
+  // Desktop: Standard tabs
   return (
     <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as RequestTabStatus)}>
       <TabsList className="w-full grid grid-cols-4 sm:flex sm:w-auto sm:justify-start h-auto p-1 gap-1">
-        {STATUS_TABS.map((tab) => {
-          const Icon = tab.icon;
+        {coreOptions.map((tab) => {
           const count = getCount(tab.value);
           const isActive = activeTab === tab.value;
 
@@ -61,7 +86,7 @@ export function RequestStatusTabs({ activeTab, onTabChange, counts, showArchived
                 "data-[state=active]:shadow-sm"
               )}
             >
-              <Icon className="h-4 w-4" />
+              {tab.icon}
               <span className="text-[11px] sm:text-sm font-medium">
                 <span className="sm:hidden">{tab.shortLabel}</span>
                 <span className="hidden sm:inline">{tab.label}</span>
