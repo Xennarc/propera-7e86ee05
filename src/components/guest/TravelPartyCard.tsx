@@ -29,34 +29,21 @@ export function TravelPartyCard() {
 
   return (
     <Card className="guest-card hover:shadow-md transition-shadow">
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <Link to="/guest/travel-party" className="flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+            <Users className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground">
-                {hasParty ? String(travelParty.name || 'Travel Party') : 'Travel Party'}
-              </h3>
-              {hasParty && (
-                <Badge variant="secondary" className="text-xs">
-                  {Number(travelParty.members?.length) || 0} people
-                </Badge>
-              )}
-            </div>
-            {hasParty ? (
-              <p className="text-sm text-muted-foreground">
-                {Number(adultsCount) || 0} adult{adultsCount !== 1 ? 's' : ''}
-                {childrenCount > 0 && `, ${Number(childrenCount) || 0} child${childrenCount !== 1 ? 'ren' : ''}`}
-                {roomsCount > 1 && ` · ${Number(roomsCount) || 0} rooms`}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground flex items-center gap-1">
-                <UserPlus className="h-3 w-3" />
-                Add family or link rooms
-              </p>
-            )}
+            <h3 className="font-semibold text-foreground text-sm">
+              Travel Party
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {hasParty 
+                ? `${Number(adultsCount) || 0} adult${adultsCount !== 1 ? 's' : ''}${childrenCount > 0 ? `, ${Number(childrenCount) || 0} child${childrenCount !== 1 ? 'ren' : ''}` : ''}`
+                : 'Manage your travel party'
+              }
+            </p>
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
         </Link>
