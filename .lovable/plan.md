@@ -1,99 +1,125 @@
 
 
-## Fix: Guest Session Blocking Staff Portal Data Fetch
+# Fix: Staff Requests Dashboard Not Showing Data
 
-### Problem
-Staff cannot see guest requests in the Staff Portal because `useResortScope()` incorrectly detects them as a "guest" when they have both:
-1. A staff login (via Supabase Auth)
-2. A guest session in localStorage (from testing the guest portal)
+## Problem Summary
 
-The debug banner confirms this:
-- **Scope Debug:** `Source: guest`, `isStaff: false`, `Data: 0 items`
-- **Staff Debug Console:** Shows valid staff authentication with Resort Admin role
+Guest requests are being created successfully and exist in the database (10 requests for "The Residence Falhumaafushi"), but the Staff Requests Dashboard shows 0 items despite the debug panel showing correct context:
+- `isStaff: true`
+- `Source: staff`  
+- `Resort: The Residence Falhumaafushi`
+- `Role: RESORT_ADMIN`
 
-The query is disabled because `enabled: isStaff` evaluates to `false`.
+**Database verification confirms:**
+- 10 requests exist for this resort
+- RLS functions return `true` when tested with the user's ID
+- All related tables (guests, profiles, catalog) are accessible
 
----
+## Root Cause Analysis
 
-### Root Cause
+The investigation revealed that while the frontend context is correct, the **Supabase RLS policy is not receiving a valid `auth.uid()`** when queries execute. This causes the RLS policy to deny access (return 0 rows).
 
-In `src/hooks/sync/useResortScope.ts`, the guest context check (line 41-52) runs **before** the staff context check:
+The most likely cause is that the **Supabase client session is not being properly attached to requests** on the production domain (`propera.cc`), even though the user's login state appears valid in the React context.
+
+### Evidence Supporting This Conclusion
+
+1. Direct database queries with the user ID return 10 rows
+2. RLS function tests pass when given the user ID explicitly
+3. React Query shows queries completing (not erroring) but returning 0 items
+4. All 10 queries are marked "Slow" - suggesting authentication negotiation delays
+
+## Solution: Two-Part Fix
+
+### Part 1: Add Session Validation Before Queries
+
+Modify `useRequestsDashboard` to verify the Supabase session is valid before executing queries. If the session is missing or expired, trigger a refresh.
+
+**File: `src/hooks/useRequestsDashboard.ts`**
 
 ```typescript
-// Guest portal context - runs FIRST
-if (guestAuth.guest) {
-  return {
-    scopeSource: 'guest',
-    isStaff: false,  // ← Forces false even for staff!
+// Add session validation at the start of queryFn
+queryFn: async () => {
+  if (!resortId) return [];
+
+  // Validate Supabase session before querying
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData?.session) {
+    console.warn('[RequestsDashboard] No active Supabase session, attempting refresh');
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      console.error('[RequestsDashboard] Session refresh failed:', refreshError);
+      throw new Error('Authentication session expired. Please sign in again.');
+    }
+  }
+
+  // Existing query logic continues...
+  let query = supabase
+    .from('service_requests')
     // ...
-  };
+};
+```
+
+### Part 2: Add Query Debugging for Troubleshooting
+
+Add diagnostic logging to help identify exactly where data is being lost:
+
+**File: `src/hooks/useRequestsDashboard.ts`**
+
+```typescript
+const { data, error } = await query;
+
+if (error) {
+  console.error('[RequestsDashboard] Query error:', error);
+  throw error;
 }
 
-// Staff/Admin context - never reached if guest session exists
-if (resortContext.currentResort) {
-  // ...
+// Debug logging (can be removed later)
+if (process.env.NODE_ENV === 'development' || window.location.search.includes('debug=1')) {
+  console.log('[RequestsDashboard] Query result:', {
+    resortId,
+    resultCount: data?.length ?? 0,
+    sessionValid: !!sessionData?.session,
+    userId: sessionData?.session?.user?.id,
+  });
 }
 ```
 
-When a staff member also has a guest session in localStorage, the hook returns the guest context **even on staff pages**.
-
----
-
-### Solution
-
-Update `useResortScope()` to detect the current route and prioritize context accordingly:
-
-1. **On `/staff/*` routes:** Return staff context if the user is authenticated via Supabase Auth (ignore guest session)
-2. **On `/guest/*` routes:** Return guest context if a guest session exists
-3. **Fallback:** Keep current logic for other routes
-
-**Technical approach:** Use `useLocation()` from React Router to detect the URL pathname.
-
----
-
-### Implementation
-
-#### File: `src/hooks/sync/useResortScope.ts`
-
-**Changes:**
-1. Import `useLocation` from `react-router-dom`
-2. Add route detection logic at the start of `useResortScope()`
-3. Only return guest context if on a guest route OR if not a staff route and guest session exists
-
-```text
-Updated logic flow:
-1. Get current pathname from useLocation()
-2. Determine if on staff route (/staff/*) or guest route (/guest/*)
-3. If on staff route AND user is authenticated → return staff context
-4. If on guest route AND guest session exists → return guest context
-5. If no specific route match → fallback to existing priority
-```
-
----
-
-### Files Changed
+## Files to be Modified
 
 | File | Change |
 |------|--------|
-| `src/hooks/sync/useResortScope.ts` | Add route-aware context selection |
+| `src/hooks/useRequestsDashboard.ts` | Add session validation and debug logging |
 
----
+## Technical Details
 
-### Edge Cases Handled
+### Why Session Validation Is Needed
 
-1. **Staff testing guest portal:** Staff can have both sessions; each portal uses the correct one
-2. **Guest session expired:** Falls back to staff context if authenticated
-3. **Staff not authenticated:** Falls back to guest context if guest session exists
-4. **Neither authenticated:** Returns `scopeSource: 'none'`
+The Supabase client stores the session in `localStorage` and auto-refreshes tokens. However, on custom domains or after extended idle periods, the token might be:
+- Expired but not yet auto-refreshed
+- Malformed due to localStorage issues
+- Missing entirely if cookies/localStorage were cleared
 
----
+By explicitly checking and refreshing the session before each query, we ensure `auth.uid()` returns the correct user ID for RLS evaluation.
 
-### Testing
+### Why This Wasn't Caught Before
 
-After implementation:
-1. Log in as staff (Resort Admin) at `/staff/auth`
-2. Also log in as a guest at `/guest/login` (creates localStorage session)
-3. Navigate to `/staff/guest-requests?debug=1`
-4. **Expected:** Debug banner shows `Source: staff` or `superadmin`, `isStaff: true`
-5. Guest requests created by guests should now appear in the list
+- The React auth context (`useAuth`) maintains its own state derived from Supabase
+- The context can show a "logged in" user even if the underlying Supabase session is stale
+- RLS operates at the database level using the JWT token, not the React state
+
+## Testing Steps
+
+1. Sign in as a Resort Admin on the production domain
+2. Navigate to `/staff/requests-dashboard?debug=1`
+3. Open browser console (F12)
+4. Look for `[RequestsDashboard]` logs
+5. Verify requests now appear in the dashboard
+6. Check console for any session refresh messages
+
+## Rollback Plan
+
+If the session validation causes issues:
+1. Remove the session check block from `queryFn`
+2. Keep the debug logging to gather more information
+3. Investigate alternative causes (CORS, domain cookies, etc.)
 
