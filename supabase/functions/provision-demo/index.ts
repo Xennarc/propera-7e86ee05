@@ -1065,7 +1065,7 @@ const DEMO_TOKEN_TTL_MIN = 15;
 const SHARED_WORKSPACE_EMAIL = "__shared_demo__";
 const DEMO_STAFF_EMAIL = "demo-staff@propera.cc";
 const DEMO_GUEST_ROOM = "101";
-const DEMO_GUEST_NAME = "Demo Guest";
+const DEMO_GUEST_NAME = "James Wilson"; // Matches demo-reset auto-heal expectations
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1321,10 +1321,10 @@ serve(async (req) => {
             resort_id: demoResort.id,
             full_name: DEMO_GUEST_NAME,
             room_number: DEMO_GUEST_ROOM,
-            nationality: "International",
-            email: "demo.guest@example.com",
-            check_in_date: formatDate(addDays(today, -1)),
-            check_out_date: formatDate(addDays(today, 7)),
+            nationality: "United Kingdom",
+            email: "james.wilson@example.com",
+            check_in_date: formatDate(addDays(today, -2)), // In-house guest (arrived 2 days ago)
+            check_out_date: formatDate(addDays(today, 5)), // Departing in 5 days
             portal_enabled: true,
             portal_pin_hash: pinHash,
             portal_pin_last4: guestPin.slice(-4),
@@ -1339,10 +1339,13 @@ serve(async (req) => {
           demoGuest = newGuest;
         }
       } else {
-        // Ensure guest dates are current and PIN is set
+        // Ensure guest dates are current, name matches, and PIN is set
         const updates: any = {
-          check_in_date: formatDate(addDays(today, -1)),
-          check_out_date: formatDate(addDays(today, 7)),
+          full_name: DEMO_GUEST_NAME, // Ensure name is aligned
+          nationality: "United Kingdom",
+          email: "james.wilson@example.com",
+          check_in_date: formatDate(addDays(today, -2)), // In-house guest
+          check_out_date: formatDate(addDays(today, 5)),
         };
         
         // If PIN is missing, generate one
@@ -1356,6 +1359,8 @@ serve(async (req) => {
         }
         
         await supabaseAdmin.from("guests").update(updates).eq("id", demoGuest.id);
+        // Refresh demoGuest with updated values
+        demoGuest = { ...demoGuest, ...updates };
       }
 
       // Update shared workspace with guest info
@@ -1379,6 +1384,131 @@ serve(async (req) => {
           demoGuest.id,
           demoGuest.room_number
         );
+      }
+
+      // 5c. Auto-heal: Ensure demo guest has activity bookings and restaurant reservations
+      if (demoGuest) {
+        const todayStr = formatDate(today);
+        const next7Days = formatDate(addDays(today, 7));
+
+        // Check activity bookings count
+        const { count: bookingsCount } = await supabaseAdmin
+          .from("activity_bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("resort_id", demoResort.id)
+          .eq("guest_id", demoGuest.id)
+          .eq("origin", "seed");
+
+        // Seed activity bookings if below threshold (5 bookings)
+        if (!bookingsCount || bookingsCount < 5) {
+          console.log(`Auto-healing activity bookings: ${bookingsCount || 0} found, seeding more...`);
+          
+          const { data: upcomingSessions } = await supabaseAdmin
+            .from("activity_sessions")
+            .select(`
+              id, activity_id, date, start_time,
+              activities(name, category, default_price_per_person)
+            `)
+            .eq("resort_id", demoResort.id)
+            .eq("status", "SCHEDULED")
+            .gte("date", todayStr)
+            .lte("date", next7Days)
+            .order("date", { ascending: true });
+
+          if (upcomingSessions?.length) {
+            // Pick one session per category for variety
+            const categoryPicks = new Map<string, any>();
+            const extraSessions: any[] = [];
+            
+            for (const session of upcomingSessions) {
+              const cat = (session.activities as any)?.category;
+              if (!cat) continue;
+              
+              if (!categoryPicks.has(cat)) {
+                categoryPicks.set(cat, session);
+              } else if (extraSessions.length < 2) {
+                extraSessions.push(session);
+              }
+            }
+            
+            const sessionsToBook = [...categoryPicks.values(), ...extraSessions].slice(0, 5 - (bookingsCount || 0));
+            
+            for (let i = 0; i < sessionsToBook.length; i++) {
+              const session = sessionsToBook[i];
+              const price = (session.activities as any)?.default_price_per_person || 50;
+              const isLastOne = i === sessionsToBook.length - 1;
+              
+              await supabaseAdmin.from("activity_bookings").insert({
+                resort_id: demoResort.id,
+                guest_id: demoGuest.id,
+                session_id: session.id,
+                room_number: demoGuest.room_number,
+                num_adults: 2,
+                num_children: 0,
+                status: isLastOne ? "PENDING" : "CONFIRMED",
+                source: "STAFF",
+                origin: "seed",
+                price_per_person: price,
+                total_amount: price * 2,
+              });
+            }
+            console.log(`Seeded ${sessionsToBook.length} activity bookings for demo guest`);
+          }
+        }
+
+        // Check restaurant reservations count
+        const { count: reservationsCount } = await supabaseAdmin
+          .from("restaurant_reservations")
+          .select("id", { count: "exact", head: true })
+          .eq("resort_id", demoResort.id)
+          .eq("guest_id", demoGuest.id)
+          .eq("origin", "seed");
+
+        // Seed restaurant reservations if below threshold (3 reservations)
+        if (!reservationsCount || reservationsCount < 3) {
+          console.log(`Auto-healing restaurant reservations: ${reservationsCount || 0} found, seeding more...`);
+          
+          const { data: upcomingSlots } = await supabaseAdmin
+            .from("restaurant_time_slots")
+            .select(`
+              id, restaurant_id, date, start_time, meal_period,
+              restaurants(name)
+            `)
+            .eq("resort_id", demoResort.id)
+            .eq("status", "OPEN")
+            .gte("date", todayStr)
+            .lte("date", next7Days)
+            .order("date", { ascending: true });
+
+          if (upcomingSlots?.length) {
+            const restaurantPicks = new Map<string, any>();
+            
+            for (const slot of upcomingSlots) {
+              const restId = slot.restaurant_id;
+              if (!restaurantPicks.has(restId) || restaurantPicks.size < 3) {
+                restaurantPicks.set(`${restId}-${restaurantPicks.size}`, slot);
+              }
+              if (restaurantPicks.size >= 3) break;
+            }
+            
+            const slotsToBook = [...restaurantPicks.values()].slice(0, 3 - (reservationsCount || 0));
+            
+            for (const slot of slotsToBook) {
+              await supabaseAdmin.from("restaurant_reservations").insert({
+                resort_id: demoResort.id,
+                guest_id: demoGuest.id,
+                restaurant_slot_id: slot.id,
+                room_number: demoGuest.room_number,
+                num_adults: 2,
+                num_children: 0,
+                status: "CONFIRMED",
+                source: "STAFF",
+                origin: "seed",
+              });
+            }
+            console.log(`Seeded ${slotsToBook.length} restaurant reservations for demo guest`);
+          }
+        }
       }
 
       // 6. Generate short-lived tokens (15 min TTL, reusable within window)
