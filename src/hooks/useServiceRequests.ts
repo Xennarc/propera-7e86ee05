@@ -380,6 +380,8 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       };
 
       const { data, error } = await supabase.rpc('create_service_request_bundle', {
+        p_guest_id: guestId,
+        p_resort_id: resortId,
         payload,
       });
 

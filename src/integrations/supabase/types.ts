@@ -5500,7 +5500,10 @@ export type Database = {
         }
         Returns: Json
       }
-      create_service_request_bundle: { Args: { payload: Json }; Returns: Json }
+      create_service_request_bundle: {
+        Args: { p_guest_id: string; p_resort_id: string; payload: Json }
+        Returns: Json
+      }
       create_staff_account: {
         Args: {
           p_department?: string
