@@ -11,6 +11,7 @@ import { RequestDashboardCard } from '@/components/staff/requests-dashboard/Requ
 import { KeyboardShortcutsModal } from '@/components/staff/requests-dashboard/KeyboardShortcutsModal';
 import { DashboardFilterSheet } from '@/components/staff/requests-dashboard/DashboardFilterSheet';
 import { RequestDetailDrawer } from '@/components/staff/RequestDetailDrawer';
+import { ScopeDebugBanner } from '@/components/staff/ScopeDebugBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -153,6 +154,12 @@ export default function RequestsDashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Debug Banner (visible with ?debug=1) */}
+      <ScopeDebugBanner 
+        lastSyncedAt={lastSyncedAt} 
+        dataCount={requests.length} 
+      />
+
       {/* Header */}
       <DashboardHeader
         counts={counts}
