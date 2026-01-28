@@ -2,17 +2,17 @@ import { lazy, Suspense } from 'react';
 import { SEOHead, PROPERA_WEBSITE_SCHEMA, PROPERA_ORGANIZATION_SCHEMA } from '@/components/seo/SEOHead';
 import { MarketingLayout } from '@/components/layout/MarketingLayout';
 
-// Eagerly load above-fold components
+// Eagerly load critical above-fold components only
 import { HomeHero } from '@/components/landing/HomeHero';
 import { WhyProperaCards } from '@/components/landing/WhyProperaCards';
-import { PricingTeaser } from '@/components/landing/PricingTeaser';
-import { TrustStrip } from '@/components/landing/TrustStrip';
 import { HomeFinalCTA } from '@/components/landing/HomeFinalCTA';
 
-// Lazy load below-fold heavy sections
+// Lazy load all below-fold sections (including framer-motion heavy ones)
 const PlatformModules = lazy(() => import('@/components/landing/PlatformModules'));
 const HowItWorks = lazy(() => import('@/components/landing/HowItWorks'));
 const GlobalReady = lazy(() => import('@/components/landing/GlobalReady'));
+const PricingTeaser = lazy(() => import('@/components/landing/PricingTeaser').then(m => ({ default: m.PricingTeaser })));
+const TrustStrip = lazy(() => import('@/components/landing/TrustStrip').then(m => ({ default: m.TrustStrip })));
 
 // Simple loading fallback
 const SectionFallback = () => (
@@ -64,9 +64,13 @@ export default function LandingPage() {
       <Suspense fallback={<SectionFallback />}>
         <GlobalReady />
       </Suspense>
+      <Suspense fallback={<SectionFallback />}>
+        <PricingTeaser />
+      </Suspense>
+      <Suspense fallback={<SectionFallback />}>
+        <TrustStrip />
+      </Suspense>
       
-      <PricingTeaser />
-      <TrustStrip />
       <HomeFinalCTA />
     </MarketingLayout>
   );

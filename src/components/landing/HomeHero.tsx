@@ -1,9 +1,14 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap } from 'lucide-react';
-import { InteractiveProductShowcase } from '@/components/illustrations/InteractiveProductShowcase';
 import { MobileGuestShowcase } from '@/components/illustrations/MobileGuestShowcase';
+
+// Lazy load desktop-only showcase (hidden on mobile, reduces initial bundle)
+const InteractiveProductShowcase = lazy(() => 
+  import('@/components/illustrations/InteractiveProductShowcase').then(m => ({ default: m.InteractiveProductShowcase }))
+);
 
 const valueChips = [
   'Unlimited staff',
@@ -85,9 +90,11 @@ export function HomeHero() {
             </div>
           </div>
 
-          {/* Right: Interactive Product Showcase (Desktop only) */}
+          {/* Right: Interactive Product Showcase (Desktop only - lazy loaded) */}
           <div className="relative lg:pl-8 hidden lg:block" style={{ minHeight: '500px' }}>
-            <InteractiveProductShowcase />
+            <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>}>
+              <InteractiveProductShowcase />
+            </Suspense>
           </div>
         </div>
       </div>
