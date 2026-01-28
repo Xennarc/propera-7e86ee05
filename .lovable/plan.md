@@ -1,58 +1,99 @@
 
 
-## Fix: Remove `item_count` Reference from Bundle RPC
+## Fix: Guest Session Blocking Staff Portal Data Fetch
 
 ### Problem
-The `create_service_request_bundle` function references a column `item_count` in the `service_request_submissions` table, but this column doesn't exist in the schema.
+Staff cannot see guest requests in the Staff Portal because `useResortScope()` incorrectly detects them as a "guest" when they have both:
+1. A staff login (via Supabase Auth)
+2. A guest session in localStorage (from testing the guest portal)
 
-**Error:** `column "item_count" of relation "service_request_submissions" does not exist`
+The debug banner confirms this:
+- **Scope Debug:** `Source: guest`, `isStaff: false`, `Data: 0 items`
+- **Staff Debug Console:** Shows valid staff authentication with Resort Admin role
+
+The query is disabled because `enabled: isStaff` evaluates to `false`.
+
+---
 
 ### Root Cause
-The migration created a function that tries to INSERT into `item_count`, but this column was never part of the original `service_request_submissions` schema:
 
-```sql
--- Current columns in service_request_submissions:
-id, resort_id, guest_id, room_number, is_asap, requested_for_at, guest_notes, created_at
--- Missing: item_count ❌
+In `src/hooks/sync/useResortScope.ts`, the guest context check (line 41-52) runs **before** the staff context check:
+
+```typescript
+// Guest portal context - runs FIRST
+if (guestAuth.guest) {
+  return {
+    scopeSource: 'guest',
+    isStaff: false,  // ← Forces false even for staff!
+    // ...
+  };
+}
+
+// Staff/Admin context - never reached if guest session exists
+if (resortContext.currentResort) {
+  // ...
+}
 ```
+
+When a staff member also has a guest session in localStorage, the hook returns the guest context **even on staff pages**.
+
+---
 
 ### Solution
-Two options:
-1. **Option A (Preferred):** Remove the `item_count` from the INSERT statement since it's not essential — the item count can be derived from `service_request_items` when needed.
-2. **Option B:** Add the `item_count` column to the table.
 
-I recommend **Option A** because:
-- It's the minimal fix
-- Item count is already derivable from the `service_request_items` table
-- No schema changes required
+Update `useResortScope()` to detect the current route and prioritize context accordingly:
 
-### Changes Required
+1. **On `/staff/*` routes:** Return staff context if the user is authenticated via Supabase Auth (ignore guest session)
+2. **On `/guest/*` routes:** Return guest context if a guest session exists
+3. **Fallback:** Keep current logic for other routes
 
-**Database Migration:** Update the `create_service_request_bundle` function to remove the `item_count` column reference.
+**Technical approach:** Use `useLocation()` from React Router to detect the URL pathname.
 
-```sql
--- Before (broken):
-INSERT INTO public.service_request_submissions (
-  guest_id, resort_id, is_asap, requested_for_at, guest_notes, item_count
-) VALUES (..., jsonb_array_length(v_items));
+---
 
--- After (fixed):
-INSERT INTO public.service_request_submissions (
-  guest_id, resort_id, is_asap, requested_for_at, guest_notes
-) VALUES (...);
+### Implementation
+
+#### File: `src/hooks/sync/useResortScope.ts`
+
+**Changes:**
+1. Import `useLocation` from `react-router-dom`
+2. Add route detection logic at the start of `useResortScope()`
+3. Only return guest context if on a guest route OR if not a staff route and guest session exists
+
+```text
+Updated logic flow:
+1. Get current pathname from useLocation()
+2. Determine if on staff route (/staff/*) or guest route (/guest/*)
+3. If on staff route AND user is authenticated → return staff context
+4. If on guest route AND guest session exists → return guest context
+5. If no specific route match → fallback to existing priority
 ```
+
+---
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| New migration SQL | Fix `create_service_request_bundle` function to not reference `item_count` |
+| `src/hooks/sync/useResortScope.ts` | Add route-aware context selection |
 
-### Verification Steps
-1. Log in as a guest
-2. Navigate to `/guest/requests`
-3. Select one or more items
-4. Tap "Send request"
-5. Verify request submits successfully (no column error)
-6. Verify request appears in Staff Portal
+---
+
+### Edge Cases Handled
+
+1. **Staff testing guest portal:** Staff can have both sessions; each portal uses the correct one
+2. **Guest session expired:** Falls back to staff context if authenticated
+3. **Staff not authenticated:** Falls back to guest context if guest session exists
+4. **Neither authenticated:** Returns `scopeSource: 'none'`
+
+---
+
+### Testing
+
+After implementation:
+1. Log in as staff (Resort Admin) at `/staff/auth`
+2. Also log in as a guest at `/guest/login` (creates localStorage session)
+3. Navigate to `/staff/guest-requests?debug=1`
+4. **Expected:** Debug banner shows `Source: staff` or `superadmin`, `isStaff: true`
+5. Guest requests created by guests should now appear in the list
 
