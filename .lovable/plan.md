@@ -1,255 +1,133 @@
 
-# Fix Guest Requests Not Syncing to Staff Portal
 
-## Problem Summary
+# Fix Request Visibility for Front Office Staff
 
-Guest requests from "The Residence Falhumaafushi" are being created successfully (confirmed in database), but staff cannot see them. Investigation revealed multiple interconnected issues:
+## Problem
 
-| Area | Issue |
-|------|-------|
-| **Resort Configuration** | No `request_catalog`, `departments`, or `department_memberships` configured for this resort |
-| **Guest Portal UI** | Shows 8 hardcoded categories regardless of resort configuration |
-| **RLS Policies** | Staff visibility requires either admin role OR department membership |
-| **Multi-Select Mode** | Shows empty grid when no catalog items exist |
+Guest requests are not visible to **FRONT_OFFICE** staff because the RLS helper function `staff_can_view_request` only grants resort-wide access to `RESORT_ADMIN` and `MANAGER` roles. Front Office staff must currently have specific department memberships to see any requests.
+
+**Current logic (line 59 of function):**
+```sql
+IF public.has_resort_role(_user_id, _resort_id, ARRAY['RESORT_ADMIN', 'MANAGER']::resort_role[]) THEN
+  RETURN true;
+END IF;
+```
+
+This excludes `FRONT_OFFICE` from seeing requests unless they're assigned to specific departments.
 
 ---
 
-## Root Cause
+## Solution
 
-The Guest Requests page (`/guest/requests`) displays **hardcoded category tiles** in `RequestCategoryGrid.tsx` that are independent of the resort's actual configuration:
+Update the `staff_can_view_request` function to include `FRONT_OFFICE` in the array of roles that can view all requests at the resort level.
 
-```typescript
-// Current: Always shows these categories
-const categoryConfigs: CategoryConfig[] = [
-  { key: 'HOUSEKEEPING', label: 'Housekeeping', ... },
-  { key: 'MINIBAR', label: 'Minibar', ... },
-  // ... 8 total hardcoded categories
-];
-```
+### Database Migration
 
-When a resort has NO configured catalog items:
-1. Guest selects a category → sees empty item list → falls back to free-text input
-2. Request is created with the UI category's `department_key` (e.g., `HOUSEKEEPING`)
-3. Staff can only see requests if they're Admin OR have department membership for that key
-4. Since no departments/memberships are configured, only Admins can view requests
+**Create new migration to update the function:**
 
-**The requests ARE being created - the issue is visibility on the staff side when not logged in as Admin.**
-
----
-
-## Solution: Simplify Guest Requests UI for Unconfigured Resorts
-
-When a resort has NO catalog configured, simplify the UI to a single "Make a Request" flow instead of showing misleading category options.
-
-### Phase 1: Detect "Unconfigured" State
-
-**File:** `src/pages/guest/GuestRequestsPage.tsx`
-
-**Logic:** If `catalogItems` is empty after loading, show simplified UI:
-
-```typescript
-const hasCatalog = catalogItems && catalogItems.length > 0;
-
-// If no catalog, always use "quick" mode and show simple request form
-if (!hasCatalog) {
-  return <SimpleRequestFlow ... />;
-}
-```
-
-### Phase 2: Create Simple Request Flow Component
-
-**New File:** `src/components/guest/requests/SimpleRequestFlow.tsx`
-
-A streamlined single-screen experience when no catalog is configured:
-- Large text input for request description
-- ASAP/Scheduled toggle
-- Submit button
-- No confusing category selection
-
-This matches the existing `RequestQuickSheet` but as a full-page experience.
-
-### Phase 3: Route Requests to FRONT_OFFICE by Default
-
-When no catalog/departments configured, all requests should route to `FRONT_OFFICE` (the fallback department that any staff with resort access can handle).
-
-**Update in:** `src/components/guest/requests/SimpleRequestFlow.tsx`
-
-```typescript
-await createRequest({
-  ...
-  departmentKey: 'FRONT_OFFICE', // Universal fallback
-  category: 'OTHER',
-});
-```
-
-### Phase 4: Hide Mode Switcher When No Catalog
-
-The "Quick" vs "Multi-Select" mode switcher is useless when there's no catalog to multi-select from.
-
-**File:** `src/pages/guest/GuestRequestsPage.tsx`
-
-```typescript
-// Only show mode switcher when catalog exists
-{hasCatalog && (
-  <RequestModeSwitcher mode={mode} onModeChange={handleModeChange} />
-)}
-```
-
----
-
-## Implementation Details
-
-### New Component: `SimpleRequestFlow.tsx`
-
-```typescript
-interface SimpleRequestFlowProps {
-  guestId: string;
-  resortId: string;
-  resortTimezone?: string;
-}
-
-export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleRequestFlowProps) {
-  const [requestText, setRequestText] = useState('');
-  const [isAsap, setIsAsap] = useState(true);
-  const [scheduledDate, setScheduledDate] = useState<Date>();
-  const [scheduledTime, setScheduledTime] = useState('09:00');
+```sql
+-- Update staff_can_view_request to include FRONT_OFFICE in resort-level access
+CREATE OR REPLACE FUNCTION public.staff_can_view_request(
+  _user_id uuid, 
+  _resort_id uuid, 
+  _dept_key text, 
+  _assigned_to uuid
+)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  _dept_role text;
+  _visibility_policy text;
+BEGIN
+  -- Super admin can see everything
+  IF public.is_super_admin(_user_id) THEN
+    RETURN true;
+  END IF;
   
-  const { createRequest, isCreating } = useServiceRequestMutations(guestId, resortId);
+  -- Must have resort access first
+  IF NOT public.has_resort_membership(_user_id, _resort_id) THEN
+    RETURN false;
+  END IF;
   
-  const handleSubmit = async () => {
-    await createRequest({
-      guestId,
-      resortId,
-      title: requestText.trim(),
-      isAsap,
-      requestedForAt: scheduledDateTime,
-      departmentKey: 'FRONT_OFFICE',
-      category: 'OTHER',
-    });
-    // Reset and show success
-  };
+  -- Resort admin, manager, and front office can view all requests in their resort
+  IF public.has_resort_role(_user_id, _resort_id, ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]) THEN
+    RETURN true;
+  END IF;
   
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-xl font-bold">How can we help?</h1>
-        <p className="text-muted-foreground text-sm">
-          Tell us what you need and our team will take care of it
-        </p>
-      </div>
-      
-      {/* Request Input */}
-      <Textarea 
-        value={requestText}
-        onChange={(e) => setRequestText(e.target.value)}
-        placeholder="e.g., Extra towels, room cleaning, wake-up call..."
-        rows={4}
-        className="text-base" // 16px prevents iOS zoom
-      />
-      
-      {/* Quick Suggestions (hardcoded common requests) */}
-      <div className="grid grid-cols-2 gap-2">
-        {COMMON_REQUESTS.map((suggestion) => (
-          <Button 
-            key={suggestion}
-            variant={requestText === suggestion ? 'default' : 'outline'}
-            onClick={() => setRequestText(suggestion)}
-          >
-            {suggestion}
-          </Button>
-        ))}
-      </div>
-      
-      {/* ASAP vs Scheduled */}
-      <TimingSelector isAsap={isAsap} onAsapChange={setIsAsap} ... />
-      
-      {/* Submit */}
-      <Button onClick={handleSubmit} disabled={!requestText.trim() || isCreating}>
-        {isCreating ? 'Sending...' : 'Send Request'}
-      </Button>
-      
-      {/* Link to My Requests */}
-      <Link to="/guest/requests/my">View My Requests</Link>
-    </div>
-  );
-}
-```
-
-### Updated GuestRequestsPage Logic
-
-```typescript
-export default function GuestRequestsPage() {
-  const { guest } = useGuestAuth();
-  const { data: catalogItems, isLoading: catalogLoading } = useRequestCatalog(guest?.resortId || '');
+  -- Check department role
+  SELECT dept_role INTO _dept_role
+  FROM public.department_memberships
+  WHERE user_id = _user_id
+    AND resort_id = _resort_id
+    AND department_key = _dept_key;
   
-  // Determine if resort has configured catalog
-  const hasCatalog = !catalogLoading && catalogItems && catalogItems.length > 0;
+  -- No department membership = no access
+  IF _dept_role IS NULL THEN
+    RETURN false;
+  END IF;
   
-  // Pre-arrival check
-  if (isPrearrival) {
-    return <PrearrivalRequestsBlockedState ... />;
-  }
+  -- MANAGER/SUPERVISOR can view all department requests
+  IF _dept_role IN ('MANAGER', 'SUPERVISOR') THEN
+    RETURN true;
+  END IF;
   
-  // No catalog = simple flow
-  if (!catalogLoading && !hasCatalog) {
-    return (
-      <SimpleRequestFlow 
-        guestId={guest.guestId}
-        resortId={guest.resortId}
-        resortTimezone={guest.resortTimezone}
-      />
-    );
-  }
+  -- LINE staff: can view if assigned to them
+  IF _assigned_to = _user_id THEN
+    RETURN true;
+  END IF;
   
-  // Has catalog = existing category/multi-select flow
-  return (
-    <div className="space-y-5 pb-24">
-      {/* ... existing UI with RequestCategoryGrid ... */}
-    </div>
-  );
-}
+  -- LINE staff: check visibility policy for department queue access
+  SELECT department_visibility_policy INTO _visibility_policy
+  FROM public.resort_retention_policies
+  WHERE resort_id = _resort_id;
+  
+  IF _visibility_policy = 'DEPARTMENT_QUEUE' THEN
+    RETURN true;
+  END IF;
+  
+  RETURN false;
+END;
+$$;
 ```
 
 ---
 
-## Files to Modify
+## Visibility Matrix After Fix
 
-| File | Action | Changes |
-|------|--------|---------|
-| `src/pages/guest/GuestRequestsPage.tsx` | Modify | Add catalog detection, conditionally render SimpleRequestFlow |
-| `src/components/guest/requests/SimpleRequestFlow.tsx` | **Create** | New simplified request form component |
-
----
-
-## Staff Visibility Fix
-
-The staff visibility issue is a **configuration problem** rather than a code bug:
-
-1. Resort Admin SHOULD see all requests (RLS function checks `has_resort_role`)
-2. If staff can't see requests, they may not be logged in with the correct account
-
-**Recommendation:** Add a helper query in the Staff Dashboard to show "no departments configured" warning when the resort has no departments, prompting admins to configure them.
+| Role | Can View All Resort Requests |
+|------|------------------------------|
+| **SUPER_ADMIN** | ✅ Yes (all resorts) |
+| **RESORT_ADMIN** | ✅ Yes (their resort) |
+| **MANAGER** | ✅ Yes (their resort) |
+| **FRONT_OFFICE** | ✅ Yes (their resort) ← **NEW** |
+| **RESERVATIONS** | ❌ Only department-assigned |
+| **ACTIVITIES** | ❌ Only department-assigned |
+| **FNB** | ❌ Only department-assigned |
 
 ---
 
-## Edge Cases Handled
+## Files Changed
 
-| Scenario | Behavior |
-|----------|----------|
-| No catalog configured | Show SimpleRequestFlow |
-| Catalog configured | Show category grid + multi-select mode |
-| Pre-arrival guest | Show blocked state (existing) |
-| Request created | Routes to FRONT_OFFICE (universal fallback) |
-| Staff viewing | Admins see all; others need department membership |
+| File | Action | Description |
+|------|--------|-------------|
+| New SQL Migration | Create | Update `staff_can_view_request` function to include `FRONT_OFFICE` |
 
 ---
 
-## Summary
+## No Frontend Changes Required
 
-This fix:
-1. **Simplifies the guest experience** when no catalog is configured
-2. **Eliminates confusing empty category grids** 
-3. **Routes all requests to FRONT_OFFICE** ensuring staff visibility
-4. **Preserves the full-featured UI** for resorts with configured catalogs
-5. **Maintains backward compatibility** with existing requests and workflows
+This is a database-level fix only. The frontend already correctly queries requests - the visibility was simply being filtered out by the RLS function.
+
+---
+
+## Testing
+
+After migration:
+1. Log in as FRONT_OFFICE staff for "The Residence Falhumaafushi"
+2. Navigate to `/staff/requests`
+3. Verify all requests (regardless of department) are now visible
+
