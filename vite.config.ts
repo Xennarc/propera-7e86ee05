@@ -27,5 +27,13 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+    // Enable CSS code splitting for better caching
+    cssCodeSplit: true,
+    // Minify CSS for smaller bundle size
+    cssMinify: true,
+  },
+  // Optimize CSS loading
+  css: {
+    devSourcemap: false,
   },
 }));
