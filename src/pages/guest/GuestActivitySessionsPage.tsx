@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCategoryConfig, coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
+import { CategoryIcon } from '@/components/ui/category-badge';
 
 const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
@@ -181,7 +182,7 @@ export default function GuestActivitySessionsPage() {
         </div>
       )}
 
-      {/* Session Cards - Improved Mobile Layout */}
+      {/* Session Cards - New Thumbnail Layout */}
       {!isLoading && !isError && sessions && sessions.length > 0 && (
         <div className="space-y-3">
           {sessions.map((session: any) => {
@@ -192,33 +193,41 @@ export default function GuestActivitySessionsPage() {
             return (
               <Card
                 key={session.id}
-                className="guest-card-interactive overflow-hidden"
+                className="guest-card-interactive"
                 onClick={() => navigate(`/guest/activities/book/${session.id}`)}
               >
-                <CardContent className="p-0">
-                  <div className="flex">
-                    {/* Time Block - prominent left side */}
-                    <div className={cn(
-                      "flex flex-col items-center justify-center px-4 py-3 min-w-[72px]",
-                      config.bgClass
-                    )}>
-                      <span className="text-lg font-bold text-foreground">
-                        {session.start_time?.slice(0, 5)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground font-medium uppercase">
-                        {parseInt(session.start_time?.slice(0, 2) || '0') < 12 ? 'AM' : 'PM'}
-                      </span>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    {/* Activity Image or Category Icon - 64x64 thumbnail */}
+                    <div className="relative h-16 w-16 shrink-0 rounded-2xl overflow-hidden shadow-md">
+                      {session.image_url ? (
+                        <>
+                          <img 
+                            src={session.image_url} 
+                            alt={session.activity_name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        </>
+                      ) : (
+                        <div className={cn(
+                          "flex h-full w-full items-center justify-center shadow-inner",
+                          config.bgClass
+                        )}>
+                          <CategoryIcon category={session.category} size={28} />
+                        </div>
+                      )}
                     </div>
                     
-                    {/* Content */}
-                    <div className="flex-1 p-3 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="font-semibold text-foreground line-clamp-2 text-sm leading-tight">
+                    {/* Content area - vertically centered */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      {/* Top row: Name + Status badge */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-foreground truncate">
                           {session.activity_name}
                         </h3>
-                        {/* Status Pill */}
                         <span className={cn(
-                          "shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase",
+                          "shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase whitespace-nowrap",
                           session.requires_approval 
                             ? "bg-warning/15 text-warning" 
                             : "bg-success/15 text-success"
@@ -227,26 +236,24 @@ export default function GuestActivitySessionsPage() {
                         </span>
                       </div>
                       
-                      {/* Meta row */}
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {session.duration_minutes}min
-                        </span>
-                        <span className={cn(
-                          "flex items-center gap-1",
-                          isLowAvailability && spotsLeft > 0 && "text-warning font-medium",
-                          spotsLeft === 0 && "text-destructive"
-                        )}>
-                          <Users className="h-3 w-3" />
-                          {spotsLeft > 0 ? `${spotsLeft} spots` : 'Full'}
-                        </span>
+                      {/* Bottom row: Consolidated metadata */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <span className={cn("font-mono font-medium", config.colorClass)}>
+                            {session.start_time?.slice(0, 5)}
+                          </span>
+                          <span className="text-border">·</span>
+                          <span className="whitespace-nowrap">{session.duration_minutes}m</span>
+                          <span className="text-border">·</span>
+                          <span className={cn(
+                            "whitespace-nowrap",
+                            isLowAvailability && spotsLeft > 0 && 'text-coral font-medium'
+                          )}>
+                            {spotsLeft > 0 ? `${spotsLeft} spots` : 'Full'}
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                       </div>
-                    </div>
-                    
-                    {/* Chevron */}
-                    <div className="flex items-center pr-3">
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 </CardContent>
