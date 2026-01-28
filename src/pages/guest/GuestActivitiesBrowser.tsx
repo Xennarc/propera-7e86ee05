@@ -206,8 +206,8 @@ export default function GuestActivitiesBrowser() {
                 onClick={() => navigate(`/guest/activities/book/${session.id}`)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    {/* Activity Image or Category Icon fallback - enhanced with gradient overlay */}
+                  <div className="flex items-center gap-3">
+                    {/* Activity Image or Category Icon fallback */}
                     <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden shadow-sm">
                       {session.image_url ? (
                         <>
@@ -216,7 +216,6 @@ export default function GuestActivitiesBrowser() {
                             alt={session.activity_name}
                             className="absolute inset-0 w-full h-full object-cover"
                           />
-                          {/* Subtle gradient overlay for depth */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                         </>
                       ) : (
@@ -229,46 +228,46 @@ export default function GuestActivitiesBrowser() {
                       )}
                     </div>
                     
+                    {/* Content area with improved hierarchy */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          {/* Enhanced time badge with backdrop */}
-                          <span className={cn(
-                            "font-mono font-semibold text-sm px-2 py-0.5 rounded-md",
-                            "bg-background/80 backdrop-blur-sm border border-border/30",
-                            config.colorClass
-                          )}>
-                            {session.start_time?.slice(0, 5)}
-                          </span>
-                          <CategoryBadge category={session.category} size="sm" showLabel={false} />
-                        </div>
+                      {/* Top row: Name + Status badge */}
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-foreground truncate">
+                          {session.activity_name}
+                        </h3>
                         {session.requires_approval ? (
-                          <Badge variant="pending" className="text-xs">
+                          <Badge variant="pending" className="shrink-0 text-xs whitespace-nowrap">
                             <Sparkles className="h-3 w-3 mr-1" />Request
                           </Badge>
                         ) : (
-                          <Badge variant="confirmed" className="text-xs">Instant</Badge>
+                          <Badge variant="confirmed" className="shrink-0 text-xs whitespace-nowrap">Instant</Badge>
                         )}
                       </div>
-                      <h3 className="font-semibold text-foreground mb-1 truncate">{session.activity_name}</h3>
+                      
+                      {/* Description (optional, single line) */}
                       {session.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{session.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-1 mb-1.5">
+                          {session.description}
+                        </p>
                       )}
-                        <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-sm">
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
-                            {session.duration_minutes}{t('common.minutes').charAt(0)}
+                      
+                      {/* Bottom row: Consolidated metadata */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <span className={cn("font-mono font-medium", config.colorClass)}>
+                            {session.start_time?.slice(0, 5)}
                           </span>
+                          <span className="text-border">·</span>
+                          <span className="whitespace-nowrap">{session.duration_minutes}{t('common.minutes').charAt(0)}</span>
+                          <span className="text-border">·</span>
                           <span className={cn(
-                            "flex items-center gap-1",
-                            isLowAvailability ? 'text-coral font-medium' : 'text-muted-foreground'
+                            "whitespace-nowrap",
+                            isLowAvailability && 'text-coral font-medium'
                           )}>
-                            <Users className="h-3.5 w-3.5" />
                             {spotsLeft} {t('activities.spotsLeft')}
                           </span>
                         </div>
-                        <ChevronRight className={cn("h-5 w-5", config.colorClass)} />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                       </div>
                     </div>
                   </div>
