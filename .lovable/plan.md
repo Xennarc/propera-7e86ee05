@@ -1,144 +1,156 @@
 
-## Goal
-Guest-created requests should show up in the Staff Requests Dashboard and Staff Requests Inbox immediately (or within a few seconds at worst), for Front Office, Managers, Resort Admins, and Super Admins—without changing request creation logic/flows.
+# Fix: Guest Requests "Unauthorized: No valid guest session" Error
+
+## Problem Summary
+
+Guest request submissions via the new multi-select flow fail with "Unauthorized: No valid guest session" even though the guest is logged in (localStorage shows a valid session).
+
+**Root Cause:** The `create_service_request_bundle` database function attempts to authenticate the guest via `get_guest_session()`, which reads from JWT claims (`auth.jwt()`). However, Propera's guest portal uses **localStorage-based sessions** (not Supabase Auth), so there is never a JWT present → the function returns null → the RPC throws the error.
+
+**Why the Debug Console shows "Valid":** The Guest Debug Console checks localStorage status, which is valid. But the database RPC expects JWT-based auth which doesn't exist.
 
 ---
 
-## What I found (why this can happen)
-There are two separate “layers” that can prevent staff from seeing new guest requests:
+## Solution
 
-1) **Backend access (visibility / RLS):**
-- Staff access to `service_requests` is controlled by RLS.
-- There is a policy `staff_select_service_requests` that uses `staff_can_view_request(...)`.
-- We already updated `staff_can_view_request` to include `FRONT_OFFICE` in the “view all resort requests” role list, and it already allows `MANAGER`, `RESORT_ADMIN`, and `SUPER_ADMIN`.
-- So on paper, the backend visibility rules are correct.
-
-2) **Frontend “immediate sync” behavior (realtime invalidation + polling):**
-- Staff Requests Dashboard (`useRequestsDashboard`) has both:
-  - realtime subscription, and
-  - 5-second polling fallback (`refetchInterval: 5000`)
-- Staff Requests Inbox (`useStaffServiceRequests`) has realtime subscription, but:
-  - **no polling fallback**
-  - and the subscription invalidates a query key prefix that may not cover all active filter variants in a predictable way across TanStack Query v5 usage patterns.
-
-This creates a common failure mode: if the realtime subscription doesn’t fire (temporary disconnect, tab in background, transient auth/resort scope timing, channel not subscribed yet, etc.), the Inbox may never refresh unless there’s manual refetch.
-
-Your symptom is stronger (“never appears even after refresh”), so we’ll also add **diagnostics** and **verify staff resort scoping** in the UI, because the second most common cause is that staff is viewing a different resort than the guest is creating requests in (the staff portal uses a “current resort” selector stored in localStorage).
+Align `create_service_request_bundle` with all other guest RPCs by accepting explicit `p_guest_id` and `p_resort_id` parameters instead of relying on JWT claims.
 
 ---
 
-## Immediate fix strategy (no logic/flow changes, only correctness + resilience)
+## Changes Required
 
-### A) Make Staff Inbox behave like Dashboard: realtime + polling fallback
-**File:** `src/hooks/useStaffServiceRequests.ts`
+### 1. Database Migration
 
-1. Add a polling fallback mirroring dashboard:
-   - `staleTime: 2000` (or similar)
-   - `refetchInterval: 5000`
-   - `refetchIntervalInBackground: false`
-   This ensures that even if realtime misses an event, the inbox self-heals within seconds.
+Update the `create_service_request_bundle` function to:
+- Accept `p_guest_id` and `p_resort_id` as new top-level parameters
+- Remove the `get_guest_session()` call
+- Validate the guest belongs to the resort (matching other guest RPCs)
 
-2. Strengthen invalidation so it reliably refreshes all “filtered variants”:
-   - On realtime change, invalidate:
-     - `['staff-service-requests']` (broad)
-     - and also `['requests-dashboard', resortId]` (so the dashboard lanes update even if user is currently on the inbox page)
-   This removes dependency on partial-key matching behavior for complex filter keys.
+```sql
+CREATE OR REPLACE FUNCTION public.create_service_request_bundle(
+  p_guest_id uuid,
+  p_resort_id uuid,
+  payload jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_check_in_date DATE;
+  -- ... rest of existing declares (remove v_guest_session, v_resort_id, v_guest_id) ...
+BEGIN
+  -- 1) Validate guest belongs to resort
+  IF NOT EXISTS (
+    SELECT 1 FROM public.guests 
+    WHERE id = p_guest_id AND resort_id = p_resort_id
+  ) THEN
+    RAISE EXCEPTION 'Invalid guest or resort';
+  END IF;
+  
+  -- 2) Check if guest has checked in (pre-arrival restriction)
+  SELECT check_in_date INTO v_check_in_date
+  FROM public.guests
+  WHERE id = p_guest_id;
+  
+  IF v_check_in_date > CURRENT_DATE THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'GUEST_NOT_CHECKED_IN',
+      'message', 'Service requests are available after check-in'
+    );
+  END IF;
+  
+  -- 3) Use p_guest_id and p_resort_id throughout instead of v_guest_session values
+  -- ... rest of function body unchanged, replacing v_guest_id with p_guest_id
+  -- and v_resort_id with p_resort_id ...
+END;
+$function$;
 
-Why this helps:
-- The inbox query key is `['staff-service-requests', resortId, filters]`. Invalidating `['staff-service-requests']` guarantees all variants get refreshed.
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.create_service_request_bundle(uuid, uuid, jsonb) TO anon;
+GRANT EXECUTE ON FUNCTION public.create_service_request_bundle(uuid, uuid, jsonb) TO authenticated;
+```
 
----
+### 2. Frontend Update
 
-### B) Ensure the Staff Dashboard invalidation targets all filter variants too
-**File:** `src/hooks/useRequestsDashboard.ts`
+Update `src/hooks/useServiceRequests.ts` bundle mutation to pass guest credentials:
 
-- On realtime payload, invalidate:
-  - `['requests-dashboard', resortId]` (already done)
-  - plus `['requests-dashboard']` (optional broad) or keep resort-scoped but broaden similarly to ensure all filter variants are covered.
-- Keep existing 5s polling.
-
-Why:
-- If different dashboard filters are active (e.g., department filter sheet), you want all variants to refresh.
-
----
-
-### C) Add a “Scope & Auth Debug” banner (only visible in non-production / behind a query param)
-Because your report is “never appears”, we need to quickly confirm:
-- Staff is authenticated (not anon)
-- Staff has a resort selected (resortId is set)
-- Staff is on the same resort as the guest request
-- Staff queries are enabled (they’re disabled if `resortId` is missing or `isStaff` is false)
-
-**Files:**
-- `src/pages/staff/RequestsDashboardPage.tsx`
-- `src/pages/staff/StaffRequestsInboxPage.tsx`
-- (optional shared) `src/components/staff/ScopeDebugBanner.tsx`
-
-Banner shows:
-- current resort name/id (short)
-- staff user id (short)
-- role (super admin / resort role)
-- whether realtime channel is “SUBSCRIBED” (from Supabase channel status callback)
-- last updated timestamp
-
-This is temporary but extremely helpful: it turns “not showing” into a clear cause within seconds.
-
----
-
-### D) Fix a critical integrity issue from the prior attempt (types file)
-You provided a diff showing we created a migration (good), but the system also indicates `src/integrations/supabase/types.ts` was edited (this should never happen and can cause broken builds or type drift).
-
-**Action:**
-- Revert any changes to `src/integrations/supabase/types.ts` back to its generated state (or remove the unintended diff).  
-This is required for codebase integrity.
-
----
-
-## Backend validation step (no new schema; just confirm)
-Even though the visibility rules should be correct now, we will confirm:
-
-1) Confirm the function definition in the backend matches the migration (FRONT_OFFICE included).
-2) Confirm the staff account you’re using has a `resort_memberships` row for The Residence Falhumaafushi in the active environment (Test vs Live).
-
-Important: Lovable Cloud has separate Test and Live environments. If a guest is creating requests in one environment and staff is viewing the other, requests will “never appear” even though everything is correct.
+```typescript
+// In bundleMutation.mutationFn:
+const { data, error } = await supabase.rpc('create_service_request_bundle', {
+  p_guest_id: guestId,    // From hook parameter
+  p_resort_id: resortId,  // From hook parameter
+  payload,
+});
+```
 
 ---
 
-## Acceptance tests (what we’ll verify after implementation)
+## Files Changed
 
-1) In guest portal, create a request.
-2) In staff portal (same environment, same resort selected):
-   - Requests Dashboard shows the new request within 0–5s.
-   - Requests Inbox shows the new request within 0–5s.
-3) Verify across roles:
-   - Resort Admin: sees it
-   - Manager: sees it
-   - Front Office: sees it
-   - Super Admin: sees it
+| File | Change |
+|------|--------|
+| `supabase/migrations/[new].sql` | Update `create_service_request_bundle` signature and logic |
+| `src/hooks/useServiceRequests.ts` | Pass `p_guest_id` and `p_resort_id` to RPC call |
 
 ---
 
-## Files expected to change (minimal diffs)
-1) `src/hooks/useStaffServiceRequests.ts`
-   - add polling fallback
-   - broaden invalidations on realtime change
-   - optional: log channel subscribe errors
+## Technical Details
 
-2) `src/hooks/useRequestsDashboard.ts`
-   - minor invalidation hardening (optional)
+### Why This Pattern Is Correct
 
-3) `src/pages/staff/RequestsDashboardPage.tsx` (optional)
-4) `src/pages/staff/StaffRequestsInboxPage.tsx` (optional)
-   - temporary debug banner (guarded)
+All existing guest RPCs follow this pattern because:
+1. Guest authentication uses a custom localStorage session, not Supabase Auth
+2. There is no JWT with guest claims (only staff use Supabase Auth)
+3. The guest's identity must be passed explicitly with each RPC call
+4. Server-side validation confirms the guest exists and belongs to the resort
 
-5) Revert unintended modifications:
-   - `src/integrations/supabase/types.ts` (restore generated file, no manual edits)
+### Existing Working Examples
+
+- `guest_create_service_request(p_guest_id, p_resort_id, ...)` ✅
+- `guest_get_available_sessions(p_guest_id, ...)` ✅
+- `guest_get_room_bookings(p_guest_id, p_resort_id)` ✅
+
+### The Old Function's Auth Logic (Being Removed)
+
+```sql
+-- This doesn't work for guests (no JWT):
+SELECT * INTO v_guest_session FROM public.get_guest_session();
+IF v_guest_session IS NULL THEN
+  RAISE EXCEPTION 'Unauthorized: No valid guest session';
+END IF;
+```
+
+### The New Auth Logic (Matching Other Guest RPCs)
+
+```sql
+-- This works for guests (explicit params):
+IF NOT EXISTS (
+  SELECT 1 FROM public.guests 
+  WHERE id = p_guest_id AND resort_id = p_resort_id
+) THEN
+  RAISE EXCEPTION 'Invalid guest or resort';
+END IF;
+```
 
 ---
 
-## Risks / edge cases addressed
-- Realtime channel sometimes fails to subscribe (network, tab background, auth refresh): polling ensures near-instant consistency anyway.
-- Multiple filtered queries: broad invalidation ensures any filter state updates.
-- Wrong resort selected: debug banner makes this obvious.
-- Wrong environment (Test vs Live): debug banner + clear test steps catches it immediately.
+## Testing
 
+After implementation:
+1. Log in as a guest in the Guest Portal
+2. Navigate to `/guest/requests`
+3. Select one or more request items
+4. Tap "Send request"
+5. Verify the request submits successfully
+6. Verify the request appears in the Staff Portal within 5 seconds
+
+---
+
+## No Breaking Changes
+
+- Single-item requests (`guest_create_service_request`) continue to work unchanged
+- Existing frontend already has `guestId` and `resortId` available from context
+- RLS policies remain unchanged (requests are created via SECURITY DEFINER function)
