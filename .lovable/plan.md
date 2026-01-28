@@ -1,133 +1,144 @@
 
-
-# Fix Request Visibility for Front Office Staff
-
-## Problem
-
-Guest requests are not visible to **FRONT_OFFICE** staff because the RLS helper function `staff_can_view_request` only grants resort-wide access to `RESORT_ADMIN` and `MANAGER` roles. Front Office staff must currently have specific department memberships to see any requests.
-
-**Current logic (line 59 of function):**
-```sql
-IF public.has_resort_role(_user_id, _resort_id, ARRAY['RESORT_ADMIN', 'MANAGER']::resort_role[]) THEN
-  RETURN true;
-END IF;
-```
-
-This excludes `FRONT_OFFICE` from seeing requests unless they're assigned to specific departments.
+## Goal
+Guest-created requests should show up in the Staff Requests Dashboard and Staff Requests Inbox immediately (or within a few seconds at worst), for Front Office, Managers, Resort Admins, and Super Admins—without changing request creation logic/flows.
 
 ---
 
-## Solution
+## What I found (why this can happen)
+There are two separate “layers” that can prevent staff from seeing new guest requests:
 
-Update the `staff_can_view_request` function to include `FRONT_OFFICE` in the array of roles that can view all requests at the resort level.
+1) **Backend access (visibility / RLS):**
+- Staff access to `service_requests` is controlled by RLS.
+- There is a policy `staff_select_service_requests` that uses `staff_can_view_request(...)`.
+- We already updated `staff_can_view_request` to include `FRONT_OFFICE` in the “view all resort requests” role list, and it already allows `MANAGER`, `RESORT_ADMIN`, and `SUPER_ADMIN`.
+- So on paper, the backend visibility rules are correct.
 
-### Database Migration
+2) **Frontend “immediate sync” behavior (realtime invalidation + polling):**
+- Staff Requests Dashboard (`useRequestsDashboard`) has both:
+  - realtime subscription, and
+  - 5-second polling fallback (`refetchInterval: 5000`)
+- Staff Requests Inbox (`useStaffServiceRequests`) has realtime subscription, but:
+  - **no polling fallback**
+  - and the subscription invalidates a query key prefix that may not cover all active filter variants in a predictable way across TanStack Query v5 usage patterns.
 
-**Create new migration to update the function:**
+This creates a common failure mode: if the realtime subscription doesn’t fire (temporary disconnect, tab in background, transient auth/resort scope timing, channel not subscribed yet, etc.), the Inbox may never refresh unless there’s manual refetch.
 
-```sql
--- Update staff_can_view_request to include FRONT_OFFICE in resort-level access
-CREATE OR REPLACE FUNCTION public.staff_can_view_request(
-  _user_id uuid, 
-  _resort_id uuid, 
-  _dept_key text, 
-  _assigned_to uuid
-)
-RETURNS boolean
-LANGUAGE plpgsql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  _dept_role text;
-  _visibility_policy text;
-BEGIN
-  -- Super admin can see everything
-  IF public.is_super_admin(_user_id) THEN
-    RETURN true;
-  END IF;
-  
-  -- Must have resort access first
-  IF NOT public.has_resort_membership(_user_id, _resort_id) THEN
-    RETURN false;
-  END IF;
-  
-  -- Resort admin, manager, and front office can view all requests in their resort
-  IF public.has_resort_role(_user_id, _resort_id, ARRAY['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE']::resort_role[]) THEN
-    RETURN true;
-  END IF;
-  
-  -- Check department role
-  SELECT dept_role INTO _dept_role
-  FROM public.department_memberships
-  WHERE user_id = _user_id
-    AND resort_id = _resort_id
-    AND department_key = _dept_key;
-  
-  -- No department membership = no access
-  IF _dept_role IS NULL THEN
-    RETURN false;
-  END IF;
-  
-  -- MANAGER/SUPERVISOR can view all department requests
-  IF _dept_role IN ('MANAGER', 'SUPERVISOR') THEN
-    RETURN true;
-  END IF;
-  
-  -- LINE staff: can view if assigned to them
-  IF _assigned_to = _user_id THEN
-    RETURN true;
-  END IF;
-  
-  -- LINE staff: check visibility policy for department queue access
-  SELECT department_visibility_policy INTO _visibility_policy
-  FROM public.resort_retention_policies
-  WHERE resort_id = _resort_id;
-  
-  IF _visibility_policy = 'DEPARTMENT_QUEUE' THEN
-    RETURN true;
-  END IF;
-  
-  RETURN false;
-END;
-$$;
-```
+Your symptom is stronger (“never appears even after refresh”), so we’ll also add **diagnostics** and **verify staff resort scoping** in the UI, because the second most common cause is that staff is viewing a different resort than the guest is creating requests in (the staff portal uses a “current resort” selector stored in localStorage).
 
 ---
 
-## Visibility Matrix After Fix
+## Immediate fix strategy (no logic/flow changes, only correctness + resilience)
 
-| Role | Can View All Resort Requests |
-|------|------------------------------|
-| **SUPER_ADMIN** | ✅ Yes (all resorts) |
-| **RESORT_ADMIN** | ✅ Yes (their resort) |
-| **MANAGER** | ✅ Yes (their resort) |
-| **FRONT_OFFICE** | ✅ Yes (their resort) ← **NEW** |
-| **RESERVATIONS** | ❌ Only department-assigned |
-| **ACTIVITIES** | ❌ Only department-assigned |
-| **FNB** | ❌ Only department-assigned |
+### A) Make Staff Inbox behave like Dashboard: realtime + polling fallback
+**File:** `src/hooks/useStaffServiceRequests.ts`
 
----
+1. Add a polling fallback mirroring dashboard:
+   - `staleTime: 2000` (or similar)
+   - `refetchInterval: 5000`
+   - `refetchIntervalInBackground: false`
+   This ensures that even if realtime misses an event, the inbox self-heals within seconds.
 
-## Files Changed
+2. Strengthen invalidation so it reliably refreshes all “filtered variants”:
+   - On realtime change, invalidate:
+     - `['staff-service-requests']` (broad)
+     - and also `['requests-dashboard', resortId]` (so the dashboard lanes update even if user is currently on the inbox page)
+   This removes dependency on partial-key matching behavior for complex filter keys.
 
-| File | Action | Description |
-|------|--------|-------------|
-| New SQL Migration | Create | Update `staff_can_view_request` function to include `FRONT_OFFICE` |
-
----
-
-## No Frontend Changes Required
-
-This is a database-level fix only. The frontend already correctly queries requests - the visibility was simply being filtered out by the RLS function.
+Why this helps:
+- The inbox query key is `['staff-service-requests', resortId, filters]`. Invalidating `['staff-service-requests']` guarantees all variants get refreshed.
 
 ---
 
-## Testing
+### B) Ensure the Staff Dashboard invalidation targets all filter variants too
+**File:** `src/hooks/useRequestsDashboard.ts`
 
-After migration:
-1. Log in as FRONT_OFFICE staff for "The Residence Falhumaafushi"
-2. Navigate to `/staff/requests`
-3. Verify all requests (regardless of department) are now visible
+- On realtime payload, invalidate:
+  - `['requests-dashboard', resortId]` (already done)
+  - plus `['requests-dashboard']` (optional broad) or keep resort-scoped but broaden similarly to ensure all filter variants are covered.
+- Keep existing 5s polling.
+
+Why:
+- If different dashboard filters are active (e.g., department filter sheet), you want all variants to refresh.
+
+---
+
+### C) Add a “Scope & Auth Debug” banner (only visible in non-production / behind a query param)
+Because your report is “never appears”, we need to quickly confirm:
+- Staff is authenticated (not anon)
+- Staff has a resort selected (resortId is set)
+- Staff is on the same resort as the guest request
+- Staff queries are enabled (they’re disabled if `resortId` is missing or `isStaff` is false)
+
+**Files:**
+- `src/pages/staff/RequestsDashboardPage.tsx`
+- `src/pages/staff/StaffRequestsInboxPage.tsx`
+- (optional shared) `src/components/staff/ScopeDebugBanner.tsx`
+
+Banner shows:
+- current resort name/id (short)
+- staff user id (short)
+- role (super admin / resort role)
+- whether realtime channel is “SUBSCRIBED” (from Supabase channel status callback)
+- last updated timestamp
+
+This is temporary but extremely helpful: it turns “not showing” into a clear cause within seconds.
+
+---
+
+### D) Fix a critical integrity issue from the prior attempt (types file)
+You provided a diff showing we created a migration (good), but the system also indicates `src/integrations/supabase/types.ts` was edited (this should never happen and can cause broken builds or type drift).
+
+**Action:**
+- Revert any changes to `src/integrations/supabase/types.ts` back to its generated state (or remove the unintended diff).  
+This is required for codebase integrity.
+
+---
+
+## Backend validation step (no new schema; just confirm)
+Even though the visibility rules should be correct now, we will confirm:
+
+1) Confirm the function definition in the backend matches the migration (FRONT_OFFICE included).
+2) Confirm the staff account you’re using has a `resort_memberships` row for The Residence Falhumaafushi in the active environment (Test vs Live).
+
+Important: Lovable Cloud has separate Test and Live environments. If a guest is creating requests in one environment and staff is viewing the other, requests will “never appear” even though everything is correct.
+
+---
+
+## Acceptance tests (what we’ll verify after implementation)
+
+1) In guest portal, create a request.
+2) In staff portal (same environment, same resort selected):
+   - Requests Dashboard shows the new request within 0–5s.
+   - Requests Inbox shows the new request within 0–5s.
+3) Verify across roles:
+   - Resort Admin: sees it
+   - Manager: sees it
+   - Front Office: sees it
+   - Super Admin: sees it
+
+---
+
+## Files expected to change (minimal diffs)
+1) `src/hooks/useStaffServiceRequests.ts`
+   - add polling fallback
+   - broaden invalidations on realtime change
+   - optional: log channel subscribe errors
+
+2) `src/hooks/useRequestsDashboard.ts`
+   - minor invalidation hardening (optional)
+
+3) `src/pages/staff/RequestsDashboardPage.tsx` (optional)
+4) `src/pages/staff/StaffRequestsInboxPage.tsx` (optional)
+   - temporary debug banner (guarded)
+
+5) Revert unintended modifications:
+   - `src/integrations/supabase/types.ts` (restore generated file, no manual edits)
+
+---
+
+## Risks / edge cases addressed
+- Realtime channel sometimes fails to subscribe (network, tab background, auth refresh): polling ensures near-instant consistency anyway.
+- Multiple filtered queries: broad invalidation ensures any filter state updates.
+- Wrong resort selected: debug banner makes this obvious.
+- Wrong environment (Test vs Live): debug banner + clear test steps catches it immediately.
 
