@@ -4532,6 +4532,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "service_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "service_requests_catalog_id_fkey"
             columns: ["catalog_id"]
             isOneToOne: false
