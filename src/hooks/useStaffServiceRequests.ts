@@ -39,7 +39,6 @@ export interface StaffServiceRequest {
   acknowledged_at: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
-  updated_at: string;
   // Multi-item support
   submission_id: string | null;
   item_count: number;
@@ -109,7 +108,6 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
           acknowledged_at,
           completed_at,
           cancelled_at,
-          updated_at,
           submission_id,
           guest:guests!service_requests_guest_id_fkey(full_name, room_number),
           catalog:request_catalog(title, icon_key),
@@ -192,7 +190,6 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
           acknowledged_at: r.acknowledged_at,
           completed_at: r.completed_at,
           cancelled_at: r.cancelled_at,
-          updated_at: r.updated_at,
           submission_id: r.submission_id,
           item_count: itemCount,
           item_preview: itemPreview,
