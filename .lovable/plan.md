@@ -1,230 +1,255 @@
 
+# Fix Guest Requests Not Syncing to Staff Portal
 
-# Fix Text Wrapping and Centering Issues Across Portals
+## Problem Summary
 
-## Problem Analysis
+Guest requests from "The Residence Falhumaafushi" are being created successfully (confirmed in database), but staff cannot see them. Investigation revealed multiple interconnected issues:
 
-After exploring the codebase, I've identified several categories of text wrapping and centering issues that affect the premium feel of both the staff and guest portals:
-
-### Issue Categories Found
-
-| Issue Type | Description | Impact |
-|------------|-------------|--------|
-| **Missing `text-center` on centered containers** | Some flex containers with `items-center` lack proper text-center for multi-line text | Text appears left-aligned in visually centered areas |
-| **Missing `whitespace-nowrap` on single-line labels** | Labels in badges, tabs, and buttons can wrap unexpectedly on narrow screens | UI elements break across lines awkwardly |
-| **Inconsistent `truncate` usage** | Some titles truncate, others wrap, creating visual inconsistency | Mixed behavior confuses users |
-| **Missing `min-w-0` on flex children** | Flex children with text don't properly truncate without `min-w-0` | Text overflows parent containers |
-| **`text-xs` without `line-clamp` on descriptions** | Long descriptions wrap unpredictably | Inconsistent card heights and visual clutter |
+| Area | Issue |
+|------|-------|
+| **Resort Configuration** | No `request_catalog`, `departments`, or `department_memberships` configured for this resort |
+| **Guest Portal UI** | Shows 8 hardcoded categories regardless of resort configuration |
+| **RLS Policies** | Staff visibility requires either admin role OR department membership |
+| **Multi-Select Mode** | Shows empty grid when no catalog items exist |
 
 ---
 
-## Affected Components
+## Root Cause
 
-### Guest Portal
+The Guest Requests page (`/guest/requests`) displays **hardcoded category tiles** in `RequestCategoryGrid.tsx` that are independent of the resort's actual configuration:
 
-| Component | Issue | Fix |
-|-----------|-------|-----|
-| `GuestQuickActions.tsx` | Label text may wrap on very small screens | Add `whitespace-nowrap` to label spans |
-| `GuestSectionHeader.tsx` | Title can wrap if count is long | Add `whitespace-nowrap` to title wrapper |
-| `GuestEmptyState.tsx` | Title lacks `text-center` consistency | Ensure proper centering classes |
-| `GuestBookingCard.tsx` | Title truncation working but subtitle may wrap | Add `line-clamp-1` to subtitle text |
-| `GuestSmartSuggestions.tsx` | Description uses `line-clamp-2` but title may wrap | Add `line-clamp-1` to titles |
-| `TravelPartyCard.tsx` | Description text can wrap inconsistently | Add `truncate` to description |
-| `RequestCategoryGrid.tsx` | Labels centered but may wrap | Add `whitespace-nowrap` to labels |
-| `GuestTodayTimeline.tsx` | Timeline pill titles truncate but container needs `min-w-0` | Verify `min-w-0` on flex parents |
-| `GuestFeaturedActivities.tsx` | Activity names use `line-clamp-1` ✓ | Already correct |
-| `GuestLayout.tsx` | Nav labels may wrap on very small devices | Add `whitespace-nowrap` to nav labels |
+```typescript
+// Current: Always shows these categories
+const categoryConfigs: CategoryConfig[] = [
+  { key: 'HOUSEKEEPING', label: 'Housekeeping', ... },
+  { key: 'MINIBAR', label: 'Minibar', ... },
+  // ... 8 total hardcoded categories
+];
+```
 
-### Staff Portal
+When a resort has NO configured catalog items:
+1. Guest selects a category → sees empty item list → falls back to free-text input
+2. Request is created with the UI category's `department_key` (e.g., `HOUSEKEEPING`)
+3. Staff can only see requests if they're Admin OR have department membership for that key
+4. Since no departments/memberships are configured, only Admins can view requests
 
-| Component | Issue | Fix |
-|-----------|-------|-----|
-| `StaffSidebar.tsx` | Nav item titles could wrap if sidebar is resized | Add `whitespace-nowrap` to nav labels |
-| `StaffTopbar.tsx` | Resort name truncates ✓ but search button text may wrap | Add `whitespace-nowrap` to "Search" text |
-| `NeedsAttentionCard.tsx` | Item titles truncate ✓ but "All Clear" text centered ✓ | Already correct |
-| `RequestStatusTabs.tsx` | Tab labels centered but could wrap on edge cases | Add `whitespace-nowrap` to labels |
-| `StatCard.tsx` | Title uses `truncate` ✓ | Already correct |
-| `PageHeader.tsx` | Title should not wrap, description may wrap (acceptable) | Add `whitespace-nowrap` to titles on mobile |
-| `TodayAtAGlance.tsx` | Metric labels may wrap | Add `whitespace-nowrap` to labels |
-| `TodayHub.tsx` | Various list item titles need consistent truncation | Ensure `truncate` on all list item titles |
-
-### Shared UI Components
-
-| Component | Issue | Fix |
-|-----------|-------|-----|
-| `Badge.tsx` | Already has inline-flex ✓ | Already correct |
-| `Button.tsx` | Has `whitespace-nowrap` ✓ | Already correct |
-| `Tabs.tsx` | TabsTrigger has `whitespace-nowrap` ✓ | Already correct |
-| `SegmentedControl.tsx` | Button labels may wrap | Add `whitespace-nowrap` to label spans |
-| `EmptyState.tsx` | Title and description centered ✓ | Already correct |
-| `Card.tsx` | Content wrapper needs awareness | No changes needed |
+**The requests ARE being created - the issue is visibility on the staff side when not logged in as Admin.**
 
 ---
 
-## Implementation Plan
+## Solution: Simplify Guest Requests UI for Unconfigured Resorts
 
-### Phase 1: Guest Portal Navigation & Headers
+When a resort has NO catalog configured, simplify the UI to a single "Make a Request" flow instead of showing misleading category options.
 
-**File: `src/components/guest/GuestLayout.tsx`**
-- Add `whitespace-nowrap` to nav item labels (line 77-82)
-- Ensures "Activities", "Requests", "Bookings" never wrap
+### Phase 1: Detect "Unconfigured" State
 
-**File: `src/components/guest/GuestSectionHeader.tsx`**
-- Add `whitespace-nowrap` to title `<h2>` tag
-- Prevents section headers from wrapping
+**File:** `src/pages/guest/GuestRequestsPage.tsx`
 
-### Phase 2: Guest Cards & Content
+**Logic:** If `catalogItems` is empty after loading, show simplified UI:
 
-**File: `src/components/guest/GuestQuickActions.tsx`**
-- Add `whitespace-nowrap text-center` to label spans (line 91-93)
-- Ensures "Activities", "Dining", etc. stay on one line
+```typescript
+const hasCatalog = catalogItems && catalogItems.length > 0;
 
-**File: `src/components/guest/TravelPartyCard.tsx`**
-- Add `truncate` class to description paragraph (line 41-44)
-
-**File: `src/components/guest/GuestSmartSuggestions.tsx`**
-- Add `line-clamp-1` to suggestion titles (line 137-138)
-
-**File: `src/components/guest/GuestTodayTimeline.tsx`**
-- Verify `min-w-0` is on all flex parents with truncating text
-
-**File: `src/components/guest/requests/RequestCategoryGrid.tsx`**
-- Add `whitespace-nowrap` to category labels (line 161-162)
-
-### Phase 3: Staff Portal Navigation & Headers
-
-**File: `src/components/staff/StaffSidebar.tsx`**
-- Add `whitespace-nowrap` to nav item spans (line 324)
-- Prevents menu items from wrapping
-
-**File: `src/components/staff/StaffTopbar.tsx`**
-- Add `whitespace-nowrap` to "Search" span (line 77)
-
-**File: `src/components/ui/page-header.tsx`**
-- Add `whitespace-nowrap` to page title on mobile (line 53)
-
-### Phase 4: Staff Cards & Components
-
-**File: `src/components/staff/TodayAtAGlance.tsx`**
-- Add `whitespace-nowrap` to metric labels
-
-**File: `src/components/staff/requests/RequestStatusTabs.tsx`**
-- Add `whitespace-nowrap` to tab label spans (line 90-92)
-
-**File: `src/components/ui/segmented-control.tsx`**
-- Add `whitespace-nowrap` to label spans (lines 68-69)
-
-### Phase 5: Shared UI Component Hardening
-
-**File: `src/index.css`**
-- Add utility class `.text-balance` for multi-line centered text:
-```css
-.text-balance {
-  text-wrap: balance;
+// If no catalog, always use "quick" mode and show simple request form
+if (!hasCatalog) {
+  return <SimpleRequestFlow ... />;
 }
 ```
-- Add `.text-nowrap` alias for `whitespace-nowrap` if not present
 
----
+### Phase 2: Create Simple Request Flow Component
 
-## Code Changes Summary
+**New File:** `src/components/guest/requests/SimpleRequestFlow.tsx`
 
-### Files to Modify (13 files)
+A streamlined single-screen experience when no catalog is configured:
+- Large text input for request description
+- ASAP/Scheduled toggle
+- Submit button
+- No confusing category selection
 
-| File | Primary Change |
-|------|---------------|
-| `src/components/guest/GuestLayout.tsx` | `whitespace-nowrap` on nav labels |
-| `src/components/guest/GuestSectionHeader.tsx` | `whitespace-nowrap` on title |
-| `src/components/guest/GuestQuickActions.tsx` | `whitespace-nowrap text-center` on labels |
-| `src/components/guest/TravelPartyCard.tsx` | `truncate` on description |
-| `src/components/guest/GuestSmartSuggestions.tsx` | `line-clamp-1` on titles |
-| `src/components/guest/GuestTodayTimeline.tsx` | Verify `min-w-0` patterns |
-| `src/components/guest/requests/RequestCategoryGrid.tsx` | `whitespace-nowrap` on labels |
-| `src/components/staff/StaffSidebar.tsx` | `whitespace-nowrap` on nav items |
-| `src/components/staff/StaffTopbar.tsx` | `whitespace-nowrap` on search text |
-| `src/components/staff/TodayAtAGlance.tsx` | `whitespace-nowrap` on labels |
-| `src/components/staff/requests/RequestStatusTabs.tsx` | `whitespace-nowrap` on tabs |
-| `src/components/ui/segmented-control.tsx` | `whitespace-nowrap` on buttons |
-| `src/components/ui/page-header.tsx` | `whitespace-nowrap` on titles |
+This matches the existing `RequestQuickSheet` but as a full-page experience.
 
----
+### Phase 3: Route Requests to FRONT_OFFICE by Default
 
-## Technical Details
+When no catalog/departments configured, all requests should route to `FRONT_OFFICE` (the fallback department that any staff with resort access can handle).
 
-### Pattern: Preventing Text Wrap in Flex Items
-```tsx
-// Before (text may wrap)
-<span className="text-xs font-medium">
-  {label}
-</span>
+**Update in:** `src/components/guest/requests/SimpleRequestFlow.tsx`
 
-// After (text stays on one line)
-<span className="text-xs font-medium whitespace-nowrap">
-  {label}
-</span>
+```typescript
+await createRequest({
+  ...
+  departmentKey: 'FRONT_OFFICE', // Universal fallback
+  category: 'OTHER',
+});
 ```
 
-### Pattern: Centering Text in Flex Containers
-```tsx
-// Before (text left-aligned within centered container)
-<div className="flex flex-col items-center gap-2">
-  <Icon />
-  <span>{label}</span>
-</div>
+### Phase 4: Hide Mode Switcher When No Catalog
 
-// After (text visually centered)
-<div className="flex flex-col items-center text-center gap-2">
-  <Icon />
-  <span className="whitespace-nowrap">{label}</span>
-</div>
-```
+The "Quick" vs "Multi-Select" mode switcher is useless when there's no catalog to multi-select from.
 
-### Pattern: Truncating Text in Flex Children
-```tsx
-// Before (text overflows)
-<div className="flex items-center">
-  <div>
-    <p className="text-sm">{longTitle}</p>
-  </div>
-</div>
+**File:** `src/pages/guest/GuestRequestsPage.tsx`
 
-// After (text truncates properly)
-<div className="flex items-center">
-  <div className="min-w-0">
-    <p className="text-sm truncate">{longTitle}</p>
-  </div>
-</div>
+```typescript
+// Only show mode switcher when catalog exists
+{hasCatalog && (
+  <RequestModeSwitcher mode={mode} onModeChange={handleModeChange} />
+)}
 ```
 
 ---
 
-## Testing Checklist
+## Implementation Details
 
-After implementation, verify on:
-1. **Mobile (375px)** - iPhone SE/small Android
-2. **Mobile (390-428px)** - Standard iPhone/Android
-3. **Tablet (768px)** - iPad portrait
-4. **Desktop (1024px+)** - Standard laptop
+### New Component: `SimpleRequestFlow.tsx`
 
-Check for:
-- [ ] Nav labels stay on one line
-- [ ] Section headers don't wrap
-- [ ] Quick action labels centered and single-line
-- [ ] Card titles truncate instead of wrap
-- [ ] Empty states text is centered
-- [ ] Badge text never wraps
-- [ ] Tab labels stay compact
+```typescript
+interface SimpleRequestFlowProps {
+  guestId: string;
+  resortId: string;
+  resortTimezone?: string;
+}
+
+export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleRequestFlowProps) {
+  const [requestText, setRequestText] = useState('');
+  const [isAsap, setIsAsap] = useState(true);
+  const [scheduledDate, setScheduledDate] = useState<Date>();
+  const [scheduledTime, setScheduledTime] = useState('09:00');
+  
+  const { createRequest, isCreating } = useServiceRequestMutations(guestId, resortId);
+  
+  const handleSubmit = async () => {
+    await createRequest({
+      guestId,
+      resortId,
+      title: requestText.trim(),
+      isAsap,
+      requestedForAt: scheduledDateTime,
+      departmentKey: 'FRONT_OFFICE',
+      category: 'OTHER',
+    });
+    // Reset and show success
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <h1 className="text-xl font-bold">How can we help?</h1>
+        <p className="text-muted-foreground text-sm">
+          Tell us what you need and our team will take care of it
+        </p>
+      </div>
+      
+      {/* Request Input */}
+      <Textarea 
+        value={requestText}
+        onChange={(e) => setRequestText(e.target.value)}
+        placeholder="e.g., Extra towels, room cleaning, wake-up call..."
+        rows={4}
+        className="text-base" // 16px prevents iOS zoom
+      />
+      
+      {/* Quick Suggestions (hardcoded common requests) */}
+      <div className="grid grid-cols-2 gap-2">
+        {COMMON_REQUESTS.map((suggestion) => (
+          <Button 
+            key={suggestion}
+            variant={requestText === suggestion ? 'default' : 'outline'}
+            onClick={() => setRequestText(suggestion)}
+          >
+            {suggestion}
+          </Button>
+        ))}
+      </div>
+      
+      {/* ASAP vs Scheduled */}
+      <TimingSelector isAsap={isAsap} onAsapChange={setIsAsap} ... />
+      
+      {/* Submit */}
+      <Button onClick={handleSubmit} disabled={!requestText.trim() || isCreating}>
+        {isCreating ? 'Sending...' : 'Send Request'}
+      </Button>
+      
+      {/* Link to My Requests */}
+      <Link to="/guest/requests/my">View My Requests</Link>
+    </div>
+  );
+}
+```
+
+### Updated GuestRequestsPage Logic
+
+```typescript
+export default function GuestRequestsPage() {
+  const { guest } = useGuestAuth();
+  const { data: catalogItems, isLoading: catalogLoading } = useRequestCatalog(guest?.resortId || '');
+  
+  // Determine if resort has configured catalog
+  const hasCatalog = !catalogLoading && catalogItems && catalogItems.length > 0;
+  
+  // Pre-arrival check
+  if (isPrearrival) {
+    return <PrearrivalRequestsBlockedState ... />;
+  }
+  
+  // No catalog = simple flow
+  if (!catalogLoading && !hasCatalog) {
+    return (
+      <SimpleRequestFlow 
+        guestId={guest.guestId}
+        resortId={guest.resortId}
+        resortTimezone={guest.resortTimezone}
+      />
+    );
+  }
+  
+  // Has catalog = existing category/multi-select flow
+  return (
+    <div className="space-y-5 pb-24">
+      {/* ... existing UI with RequestCategoryGrid ... */}
+    </div>
+  );
+}
+```
+
+---
+
+## Files to Modify
+
+| File | Action | Changes |
+|------|--------|---------|
+| `src/pages/guest/GuestRequestsPage.tsx` | Modify | Add catalog detection, conditionally render SimpleRequestFlow |
+| `src/components/guest/requests/SimpleRequestFlow.tsx` | **Create** | New simplified request form component |
+
+---
+
+## Staff Visibility Fix
+
+The staff visibility issue is a **configuration problem** rather than a code bug:
+
+1. Resort Admin SHOULD see all requests (RLS function checks `has_resort_role`)
+2. If staff can't see requests, they may not be logged in with the correct account
+
+**Recommendation:** Add a helper query in the Staff Dashboard to show "no departments configured" warning when the resort has no departments, prompting admins to configure them.
+
+---
+
+## Edge Cases Handled
+
+| Scenario | Behavior |
+|----------|----------|
+| No catalog configured | Show SimpleRequestFlow |
+| Catalog configured | Show category grid + multi-select mode |
+| Pre-arrival guest | Show blocked state (existing) |
+| Request created | Routes to FRONT_OFFICE (universal fallback) |
+| Staff viewing | Admins see all; others need department membership |
 
 ---
 
 ## Summary
 
-This plan addresses text wrapping and centering issues across 13 files in both portals by:
-
-1. **Consistent `whitespace-nowrap`** on navigation labels, badges, and short descriptive text
-2. **Proper `text-center`** on containers that should center multi-line content
-3. **Correct `truncate` + `min-w-0`** patterns for flex children with dynamic text
-4. **`line-clamp-1/2`** for controlled description text
-
-These changes will create a more polished, consistent UI that maintains the premium aesthetic across all viewport sizes.
-
+This fix:
+1. **Simplifies the guest experience** when no catalog is configured
+2. **Eliminates confusing empty category grids** 
+3. **Routes all requests to FRONT_OFFICE** ensuring staff visibility
+4. **Preserves the full-featured UI** for resorts with configured catalogs
+5. **Maintains backward compatibility** with existing requests and workflows
