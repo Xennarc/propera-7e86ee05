@@ -1,73 +1,176 @@
-# Welcome to your Lovable project
+# Propera
 
-## Project info
+**Resort operations. Beautifully organized.**
 
-**URL**: https://lovable.dev/projects/61607588-9c4c-4c1b-9efd-4fef90ed06a5
+Propera is a comprehensive resort operations management platform that brings guests, teams, schedules, and bookings into one elegant system.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🏝️ Portals
 
-**Use Lovable**
+| Portal | Description | Auth Method |
+|--------|-------------|-------------|
+| **Guest Portal** | Mobile-first booking and itinerary app | Room/Last name/PIN |
+| **Staff Portal** | Operations dashboard for resort teams | Email/Password |
+| **Super Admin** | Platform-wide management console | Email/Password (elevated) |
+| **Vendor Portal** | External vendor booking management | Access code |
+| **Public Marketing** | Landing pages and resort info | None (public) |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/61607588-9c4c-4c1b-9efd-4fef90ed06a5) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## ✨ Features
 
-**Use your preferred IDE**
+### Guest Experience
+- Pre-arrival preferences and travel party setup
+- Activity and restaurant browsing/booking
+- Real-time itinerary and today's schedule
+- Service requests (housekeeping, minibar, etc.)
+- Loyalty program integration
+- Stay feedback submission
+- QR code login for frictionless access
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Staff Operations
+- **TodayHub Dashboard**: Arrivals, departures, sessions, dining covers
+- Guest management with VIP flags and internal notes
+- Activity session management (capacity, waitlists)
+- Restaurant slot management and reservations
+- Guest requests inbox with SLA tracking
+- Pre-arrival dashboard
+- Team directory
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Analytics & Reports
+- Activities performance metrics
+- Restaurant/dining analytics
+- Guest behavior analysis
+- Cancellation tracking
+- Market segmentation
+- Stay feedback reports
+- Sales performance
 
-Follow these steps:
+### Settings & Configuration
+- Resort branding (logos, colors)
+- Pricing and subscription tiers
+- Pre-arrival form configuration
+- Requests catalog management
+- Public links and QR codes
+- Staff permissions and roles
+
+### Super Admin Console
+- Multi-resort command center
+- Global user/staff management
+- Feature flags and rollouts
+- Health monitoring
+- Audit logs
+- Support tools
+
+### Vendor Integration
+- Vendor login portal
+- Booking acknowledgment workflow
+- Completion tracking
+
+---
+
+## 🔐 User Roles
+
+### Global Roles
+| Role | Description |
+|------|-------------|
+| `SUPER_ADMIN` | Platform-wide access across all resorts |
+| `STANDARD` | Resort-scoped access only |
+
+### Resort Roles
+| Role | Description |
+|------|-------------|
+| `RESORT_ADMIN` | Full resort management |
+| `MANAGER` | Operational oversight |
+| `FRONT_OFFICE` | Guest-facing operations |
+| `RESERVATIONS` | Booking management |
+| `ACTIVITIES` | Activity coordination |
+| `FNB` | Food & Beverage operations |
+
+---
+
+## 🚀 User Flows
+
+### Guest Flow
+1. Find resort or scan QR code
+2. Login with room number + last name + PIN
+3. View pre-arrival preferences (if before check-in)
+4. Browse activities and restaurants
+5. Make bookings
+6. Submit service requests
+7. View today's schedule
+8. Submit stay feedback
+
+### Staff Flow
+1. Login via staff auth
+2. Select resort (if multi-resort access)
+3. View TodayHub with live stats
+4. Manage guests, bookings, requests
+5. Run reports and analytics
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+|----------|-------------|
+| **Frontend** | React 19, TypeScript, Vite |
+| **Styling** | Tailwind CSS, shadcn/ui |
+| **State Management** | TanStack Query (React Query) |
+| **Routing** | React Router DOM v6 |
+| **Backend** | Supabase (Postgres, Auth, Edge Functions, Realtime) |
+| **Internationalization** | i18next |
+| **Charts** | Recharts |
+| **Animations** | Framer Motion |
+
+---
+
+## 🏗️ Architecture Highlights
+
+- **Multi-tenant architecture** with resort-scoped data isolation
+- **Role-based access control (RBAC)** with global + resort-level roles
+- **Real-time updates** via Supabase Realtime
+- **Mobile-first responsive design**
+- **Lazy-loaded routes** for performance
+- **Error boundaries** and connection monitoring
+
+---
+
+## 💻 Development
+
+### Prerequisites
+- Node.js & npm ([install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating))
+
+### Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# Navigate to project directory
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
+# Install dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🌐 Deployment
 
-**Use GitHub Codespaces**
+This project is deployed via [Lovable](https://lovable.dev/projects/61607588-9c4c-4c1b-9efd-4fef90ed06a5).
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+To publish: **Share → Publish**
 
-## What technologies are used for this project?
+To connect a custom domain: **Project → Settings → Domains → Connect Domain**
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📚 Resources
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/61607588-9c4c-4c1b-9efd-4fef90ed06a5) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- [Lovable Documentation](https://docs.lovable.dev)
+- [Custom Domain Setup](https://docs.lovable.dev/features/custom-domain#custom-domain)
