@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -137,10 +138,15 @@ export default function GuestRestaurantBrowser() {
   const hasAvailableSlots = Object.keys(slotsByPeriod).length > 0;
 
   return (
-    <div className="space-y-5">
-      <div>
+    <motion.div 
+      className="space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-foreground">{t('dining.title')}</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('dining.title')}</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -154,7 +160,7 @@ export default function GuestRestaurantBrowser() {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <p className="text-sm text-muted-foreground">{t('dining.subtitle')}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t('dining.subtitle')}</p>
       </div>
 
       {/* Restaurant Filter */}
@@ -304,6 +310,6 @@ export default function GuestRestaurantBrowser() {
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

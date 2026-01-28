@@ -1653,14 +1653,15 @@
   }
   
   .guest-card-interactive:hover {
-    @apply -translate-y-0.5;
+    transform: translateY(-3px) rotate(-0.3deg);
     box-shadow: 
-      0 4px 8px 0 rgb(0 0 0 / 0.05),
-      0 8px 24px -4px rgb(0 0 0 / 0.1);
+      0 6px 16px 0 rgb(0 0 0 / 0.08),
+      0 12px 32px -8px rgb(0 0 0 / 0.12);
   }
   
   .guest-card-interactive:active {
-    @apply translate-y-0;
+    transform: scale(0.98) translateY(0);
+    transition-duration: 100ms;
     box-shadow: 
       0 1px 2px 0 rgb(0 0 0 / 0.03),
       0 2px 8px -2px rgb(0 0 0 / 0.04);
@@ -1875,6 +1876,30 @@
   .guest-stay-badge-accent {
     @apply bg-amber-400/90 text-amber-950 border-amber-300/50;
     box-shadow: 0 2px 8px -2px rgb(251 191 36 / 0.4);
+  }
+
+  /* === Enhanced Loading & Shimmer === */
+  .shimmer-enhanced {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted) / 0.4) 25%,
+      hsl(var(--muted) / 0.6) 50%,
+      hsl(var(--muted) / 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  /* Subtle inner shadow for depth */
+  .shadow-inner-subtle {
+    box-shadow: inset 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  }
+
+  /* Premium icon container */
+  .guest-icon-container {
+    @apply flex items-center justify-center rounded-xl;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.15) 0%, hsl(var(--primary) / 0.05) 100%);
+    box-shadow: 0 1px 3px -1px rgb(0 0 0 / 0.08);
   }
   
   /* ================================

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getBookingErrorMessage, BookingErrorCode } from '@/lib/booking-errors';
@@ -647,11 +648,16 @@ export default function GuestMyBookings() {
   const isEmpty = totalUpcoming === 0 && totalCompleted === 0 && totalCancelled === 0;
 
   return (
-    <div className="space-y-5">
+    <motion.div 
+      className="space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
       {/* Header */}
       <div className="mb-1">
-        <h1 className="text-xl font-bold text-foreground">{t('bookings.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('bookings.subtitle')}</p>
+        <h1 className="text-xl font-bold text-foreground tracking-tight">{t('bookings.title')}</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t('bookings.subtitle')}</p>
       </div>
 
       {/* Today's Quick Status - Always visible */}
@@ -985,6 +991,6 @@ export default function GuestMyBookings() {
           }}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
