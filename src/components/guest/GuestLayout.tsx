@@ -287,7 +287,7 @@ export function GuestLayout() {
       {/* Main content with safe-area-aware bottom padding */}
       <main 
         ref={mainRef} 
-        className="flex-1 overflow-auto guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll guest-page-bg"
+        className="flex-1 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll guest-page-bg"
       >
         <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
           <GuestPortalGate>
