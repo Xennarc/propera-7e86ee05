@@ -10,6 +10,7 @@ import { MultiSelectItemGrid, SelectedItem } from '@/components/guest/requests/M
 import { RequestBundleSheet, BundleSubmitParams, MAX_BUNDLE_ITEMS, MAX_TOTAL_QUANTITY } from '@/components/guest/requests/RequestBundleSheet';
 import { RequestModeSwitcher, RequestMode } from '@/components/guest/requests/RequestModeSwitcher';
 import { PrearrivalRequestsBlockedState } from '@/components/guest/PrearrivalRequestsBlockedState';
+import { SimpleRequestFlow } from '@/components/guest/requests/SimpleRequestFlow';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -69,6 +70,9 @@ export default function GuestRequestsPage() {
   );
 
   const multiSelectMode = mode === 'multi';
+  
+  // Detect if resort has configured catalog
+  const hasCatalog = !catalogLoading && catalogItems && catalogItems.length > 0;
 
   if (!guest) return null;
 
@@ -78,6 +82,18 @@ export default function GuestRequestsPage() {
       <PrearrivalRequestsBlockedState 
         checkInDate={guest.checkInDate} 
         daysUntilArrival={daysUntilArrival} 
+      />
+    );
+  }
+
+  // No catalog configured = show simplified request flow
+  // This ensures requests route to FRONT_OFFICE for universal staff visibility
+  if (!catalogLoading && !hasCatalog) {
+    return (
+      <SimpleRequestFlow
+        guestId={guest.guestId}
+        resortId={guest.resortId}
+        resortTimezone={guest.resortTimezone}
       />
     );
   }
@@ -219,17 +235,19 @@ export default function GuestRequestsPage() {
         </motion.div>
       </div>
 
-      {/* Mode Switcher */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.15 }}
-      >
-        <RequestModeSwitcher
-          mode={mode}
-          onModeChange={handleModeChange}
-        />
-      </motion.div>
+      {/* Mode Switcher - only show when catalog is configured */}
+      {hasCatalog && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
+          <RequestModeSwitcher
+            mode={mode}
+            onModeChange={handleModeChange}
+          />
+        </motion.div>
+      )}
 
       {/* Category Grid or Multi-Select Grid */}
       <div id="request-content" role="tabpanel">
