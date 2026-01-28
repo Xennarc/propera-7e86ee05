@@ -25,6 +25,9 @@ export const RequestOptionChip = memo(function RequestOptionChip({
       onClick={onToggle}
       disabled={disabled}
       whileTap={{ scale: 0.95 }}
+      initial={false}
+      animate={selected ? { scale: [1, 1.03, 1] } : {}}
+      transition={{ duration: 0.2 }}
       className={cn(
         // Base styles
         'relative inline-flex items-center gap-1.5 px-3.5 py-2.5',
@@ -33,21 +36,22 @@ export const RequestOptionChip = memo(function RequestOptionChip({
         'transition-all duration-200 ease-out',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
         'disabled:opacity-50 disabled:cursor-not-allowed',
-        // Border and background states
+        // Border and background states - enhanced shadows
         selected
-          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20 border-2 border-primary'
-          : 'bg-card/60 text-foreground border border-border/60 hover:border-primary/40 hover:bg-card/80'
+          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 border-2 border-primary'
+          : 'bg-card/60 text-foreground border border-border/60 hover:border-primary/40 hover:bg-card/80 hover:shadow-sm'
       )}
       role="checkbox"
       aria-checked={selected}
       aria-label={`${label}${selected ? ', selected' : ''}`}
     >
-      {/* Selection indicator */}
+      {/* Selection indicator with improved animation */}
       <motion.span
         initial={false}
         animate={{
           width: selected ? 18 : 0,
           opacity: selected ? 1 : 0,
+          rotate: selected ? 0 : -90,
           marginRight: selected ? 2 : 0,
         }}
         transition={{ duration: 0.2, ease: 'easeOut' }}

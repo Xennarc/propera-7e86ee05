@@ -1744,6 +1744,101 @@
       0 1px 3px -1px rgb(0 0 0 / 0.1),
       0 1px 2px 0 rgb(0 0 0 / 0.06);
   }
+
+  /* === Premium Enhancement Utilities === */
+  
+  /* Gradient border utility for sticky bars */
+  .gradient-border-glow {
+    position: relative;
+  }
+
+  .gradient-border-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.4) 0%,
+      hsl(var(--border) / 0.5) 50%,
+      hsl(var(--primary) / 0.4) 100%
+    );
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Scroll fade containers for horizontal scroll */
+  .scroll-fade-x {
+    position: relative;
+  }
+
+  .scroll-fade-x::before,
+  .scroll-fade-x::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1.5rem;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .scroll-fade-x::before {
+    left: 0;
+    background: linear-gradient(to right, hsl(var(--background)) 0%, transparent 100%);
+  }
+
+  .scroll-fade-x::after {
+    right: 0;
+    background: linear-gradient(to left, hsl(var(--background)) 0%, transparent 100%);
+  }
+
+  /* Enhanced focus glow for inputs */
+  .input-focus-glow:focus-within {
+    box-shadow: 
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--primary) / 0.2),
+      0 4px 12px -4px hsl(var(--primary) / 0.15);
+  }
+
+  /* Pulsing glow for attention */
+  .glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 8px hsl(var(--primary) / 0.3); }
+    50% { box-shadow: 0 0 16px hsl(var(--primary) / 0.5); }
+  }
+
+  /* Subtle icon glow effect */
+  .icon-glow {
+    position: relative;
+  }
+
+  .icon-glow::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    background: hsl(var(--primary) / 0.2);
+    filter: blur(8px);
+    animation: icon-glow-pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes icon-glow-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+  }
   
   /* Guest booking card accent strip */
   .booking-strip-confirmed {

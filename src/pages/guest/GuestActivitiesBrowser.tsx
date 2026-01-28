@@ -3,13 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle, Info, Search } from 'lucide-react';
+import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle, Info, Search, X } from 'lucide-react';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { GuestActivitiesLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
@@ -119,28 +119,44 @@ export default function GuestActivitiesBrowser() {
         <p className="text-sm text-muted-foreground leading-relaxed">{t('activities.subtitle')}</p>
       </div>
 
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* Search Input with focus glow and animated clear */}
+      <div className="relative group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <Input
           placeholder={t('activities.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-11 tap-target"
+          className="pl-10 pr-10 h-11 tap-target focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:shadow-md focus-visible:shadow-primary/10"
         />
+        {/* Animated clear button */}
+        <AnimatePresence>
+          {searchQuery && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-muted hover:bg-muted-foreground/20 flex items-center justify-center transition-colors"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Category Pills with Icons */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
-        {categories.map((cat) => (
-          <CategoryChip
-            key={cat.value}
-            category={cat.value}
-            label={cat.label}
-            isActive={selectedCategory === cat.value}
-            onClick={() => setSelectedCategory(cat.value)}
-          />
-        ))}
+      {/* Category Pills with Icons - scroll fade edges */}
+      <div className="relative scroll-fade-x">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide scroll-smooth">
+          {categories.map((cat) => (
+            <CategoryChip
+              key={cat.value}
+              category={cat.value}
+              label={cat.label}
+              isActive={selectedCategory === cat.value}
+              onClick={() => setSelectedCategory(cat.value)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Date Picker with Month Navigation */}
@@ -191,17 +207,21 @@ export default function GuestActivitiesBrowser() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    {/* Activity Image or Category Icon fallback */}
-                    <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden">
+                    {/* Activity Image or Category Icon fallback - enhanced with gradient overlay */}
+                    <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden shadow-sm">
                       {session.image_url ? (
-                        <img 
-                          src={session.image_url} 
-                          alt={session.activity_name}
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
+                        <>
+                          <img 
+                            src={session.image_url} 
+                            alt={session.activity_name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                          {/* Subtle gradient overlay for depth */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                        </>
                       ) : (
                         <div className={cn(
-                          "flex h-full w-full items-center justify-center",
+                          "flex h-full w-full items-center justify-center shadow-inner",
                           config.bgClass
                         )}>
                           <CategoryIcon category={session.category} size={24} />
@@ -212,7 +232,12 @@ export default function GuestActivitiesBrowser() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
-                          <span className={cn("font-mono font-semibold text-sm", config.colorClass)}>
+                          {/* Enhanced time badge with backdrop */}
+                          <span className={cn(
+                            "font-mono font-semibold text-sm px-2 py-0.5 rounded-md",
+                            "bg-background/80 backdrop-blur-sm border border-border/30",
+                            config.colorClass
+                          )}>
                             {session.start_time?.slice(0, 5)}
                           </span>
                           <CategoryBadge category={session.category} size="sm" showLabel={false} />

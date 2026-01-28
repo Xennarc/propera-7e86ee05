@@ -18,8 +18,12 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount }: Requ
           transition={{ duration: 0.3 }}
         >
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
+            {/* Enhanced icon with glow effect */}
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-primary/25 blur-md animate-pulse" />
+              <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center shadow-sm">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
             </div>
             Requests
           </h1>
@@ -46,7 +50,7 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount }: Requ
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                    className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center shadow-sm"
+                    className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-primary text-[10px] font-bold text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30"
                   >
                     {activeCount > 9 ? '9+' : activeCount}
                   </motion.span>
@@ -63,7 +67,7 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount }: Requ
         transition={{ duration: 0.3, delay: 0.15 }}
         className="text-sm text-muted-foreground"
       >
-        Tap what you need — we'll notify the team.
+        <span className="text-primary font-medium">Tap</span> what you need — we'll notify the team.
       </motion.p>
     </header>
   );
