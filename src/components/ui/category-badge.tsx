@@ -110,8 +110,8 @@ export function CategoryChip({
       className={cn(
         'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 shrink-0',
         isActive
-          ? 'bg-primary text-primary-foreground shadow-sm'
-          : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-muted/50',
+          ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 ring-2 ring-primary/20'
+          : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-muted/50 hover:shadow-sm',
         className
       )}
     >

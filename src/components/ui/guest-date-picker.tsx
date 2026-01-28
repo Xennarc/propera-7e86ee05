@@ -149,9 +149,9 @@ export function GuestDatePicker({
                   disabled={isDisabled}
                   className={cn(
                     "w-10 h-10 rounded-full text-sm font-semibold transition-all tap-target flex items-center justify-center",
-                    isSelected && "bg-primary text-primary-foreground shadow-sm",
-                    !isSelected && isToday && "ring-2 ring-primary/50 bg-primary/10 text-primary",
-                    !isSelected && !isToday && !isDisabled && "hover:bg-muted text-foreground",
+                    isSelected && "bg-primary text-primary-foreground shadow-md shadow-primary/30 ring-2 ring-primary/20 ring-offset-2 ring-offset-background",
+                    !isSelected && isToday && "ring-2 ring-primary/50 bg-primary/10 text-primary font-semibold",
+                    !isSelected && !isToday && !isDisabled && "hover:bg-muted hover:shadow-sm text-foreground",
                     isDisabled && "text-muted-foreground/40 cursor-not-allowed"
                   )}
                 >
@@ -230,9 +230,9 @@ export function GuestDatePicker({
               className={cn(
                 "h-10 w-full rounded-lg text-sm font-medium transition-all min-h-[44px]",
                 "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                isSelected && "bg-primary text-primary-foreground shadow-sm",
+                isSelected && "bg-primary text-primary-foreground shadow-md shadow-primary/30 ring-2 ring-primary/20 ring-offset-1 ring-offset-background",
                 !isSelected && isToday && "ring-2 ring-primary/50 bg-primary/10 text-primary font-semibold",
-                !isSelected && !isToday && !isDisabled && "hover:bg-muted",
+                !isSelected && !isToday && !isDisabled && "hover:bg-muted hover:shadow-sm",
                 isDisabled && "text-muted-foreground/40 cursor-not-allowed",
                 !isCurrentMonth && "opacity-50"
               )}

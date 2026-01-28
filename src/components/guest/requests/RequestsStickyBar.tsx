@@ -41,7 +41,9 @@ export const RequestsStickyBar = memo(function RequestsStickyBar({
               'rounded-2xl shadow-2xl',
               'bg-background/95 backdrop-blur-xl',
               'border border-border/60',
-              'shadow-black/10 dark:shadow-black/30'
+              'shadow-black/10 dark:shadow-black/30',
+              // Gradient border effect
+              'gradient-border-glow'
             )}
           >
             {/* Left: Selection summary */}
@@ -51,8 +53,11 @@ export const RequestsStickyBar = memo(function RequestsStickyBar({
                   'w-10 h-10 rounded-xl flex-shrink-0',
                   'bg-primary/10 flex items-center justify-center'
                 )}
-                animate={{ rotate: [0, -5, 5, 0] }}
-                transition={{ duration: 0.4, delay: 0.1 }}
+                animate={{ 
+                  rotate: [0, -3, 3, 0],
+                  scale: [1, 1.02, 1]
+                }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
               >
                 <ShoppingBag className="h-5 w-5 text-primary" />
               </motion.div>

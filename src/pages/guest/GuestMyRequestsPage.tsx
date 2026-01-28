@@ -172,14 +172,19 @@ export default function GuestMyRequestsPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div 
+      className="space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
       <div className="flex items-center justify-between">
         <motion.div
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <h1 className="text-xl font-bold text-foreground">My Requests</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">My Requests</h1>
           <p className="text-sm text-muted-foreground">
             {activeCount > 0 ? `${activeCount} active request${activeCount !== 1 ? 's' : ''}` : 'Track your requests'}
           </p>
@@ -189,7 +194,7 @@ export default function GuestMyRequestsPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Button size="sm" asChild className="gap-1.5 shadow-sm">
+          <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
             <Link to="/guest/requests">
               <Plus className="h-4 w-4" />
               New
@@ -215,8 +220,8 @@ export default function GuestMyRequestsPage() {
             variant={filter === key ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              'h-8 px-3 gap-1.5 rounded-full transition-all',
-              filter === key && 'shadow-md'
+              'h-8 px-3 gap-1.5 rounded-full transition-all relative',
+              filter === key && 'shadow-md shadow-primary/20'
             )}
             onClick={() => setFilter(key)}
           >
@@ -342,6 +347,6 @@ export default function GuestMyRequestsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </motion.div>
   );
 }

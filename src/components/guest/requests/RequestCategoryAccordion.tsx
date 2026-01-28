@@ -90,8 +90,9 @@ export const RequestCategoryAccordion = memo(function RequestCategoryAccordion({
               'border rounded-2xl overflow-hidden',
               'bg-card/40 backdrop-blur-sm',
               'border-border/50 hover:border-border/80',
-              'transition-colors duration-200',
-              selectedCount > 0 && 'border-primary/30 bg-primary/5'
+              'transition-all duration-200',
+              'hover:shadow-sm hover:-translate-y-0.5', // Add hover lift
+              selectedCount > 0 && 'border-primary/30 bg-primary/5 shadow-sm shadow-primary/10'
             )}
           >
             <AccordionTrigger
@@ -102,13 +103,13 @@ export const RequestCategoryAccordion = memo(function RequestCategoryAccordion({
               )}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                {/* Category icon with ring */}
+                {/* Category icon with ring - enhanced shadow when selected */}
                 <div
                   className={cn(
                     'w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0',
                     'border-2 bg-transparent transition-all duration-200',
                     category.ringColor,
-                    selectedCount > 0 && 'shadow-sm'
+                    selectedCount > 0 && 'shadow-md shadow-primary/25 scale-105'
                   )}
                 >
                   <CategoryIcon className="h-4 w-4" />
