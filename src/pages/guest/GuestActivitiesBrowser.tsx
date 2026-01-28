@@ -206,9 +206,9 @@ export default function GuestActivitiesBrowser() {
                 onClick={() => navigate(`/guest/activities/book/${session.id}`)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    {/* Activity Image or Category Icon fallback */}
-                    <div className="relative h-12 w-12 shrink-0 rounded-xl overflow-hidden shadow-sm">
+                  <div className="flex items-center gap-4">
+                    {/* Activity Image or Category Icon fallback - Larger 64x64 thumbnail */}
+                    <div className="relative h-16 w-16 shrink-0 rounded-2xl overflow-hidden shadow-md">
                       {session.image_url ? (
                         <>
                           <img 
@@ -216,20 +216,20 @@ export default function GuestActivitiesBrowser() {
                             alt={session.activity_name}
                             className="absolute inset-0 w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         </>
                       ) : (
                         <div className={cn(
                           "flex h-full w-full items-center justify-center shadow-inner",
                           config.bgClass
                         )}>
-                          <CategoryIcon category={session.category} size={24} />
+                          <CategoryIcon category={session.category} size={28} />
                         </div>
                       )}
                     </div>
                     
-                    {/* Content area with improved hierarchy */}
-                    <div className="flex-1 min-w-0">
+                    {/* Content area - vertically centered */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
                       {/* Top row: Name + Status badge */}
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <h3 className="font-semibold text-foreground truncate">
@@ -243,13 +243,6 @@ export default function GuestActivitiesBrowser() {
                           <Badge variant="confirmed" className="shrink-0 text-xs whitespace-nowrap">Instant</Badge>
                         )}
                       </div>
-                      
-                      {/* Description (optional, single line) */}
-                      {session.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-1 mb-1.5">
-                          {session.description}
-                        </p>
-                      )}
                       
                       {/* Bottom row: Consolidated metadata */}
                       <div className="flex items-center justify-between">
