@@ -166,12 +166,18 @@ export function useRequestsDashboard({ filters = {}, enabled = true }: UseReques
           table: 'service_requests',
           filter: `resort_id=eq.${resortId}`,
         },
-        (payload) => {
-          // Immediate invalidation for real-time feel
-          queryClient.invalidateQueries({ queryKey: ['requests-dashboard', resortId] });
+        () => {
+          // Broad invalidation to cover all filter variants
+          queryClient.invalidateQueries({ queryKey: ['requests-dashboard'] });
+          // Also invalidate inbox so both views stay in sync
+          queryClient.invalidateQueries({ queryKey: ['staff-service-requests'] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('[RequestsDashboard] Realtime channel error, relying on polling fallback');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

@@ -10,6 +10,7 @@ import {
   RequestsHeader,
   RequestsEmptyState,
 } from '@/components/staff/requests';
+import { ScopeDebugBanner } from '@/components/staff/ScopeDebugBanner';
 import {
   useStaffServiceRequests,
   useStaffRequestPermissions,
@@ -172,6 +173,9 @@ function StaffRequestsInboxContent() {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {/* Debug Banner (visible with ?debug=1) */}
+      <ScopeDebugBanner dataCount={filteredRequests.length} />
+
       {/* Header */}
       <RequestsHeader
         onRefresh={() => refetch()}

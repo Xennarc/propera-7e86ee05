@@ -207,7 +207,9 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
       return mappedData;
     },
     enabled: enabled && !!resortId && isStaff,
-    staleTime: 30000,
+    staleTime: 2000, // Short stale time for aggressive updates
+    refetchInterval: 5000, // Poll every 5 seconds as fallback
+    refetchIntervalInBackground: false,
   });
 
   // Real-time subscription for service_requests
@@ -225,10 +227,17 @@ export function useStaffServiceRequests({ filters = {}, enabled = true }: UseSta
           filter: `resort_id=eq.${resortId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['staff-service-requests', resortId] });
+          // Broad invalidation to cover all filter variants
+          queryClient.invalidateQueries({ queryKey: ['staff-service-requests'] });
+          // Also invalidate dashboard so both views stay in sync
+          queryClient.invalidateQueries({ queryKey: ['requests-dashboard', resortId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('[StaffServiceRequests] Realtime channel error, relying on polling fallback');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
