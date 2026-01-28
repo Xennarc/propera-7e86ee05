@@ -1,5 +1,6 @@
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { format, differenceInDays } from 'date-fns';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +33,12 @@ export default function GuestProfilePage() {
   const firstName = guest.fullName.split(' ')[0];
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button 
@@ -44,50 +50,54 @@ export default function GuestProfilePage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-foreground">{t('profile.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('profile.subtitle')}</p>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('profile.title')}</h1>
+          <p className="text-sm text-muted-foreground leading-relaxed">{t('profile.subtitle')}</p>
         </div>
       </div>
 
-      {/* Guest Card */}
-      <Card className="overflow-hidden">
-        <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6">
-          <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <User className="h-8 w-8 text-primary" />
+      {/* Guest Card - Premium Hero Treatment */}
+      <Card className="guest-card overflow-hidden border-0">
+        <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 sm:p-8">
+          <div className="flex items-center gap-5">
+            <div className="h-[72px] w-[72px] rounded-2xl bg-primary/20 flex items-center justify-center shadow-lg shadow-primary/10">
+              <User className="h-9 w-9 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">{guest.fullName}</h2>
-              <p className="text-muted-foreground">{t('profile.welcome', { name: firstName })}</p>
+              <h2 className="text-xl font-bold text-foreground tracking-tight">{guest.fullName}</h2>
+              <p className="text-muted-foreground leading-relaxed">{t('profile.welcome', { name: firstName })}</p>
             </div>
           </div>
         </div>
       </Card>
 
       {/* Resort Information */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
+      <Card className="guest-card">
+        <CardHeader className="pb-3 border-b border-border/30">
+          <CardTitle className="text-base flex items-center gap-2.5">
+            <div className="guest-icon-container h-8 w-8">
+              <MapPin className="h-4 w-4 text-primary" />
+            </div>
             {t('profile.resort')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-lg font-semibold text-foreground">
+        <CardContent className="pt-4">
+          <p className="text-lg font-semibold text-foreground tracking-tight">
             {guest.resortName || 'Your Resort'}
           </p>
         </CardContent>
       </Card>
 
       {/* Room Information */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Home className="h-4 w-4 text-primary" />
+      <Card className="guest-card">
+        <CardHeader className="pb-3 border-b border-border/30">
+          <CardTitle className="text-base flex items-center gap-2.5">
+            <div className="guest-icon-container h-8 w-8">
+              <Home className="h-4 w-4 text-primary" />
+            </div>
             {t('profile.accommodation')}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">{t('profile.roomNumber')}</span>
             <Badge variant="secondary" className="text-base font-semibold px-3 py-1">
@@ -98,14 +108,16 @@ export default function GuestProfilePage() {
       </Card>
 
       {/* Stay Details */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
+      <Card className="guest-card">
+        <CardHeader className="pb-3 border-b border-border/30">
+          <CardTitle className="text-base flex items-center gap-2.5">
+            <div className="guest-icon-container h-8 w-8">
+              <Calendar className="h-4 w-4 text-primary" />
+            </div>
             {t('profile.stayDetails')}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('profile.checkInDate')}</p>
@@ -127,7 +139,7 @@ export default function GuestProfilePage() {
             </div>
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-border/30 pt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -178,14 +190,16 @@ export default function GuestProfilePage() {
 
       {/* Language Settings */}
       <TierGate feature="guest_portal_multi_language" fallback="hide">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Globe className="h-4 w-4 text-primary" />
+        <Card className="guest-card">
+          <CardHeader className="pb-3 border-b border-border/30">
+            <CardTitle className="text-base flex items-center gap-2.5">
+              <div className="guest-icon-container h-8 w-8">
+                <Globe className="h-4 w-4 text-primary" />
+              </div>
               {t('profile.language')}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t('profile.selectLanguage')}</span>
               <LanguageSwitcher />
@@ -195,13 +209,13 @@ export default function GuestProfilePage() {
       </TierGate>
 
       {/* Help Section */}
-      <Card className="bg-muted/30">
+      <Card className="guest-card bg-muted/30 border-dashed">
         <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-sm text-muted-foreground text-center leading-relaxed">
             {t('profile.helpText')}
           </p>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

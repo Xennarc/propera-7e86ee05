@@ -71,10 +71,10 @@ export function GuestTodayTimeline({
             <div
               key={item.id}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-full border text-xs whitespace-nowrap transition-all shrink-0',
-                isPast && 'bg-muted/50 border-border/50 text-muted-foreground',
-                isNext && 'bg-primary/10 border-primary/30 text-primary font-medium ring-2 ring-primary/20',
-                !isPast && !isNext && 'bg-card border-border text-foreground'
+                'flex items-center gap-2.5 px-4 py-2.5 rounded-full border text-xs whitespace-nowrap transition-all duration-200 shrink-0',
+                isPast && 'bg-muted/30 border-border/30 text-muted-foreground opacity-60',
+                isNext && 'bg-primary/15 border-primary/40 text-primary font-semibold ring-2 ring-primary/30 shadow-sm',
+                !isPast && !isNext && 'bg-card/80 border-border/50 text-foreground hover:border-border'
               )}
             >
               {getItemIcon(item)}

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -93,10 +94,15 @@ export default function GuestActivitiesBrowser() {
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-foreground">{t('activities.title')}</h1>
+    <motion.div 
+      className="space-y-5"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+    >
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('activities.title')}</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -110,7 +116,7 @@ export default function GuestActivitiesBrowser() {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <p className="text-sm text-muted-foreground">{t('activities.subtitle')}</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t('activities.subtitle')}</p>
       </div>
 
       {/* Search Input */}
@@ -247,6 +253,6 @@ export default function GuestActivitiesBrowser() {
           })}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

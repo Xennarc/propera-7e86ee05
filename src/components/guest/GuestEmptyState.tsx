@@ -30,21 +30,24 @@ export function GuestEmptyState({
 }: GuestEmptyStateProps) {
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center py-12 px-6 text-center",
+      "flex flex-col items-center justify-center py-14 px-6 text-center",
+      "bg-gradient-to-b from-muted/20 via-transparent to-transparent rounded-2xl",
       className
     )}>
       <div className={cn(
-        "flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4",
+        "flex h-[72px] w-[72px] items-center justify-center rounded-3xl mb-5",
+        "bg-gradient-to-br from-muted/80 to-muted/40",
+        "shadow-inner-subtle",
         iconClassName
       )}>
-        <Icon className="h-8 w-8 text-muted-foreground/60" />
+        <Icon className="h-9 w-9 text-muted-foreground/50" />
       </div>
       
-      <h3 className="text-lg font-semibold text-foreground mb-2">
+      <h3 className="text-lg font-semibold text-foreground mb-2 tracking-tight">
         {title}
       </h3>
       
-      <p className="text-sm text-muted-foreground max-w-xs mb-6">
+      <p className="text-sm text-muted-foreground max-w-xs mb-6 leading-relaxed">
         {description}
       </p>
       

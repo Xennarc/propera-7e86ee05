@@ -120,19 +120,17 @@ export function GuestBookingCard({
     )}>
       <CardContent className="p-0">
         <div className="flex">
-          {/* Left colored strip */}
+          {/* Left gradient accent strip */}
           <div className={cn(
-            "w-1 shrink-0",
+            "w-1.5 shrink-0 rounded-l-sm",
             isCancelled 
               ? "bg-muted" 
-              : isActivity && config 
-                ? `bg-${config.colorClass.replace('text-', '')}` 
-                : `bg-${restaurantConfig?.colorClass.replace('text-', '')}`
-          )} style={{
-            backgroundColor: isCancelled 
-              ? undefined 
-              : `hsl(var(--${isActivity ? (booking.category?.toLowerCase() || 'primary') : 'sunset'}))`
-          }} />
+              : booking.status === 'CONFIRMED' 
+                ? "booking-strip-confirmed"
+                : booking.status === 'PENDING'
+                  ? "booking-strip-pending"
+                  : "booking-strip-confirmed"
+          )} />
           
           <div className="flex-1 p-4">
             <div className="flex items-start gap-3">

@@ -14,7 +14,7 @@ export function GuestLoadingSkeleton({
   variant = 'card',
   count = 3,
   className,
-  delay = 150,
+  delay = 200,
 }: GuestLoadingSkeletonProps) {
   const [show, setShow] = useState(delay === 0);
 

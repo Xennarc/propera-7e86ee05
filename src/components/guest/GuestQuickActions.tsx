@@ -76,19 +76,19 @@ export function GuestQuickActions() {
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
         {quickActions.map((action, index) => {
           const Icon = action.icon;
           const content = (
             <div
               className={cn(
                 "guest-quick-action",
-                "h-full min-h-[84px] sm:min-h-[96px]",
+                "h-full min-h-[88px] sm:min-h-[100px]",
                 action.bgClass
               )}
             >
-              <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-white drop-shadow-sm" />
-              <span className="text-[11px] sm:text-xs font-semibold text-white whitespace-nowrap text-center drop-shadow-sm">
+              <Icon className="h-7 w-7 sm:h-8 sm:w-8 text-white drop-shadow-md" />
+              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap text-center drop-shadow-sm">
                 {action.label}
               </span>
             </div>
