@@ -1,3 +1,4 @@
+import { useLocation } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -31,14 +32,35 @@ export interface ResortScope {
  * This is the single source of truth for multi-tenant scoping.
  */
 export function useResortScope(): ResortScope {
+  const { pathname } = useLocation();
   const resortContext = useResort();
   const guestAuth = useGuestAuth();
   const { user, profile, loading: authLoading, getResortRole } = useAuth();
   
   const isSuperAdmin = profile?.global_role === 'SUPER_ADMIN';
   
-  // Guest portal context
-  if (guestAuth.guest) {
+  // Route-aware context detection to prevent session collisions
+  const isStaffRoute = pathname.startsWith('/staff');
+  const isGuestRoute = pathname.startsWith('/guest');
+  
+  // On staff routes: prioritize staff context if user is authenticated
+  // This prevents guest localStorage sessions from blocking staff data
+  if (isStaffRoute && user && resortContext.currentResort) {
+    return {
+      resortId: resortContext.currentResort.id,
+      userId: user.id,
+      timezone: resortContext.currentResort.timezone || 'UTC',
+      isLoading: resortContext.loading,
+      scopeSource: isSuperAdmin ? 'superadmin' : 'staff',
+      isSuperAdmin,
+      resort: resortContext.currentResort,
+      isStaff: true,
+      resortRole: getResortRole(resortContext.currentResort.id),
+    };
+  }
+  
+  // Guest portal context - only on guest routes or when not on staff routes
+  if (guestAuth.guest && (isGuestRoute || !isStaffRoute)) {
     return {
       resortId: guestAuth.guest.resortId,
       userId: undefined,
