@@ -11,8 +11,8 @@ export const DEMO_STAFF_EMAIL = "demo-staff@propera.cc";
 
 // Fixed demo guest configuration
 export const DEMO_GUEST_ROOM = "101";
-export const DEMO_GUEST_NAME = "Demo Guest";
-export const DEMO_GUEST_LAST_NAME = "Guest";
+export const DEMO_GUEST_NAME = "James Wilson";
+export const DEMO_GUEST_LAST_NAME = "Wilson";
 
 // Special shared workspace identifier
 export const SHARED_WORKSPACE_EMAIL = "__shared_demo__";
