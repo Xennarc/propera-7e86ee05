@@ -39,6 +39,17 @@ export function useRequestsDashboard({ filters = {}, enabled = true }: UseReques
     queryFn: async () => {
       if (!resortId) return [];
 
+      // Validate Supabase session before querying (ensures auth.uid() works for RLS)
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        console.warn('[RequestsDashboard] No active Supabase session, attempting refresh');
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('[RequestsDashboard] Session refresh failed:', refreshError);
+          throw new Error('Authentication session expired. Please sign in again.');
+        }
+      }
+
       let query = supabase
         .from('service_requests')
         .select(`
@@ -93,7 +104,20 @@ export function useRequestsDashboard({ filters = {}, enabled = true }: UseReques
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('[RequestsDashboard] Query error:', error);
+        throw error;
+      }
+
+      // Debug logging for troubleshooting
+      if (typeof window !== 'undefined' && window.location.search.includes('debug=1')) {
+        console.log('[RequestsDashboard] Query result:', {
+          resortId,
+          resultCount: data?.length ?? 0,
+          sessionValid: !!sessionData?.session,
+          userId: sessionData?.session?.user?.id,
+        });
+      }
 
       lastSyncedRef.current = new Date();
 
