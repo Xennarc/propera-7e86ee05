@@ -56,7 +56,6 @@ export function PrearrivalCountdown({
                 <p className="text-muted-foreground flex items-center gap-1.5 mt-1">
                   <MapPin className="h-4 w-4" />
                   {String(resortName)}
-                  {resortName}
                 </p>
               )}
             </div>

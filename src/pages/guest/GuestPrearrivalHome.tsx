@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { differenceInHours, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
-import { usePrearrivalData, useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import { usePrearrivalData, useIsPrearrivalGuest, DEFAULT_PREARRIVAL_SETTINGS } from '@/hooks/usePrearrivalData';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,9 +13,10 @@ import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard
 import { PrearrivalSummaryCard } from '@/components/guest/prearrival/PrearrivalSummaryCard';
 import { PrearrivalActivitiesPreview } from '@/components/guest/prearrival/PrearrivalActivitiesPreview';
 import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
-import { Plane, Sparkles, ChevronRight } from 'lucide-react';
+import { Plane, Sparkles, ChevronRight, RefreshCw } from 'lucide-react';
 import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Button } from '@/components/ui/button';
+import { ErrorState } from '@/components/ui/error-state';
 import type { ActiveStay } from '@/hooks/useActiveStay';
 
 interface GuestPrearrivalHomeProps {
@@ -27,7 +28,7 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
-  const { data: prearrivalData, isLoading } = usePrearrivalData();
+  const { data: prearrivalData, isLoading, error, refetch } = usePrearrivalData();
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
 
@@ -66,8 +67,20 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
     return <GuestHomeLoading />;
   }
 
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <ErrorState
+          title="Unable to load pre-arrival data"
+          description="We couldn't fetch your pre-arrival information. Please try again."
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
+
   const firstName = String(guest.fullName ?? 'Guest').split(' ')[0] || 'Guest';
-  const settings = prearrivalData?.settings;
+  const settings = prearrivalData?.settings ?? DEFAULT_PREARRIVAL_SETTINGS;
   const profile = prearrivalData?.profile;
   
   // Check if profile has data (user has submitted something)
