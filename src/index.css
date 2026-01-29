@@ -1537,7 +1537,7 @@
 
   /* Safe bottom padding accounting for nav + safe area */
   .guest-safe-bottom {
-    padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 24px);
+    padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 32px);
   }
 
   /* Extended safe bottom for pages with sticky action bars */

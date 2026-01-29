@@ -34,8 +34,12 @@ export function PreArrivalPromptScreen({
     'Help us prepare for your arrival by sharing a few preferences.';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
-      <Card className="w-full max-w-md shadow-2xl border-primary/10">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-sm p-4"
+      style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+    >
+      <div className="min-h-full flex items-center justify-center py-8">
+        <Card className="w-full max-w-md shadow-2xl border-primary/10">
         <CardContent className="p-6 space-y-6">
           {/* Resort Branding */}
           <div className="flex flex-col items-center text-center space-y-4">
@@ -129,7 +133,8 @@ export function PreArrivalPromptScreen({
             Takes about 2 minutes
           </p>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

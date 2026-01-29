@@ -380,7 +380,10 @@ export function PrearrivalWizard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className="max-w-lg max-h-[85dvh] overflow-y-auto"
+        style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {currentStepData?.icon}
