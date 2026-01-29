@@ -30,7 +30,9 @@ import {
   AlertCircle,
   Lightbulb,
   Clock,
-  Target
+  Target,
+  Palette,
+  ClipboardList
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { StaffInviteDialog } from '@/components/staff/StaffInviteDialog';
@@ -42,6 +44,8 @@ interface OnboardingState {
   restaurants_done: boolean;
   staff_done: boolean;
   portal_done: boolean;
+  branding_done: boolean;
+  prearrival_done: boolean;
 }
 
 interface StepConfig {
@@ -117,6 +121,30 @@ const STEPS: StepConfig[] = [
     ]
   },
   { 
+    key: 'branding', 
+    label: 'Branding', 
+    icon: Palette,
+    description: 'Customize your guest portal appearance',
+    tip: 'Pick a color scheme now—you can fine-tune fonts, buttons, and cards later in Settings.',
+    estimatedTime: '3 min',
+    subtasks: [
+      { key: 'set_colors', label: 'Choose brand colors', check: (_, state) => state.branding_done },
+      { key: 'upload_logo', label: 'Upload logo (optional)', check: (_, state) => state.branding_done },
+    ]
+  },
+  { 
+    key: 'prearrival', 
+    label: 'Pre-Arrival', 
+    icon: ClipboardList,
+    description: 'Configure guest pre-arrival experience',
+    tip: 'Enable pre-arrival to collect guest preferences before they arrive.',
+    estimatedTime: '2 min',
+    subtasks: [
+      { key: 'enable_prearrival', label: 'Review pre-arrival settings', check: (_, state) => state.prearrival_done },
+      { key: 'configure_sections', label: 'Configure visible sections', check: (_, state) => state.prearrival_done },
+    ]
+  },
+  { 
     key: 'portal', 
     label: 'Guest Portal', 
     icon: QrCode,
@@ -143,6 +171,8 @@ export default function ResortOnboardingPage() {
     restaurants_done: false,
     staff_done: false,
     portal_done: false,
+    branding_done: false,
+    prearrival_done: false,
   });
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
@@ -173,7 +203,7 @@ export default function ResortOnboardingPage() {
       // Fetch resort onboarding flags
       const { data: resort } = await supabase
         .from('resorts')
-        .select('onboarding_basics_done, onboarding_activities_done, onboarding_restaurants_done, onboarding_staff_done, onboarding_portal_done')
+        .select('onboarding_basics_done, onboarding_activities_done, onboarding_restaurants_done, onboarding_staff_done, onboarding_portal_done, onboarding_branding_done, onboarding_prearrival_done')
         .eq('id', currentResort.id)
         .single();
 
@@ -184,6 +214,8 @@ export default function ResortOnboardingPage() {
           restaurants_done: resort.onboarding_restaurants_done,
           staff_done: resort.onboarding_staff_done,
           portal_done: resort.onboarding_portal_done,
+          branding_done: resort.onboarding_branding_done ?? false,
+          prearrival_done: resort.onboarding_prearrival_done ?? false,
         });
       }
 
@@ -212,10 +244,12 @@ export default function ResortOnboardingPage() {
         resort?.onboarding_activities_done,
         resort?.onboarding_restaurants_done,
         resort?.onboarding_staff_done,
+        resort?.onboarding_branding_done ?? false,
+        resort?.onboarding_prearrival_done ?? false,
         resort?.onboarding_portal_done,
       ];
       const firstIncomplete = doneFlags.findIndex(f => !f);
-      setActiveStep(firstIncomplete >= 0 ? firstIncomplete : 4);
+      setActiveStep(firstIncomplete >= 0 ? firstIncomplete : STEPS.length - 1);
     } catch (error) {
       console.error('Error fetching onboarding state:', error);
     } finally {
@@ -383,11 +417,11 @@ export default function ResortOnboardingPage() {
             <div className="flex items-center gap-4 text-sm">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span className="text-muted-foreground">{completedSteps} of 5 steps done</span>
+                <span className="text-muted-foreground">{completedSteps} of {STEPS.length} steps done</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">~{Math.max(0, 20 - completedSteps * 4)} min left</span>
+                <span className="text-muted-foreground">~{Math.max(0, 27 - completedSteps * 3)} min left</span>
               </div>
             </div>
           </div>
@@ -654,7 +688,62 @@ export default function ResortOnboardingPage() {
                 </div>
               )}
 
+              {/* Step 5: Branding */}
               {activeStep === 4 && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Customize how your guest portal looks—colors, logo, button styles, and more.
+                  </p>
+                  <div className="p-4 bg-muted/50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <Palette className="h-8 w-8 text-primary" />
+                      <div>
+                        <p className="font-medium">Portal Branding</p>
+                        <p className="text-sm text-muted-foreground">Colors, fonts, logos, and UI components</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => navigate('/staff/settings/branding')}>
+                      Open Branding Settings
+                    </Button>
+                    <Button onClick={() => handleStepComplete('branding', 5)}>
+                      {isStepDone ? 'Configured' : 'Continue'}
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Pre-Arrival */}
+              {activeStep === 5 && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Enable pre-arrival to collect guest preferences, dietary requirements, and special requests before they arrive.
+                  </p>
+                  <div className="p-4 bg-muted/50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <ClipboardList className="h-8 w-8 text-primary" />
+                      <div>
+                        <p className="font-medium">Pre-Arrival Portal</p>
+                        <p className="text-sm text-muted-foreground">Guest preferences collection before check-in</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => navigate('/staff/settings/prearrival')}>
+                      Configure Pre-Arrival
+                    </Button>
+                    <Button onClick={() => handleStepComplete('prearrival', 6)}>
+                      {isStepDone ? 'Configured' : 'Continue'}
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 7: Guest Portal */}
+              {activeStep === 6 && (
                 <div className="space-y-6">
                   <div className="grid md:grid-cols-[1fr_auto] gap-6 items-start">
                     <div className="space-y-4">
@@ -699,7 +788,7 @@ export default function ResortOnboardingPage() {
                   </div>
                   
                   {!isStepDone ? (
-                    <Button onClick={() => handleStepComplete('portal', 4)} className="w-full" size="lg">
+                    <Button onClick={() => handleStepComplete('portal', 6)} className="w-full" size="lg">
                       Complete Setup
                       <Sparkles className="h-4 w-4 ml-2" />
                     </Button>
@@ -725,7 +814,7 @@ export default function ResortOnboardingPage() {
           </Card>
 
           {/* Completion Banner */}
-          {completedSteps === 5 && (
+          {completedSteps === STEPS.length && (
             <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200 dark:border-green-900">
               <CardContent className="py-6">
                 <div className="flex items-center gap-4">
