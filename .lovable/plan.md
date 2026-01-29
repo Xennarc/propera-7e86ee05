@@ -1,205 +1,89 @@
 
-# Improve Booking Details - Dynamic Cancellation Window Display
+
+# Fix Guest Portal Scroll & Content Visibility Issues
 
 ## Summary
-Fix the booking details policy section to show accurate, dynamically-generated cancellation information based on actual configured values from the database. Address the screenshot issue showing "60 hours" by fixing the data mapping and improving microcopy.
+Address two critical mobile UI issues where content is hidden or inaccessible:
+1. **Pre-Arrival Prompt Screen** - Content cut off at the top, cannot scroll to see full dialog
+2. **My Bookings Page** - Dining bookings hidden behind the bottom navigation bar
 
 ---
 
-## Current Issues Identified
+## Problem Analysis
 
-### 1. Data Mapping Bug (Critical)
-In `src/pages/guest/GuestMyBookings.tsx` (line 135), activities are incorrectly mapped:
-```tsx
-// WRONG: Using minutes field
-guest_cancel_cutoff_minutes: b.session?.activity?.guest_cancel_cutoff_minutes ?? 60,
-```
+### Issue 1: Pre-Arrival Prompt Screen
+**Location**: `src/components/guest/prearrival/PreArrivalPromptScreen.tsx`
 
-But the database schema for activities uses **hours** (`guest_cancel_cutoff_hours`). This causes the display to show "60 hours" when it should show "X hours" based on actual config.
+The current implementation uses `fixed inset-0` positioning with a centered card. On devices with status bar/notch, the top content gets cut off because:
+- No safe area inset padding at the top
+- The container is not scrollable
+- The card content can exceed visible viewport on smaller devices
 
-### 2. Hardcoded Policy Text
-In `BookingDetailsPolicies.tsx`, the default message is generic:
-```tsx
-`Bookings can be cancelled up to ${booking.cancelCutoffHours} hours before the start time.`
-```
+**Screenshot shows**: The top of the Pre-Arrival dialog is hidden behind the browser's URL bar and status area.
 
-This doesn't account for:
-- Different time units (hours vs minutes)
-- Smart formatting (e.g., "24 hours" vs "2 hours" vs "30 minutes")
-- Restaurant-specific phrasing
+### Issue 2: My Bookings Page & Other Guest Pages
+**Location**: `src/components/guest/GuestLayout.tsx` and `src/index.css`
 
-### 3. Missing Dynamic Time Format
-The cutoff time display could be more user-friendly by showing relative time when applicable (e.g., "in 2 hours" vs "Jan 29, 5:30 AM").
+While `guest-safe-bottom` class is applied to the `<main>` element, the 24px buffer may not be sufficient in all cases. Additionally, the padding needs to be increased to provide more "breathing room" at the bottom.
 
 ---
 
 ## Solution
 
-### Phase 1: Fix Data Mapping in GuestMyBookings
+### Phase 1: Increase Base Safe Bottom Padding
 
-Update the RPC result mapping to use correct field names:
+Increase the buffer in `.guest-safe-bottom` from 24px to **32px** for more generous spacing:
 
-**File: `src/pages/guest/GuestMyBookings.tsx`**
+```css
+/* Before */
+.guest-safe-bottom {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 24px);
+}
 
-```tsx
-// For activities - use hours (database uses guest_cancel_cutoff_hours)
-const activity_bookings = (result?.activity_bookings || []).map((b: any) => ({
-  // ... existing fields ...
-  guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours ?? 4,
-  // ... rest unchanged ...
-}));
-
-// For restaurants - continue using minutes (database uses guest_cancel_cutoff_minutes)
-const restaurant_reservations = (result?.restaurant_reservations || []).map((r: any) => ({
-  // ... existing fields ...
-  guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_minutes ?? 60,
-  // ... rest unchanged ...
-}));
-```
-
-### Phase 2: Improve mapActivityToDisplayModel 
-
-**File: `src/types/booking-display.ts`**
-
-Update to correctly read the hours field:
-```tsx
-export function mapActivityToDisplayModel(
-  booking: any,
-  guestId: string,
-  timezone?: string
-): BookingDisplayModel {
-  // ...
-  
-  // Activities use HOURS for cancellation cutoff
-  const cutoffHours = booking.guest_cancel_cutoff_hours ?? 4;
-  const cutoffTime = sessionDateTime 
-    ? new Date(sessionDateTime.getTime() - cutoffHours * 60 * 60 * 1000)
-    : undefined;
-  
-  return {
-    // ...
-    cancelCutoffHours: cutoffHours,
-    // ...
-  };
+/* After */
+.guest-safe-bottom {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 32px);
 }
 ```
 
-### Phase 3: Enhance BookingDetailsPolicies Component
+This gives ~104px minimum bottom padding (72px nav + 32px buffer).
 
-**File: `src/components/guest/booking-details/BookingDetailsPolicies.tsx`**
+### Phase 2: Fix Pre-Arrival Prompt Screen
 
-#### 3a. Add Smart Time Formatting Helper
-
-```tsx
-/**
- * Format cutoff duration in human-readable form
- * e.g., 4 hours, 30 minutes, 2 hours
- */
-function formatCutoffDuration(hours: number | undefined, isRestaurant: boolean): string {
-  if (hours === undefined || hours === null) return '';
-  
-  // Restaurants typically use shorter windows, check if we should show minutes
-  if (isRestaurant && hours < 2) {
-    const minutes = Math.round(hours * 60);
-    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-  }
-  
-  // For whole hours, show simply
-  if (hours === Math.floor(hours)) {
-    return `${hours} hour${hours !== 1 ? 's' : ''}`;
-  }
-  
-  // For fractional hours, convert to hours and minutes
-  const wholeHours = Math.floor(hours);
-  const remainingMinutes = Math.round((hours - wholeHours) * 60);
-  
-  if (wholeHours === 0) {
-    return `${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
-  }
-  
-  if (remainingMinutes === 0) {
-    return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''}`;
-  }
-  
-  return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''} ${remainingMinutes} min`;
-}
-```
-
-#### 3b. Add Relative Time Display
+Transform the prompt screen to be scrollable and respect safe areas:
 
 ```tsx
-import { formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns';
+// Current
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm p-4">
+  <Card className="w-full max-w-md shadow-2xl border-primary/10">
 
-// Show relative time when deadline is within 24 hours
-function formatDeadlineDisplay(cutoffTime: Date): { primary: string; secondary?: string } {
-  const now = new Date();
-  const hoursUntil = differenceInHours(cutoffTime, now);
-  
-  if (cutoffTime < now) {
-    // Deadline passed
-    return { primary: format(cutoffTime, 'MMM d, h:mm a') };
-  }
-  
-  if (hoursUntil < 24) {
-    // Within 24 hours - show relative
-    const minutesUntil = differenceInMinutes(cutoffTime, now);
-    if (minutesUntil < 60) {
-      return { 
-        primary: `${minutesUntil} minutes remaining`,
-        secondary: format(cutoffTime, 'h:mm a')
-      };
-    }
-    return { 
-      primary: `${hoursUntil} hours remaining`,
-      secondary: format(cutoffTime, 'h:mm a')
-    };
-  }
-  
-  // More than 24 hours - show absolute
-  return { primary: format(cutoffTime, 'MMM d, h:mm a') };
-}
+// Fixed
+<div className="fixed inset-0 z-50 overflow-y-auto bg-background/95 backdrop-blur-sm p-4"
+     style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+  <div className="min-h-full flex items-center justify-center py-8">
+    <Card className="w-full max-w-md shadow-2xl border-primary/10">
 ```
 
-#### 3c. Update Display Logic
+Key changes:
+1. Make outer container `overflow-y-auto` for scrollability
+2. Add safe area inset padding at the top
+3. Wrap card in a flex container with `min-h-full` to maintain centering
+4. Add vertical padding (`py-8`) to ensure content isn't flush against edges
 
-Generate contextual messages based on booking type and state:
+### Phase 3: Fix Pre-Arrival Wizard Dialog
+
+The `PrearrivalWizard` uses `DialogContent` with `max-h-[90vh]`. This should also account for safe areas:
 
 ```tsx
-// When cancellation is still available
-{canStillCancel ? (
-  <>
-    <p className="font-medium">Free cancellation available</p>
-    {cutoffTime && (
-      <p className="text-sm opacity-80">
-        {formatDeadlineDisplay(cutoffTime).primary}
-        {formatDeadlineDisplay(cutoffTime).secondary && (
-          <span className="block text-xs">{formatDeadlineDisplay(cutoffTime).secondary}</span>
-        )}
-      </p>
-    )}
-  </>
-) : (
-  // When window is closed
-  <>
-    <p className="font-medium">Cancellation window closed</p>
-    {cutoffTime && (
-      <p className="text-sm opacity-80">
-        Deadline was {format(cutoffTime, 'MMM d, h:mm a')}
-      </p>
-    )}
-  </>
-)}
+// Current
+<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
 
-// Policy explanation text
-{!hasPolicyText && hasCancellationInfo && booking.cancelCutoffHours !== undefined && (
-  <p className="text-sm text-muted-foreground">
-    {booking.type === 'restaurant' 
-      ? `Reservations can be cancelled up to ${formatCutoffDuration(booking.cancelCutoffHours, true)} before your booking time.`
-      : `Bookings can be cancelled up to ${formatCutoffDuration(booking.cancelCutoffHours, false)} before the activity starts.`
-    }
-  </p>
-)}
+// Fixed - use safe viewport calculation
+<DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto" 
+               style={{ marginTop: 'env(safe-area-inset-top, 0px)' }}>
 ```
+
+Alternatively, update the base `DialogContent` component to be safe-area aware.
 
 ---
 
@@ -207,52 +91,51 @@ Generate contextual messages based on booking type and state:
 
 | File | Changes |
 |------|---------|
-| `src/pages/guest/GuestMyBookings.tsx` | Fix RPC mapping to use `guest_cancel_cutoff_hours` for activities |
-| `src/types/booking-display.ts` | Update `mapActivityToDisplayModel` to correctly handle hours |
-| `src/components/guest/booking-details/BookingDetailsPolicies.tsx` | Add smart formatting helpers, improve microcopy |
+| `src/index.css` | Increase `guest-safe-bottom` buffer from 24px to 32px |
+| `src/components/guest/prearrival/PreArrivalPromptScreen.tsx` | Make scrollable, add safe area insets |
+| `src/components/guest/prearrival/PrearrivalWizard.tsx` | Reduce max-height to 85dvh, add safe area margin |
 
 ---
 
-## Expected Results
+## Technical Details
 
-### Before (Current)
-```
-Cancellation window closed
-Deadline was Jan 29, 5:30 AM
+### Safe Area Insets
+On modern mobile devices (especially iPhones with notch/Dynamic Island):
+- `env(safe-area-inset-top)` - Status bar / notch height
+- `env(safe-area-inset-bottom)` - Home indicator area
 
-Bookings can be cancelled up to 60 hours before the start time.
-```
+Using `dvh` (dynamic viewport height) instead of `vh` accounts for browser chrome changes.
 
-### After (Fixed)
-```
-Cancellation window closed  
-Deadline was Jan 29, 5:30 AM
+### Padding Calculation
+**Before**: 72px + safe-area + 24px = ~96px minimum
+**After**: 72px + safe-area + 32px = ~104px minimum
 
-Bookings can be cancelled up to 4 hours before the activity starts.
-```
-
-Or when cancellation is still available:
-```
-Free cancellation available
-2 hours remaining
-(by 3:30 PM)
-
-Bookings can be cancelled up to 4 hours before the activity starts.
-```
+The 8px increase ensures:
+- Better visual separation from bottom nav
+- Accounts for shadows and visual elements
+- More comfortable scroll-to-bottom experience
 
 ---
 
 ## Testing Checklist
 
-1. Create an activity with `guest_cancel_cutoff_hours` = 4
-2. Book the activity as a guest
-3. Open booking details and verify:
-   - Correct cutoff time is calculated (4 hours before start)
-   - Policy text shows "4 hours" not "60 hours"
-   - Relative time shows when deadline is close
-4. Test restaurant reservations still work (use minutes)
-5. Test edge cases:
-   - Cutoff exactly 1 hour (singular "hour")
-   - Cutoff 30 minutes (shows "30 minutes")
-   - Cutoff 1.5 hours (shows "1 hour 30 min")
-6. Verify past bookings don't show policy section
+After implementation, verify on mobile:
+1. **Pre-Arrival Prompt Screen**
+   - Can see full content including logo at top
+   - Can scroll if content exceeds viewport
+   - Safe area respected on notched devices
+   
+2. **Pre-Arrival Wizard Dialog**
+   - Can scroll through all wizard steps
+   - Content not cut off at top or bottom
+   - Step indicators fully visible
+   
+3. **My Bookings Page**
+   - All dining reservations visible
+   - Can scroll to bottom comfortably
+   - Last booking card fully visible above nav
+   
+4. **Other Guest Pages** (Home, Activities, Restaurants)
+   - Consistent bottom spacing
+   - No content hidden behind navigation
+
