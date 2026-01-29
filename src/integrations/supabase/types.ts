@@ -3570,13 +3570,21 @@ export type Database = {
       }
       resorts: {
         Row: {
+          brand_background_tint: string | null
+          brand_button_style: string | null
+          brand_card_style: string | null
+          brand_corner_radius: number | null
+          brand_font_family: string | null
+          brand_success_color: string | null
           brand_theme: string | null
+          brand_warning_color: string | null
           brand_wordmark: string | null
           code: string
           created_at: string
           currency: string
           demo_expires_at: string | null
           demo_note: string | null
+          favicon_url: string | null
           guest_login_instructions: string | null
           guest_login_subtitle: string | null
           guest_login_title: string | null
@@ -3602,13 +3610,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_background_tint?: string | null
+          brand_button_style?: string | null
+          brand_card_style?: string | null
+          brand_corner_radius?: number | null
+          brand_font_family?: string | null
+          brand_success_color?: string | null
           brand_theme?: string | null
+          brand_warning_color?: string | null
           brand_wordmark?: string | null
           code: string
           created_at?: string
           currency?: string
           demo_expires_at?: string | null
           demo_note?: string | null
+          favicon_url?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null
@@ -3634,13 +3650,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_background_tint?: string | null
+          brand_button_style?: string | null
+          brand_card_style?: string | null
+          brand_corner_radius?: number | null
+          brand_font_family?: string | null
+          brand_success_color?: string | null
           brand_theme?: string | null
+          brand_warning_color?: string | null
           brand_wordmark?: string | null
           code?: string
           created_at?: string
           currency?: string
           demo_expires_at?: string | null
           demo_note?: string | null
+          favicon_url?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null

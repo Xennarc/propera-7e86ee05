@@ -229,6 +229,22 @@ export function GuestLayout() {
   if (guestAccentHSL) {
     (brandingStyles as Record<string, string>)['--guest-accent'] = guestAccentHSL;
   }
+  // Apply enhanced branding styles
+  if (branding.brand_corner_radius !== null && branding.brand_corner_radius !== undefined) {
+    (brandingStyles as Record<string, string>)['--guest-radius'] = `${branding.brand_corner_radius}px`;
+  }
+  if (branding.brand_button_style) {
+    const buttonRadius = branding.brand_button_style === 'pill' ? '9999px' 
+      : branding.brand_button_style === 'squared' ? '4px' 
+      : `${branding.brand_corner_radius ?? 12}px`;
+    (brandingStyles as Record<string, string>)['--guest-button-radius'] = buttonRadius;
+  }
+  if (branding.brand_font_family) {
+    (brandingStyles as Record<string, string>)['fontFamily'] = `"${branding.brand_font_family}", sans-serif`;
+  }
+  if (branding.brand_background_tint) {
+    (brandingStyles as Record<string, string>)['--guest-bg-tint'] = branding.brand_background_tint;
+  }
 
   return (
     <div 
