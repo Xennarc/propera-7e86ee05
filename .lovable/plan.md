@@ -1,125 +1,127 @@
 
-# Fix: Pre-arrival Guest Portal Blank Page & Missing Activities
+# Fix Pre-arrival Portal Translations and Verify Settings Configuration
 
 ## Problem Summary
-Pre-arrival guests see a **completely blank page** when accessing the guest portal. Additionally, activities during their stay dates do not display.
+The guest portal is showing raw translation keys (e.g., `prearrival.welcomeTitle`, `prearrival.planActivities`) instead of proper English text because the `prearrival` section is missing from the English locale file (`en.json`), even though it exists in Chinese (`zh.json`).
 
-### Root Causes Identified
-
-| Bug | Location | Cause |
-|-----|----------|-------|
-| **Blank Page** | `GuestPrearrivalHome.tsx` (line 90-92) | Returns `null` when `is_enabled: false` instead of a fallback UI |
-| **No Activities** | `PrearrivalActivitiesPreview.tsx` (line 48-52) | Wrong RPC parameters: passes `p_resort_id` but RPC expects `p_guest_id, p_date, p_category` |
-
-### Database Context
-- Resort "The Residence Falhumaafushi" has `prearrival_settings.is_enabled = false`
-- Guest "Sam Smith" (Room 222) has check-in date 2026-01-31 (pre-arrival status)
-- When the guest logs in, they're routed to `GuestPrearrivalHome` which then returns `null`
+## Root Cause
+The English translation file (`src/i18n/locales/en.json`) is missing the entire `prearrival` translation section that the Chinese file has. When a translation key is missing, i18next shows the raw key unless a fallback is provided inline.
 
 ---
 
 ## Solution
 
-### Fix 1: Show Fallback UI When Pre-arrival Features Disabled
+### Fix 1: Add Missing English Translations
 
-**File**: `src/pages/guest/GuestPrearrivalHome.tsx`
+**File**: `src/i18n/locales/en.json`
 
-Instead of returning `null` when pre-arrival is disabled, show a simplified welcome experience:
+Add the complete `prearrival` section to match the Chinese translations and cover all keys used in the code:
 
-**Current Code (line 89-92)**:
-```tsx
-if (!settings?.is_enabled) {
-  return null;
+```json
+"prearrival": {
+  "title": "Pre-Arrival",
+  "welcomeTitle": "Welcome, {{name}}!",
+  "welcomeSubtitle": "Let's prepare for your upcoming stay",
+  "getReady": "Get ready for your upcoming stay",
+  "countdown": "Your Stay",
+  "daysUntil": "{{days}} days until check-in",
+  "arrivingToday": "Arriving today!",
+  "arrivingTomorrow": "Arriving tomorrow!",
+  "checkIn": "Check-in",
+  "checkOut": "Check-out",
+  "stayDuration": "{{nights}} night stay",
+  "checklist": "Pre-arrival checklist",
+  "complete": "Complete",
+  "incomplete": "Incomplete",
+  "arrivalDetails": "Arrival Details",
+  "arrivalDetailsDesc": "Share your flight info and arrival time",
+  "preferences": "Preferences",
+  "preferencesDesc": "Dietary needs and special requirements",
+  "specialOccasions": "Special Occasions",
+  "specialOccasionsDesc": "Celebrating something special?",
+  "preBookActivities": "Pre-book Activities",
+  "preBookActivitiesDesc": "Plan your adventures ahead",
+  "preBookDining": "Reserve Dining",
+  "preBookDiningDesc": "Book your tables in advance",
+  "planActivities": "Plan Activities",
+  "planDining": "Plan Dining",
+  "browseActivities": "Browse Activities",
+  "browseDining": "Browse Dining",
+  "noActivitiesOnDate": "No activities available on this date",
+  "tipTitle": "Insider Tip",
+  "tipDescription": "Book popular activities early—they fill up fast during peak season!",
+  "welcome": "Welcome",
+  "welcomeMessage": "We're excited to have you. Complete these steps to help us prepare a perfect stay.",
+  "wizard": {
+    "title": "Pre-Arrival Form",
+    "step1Title": "Arrival Details",
+    "step2Title": "Preferences",
+    "step3Title": "Special Occasions",
+    "step4Title": "Review",
+    "arrivalDate": "Arrival Date",
+    "arrivalTime": "Arrival Time",
+    "flightNumber": "Flight Number",
+    "transferPreference": "Transfer Preference",
+    "seaplane": "Seaplane",
+    "speedboat": "Speedboat",
+    "domesticFlight": "Domestic Flight",
+    "other": "Other",
+    "dietaryPreferences": "Dietary Preferences",
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "glutenFree": "Gluten-Free",
+    "halalKosher": "Halal/Kosher",
+    "allergies": "Allergies",
+    "allergiesPlaceholder": "Please list any allergies",
+    "roomPreferences": "Room Preferences",
+    "bedType": "Bed Type Preference",
+    "kingBed": "King Bed",
+    "twinBeds": "Twin Beds",
+    "waterComfort": "Water Activity Comfort Level",
+    "beginner": "Beginner - Never tried before",
+    "intermediate": "Intermediate - Some experience",
+    "advanced": "Advanced - Very confident",
+    "honeymoon": "Honeymoon",
+    "anniversary": "Anniversary",
+    "birthday": "Birthday",
+    "specialRequest": "Special Requests",
+    "specialRequestPlaceholder": "Let us know how we can make your stay special",
+    "review": "Review Your Information",
+    "reviewDescription": "Please confirm your pre-arrival details",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "success": "Thank you! Our team will prepare for your arrival."
+  }
 }
 ```
 
-**New Behavior**:
-- Show a simplified welcome banner with countdown to check-in
-- Display quick actions to browse activities and dining
-- Omit the pre-arrival checklist/wizard (since the feature is disabled)
+---
 
-**Implementation**:
-```tsx
-// If pre-arrival form is disabled, still show basic countdown + booking access
-if (!settings?.is_enabled) {
-  return (
-    <div className="space-y-6">
-      {/* Welcome Banner (simplified) */}
-      <Card className="guest-hero border-0 shadow-guest-card overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
-        <CardContent className="p-5 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 shadow-sm">
-              <Plane className="h-7 w-7 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-                {t('prearrival.welcomeTitle', { name: firstName })}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {t('prearrival.getReady', 'Get ready for your upcoming stay')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+## Existing Settings Pages (Already Functional)
 
-      {/* Countdown */}
-      <PrearrivalCountdown 
-        checkInDate={guest.checkInDate}
-        checkOutDate={guest.checkOutDate}
-        roomNumber={guest.roomNumber}
-      />
+### Pre-Arrival Settings
+- **Location**: Settings → Guest Experience → Pre-Arrival Settings
+- **Route**: `/staff/settings/prearrival`
+- **Features**:
+  - Enable/disable pre-arrival portal
+  - Configure days before check-in to open portal
+  - Toggle activity, dining, and spa bookings
+  - Show/hide arrival details, preferences, and special occasions
+  - Add custom resort-specific questions
+  - Set welcome message for guests
+  - Internal guidance notes for staff
 
-      {/* Quick Actions to browse */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link to="/guest/activities">
-          <Card className="guest-card hover:border-primary/30 transition-colors h-full">
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <IconActivities className="h-6 w-6 text-primary" />
-              </div>
-              <span className="font-medium text-sm">{t('prearrival.browseActivities', 'Browse Activities')}</span>
-            </CardContent>
-          </Card>
-        </Link>
-        
-        <Link to="/guest/restaurants">
-          <Card className="guest-card hover:border-primary/30 transition-colors h-full">
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lagoon/10">
-                <IconRestaurants className="h-6 w-6 text-lagoon" />
-              </div>
-              <span className="font-medium text-sm">{t('prearrival.browseDining', 'Browse Dining')}</span>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-    </div>
-  );
-}
-```
-
-### Fix 2: Correct RPC Parameter Names in Activities Preview
-
-**File**: `src/components/guest/prearrival/PrearrivalActivitiesPreview.tsx`
-
-**Current Code (line 48-52)**:
-```tsx
-const { data, error } = await supabase.rpc('guest_get_available_sessions', {
-  p_resort_id: guest.resortId,  // WRONG - this param doesn't exist
-  p_date: selectedDate,
-  p_guest_id: guest.guestId,    // WRONG position
-});
-```
-
-**Fixed Code**:
-```tsx
-const { data, error } = await supabase.rpc('guest_get_available_sessions', {
-  p_guest_id: guest.guestId,
-  p_date: selectedDate,
-  p_category: null, // optional filter
-});
-```
+### Resort Branding Settings
+- **Location**: Settings → Guest Experience → Guest Portal Branding  
+- **Route**: `/staff/settings/branding`
+- **Features**:
+  - Color presets (Ocean Teal, Tropical Sunset, Lagoon Blue, etc.)
+  - Custom primary and accent colors with hex picker
+  - Theme selection (Light, Dark, Auto)
+  - Logo upload
+  - Hero image upload
+  - Brand wordmark
+  - Login page title, subtitle, and instructions
 
 ---
 
@@ -127,30 +129,35 @@ const { data, error } = await supabase.rpc('guest_get_available_sessions', {
 
 | File | Change |
 |------|--------|
-| `src/pages/guest/GuestPrearrivalHome.tsx` | Replace `return null` with fallback UI when pre-arrival disabled |
-| `src/components/guest/prearrival/PrearrivalActivitiesPreview.tsx` | Fix RPC parameter names: remove `p_resort_id`, use correct `p_guest_id, p_date, p_category` signature |
+| `src/i18n/locales/en.json` | Add complete `prearrival` translation section |
 
 ---
 
 ## Testing Checklist
 
-1. **Pre-arrival guest with disabled settings**:
-   - Login as Sam Smith (Room 222, Last name Smith, PIN from database)
-   - Verify welcome banner + countdown appear (no blank page)
-   - Verify activities and dining quick action cards are visible
+1. **Guest Portal Pre-Arrival Page**:
+   - Log in as a pre-arrival guest (e.g., Sam Smith, Room 222)
+   - Verify all text displays correctly:
+     - "Welcome, Sam!" (not `prearrival.welcomeTitle`)
+     - "Plan Activities" (not `prearrival.planActivities`)
+     - "Plan Dining" (not `prearrival.planDining`)
+     - "Insider Tip" card shows proper text
    
-2. **Activities loading**:
-   - Click on activities quick action or day chip
-   - Verify sessions for stay dates load correctly
-   
-3. **Pre-arrival guest with enabled settings**:
-   - Enable pre-arrival for the resort in database
-   - Verify full pre-arrival experience appears (checklist, wizard, etc.)
+2. **Language Switching**:
+   - Switch to Chinese and back to English
+   - Verify translations load correctly for both languages
+
+3. **Staff Settings Access**:
+   - Navigate to Settings → Guest Experience → Pre-Arrival Settings
+   - Verify all configuration options work
+   - Navigate to Settings → Guest Experience → Guest Portal Branding
+   - Verify color presets, custom colors, and theme options work
 
 ---
 
 ## Technical Notes
 
-- The `guest_get_available_sessions` RPC derives `resort_id` internally from the guest record, so passing `p_resort_id` is unnecessary and was causing the call to fail
-- The fallback UI preserves the guest experience even when the resort hasn't configured pre-arrival forms
-- No database changes required - this is purely a frontend fix
+- The i18next library falls back to showing the key when a translation is missing
+- Some keys already have inline fallbacks (e.g., `t('prearrival.browseActivities', 'Browse Activities')`) which is why those show correct text
+- The Chinese translations are already complete and can serve as reference
+- No database changes required—this is purely a frontend locale fix
