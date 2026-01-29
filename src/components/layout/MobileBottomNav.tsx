@@ -36,7 +36,7 @@ const moreNavItems: NavItem[] = [
   { label: 'Reports', href: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
   { label: 'Loyalty', href: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management' },
   { label: 'Team', href: '/staff/team', icon: IconGuests, resortRoles: null },
-  { label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: null },
+  { label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: ['RESORT_ADMIN'] },
 ];
 
 export function MobileBottomNav() {
