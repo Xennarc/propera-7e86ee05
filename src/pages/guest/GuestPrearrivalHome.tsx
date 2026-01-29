@@ -86,9 +86,62 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
   const hoursUntilCheckin = differenceInHours(parseISO(guest.checkInDate), new Date());
   const editLocked = hoursUntilCheckin <= 24 && hoursUntilCheckin > 0;
 
-  // If pre-arrival is not enabled for this resort, don't show this
+  // If pre-arrival form is disabled, still show basic countdown + booking access
   if (!settings?.is_enabled) {
-    return null;
+    return (
+      <div className="space-y-6">
+        {/* Welcome Banner (simplified) */}
+        <Card className="guest-hero border-0 shadow-guest-card overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
+          <CardContent className="p-5 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 shadow-sm">
+                <Plane className="h-7 w-7 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                  {t('prearrival.welcomeTitle', { name: firstName })}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {t('prearrival.getReady', 'Get ready for your upcoming stay')}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Countdown */}
+        <PrearrivalCountdown 
+          checkInDate={guest.checkInDate}
+          checkOutDate={guest.checkOutDate}
+          roomNumber={guest.roomNumber}
+        />
+
+        {/* Quick Actions to browse */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link to="/guest/activities">
+            <Card className="guest-card hover:border-primary/30 transition-colors h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <IconActivities className="h-6 w-6 text-primary" />
+                </div>
+                <span className="font-medium text-sm">{t('prearrival.browseActivities', 'Browse Activities')}</span>
+              </CardContent>
+            </Card>
+          </Link>
+          
+          <Link to="/guest/restaurants">
+            <Card className="guest-card hover:border-primary/30 transition-colors h-full">
+              <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lagoon/10">
+                  <IconRestaurants className="h-6 w-6 text-lagoon" />
+                </div>
+                <span className="font-medium text-sm">{t('prearrival.browseDining', 'Browse Dining')}</span>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const handleOpenWizard = (step?: number) => {
