@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ResortActionsMenu } from '@/components/superadmin/ResortActionsMenu';
 import { ResortSettingsDrawer } from '@/components/superadmin/ResortSettingsDrawer';
+import { CreateResortDialog } from '@/components/resort/CreateResortDialog';
 
 // Resort type for drawer
 interface ResortForDrawer {
@@ -49,6 +50,7 @@ export default function ResortsManagementPage() {
   const [includeDemos, setIncludeDemos] = useState(true);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const [selectedResort, setSelectedResort] = useState<ResortForDrawer | null>(null);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const handleOpenSettings = useCallback((resort: ResortForDrawer) => {
@@ -127,16 +129,20 @@ export default function ResortsManagementPage() {
             .eq('resort_id', resort.id)
             .maybeSingle();
 
+          // Use 7-step onboarding flags from resorts table for accurate progress
+          // Fallback to live-count checks for legacy resorts without flags
           const onboardingChecks = {
+            hasBasics: true, // Resort exists = basics done
             hasActivities: (activityCount || 0) > 0,
-            hasSessions: (sessionCount || 0) > 0,
             hasRestaurants: (restaurantCount || 0) > 0,
-            hasSlots: (slotCount || 0) > 0,
-            hasPrearrival: prearrival?.is_enabled || false,
+            hasStaff: (staffCount || 0) > 0,
+            hasBranding: resort.onboarding_branding_done || false,
+            hasPrearrival: resort.onboarding_prearrival_done || prearrival?.is_enabled || false,
+            hasPortal: resort.onboarding_portal_done || false,
           };
 
           const completedSteps = Object.values(onboardingChecks).filter(Boolean).length;
-          const totalSteps = Object.keys(onboardingChecks).length;
+          const totalSteps = Object.keys(onboardingChecks).length; // 7 steps
 
           return {
             resortId: resort.id,
@@ -197,7 +203,7 @@ export default function ResortsManagementPage() {
             Manage all resorts, configurations, and onboarding
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Resort
         </Button>
@@ -436,6 +442,16 @@ export default function ResortsManagementPage() {
         open={settingsDrawerOpen}
         onOpenChange={setSettingsDrawerOpen}
         onRefresh={handleRefresh}
+      />
+
+      {/* Create Resort Dialog */}
+      <CreateResortDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSuccess={() => {
+          setCreateDialogOpen(false);
+          handleRefresh();
+        }}
       />
     </div>
   );
