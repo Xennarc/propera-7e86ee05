@@ -169,8 +169,8 @@ export default function GuestRequestsPage() {
   return (
     <div className={cn(
       'space-y-5',
-      // Extra padding at bottom for sticky bar + nav
-      selectedItems.length > 0 ? 'pb-40' : 'pb-24'
+      // Use extended safe bottom when sticky bar is visible
+      selectedItems.length > 0 && 'guest-safe-bottom-extended'
     )}>
       {/* Header */}
       <RequestsHeader activeCount={activeCount} />
