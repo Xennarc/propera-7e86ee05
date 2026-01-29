@@ -39,6 +39,18 @@ export interface PrearrivalSettings {
   welcome_message: string | null;
 }
 
+export const DEFAULT_PREARRIVAL_SETTINGS: PrearrivalSettings = {
+  is_enabled: false,
+  allow_activity_bookings: false,
+  allow_dining_bookings: false,
+  allow_spa_bookings: false,
+  show_arrival_details: true,
+  show_preferences: true,
+  show_special_occasions: true,
+  custom_questions_json: [],
+  welcome_message: null,
+};
+
 export interface PrearrivalData {
   success: boolean;
   guest: {
@@ -55,7 +67,7 @@ export interface PrearrivalData {
 export function usePrearrivalData() {
   const { guest } = useGuestAuth();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['prearrival-data', guest?.guestId],
     queryFn: async (): Promise<PrearrivalData | null> => {
       if (!guest) return null;
@@ -81,6 +93,13 @@ export function usePrearrivalData() {
     enabled: !!guest,
     staleTime: 60000, // 1 minute
   });
+
+  return {
+    data: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+  };
 }
 
 export function useUpdatePrearrivalProfile() {
