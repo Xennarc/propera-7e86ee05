@@ -100,6 +100,14 @@ export default function SettingsPage() {
           visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
           feature: 'activities_resources',
         },
+        {
+          title: 'Booking Health',
+          description: 'Check for capacity issues and data inconsistencies',
+          icon: HeartPulse,
+          href: '/staff/settings/booking-health',
+          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+          feature: 'settings_booking_health',
+        },
       ],
     },
     {
@@ -154,14 +162,6 @@ export default function SettingsPage() {
           icon: Sparkles,
           href: '/staff/settings/subscriptions',
           visible: isSuperAdmin(),
-        },
-        {
-          title: 'Booking Health',
-          description: 'Check for capacity issues and data inconsistencies',
-          icon: HeartPulse,
-          href: '/staff/settings/booking-health',
-          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
-          feature: 'settings_booking_health',
         },
         {
           title: 'Permissions Debug',
