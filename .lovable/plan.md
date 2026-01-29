@@ -1,97 +1,100 @@
 
-# Hide Super Admin and Powerful Settings from Lower-Level Users
+# Hide Platform-Level Settings from Resort Admins
 
-## Current State Analysis
+## Problem Analysis
 
-After reviewing the codebase, the access control system is **already well-implemented**:
-
-| Component | Status | Implementation |
-|-----------|--------|----------------|
-| SuperAdminLayout | Protected | Redirects with `AccessDenied` if not Super Admin |
-| StaffSidebar Admin links | Protected | Uses `isSuperAdmin()` to conditionally render |
-| StaffCommandBar | Protected | Super Admin items only shown to Super Admins |
-| SettingsPage | Protected | Items filtered by role via `visible` property |
-| Debug Panel | Protected | Only Super Admin + Resort Admin can access |
-
-## Identified Improvement
-
-The main issue: **Lower-level staff can still see the "Settings" navigation item** in the mobile bottom nav and sidebar, but when they click it, they see "No settings available for your current role." This is confusing UX.
-
-## Proposed Changes
-
-### 1. Hide Settings Navigation for Users with No Accessible Settings
-
-**File: `src/components/layout/MobileBottomNav.tsx`**
-
-Update the Settings item in `moreNavItems` to only be visible for users who have at least one accessible setting:
+The "System" settings group is labeled with a **"Super Admin"** badge and contains platform-wide configuration items. However, the "Booking Health" item is currently visible to RESORT_ADMIN users because of its `visible` check:
 
 ```tsx
-// Before (line 39)
-{ label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: null },
-
-// After - restrict to users who can manage settings
-{ label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: ['RESORT_ADMIN'] },
+visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN'
 ```
 
-### 2. Update StaffSidebar Admin Group Visibility
+This causes RESORT_ADMIN users to see a confusing "System" section with a red "SUPER ADMIN" badge — just for one diagnostic tool that isn't actually a platform-level setting.
 
-**File: `src/components/staff/StaffSidebar.tsx`**
+## Solution
 
-The Admin group (line 165-176) already has role restrictions on individual items, but the `isAdmin` check at line 79 allows RESORT_ADMIN to see the group. This is correct. No changes needed here.
+Move "Booking Health" from the **System** group (Super Admin only) to the **Operations** group (Resort Admin accessible), since it's a resort-level diagnostic tool, not a platform configuration.
 
-### 3. Verify Settings Page Shows Correct Fallback
+## Changes
 
-The SettingsPage already shows a proper fallback message when no settings are available (lines 196-203). This is good UX for edge cases.
+### File: `src/pages/settings/SettingsPage.tsx`
 
-## Technical Implementation
-
-### MobileBottomNav.tsx Changes
+**1. Move "Booking Health" from System group to Operations group:**
 
 ```tsx
-const moreNavItems: NavItem[] = [
-  { label: 'Notifications', href: '/staff/notifications', icon: Bell, resortRoles: null },
-  { label: 'Pre-Arrival', href: '/staff/prearrival', icon: TrendingUp, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
-  { label: 'Reports', href: '/staff/reports', icon: IconReports, resortRoles: ['RESORT_ADMIN', 'MANAGER'] },
-  { label: 'Loyalty', href: '/staff/loyalty', icon: Crown, resortRoles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management' },
-  { label: 'Team', href: '/staff/team', icon: IconGuests, resortRoles: null },
-  // Updated: Only show Settings to roles that have accessible settings
-  { label: 'Settings', href: '/staff/settings', icon: IconSettings, resortRoles: ['RESORT_ADMIN'] },
-];
+// BEFORE: Booking Health in System group (lines 158-165)
+{
+  id: 'system',
+  title: 'System',
+  badge: 'super-admin',
+  items: [
+    // ... super admin items ...
+    {
+      title: 'Booking Health',
+      description: 'Check for capacity issues and data inconsistencies',
+      icon: HeartPulse,
+      href: '/staff/settings/booking-health',
+      visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+      feature: 'settings_booking_health',
+    },
+    // ...
+  ],
+}
+
+// AFTER: Move to Operations group
+{
+  id: 'operations',
+  title: 'Operations',
+  items: [
+    // ... existing items ...
+    {
+      title: 'Booking Health',
+      description: 'Check for capacity issues and data inconsistencies',
+      icon: HeartPulse,
+      href: '/staff/settings/booking-health',
+      visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+      feature: 'settings_booking_health',
+    },
+  ],
+}
 ```
 
-## What Lower-Level Users Will See After This Change
+**2. Remove "Booking Health" from System group:**
 
-| Role | Dashboard | Activities | Dining | Guests | Reports | Settings |
-|------|-----------|------------|--------|--------|---------|----------|
-| SUPER_ADMIN | All | All | All | All | All | All |
-| RESORT_ADMIN | All | All | All | All | All | All |
-| MANAGER | Limited | All | All | All | Limited | Hidden |
-| FRONT_OFFICE | Limited | Sessions | Slots | View | None | Hidden |
-| RESERVATIONS | Limited | None | None | None | None | Hidden |
-| ACTIVITIES | Limited | All | None | None | None | Hidden |
-| FNB | Limited | None | All | None | None | Hidden |
+The System group will now only contain truly platform-level items visible exclusively to Super Admins:
+- Resorts (manage all resorts)
+- Platform Users (global role management)  
+- Subscription Tiers (plan management)
+- Permissions Debug (access diagnostics)
 
-Note: MANAGER role will no longer see Settings in mobile nav since they dont have any settings they can manage (all settings require RESORT_ADMIN).
+## Result After Changes
 
-## Security Verification
+| Settings Group | Visible To | Items |
+|----------------|-----------|-------|
+| Guest Experience | RESORT_ADMIN, SUPER_ADMIN | Pre-Arrival, Branding, Portal Links |
+| Operations | RESORT_ADMIN, SUPER_ADMIN | Requests, Directory, Pricing, Resources, **Booking Health** |
+| Staff & Access | RESORT_ADMIN, SUPER_ADMIN | Resort Staff, Guest Import |
+| System | **SUPER_ADMIN only** | Resorts, Platform Users, Subscription Tiers, Permissions Debug |
 
-The following protections remain in place:
+## What This Fixes
 
-1. **Route-level guards**: SuperAdminLayout blocks non-Super Admins entirely
-2. **RLS policies**: Database enforces access at the data layer
-3. **Backend authorization**: Edge functions validate caller permissions
-4. **Item-level visibility**: Each settings item checks `visible` property
+1. **RESORT_ADMIN** users will no longer see the "System" section with its intimidating "SUPER ADMIN" badge
+2. **Booking Health** moves to a logical location under "Operations" where it belongs
+3. The "System" group becomes strictly platform-level, matching its "Super Admin" badge
+4. Clean separation between resort-scoped tools and platform-wide configuration
 
-## Files to Modify
+## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/layout/MobileBottomNav.tsx` | Restrict Settings to RESORT_ADMIN |
+| `src/pages/settings/SettingsPage.tsx` | Move Booking Health from System to Operations group |
 
 ## Testing Checklist
 
-1. Log in as FRONT_OFFICE user - verify Settings is not visible in More menu
-2. Log in as ACTIVITIES user - verify Settings is not visible
-3. Log in as RESORT_ADMIN - verify Settings is visible and shows all resort settings
-4. Log in as SUPER_ADMIN - verify full access to Command Center and all settings
-5. Verify direct URL access to `/staff/settings` as lower role still shows proper fallback (defense in depth)
+1. Log in as **RESORT_ADMIN** — verify:
+   - "System" section is NOT visible
+   - "Booking Health" appears under "Operations"
+2. Log in as **SUPER_ADMIN** — verify:
+   - "System" section IS visible with all platform items
+   - "Booking Health" also visible under "Operations"
+3. Verify "Booking Health" page still works when accessed from new location
