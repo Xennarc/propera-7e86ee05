@@ -1508,7 +1508,7 @@
 
   /* Safe bottom padding accounting for nav + safe area */
   .guest-safe-bottom {
-    padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+    padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 24px);
   }
 
   /* === Premium Guest Page Background === */
