@@ -3598,7 +3598,9 @@ export type Database = {
           name: string
           onboarding_activities_done: boolean
           onboarding_basics_done: boolean
+          onboarding_branding_done: boolean | null
           onboarding_portal_done: boolean
+          onboarding_prearrival_done: boolean | null
           onboarding_restaurants_done: boolean
           onboarding_staff_done: boolean
           onboarding_status: string
@@ -3639,7 +3641,9 @@ export type Database = {
           name: string
           onboarding_activities_done?: boolean
           onboarding_basics_done?: boolean
+          onboarding_branding_done?: boolean | null
           onboarding_portal_done?: boolean
+          onboarding_prearrival_done?: boolean | null
           onboarding_restaurants_done?: boolean
           onboarding_staff_done?: boolean
           onboarding_status?: string
@@ -3680,7 +3684,9 @@ export type Database = {
           name?: string
           onboarding_activities_done?: boolean
           onboarding_basics_done?: boolean
+          onboarding_branding_done?: boolean | null
           onboarding_portal_done?: boolean
+          onboarding_prearrival_done?: boolean | null
           onboarding_restaurants_done?: boolean
           onboarding_staff_done?: boolean
           onboarding_status?: string

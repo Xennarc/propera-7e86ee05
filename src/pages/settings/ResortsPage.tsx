@@ -36,6 +36,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Shield } from 'lucide-react';
 
 export default function ResortsPage() {
+  // ALL HOOKS FIRST - before any conditional returns
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -50,19 +51,6 @@ export default function ResortsPage() {
   const { isSuperAdmin } = useAuth();
   const { refetch: refetchResorts } = useResort();
   const { toast } = useToast();
-
-  // Only SUPER_ADMIN can access this page
-  if (!isSuperAdmin()) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <EmptyState
-          icon={Shield}
-          title="Access Denied"
-          description="Only platform administrators can manage resorts"
-        />
-      </div>
-    );
-  }
 
   const fetchResorts = async () => {
     setLoading(true);
@@ -79,9 +67,27 @@ export default function ResortsPage() {
     setLoading(false);
   };
 
+  // useEffect must be called unconditionally BEFORE any conditional returns
   useEffect(() => {
-    fetchResorts();
+    if (isSuperAdmin()) {
+      fetchResorts();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  // Access check AFTER all hooks
+  if (!isSuperAdmin()) {
+    return (
+      <div className="flex items-center justify-center h-[50vh]">
+        <EmptyState
+          icon={Shield}
+          title="Access Denied"
+          description="Only platform administrators can manage resorts"
+        />
+      </div>
+    );
+  }
 
   const handleDelete = async () => {
     if (!deleteResort) return;
