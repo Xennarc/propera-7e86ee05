@@ -6,9 +6,17 @@ import { ClipboardList, Sparkles } from 'lucide-react';
 
 interface RequestsHeaderProps {
   activeCount: number;
+  tagline?: string;
 }
 
-export const RequestsHeader = memo(function RequestsHeader({ activeCount }: RequestsHeaderProps) {
+export const RequestsHeader = memo(function RequestsHeader({ activeCount, tagline }: RequestsHeaderProps) {
+  const displayTagline = tagline || 'Tap what you need — we\'ll notify the team.';
+  
+  // Extract the first word and rest of tagline for styling
+  const firstSpaceIndex = displayTagline.indexOf(' ');
+  const firstWord = firstSpaceIndex > 0 ? displayTagline.slice(0, firstSpaceIndex) : displayTagline;
+  const restOfTagline = firstSpaceIndex > 0 ? displayTagline.slice(firstSpaceIndex) : '';
+
   return (
     <header className="space-y-1">
       <div className="flex items-center justify-between gap-4">
@@ -67,7 +75,7 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount }: Requ
         transition={{ duration: 0.3, delay: 0.15 }}
         className="text-sm text-muted-foreground"
       >
-        <span className="text-primary font-medium">Tap</span> what you need — we'll notify the team.
+        <span className="text-primary font-medium">{firstWord}</span>{restOfTagline}
       </motion.p>
     </header>
   );

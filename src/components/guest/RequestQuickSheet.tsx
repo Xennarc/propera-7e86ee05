@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useServiceRequestMutations } from '@/hooks/useServiceRequests';
+import { useRequestSettings, formatResponseTime } from '@/hooks/useRequestSettings';
 import {
   Drawer,
   DrawerContent,
@@ -22,15 +23,6 @@ interface RequestQuickSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const COMMON_REQUESTS = [
-  'Extra towels',
-  'Extra pillows',
-  'Room cleaning',
-  'Wake-up call',
-  'Late checkout',
-  'Iron & ironing board',
-];
-
 const MAX_CHARS = 500;
 
 export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps) {
@@ -42,6 +34,9 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
     guest?.guestId || '',
     guest?.resortId || ''
   );
+
+  // Fetch dynamic settings
+  const { settings } = useRequestSettings(guest?.resortId || '', !!guest?.resortId);
 
   const handleSubmit = async () => {
     if (!guest || !requestText.trim()) return;
@@ -81,14 +76,14 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
         </DrawerHeader>
 
         <div className="px-4 py-2 space-y-4 overflow-y-auto">
-          {/* Common Requests - 2-column grid */}
+          {/* Common Requests - 2-column grid, dynamic from settings */}
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground flex items-center gap-1">
               <Sparkles className="h-3 w-3" />
               Quick suggestions
             </Label>
             <div className="grid grid-cols-2 gap-2">
-              {COMMON_REQUESTS.map((suggestion) => (
+              {settings.quickSuggestions.map((suggestion) => (
                 <motion.button
                   key={suggestion}
                   type="button"
@@ -152,7 +147,7 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
             />
           </div>
 
-          {/* Estimated Response */}
+          {/* Estimated Response - dynamic from settings */}
           {requestText.trim() && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
@@ -161,7 +156,9 @@ export function RequestQuickSheet({ open, onOpenChange }: RequestQuickSheetProps
             >
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">Estimated response: </span>
-                {isAsap ? '10-15 minutes' : '30-60 minutes'}
+                {isAsap 
+                  ? `${settings.asapResponseMin}-${settings.asapResponseMax} minutes`
+                  : `${settings.scheduledResponseMin}-${settings.scheduledResponseMax} minutes`}
               </p>
             </motion.div>
           )}

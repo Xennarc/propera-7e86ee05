@@ -3292,9 +3292,13 @@ export type Database = {
         Row: {
           category: string
           code: string
+          color_class: string | null
           created_at: string
           default_priority: string
           department_key: string
+          description: string | null
+          display_label: string | null
+          display_order: number | null
           icon_key: string | null
           id: string
           is_active: boolean
@@ -3305,9 +3309,13 @@ export type Database = {
         Insert: {
           category: string
           code: string
+          color_class?: string | null
           created_at?: string
           default_priority?: string
           department_key: string
+          description?: string | null
+          display_label?: string | null
+          display_order?: number | null
           icon_key?: string | null
           id?: string
           is_active?: boolean
@@ -3318,9 +3326,13 @@ export type Database = {
         Update: {
           category?: string
           code?: string
+          color_class?: string | null
           created_at?: string
           default_priority?: string
           department_key?: string
+          description?: string | null
+          display_label?: string | null
+          display_order?: number | null
           icon_key?: string | null
           id?: string
           is_active?: boolean
@@ -3476,6 +3488,74 @@ export type Database = {
           summary?: Json
         }
         Relationships: []
+      }
+      resort_request_settings: {
+        Row: {
+          asap_response_max_minutes: number | null
+          asap_response_min_minutes: number | null
+          created_at: string | null
+          empty_state_description: string | null
+          empty_state_title: string | null
+          footer_response_text: string | null
+          header_tagline: string | null
+          id: string
+          max_bundle_items: number | null
+          max_total_quantity: number | null
+          quick_suggestions: Json | null
+          requests_end_hour: number | null
+          requests_start_hour: number | null
+          resort_id: string
+          scheduled_response_max_minutes: number | null
+          scheduled_response_min_minutes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          asap_response_max_minutes?: number | null
+          asap_response_min_minutes?: number | null
+          created_at?: string | null
+          empty_state_description?: string | null
+          empty_state_title?: string | null
+          footer_response_text?: string | null
+          header_tagline?: string | null
+          id?: string
+          max_bundle_items?: number | null
+          max_total_quantity?: number | null
+          quick_suggestions?: Json | null
+          requests_end_hour?: number | null
+          requests_start_hour?: number | null
+          resort_id: string
+          scheduled_response_max_minutes?: number | null
+          scheduled_response_min_minutes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          asap_response_max_minutes?: number | null
+          asap_response_min_minutes?: number | null
+          created_at?: string | null
+          empty_state_description?: string | null
+          empty_state_title?: string | null
+          footer_response_text?: string | null
+          header_tagline?: string | null
+          id?: string
+          max_bundle_items?: number | null
+          max_total_quantity?: number | null
+          quick_suggestions?: Json | null
+          requests_end_hour?: number | null
+          requests_start_hour?: number | null
+          resort_id?: string
+          scheduled_response_max_minutes?: number | null
+          scheduled_response_min_minutes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_request_settings_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resort_retention_policies: {
         Row: {
@@ -5884,12 +5964,21 @@ export type Database = {
         Returns: {
           category: string
           code: string
+          color_class: string
+          default_priority: string
           department_key: string
+          description: string
+          display_label: string
+          display_order: number
           icon_key: string
           id: string
           is_billable: boolean
           title: string
         }[]
+      }
+      guest_get_request_settings: {
+        Args: { p_resort_id: string }
+        Returns: Json
       }
       guest_get_restaurants: { Args: { p_resort_id: string }; Returns: Json }
       guest_get_room_bookings: { Args: { p_guest_id: string }; Returns: Json }

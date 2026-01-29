@@ -8,13 +8,19 @@ interface RequestsEmptyStateProps {
   onRetry?: () => void;
   isError?: boolean;
   errorMessage?: string;
+  title?: string;
+  description?: string;
 }
 
 export const RequestsEmptyState = memo(function RequestsEmptyState({
   onRetry,
   isError = false,
   errorMessage,
+  title,
+  description,
 }: RequestsEmptyStateProps) {
+  const displayTitle = title || 'Your personal concierge';
+  const displayDescription = description || 'We\'re setting up your request options. In the meantime, our team is here to help with anything you need.';
   if (isError) {
     return (
       <motion.div
@@ -81,10 +87,10 @@ export const RequestsEmptyState = memo(function RequestsEmptyState({
       </div>
 
       <h3 className="text-lg font-semibold text-foreground mb-1.5">
-        Your personal concierge
+        {displayTitle}
       </h3>
       <p className="text-sm text-muted-foreground max-w-[260px] leading-relaxed">
-        We're setting up your request options. In the meantime, our team is here to help with anything you need.
+        {displayDescription}
       </p>
     </motion.div>
   );

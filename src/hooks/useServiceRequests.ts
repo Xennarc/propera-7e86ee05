@@ -45,6 +45,11 @@ export interface CatalogItem {
   icon_key: string | null;
   is_billable: boolean;
   default_priority: string;
+  // Dynamic display fields from database
+  display_label?: string;
+  description?: string;
+  color_class?: string;
+  display_order?: number;
 }
 
 interface UseGuestServiceRequestsOptions {

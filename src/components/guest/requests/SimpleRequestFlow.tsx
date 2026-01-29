@@ -15,18 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useServiceRequestMutations } from '@/hooks/useServiceRequests';
+import { useRequestSettings, formatResponseTime, DEFAULT_REQUEST_SETTINGS } from '@/hooks/useRequestSettings';
 import { format, addMinutes, startOfDay, setHours, setMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-
-// Common requests for quick selection
-const COMMON_REQUESTS = [
-  'Extra towels',
-  'Room cleaning',
-  'Extra pillows',
-  'Wake-up call',
-  'Iron & board',
-  'Extra toiletries',
-];
 
 interface SimpleRequestFlowProps {
   guestId: string;
@@ -41,16 +32,19 @@ export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleR
   const [showSuccess, setShowSuccess] = useState(false);
   
   const { createRequest, isCreating } = useServiceRequestMutations(guestId, resortId);
+  const { settings } = useRequestSettings(resortId);
 
-  // Generate time slots for scheduling
+  // Generate time slots for scheduling using dynamic settings
   const timeSlots = useMemo(() => {
     const slots: string[] = [];
-    for (let hour = 6; hour <= 22; hour++) {
+    const startHour = settings.requestsStartHour;
+    const endHour = settings.requestsEndHour;
+    for (let hour = startHour; hour <= endHour; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
       slots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
     return slots;
-  }, []);
+  }, [settings.requestsStartHour, settings.requestsEndHour]);
 
   // Build scheduled datetime
   const getScheduledDateTime = () => {
@@ -198,13 +192,13 @@ export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleR
           </p>
         </div>
 
-        {/* Quick Suggestions */}
+        {/* Quick Suggestions - Dynamic from settings */}
         <div className="space-y-2">
           <Label className="text-sm font-medium text-muted-foreground">
             Quick suggestions
           </Label>
           <div className="flex flex-wrap gap-2">
-            {COMMON_REQUESTS.map((suggestion) => (
+            {settings.quickSuggestions.map((suggestion) => (
               <motion.button
                 key={suggestion}
                 whileTap={{ scale: 0.95 }}
@@ -312,14 +306,14 @@ export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleR
         </Button>
       </motion.div>
 
-      {/* Info Footer */}
+      {/* Info Footer - Dynamic response time */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
         className="text-center text-xs text-muted-foreground px-4"
       >
-        Our team typically responds within 15 minutes during operating hours
+        {formatResponseTime(settings.footerResponseText, settings.asapResponseMin, settings.asapResponseMax)}
       </motion.p>
     </div>
   );
