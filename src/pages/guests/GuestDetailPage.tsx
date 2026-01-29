@@ -429,6 +429,8 @@ export default function GuestDetailPage() {
           checkOutDate={guest.check_out_date}
           data={prearrivalData || { profile: null, settings: null, link: null, review: null, status: 'not_started', hasAnyData: false }}
           isLoading={prearrivalLoading}
+          roomNumber={guest.room_number}
+          portalPinLast4={guest.portal_pin_last4}
         />
       )}
 
