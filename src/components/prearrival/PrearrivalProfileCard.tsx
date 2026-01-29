@@ -54,6 +54,8 @@ interface PrearrivalProfileCardProps {
   checkOutDate: string;
   data: StaffPrearrivalData;
   isLoading: boolean;
+  roomNumber: string;
+  portalPinLast4?: string | null;
 }
 
 export function PrearrivalProfileCard({
@@ -68,6 +70,8 @@ export function PrearrivalProfileCard({
   checkOutDate,
   data,
   isLoading,
+  roomNumber,
+  portalPinLast4,
 }: PrearrivalProfileCardProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -121,10 +125,11 @@ export function PrearrivalProfileCard({
     id: guestId,
     full_name: guestName,
     email: guestEmail || null,
-    room_number: '', // Populated from parent component
+    room_number: roomNumber,
     check_in_date: checkInDate,
     check_out_date: checkOutDate,
     resort_id: resortId,
+    portal_pin_last4: portalPinLast4 || null,
   } as Guest;
 
   const handleSendEmail = () => {

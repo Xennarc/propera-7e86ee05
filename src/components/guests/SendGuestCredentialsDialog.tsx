@@ -132,6 +132,45 @@ export function SendGuestCredentialsDialog({
   const handleSendSingle = async () => {
     if (!singleGuest) return;
     
+    // Validate required fields before attempting send
+    if (!singleGuest.room_number) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Room number missing', 
+        description: 'Please add a room number to the guest before sending credentials.' 
+      });
+      return;
+    }
+    
+    if (!singleGuest.check_in_date) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Check-in date missing', 
+        description: 'Guest must have a check-in date to send credentials.' 
+      });
+      return;
+    }
+    
+    const nameParts = singleGuest.full_name.trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    if (!lastName) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Name missing', 
+        description: 'Guest must have a name to send credentials.' 
+      });
+      return;
+    }
+    
+    if (!currentResort?.code) {
+      toast({ 
+        variant: 'destructive', 
+        title: 'Resort not ready', 
+        description: 'Please wait for resort data to load and try again.' 
+      });
+      return;
+    }
+    
     const email = editableEmails[singleGuest.id] || singleGuest.email;
     if (!email) {
       toast({ variant: 'destructive', title: 'No email', description: 'Please add an email address' });
