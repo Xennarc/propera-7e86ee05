@@ -30,6 +30,15 @@ export interface ResortBranding {
   guest_login_instructions: string | null;
   brand_theme: string | null;
   brand_wordmark: string | null;
+  // New enhanced branding fields
+  brand_button_style: 'rounded' | 'pill' | 'squared' | null;
+  brand_card_style: 'elevated' | 'outlined' | 'flat' | null;
+  brand_corner_radius: number | null;
+  brand_font_family: string | null;
+  brand_background_tint: string | null;
+  brand_success_color: string | null;
+  brand_warning_color: string | null;
+  favicon_url: string | null;
 }
 
 // Default branding values when no custom branding is set
@@ -38,6 +47,14 @@ export const DEFAULT_BRANDING: Partial<ResortBranding> = {
   login_primary_color: null,  // Falls back to --lime-400 in CSS
   login_accent_color: null,   // Falls back to --blurple-500 in CSS
   brand_theme: 'AUTO',        // Follow system preference by default
+  brand_button_style: 'rounded',
+  brand_card_style: 'elevated',
+  brand_corner_radius: 12,
+  brand_font_family: 'Plus Jakarta Sans',
+  brand_background_tint: null,
+  brand_success_color: null,
+  brand_warning_color: null,
+  favicon_url: null,
 };
 
 /**
@@ -51,7 +68,7 @@ async function fetchResortBranding(resortIdOrCode: string): Promise<ResortBrandi
   // Query resort directly - RLS policy restricts to active resorts only
   const query = supabase
     .from('resorts')
-    .select('id, name, code, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark');
+    .select('id, name, code, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark, brand_button_style, brand_card_style, brand_corner_radius, brand_font_family, brand_background_tint, brand_success_color, brand_warning_color, favicon_url');
   
   if (isUuid) {
     const { data, error } = await query.eq('id', resortIdOrCode).maybeSingle();
@@ -111,6 +128,15 @@ export function getBrandingWithDefaults(branding: ResortBranding | null | undefi
     login_primary_color: branding.login_primary_color,
     login_accent_color: branding.login_accent_color,
     brand_theme: branding.brand_theme || 'AUTO',
+    // Apply defaults for new enhanced branding fields
+    brand_button_style: branding.brand_button_style || 'rounded',
+    brand_card_style: branding.brand_card_style || 'elevated',
+    brand_corner_radius: branding.brand_corner_radius ?? 12,
+    brand_font_family: branding.brand_font_family || 'Plus Jakarta Sans',
+    brand_background_tint: branding.brand_background_tint,
+    brand_success_color: branding.brand_success_color,
+    brand_warning_color: branding.brand_warning_color,
+    favicon_url: branding.favicon_url,
   };
 }
 

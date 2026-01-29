@@ -741,6 +741,35 @@
     
     /* Ring color matches primary for focus states */
     --ring: var(--guest-primary, var(--lime-400));
+
+    /* Enhanced branding: corner radius */
+    --radius: var(--guest-radius, 0.75rem);
+    --radius-lg: calc(var(--guest-radius, 0.75rem) * 1.5);
+    --radius-xl: calc(var(--guest-radius, 0.75rem) * 2);
+  }
+
+  /* Guest-branded button radius override */
+  .guest-branded button,
+  .guest-branded [role="button"],
+  .guest-branded .btn,
+  .guest-branded [class*="Button"] {
+    border-radius: var(--guest-button-radius, var(--radius));
+  }
+
+  /* Guest-branded card styles */
+  .guest-branded .guest-card-elevated {
+    @apply shadow-md border;
+    border-radius: var(--guest-radius, 12px);
+  }
+
+  .guest-branded .guest-card-outlined {
+    @apply border-2 shadow-none;
+    border-radius: var(--guest-radius, 12px);
+  }
+
+  .guest-branded .guest-card-flat {
+    @apply border-transparent bg-muted/50 shadow-none;
+    border-radius: var(--guest-radius, 12px);
   }
 
   /* Guest-branded glow effect using resort primary color */

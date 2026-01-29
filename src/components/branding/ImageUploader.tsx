@@ -14,7 +14,7 @@ interface ImageUploaderProps {
   value: string;
   onChange: (url: string) => void;
   resortId: string;
-  imageType: 'logo' | 'hero';
+  imageType: 'logo' | 'hero' | 'favicon';
   aspectRatio?: 'square' | 'wide';
 }
 
