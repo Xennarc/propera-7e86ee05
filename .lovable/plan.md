@@ -1,163 +1,321 @@
 
-# Fix Pre-arrival Portal Translations and Verify Settings Configuration
+# Enhanced Branding Settings - Highly Customizable Guest Portal UI
 
-## Problem Summary
-The guest portal is showing raw translation keys (e.g., `prearrival.welcomeTitle`, `prearrival.planActivities`) instead of proper English text because the `prearrival` section is missing from the English locale file (`en.json`), even though it exists in Chinese (`zh.json`).
-
-## Root Cause
-The English translation file (`src/i18n/locales/en.json`) is missing the entire `prearrival` translation section that the Chinese file has. When a translation key is missing, i18next shows the raw key unless a fallback is provided inline.
+## Overview
+Transform the existing branding settings into a comprehensive, enterprise-grade customization system while maintaining an intuitive, approachable interface for resort administrators. The goal is to offer more control over the guest portal experience without overwhelming non-technical users.
 
 ---
 
-## Solution
+## Current State Analysis
 
-### Fix 1: Add Missing English Translations
+The existing `ResortBrandingPage.tsx` already provides:
+- 8 color presets with primary/accent selection
+- Custom hex color inputs with color pickers
+- Theme mode (Light/Dark/Auto)
+- Logo and hero image uploads
+- Login page content (title, subtitle, instructions)
+- Brand wordmark/tagline
+- Live preview with portal and login views
 
-**File**: `src/i18n/locales/en.json`
+**Gaps Identified:**
+1. No secondary/tertiary color customization
+2. No button style options (rounded, pill, squared)
+3. No card style configuration (shadow depth, border radius)
+4. No header style options (position, background style)
+5. No navigation customization (icon style, layout)
+6. No font family selection
+7. No favicon upload
+8. No success/warning color overrides
+9. No "Reset Section" granular controls
+10. Limited preview device frames
 
-Add the complete `prearrival` section to match the Chinese translations and cover all keys used in the code:
+---
 
-```json
-"prearrival": {
-  "title": "Pre-Arrival",
-  "welcomeTitle": "Welcome, {{name}}!",
-  "welcomeSubtitle": "Let's prepare for your upcoming stay",
-  "getReady": "Get ready for your upcoming stay",
-  "countdown": "Your Stay",
-  "daysUntil": "{{days}} days until check-in",
-  "arrivingToday": "Arriving today!",
-  "arrivingTomorrow": "Arriving tomorrow!",
-  "checkIn": "Check-in",
-  "checkOut": "Check-out",
-  "stayDuration": "{{nights}} night stay",
-  "checklist": "Pre-arrival checklist",
-  "complete": "Complete",
-  "incomplete": "Incomplete",
-  "arrivalDetails": "Arrival Details",
-  "arrivalDetailsDesc": "Share your flight info and arrival time",
-  "preferences": "Preferences",
-  "preferencesDesc": "Dietary needs and special requirements",
-  "specialOccasions": "Special Occasions",
-  "specialOccasionsDesc": "Celebrating something special?",
-  "preBookActivities": "Pre-book Activities",
-  "preBookActivitiesDesc": "Plan your adventures ahead",
-  "preBookDining": "Reserve Dining",
-  "preBookDiningDesc": "Book your tables in advance",
-  "planActivities": "Plan Activities",
-  "planDining": "Plan Dining",
-  "browseActivities": "Browse Activities",
-  "browseDining": "Browse Dining",
-  "noActivitiesOnDate": "No activities available on this date",
-  "tipTitle": "Insider Tip",
-  "tipDescription": "Book popular activities early—they fill up fast during peak season!",
-  "welcome": "Welcome",
-  "welcomeMessage": "We're excited to have you. Complete these steps to help us prepare a perfect stay.",
-  "wizard": {
-    "title": "Pre-Arrival Form",
-    "step1Title": "Arrival Details",
-    "step2Title": "Preferences",
-    "step3Title": "Special Occasions",
-    "step4Title": "Review",
-    "arrivalDate": "Arrival Date",
-    "arrivalTime": "Arrival Time",
-    "flightNumber": "Flight Number",
-    "transferPreference": "Transfer Preference",
-    "seaplane": "Seaplane",
-    "speedboat": "Speedboat",
-    "domesticFlight": "Domestic Flight",
-    "other": "Other",
-    "dietaryPreferences": "Dietary Preferences",
-    "vegetarian": "Vegetarian",
-    "vegan": "Vegan",
-    "glutenFree": "Gluten-Free",
-    "halalKosher": "Halal/Kosher",
-    "allergies": "Allergies",
-    "allergiesPlaceholder": "Please list any allergies",
-    "roomPreferences": "Room Preferences",
-    "bedType": "Bed Type Preference",
-    "kingBed": "King Bed",
-    "twinBeds": "Twin Beds",
-    "waterComfort": "Water Activity Comfort Level",
-    "beginner": "Beginner - Never tried before",
-    "intermediate": "Intermediate - Some experience",
-    "advanced": "Advanced - Very confident",
-    "honeymoon": "Honeymoon",
-    "anniversary": "Anniversary",
-    "birthday": "Birthday",
-    "specialRequest": "Special Requests",
-    "specialRequestPlaceholder": "Let us know how we can make your stay special",
-    "review": "Review Your Information",
-    "reviewDescription": "Please confirm your pre-arrival details",
-    "submit": "Submit",
-    "submitting": "Submitting...",
-    "success": "Thank you! Our team will prepare for your arrival."
-  }
-}
+## Proposed Enhancements
+
+### 1. Reorganized Tab Structure (Better Information Architecture)
+
+Replace current 3-tab layout with a more intuitive 5-section collapsible panel design:
+
+| Section | Contents |
+|---------|----------|
+| **Brand Identity** | Logo, favicon, wordmark, resort name display |
+| **Color Palette** | Presets, primary, accent, success/warning overrides, background tint |
+| **Typography** | Font family presets, heading weight |
+| **UI Components** | Button style, card style, navigation style, corner radius scale |
+| **Login Experience** | Hero image, welcome title/subtitle, instructions, form style |
+
+### 2. Enhanced Color System
+
+**Add new color options:**
+- **Background Tint**: Subtle overlay color for page backgrounds
+- **Success Color**: Override for confirmation states
+- **Warning Color**: Override for alert states
+
+**Improved Color Presets:**
+```typescript
+const ENHANCED_COLOR_PRESETS = [
+  { 
+    name: 'Ocean Teal', 
+    primary: '#0E7490', 
+    accent: '#D8C7A6', 
+    background: '#F8FAFB',
+    description: 'Classic professional' 
+  },
+  { 
+    name: 'Tropical Paradise', 
+    primary: '#10B981', 
+    accent: '#FDE68A', 
+    background: '#F0FDF4',
+    description: 'Fresh, vibrant island feel' 
+  },
+  { 
+    name: 'Sunset Luxury', 
+    primary: '#DC2626', 
+    accent: '#FEF3C7', 
+    background: '#FFF7ED',
+    description: 'Warm, upscale resort' 
+  },
+  { 
+    name: 'Nordic Spa', 
+    primary: '#6366F1', 
+    accent: '#E0E7FF', 
+    background: '#F5F3FF',
+    description: 'Calm, minimalist wellness' 
+  },
+  { 
+    name: 'Midnight Premium', 
+    primary: '#A855F7', 
+    accent: '#1E1B4B', 
+    background: '#0F0F23',
+    description: 'Dark mode luxury' 
+  },
+  { 
+    name: 'Desert Oasis', 
+    primary: '#B45309', 
+    accent: '#FEFCE8', 
+    background: '#FFFBEB',
+    description: 'Warm, earthy tones' 
+  },
+  // ... more presets
+];
+```
+
+### 3. Typography Presets
+
+**Font family options** (Google Fonts, no custom upload needed):
+```typescript
+const FONT_PRESETS = [
+  { name: 'Default', family: 'Plus Jakarta Sans', description: 'Modern professional' },
+  { name: 'Elegant', family: 'Playfair Display', description: 'Classic luxury' },
+  { name: 'Clean', family: 'Inter', description: 'Minimal tech' },
+  { name: 'Friendly', family: 'Nunito', description: 'Approachable rounded' },
+  { name: 'Bold', family: 'Montserrat', description: 'Strong contemporary' },
+];
+```
+
+### 4. UI Component Styles
+
+**Button Styles:**
+```typescript
+const BUTTON_STYLES = [
+  { value: 'rounded', label: 'Rounded', preview: 'rounded-lg', description: 'Modern default' },
+  { value: 'pill', label: 'Pill', preview: 'rounded-full', description: 'Soft, approachable' },
+  { value: 'squared', label: 'Square', preview: 'rounded-sm', description: 'Sharp, minimal' },
+];
+```
+
+**Card Styles:**
+```typescript
+const CARD_STYLES = [
+  { value: 'elevated', label: 'Elevated', description: 'Subtle shadows' },
+  { value: 'outlined', label: 'Outlined', description: 'Clean borders' },
+  { value: 'flat', label: 'Flat', description: 'Minimal, no depth' },
+];
+```
+
+**Corner Radius Scale:**
+- Slider from 0 (sharp) to 24px (very rounded)
+
+### 5. Enhanced Live Preview
+
+**New Preview Features:**
+- Device frame selector: Phone, Tablet, Desktop mockups
+- Animation toggle to preview transitions
+- Side-by-side light/dark comparison
+- "View as guest" button that opens actual portal in new tab with temp preview params
+
+### 6. Collapsible Section Layout
+
+Replace tabs with collapsible accordions for better mobile experience and contextual editing:
+
+```tsx
+<Accordion type="multiple" defaultValue={['identity', 'colors']}>
+  <AccordionItem value="identity">
+    <AccordionTrigger>
+      <div className="flex items-center gap-2">
+        <Fingerprint className="h-4 w-4" />
+        Brand Identity
+      </div>
+    </AccordionTrigger>
+    <AccordionContent>
+      {/* Logo, Favicon, Wordmark */}
+    </AccordionContent>
+  </AccordionItem>
+  
+  <AccordionItem value="colors">
+    <AccordionTrigger>
+      <div className="flex items-center gap-2">
+        <Palette className="h-4 w-4" />
+        Color Palette
+      </div>
+    </AccordionTrigger>
+    <AccordionContent>
+      {/* Color presets, custom colors */}
+    </AccordionContent>
+  </AccordionItem>
+  
+  {/* ... more sections */}
+</Accordion>
+```
+
+### 7. Quick Actions & Guidance
+
+**Add contextual help:**
+- Info tooltips for each setting
+- "Best practices" tips inline
+- Preview indicators showing where each setting appears
+
+**Add quick actions:**
+- "Apply preset & save" one-click
+- "Copy branding from another resort" (Super Admin only)
+- "Export branding configuration" (JSON)
+- "Reset this section" per-section controls
+
+---
+
+## Database Schema Changes
+
+Add new columns to the `resorts` table:
+
+```sql
+ALTER TABLE resorts
+ADD COLUMN brand_button_style TEXT DEFAULT 'rounded' CHECK (brand_button_style IN ('rounded', 'pill', 'squared')),
+ADD COLUMN brand_card_style TEXT DEFAULT 'elevated' CHECK (brand_card_style IN ('elevated', 'outlined', 'flat')),
+ADD COLUMN brand_corner_radius INTEGER DEFAULT 12,
+ADD COLUMN brand_font_family TEXT DEFAULT 'Plus Jakarta Sans',
+ADD COLUMN brand_background_tint TEXT,
+ADD COLUMN brand_success_color TEXT,
+ADD COLUMN brand_warning_color TEXT,
+ADD COLUMN favicon_url TEXT;
 ```
 
 ---
 
-## Existing Settings Pages (Already Functional)
+## Files to Create/Modify
 
-### Pre-Arrival Settings
-- **Location**: Settings → Guest Experience → Pre-Arrival Settings
-- **Route**: `/staff/settings/prearrival`
-- **Features**:
-  - Enable/disable pre-arrival portal
-  - Configure days before check-in to open portal
-  - Toggle activity, dining, and spa bookings
-  - Show/hide arrival details, preferences, and special occasions
-  - Add custom resort-specific questions
-  - Set welcome message for guests
-  - Internal guidance notes for staff
-
-### Resort Branding Settings
-- **Location**: Settings → Guest Experience → Guest Portal Branding  
-- **Route**: `/staff/settings/branding`
-- **Features**:
-  - Color presets (Ocean Teal, Tropical Sunset, Lagoon Blue, etc.)
-  - Custom primary and accent colors with hex picker
-  - Theme selection (Light, Dark, Auto)
-  - Logo upload
-  - Hero image upload
-  - Brand wordmark
-  - Login page title, subtitle, and instructions
+| File | Action | Description |
+|------|--------|-------------|
+| `src/pages/settings/ResortBrandingPage.tsx` | **Major Refactor** | New accordion layout, enhanced sections |
+| `src/components/branding/BrandingPreview.tsx` | **Enhance** | Device frames, light/dark comparison |
+| `src/components/branding/ColorPresetCard.tsx` | **Create** | Reusable preset card with better visuals |
+| `src/components/branding/FontPresetSelector.tsx` | **Create** | Font family picker with preview |
+| `src/components/branding/ButtonStyleSelector.tsx` | **Create** | Visual button style picker |
+| `src/components/branding/CardStyleSelector.tsx` | **Create** | Visual card style picker |
+| `src/components/branding/RadiusSlider.tsx` | **Create** | Corner radius control with live preview |
+| `src/components/branding/BrandingSectionHeader.tsx` | **Create** | Consistent section headers with reset |
+| `src/hooks/useResortBranding.ts` | **Extend** | Add new branding fields |
+| `src/components/guest/GuestLayout.tsx` | **Extend** | Apply new CSS variables for styles |
+| `src/index.css` | **Extend** | Add CSS variables for button/card/radius |
 
 ---
 
-## Files to Modify
+## UI Mockup: Enhanced Branding Page Layout
 
-| File | Change |
-|------|--------|
-| `src/i18n/locales/en.json` | Add complete `prearrival` translation section |
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  ← Settings    Branding                        [Preview] [Save] │
+├────────────────────────────────────┬────────────────────────────┤
+│                                    │                            │
+│  ▼ Brand Identity                  │     ┌──────────────────┐   │
+│    ┌──────────┐                    │     │   iPhone 14      │   │
+│    │   LOGO   │  Upload Logo       │     │  ╭────────────╮  │   │
+│    └──────────┘                    │     │  │ Resort     │  │   │
+│    □ Favicon                       │     │  ├────────────┤  │   │
+│    Wordmark: [Island Escape    ]   │     │  │            │  │   │
+│                                    │     │  │  Welcome!  │  │   │
+│  ▼ Color Palette                   │     │  │            │  │   │
+│    ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐│     │  │  [Login]   │  │   │
+│    │Ocean│ │Tropi│ │Sunse│ │Nordi││     │  │            │  │   │
+│    │Teal │ │cal  │ │t    │ │c    ││     │  ╰────────────╯  │   │
+│    └──●──┘ └─────┘ └─────┘ └─────┘│     └──────────────────┘   │
+│                                    │                            │
+│    Primary: [#0E7490] 🎨           │     [Phone] [Tablet] [Web] │
+│    Accent:  [#D8C7A6] 🎨           │     [Portal] [Login]       │
+│                                    │                            │
+│  ► Typography                      │     ────────────────────   │
+│                                    │     ◉ Primary  ◉ Accent    │
+│  ► UI Components                   │     Theme: Light           │
+│                                    │                            │
+│  ► Login Experience                │                            │
+│                                    │                            │
+├────────────────────────────────────┴────────────────────────────┤
+│  [Discard Changes]           [Reset to Defaults]    [💾 Save]   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Implementation Approach
+
+### Phase 1: Database & Foundation
+1. Add new columns to `resorts` table via migration
+2. Extend `useResortBranding` hook to include new fields
+3. Add CSS variables for new style options in `index.css`
+
+### Phase 2: New Components
+1. Create `ColorPresetCard` with improved visual design
+2. Create `FontPresetSelector` with live font preview
+3. Create `ButtonStyleSelector` and `CardStyleSelector`
+4. Create `RadiusSlider` with visual preview
+
+### Phase 3: Page Refactor
+1. Refactor `ResortBrandingPage` to use accordion layout
+2. Organize settings into logical sections
+3. Add per-section reset controls
+
+### Phase 4: Preview Enhancement
+1. Add device frame selector to `BrandingPreview`
+2. Add light/dark comparison toggle
+3. Improve preview responsiveness
+
+### Phase 5: Guest Portal Integration
+1. Update `GuestLayout` to read new branding fields
+2. Apply dynamic CSS variables for button/card/radius styles
+3. Integrate font loading from Google Fonts CDN
 
 ---
 
 ## Testing Checklist
 
-1. **Guest Portal Pre-Arrival Page**:
-   - Log in as a pre-arrival guest (e.g., Sam Smith, Room 222)
-   - Verify all text displays correctly:
-     - "Welcome, Sam!" (not `prearrival.welcomeTitle`)
-     - "Plan Activities" (not `prearrival.planActivities`)
-     - "Plan Dining" (not `prearrival.planDining`)
-     - "Insider Tip" card shows proper text
-   
-2. **Language Switching**:
-   - Switch to Chinese and back to English
-   - Verify translations load correctly for both languages
-
-3. **Staff Settings Access**:
-   - Navigate to Settings → Guest Experience → Pre-Arrival Settings
-   - Verify all configuration options work
-   - Navigate to Settings → Guest Experience → Guest Portal Branding
-   - Verify color presets, custom colors, and theme options work
+1. **Color Presets**: Apply each preset, verify all colors change in preview
+2. **Custom Colors**: Use color picker, verify hex validation works
+3. **Typography**: Select different fonts, verify preview updates
+4. **Button Styles**: Toggle between rounded/pill/squared, verify in preview
+5. **Card Styles**: Toggle between elevated/outlined/flat, verify in preview
+6. **Corner Radius**: Adjust slider, verify preview updates in real-time
+7. **Save & Load**: Save settings, refresh, verify all settings persist
+8. **Guest Portal**: View as guest, verify all branding applies correctly
+9. **Mobile Responsive**: Test settings page on mobile viewport
+10. **Reset Controls**: Test per-section reset, verify correct defaults restore
 
 ---
 
-## Technical Notes
+## Accessibility Considerations
 
-- The i18next library falls back to showing the key when a translation is missing
-- Some keys already have inline fallbacks (e.g., `t('prearrival.browseActivities', 'Browse Activities')`) which is why those show correct text
-- The Chinese translations are already complete and can serve as reference
-- No database changes required—this is purely a frontend locale fix
+- All color inputs include contrast checking feedback
+- Font previews include size/weight accessibility notes
+- Keyboard navigation through all accordion sections
+- Screen reader labels for visual-only selectors
+- Minimum contrast warnings when selecting colors
+
