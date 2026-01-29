@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { 
   Palette, Image, Type, Save, Shield, RotateCcw, 
   Sun, Moon, Monitor, Eye, Sparkles, AlertCircle, Copy,
-  Fingerprint, Layers, ImageIcon
+  Fingerprint, Layers, ImageIcon, Home
 } from 'lucide-react';
 import { EnhancedBrandingPreview } from '@/components/branding/EnhancedBrandingPreview';
 import { ImageUploader } from '@/components/branding/ImageUploader';
@@ -42,6 +42,7 @@ const DEFAULT_ACCENT = '#D8C7A6';
 interface FormData {
   login_logo_url: string;
   login_hero_image_url: string;
+  home_hero_image_url: string;
   login_primary_color: string;
   login_accent_color: string;
   guest_login_title: string;
@@ -63,6 +64,7 @@ interface FormData {
 const initialFormData: FormData = {
   login_logo_url: '',
   login_hero_image_url: '',
+  home_hero_image_url: '',
   login_primary_color: '',
   login_accent_color: '',
   guest_login_title: '',
@@ -119,7 +121,7 @@ export default function ResortBrandingPage() {
       const { data, error } = await supabase
         .from('resorts')
         .select(`
-          login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, 
+          login_logo_url, login_hero_image_url, home_hero_image_url, login_primary_color, login_accent_color, 
           guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark,
           brand_button_style, brand_card_style, brand_corner_radius, brand_font_family,
           brand_background_tint, brand_success_color, brand_warning_color, favicon_url
@@ -133,6 +135,7 @@ export default function ResortBrandingPage() {
         const loadedData: FormData = {
           login_logo_url: data.login_logo_url || '',
           login_hero_image_url: data.login_hero_image_url || '',
+          home_hero_image_url: data.home_hero_image_url || '',
           login_primary_color: data.login_primary_color || '',
           login_accent_color: data.login_accent_color || '',
           guest_login_title: data.guest_login_title || '',
@@ -184,6 +187,7 @@ export default function ResortBrandingPage() {
         .update({
           login_logo_url: formData.login_logo_url.trim() || null,
           login_hero_image_url: formData.login_hero_image_url.trim() || null,
+          home_hero_image_url: formData.home_hero_image_url.trim() || null,
           login_primary_color: formData.login_primary_color.trim() || null,
           login_accent_color: formData.login_accent_color.trim() || null,
           guest_login_title: formData.guest_login_title.trim() || null,
@@ -279,6 +283,12 @@ export default function ResortBrandingPage() {
           guest_login_title: '',
           guest_login_subtitle: '',
           guest_login_instructions: '',
+        }));
+        break;
+      case 'homeExperience':
+        setFormData(prev => ({
+          ...prev,
+          home_hero_image_url: '',
         }));
         break;
     }
@@ -671,6 +681,46 @@ export default function ResortBrandingPage() {
               </AccordionContent>
             </AccordionItem>
 
+            {/* Guest Home Experience Section */}
+            <AccordionItem value="homeExperience" className="border rounded-xl px-4 bg-card">
+              <AccordionTrigger className="hover:no-underline py-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <Home className="h-4 w-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">Guest Home Experience</div>
+                    <div className="text-xs text-muted-foreground">Home page hero and content</div>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <div className="space-y-6 pt-2">
+                  <div className="flex justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => resetSection('homeExperience')} className="text-muted-foreground">
+                      <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                      Reset
+                    </Button>
+                  </div>
+
+                  <ImageUploader
+                    label="Home Hero Image"
+                    description="Guest home page background (1920×1080px)"
+                    value={formData.home_hero_image_url}
+                    onChange={(url) => setFormData({ ...formData, home_hero_image_url: url })}
+                    resortId={currentResort.id}
+                    imageType="hero"
+                    aspectRatio="wide"
+                  />
+                  
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    Falls back to login hero image if not set
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
             {/* Login Experience Section */}
             <AccordionItem value="login" className="border rounded-xl px-4 bg-card">
               <AccordionTrigger className="hover:no-underline py-4">
@@ -680,7 +730,7 @@ export default function ResortBrandingPage() {
                   </div>
                   <div className="text-left">
                     <div className="font-semibold">Login Experience</div>
-                    <div className="text-xs text-muted-foreground">Hero image and welcome content</div>
+                    <div className="text-xs text-muted-foreground">Login page hero and welcome content</div>
                   </div>
                 </div>
               </AccordionTrigger>
@@ -694,7 +744,7 @@ export default function ResortBrandingPage() {
                   </div>
 
                   <ImageUploader
-                    label="Hero Background"
+                    label="Login Hero Background"
                     description="Login page background (1920×1080px)"
                     value={formData.login_hero_image_url}
                     onChange={(url) => setFormData({ ...formData, login_hero_image_url: url })}
@@ -788,6 +838,7 @@ export default function ResortBrandingPage() {
                   wordmark={formData.brand_wordmark}
                   resortName={currentResort.name}
                   heroImageUrl={formData.login_hero_image_url}
+                  homeHeroImageUrl={formData.home_hero_image_url}
                   loginTitle={formData.guest_login_title}
                   loginSubtitle={formData.guest_login_subtitle}
                   buttonStyle={formData.brand_button_style}
