@@ -114,7 +114,7 @@ export default function GuestHome() {
       if (!guest) return null;
       const { data, error } = await supabase
         .from('resorts')
-        .select('code, login_hero_image_url')
+        .select('code, login_hero_image_url, home_hero_image_url')
         .eq('id', guest.resortId)
         .single();
       if (error) throw error;
@@ -123,8 +123,10 @@ export default function GuestHome() {
     enabled: !!guest,
   });
 
-  // Fallback hero image
-  const heroImage = resort?.login_hero_image_url || 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80';
+  // Hero image with fallback chain: home_hero → login_hero → default
+  const heroImage = resort?.home_hero_image_url 
+    || resort?.login_hero_image_url 
+    || 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&q=80';
 
   // Calculate current day of stay
   const currentDay = differenceInDays(new Date(), parseISO(guest?.checkInDate || '')) + 1;

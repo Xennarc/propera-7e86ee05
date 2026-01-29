@@ -23,6 +23,7 @@ export interface ResortBranding {
   code: string;
   login_logo_url: string | null;
   login_hero_image_url: string | null;
+  home_hero_image_url: string | null;
   login_primary_color: string | null;
   login_accent_color: string | null;
   guest_login_title: string | null;
@@ -68,7 +69,7 @@ async function fetchResortBranding(resortIdOrCode: string): Promise<ResortBrandi
   // Query resort directly - RLS policy restricts to active resorts only
   const query = supabase
     .from('resorts')
-    .select('id, name, code, login_logo_url, login_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark, brand_button_style, brand_card_style, brand_corner_radius, brand_font_family, brand_background_tint, brand_success_color, brand_warning_color, favicon_url');
+    .select('id, name, code, login_logo_url, login_hero_image_url, home_hero_image_url, login_primary_color, login_accent_color, guest_login_title, guest_login_subtitle, guest_login_instructions, brand_theme, brand_wordmark, brand_button_style, brand_card_style, brand_corner_radius, brand_font_family, brand_background_tint, brand_success_color, brand_warning_color, favicon_url');
   
   if (isUuid) {
     const { data, error } = await query.eq('id', resortIdOrCode).maybeSingle();
@@ -114,6 +115,7 @@ export function getBrandingWithDefaults(branding: ResortBranding | null | undefi
       code: '',
       login_logo_url: null,
       login_hero_image_url: null,
+      home_hero_image_url: null,
       guest_login_title: null,
       guest_login_subtitle: null,
       guest_login_instructions: null,

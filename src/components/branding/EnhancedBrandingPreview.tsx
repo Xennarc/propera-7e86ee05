@@ -10,6 +10,7 @@ interface EnhancedBrandingPreviewProps {
   wordmark: string;
   resortName: string;
   heroImageUrl?: string;
+  homeHeroImageUrl?: string;
   loginTitle?: string;
   loginSubtitle?: string;
   // New enhanced props
@@ -20,7 +21,7 @@ interface EnhancedBrandingPreviewProps {
   backgroundTint?: string;
 }
 
-type PreviewMode = 'portal' | 'login';
+type PreviewMode = 'portal' | 'home' | 'login';
 type DeviceFrame = 'phone' | 'tablet' | 'desktop';
 
 const DEVICE_FRAMES: { value: DeviceFrame; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
@@ -37,6 +38,7 @@ export function EnhancedBrandingPreview({
   wordmark,
   resortName,
   heroImageUrl,
+  homeHeroImageUrl,
   loginTitle,
   loginSubtitle,
   buttonStyle = 'rounded',
@@ -90,23 +92,34 @@ export function EnhancedBrandingPreview({
       {/* Controls Row */}
       <div className="flex flex-wrap gap-2">
         {/* Preview Mode Toggle */}
-        <div className="flex gap-1 p-1 bg-muted rounded-lg flex-1 min-w-[160px]">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg flex-1 min-w-[200px]">
           <button
             onClick={() => setPreviewMode('portal')}
             className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all',
+              'flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
               previewMode === 'portal' 
                 ? 'bg-background shadow-sm text-foreground' 
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            <Home className="h-3 w-3" />
             Portal
+          </button>
+          <button
+            onClick={() => setPreviewMode('home')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
+              previewMode === 'home' 
+                ? 'bg-background shadow-sm text-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Home className="h-3 w-3" />
+            Home
           </button>
           <button
             onClick={() => setPreviewMode('login')}
             className={cn(
-              'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all',
+              'flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all',
               previewMode === 'login' 
                 ? 'bg-background shadow-sm text-foreground' 
                 : 'text-muted-foreground hover:text-foreground'
@@ -181,6 +194,20 @@ export function EnhancedBrandingPreview({
                 isDark={isDark}
                 resortName={resortName}
                 wordmark={wordmark}
+                getContrastColor={getContrastColor}
+                buttonRadius={getButtonRadius()}
+                cardClass={getCardClass()}
+                cornerRadius={cornerRadius}
+              />
+            ) : previewMode === 'home' ? (
+              <HomePreviewContent
+                logoUrl={logoUrl}
+                effectivePrimary={effectivePrimary}
+                effectiveAccent={effectiveAccent}
+                primaryTextColor={primaryTextColor}
+                isDark={isDark}
+                resortName={resortName}
+                heroImageUrl={homeHeroImageUrl || heroImageUrl}
                 getContrastColor={getContrastColor}
                 buttonRadius={getButtonRadius()}
                 cardClass={getCardClass()}
@@ -372,6 +399,159 @@ function PortalPreviewContent({
               </div>
               <div className={cn('text-[10px]', isDark ? 'text-slate-400' : 'text-muted-foreground')}>
                 7:30 PM · 2 guests
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Nav */}
+      <div className={cn(
+        'flex items-center justify-around py-2 border-t shrink-0',
+        isDark ? 'bg-slate-900 border-slate-700' : 'bg-background border-border'
+      )}>
+        {[
+          { icon: Home, label: 'Home', active: true },
+          { icon: Calendar, label: 'Book', active: false },
+          { icon: UtensilsCrossed, label: 'Dine', active: false },
+          { icon: User, label: 'Me', active: false },
+        ].map((item) => (
+          <div key={item.label} className="flex flex-col items-center gap-0.5">
+            <item.icon
+              className="h-4 w-4"
+              style={{
+                color: item.active ? effectivePrimary : isDark ? '#94A3B8' : '#9CA3AF',
+              }}
+            />
+            <span
+              className="text-[9px]"
+              style={{
+                color: item.active ? effectivePrimary : isDark ? '#94A3B8' : '#9CA3AF',
+              }}
+            >
+              {item.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Home Preview Content (Guest Portal Home Page)
+function HomePreviewContent({
+  logoUrl,
+  effectivePrimary,
+  effectiveAccent,
+  primaryTextColor,
+  isDark,
+  resortName,
+  heroImageUrl,
+  getContrastColor,
+  buttonRadius,
+  cardClass,
+  cornerRadius,
+}: {
+  logoUrl: string;
+  effectivePrimary: string;
+  effectiveAccent: string;
+  primaryTextColor: string;
+  isDark: boolean;
+  resortName: string;
+  heroImageUrl?: string;
+  getContrastColor: (hex: string) => string;
+  buttonRadius: string;
+  cardClass: string;
+  cornerRadius: number;
+}) {
+  return (
+    <div className={cn('h-full flex flex-col', isDark ? 'bg-slate-900' : 'bg-white')}>
+      {/* Hero Section with Background Image */}
+      <div className="relative shrink-0" style={{ height: '45%' }}>
+        {heroImageUrl ? (
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${heroImageUrl})` }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+          </div>
+        ) : (
+          <div 
+            className="absolute inset-0"
+            style={{ 
+              background: `linear-gradient(135deg, ${effectivePrimary}40 0%, ${effectiveAccent}60 100%)` 
+            }}
+          />
+        )}
+        
+        {/* Hero Content */}
+        <div className="relative z-10 h-full flex flex-col justify-between p-3">
+          <div className="space-y-0.5">
+            <h1 className="text-lg font-bold text-white drop-shadow-sm">
+              Good afternoon, Guest!
+            </h1>
+            <p className="text-white/75 text-[10px]">
+              Welcome to {resortName}
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-between gap-2">
+            <span className="bg-white/20 backdrop-blur-sm text-white text-[9px] px-2 py-0.5 rounded-full">
+              Jan 15 – Jan 22
+            </span>
+            <span className="bg-white/90 text-black text-[9px] px-2 py-0.5 rounded-full font-medium">
+              Day 3 of 7
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className={cn('flex-1 p-3 space-y-2 overflow-auto', isDark ? 'bg-slate-800' : 'bg-muted/30')}>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-4 gap-1.5">
+          {['Activities', 'Dining', 'Spa', 'Explore'].map((label, i) => (
+            <div 
+              key={label}
+              className={cn(
+                'flex flex-col items-center gap-1 p-1.5',
+                cardClass,
+                isDark ? 'bg-slate-900 border-slate-700' : 'bg-background border-border'
+              )}
+              style={{ borderRadius: `${cornerRadius - 4}px` }}
+            >
+              <div 
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px]"
+                style={{ backgroundColor: i === 0 ? effectivePrimary : effectiveAccent + '40' }}
+              >
+                {i === 0 ? '🏄' : i === 1 ? '🍽️' : i === 2 ? '💆' : '🗺️'}
+              </div>
+              <span className={cn('text-[8px]', isDark ? 'text-slate-300' : 'text-foreground')}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Today's Schedule Card */}
+        <div
+          className={cn('p-2', cardClass, isDark ? 'bg-slate-900 border-slate-700' : 'bg-background border-border')}
+          style={{ borderRadius: `${cornerRadius}px` }}
+        >
+          <div className={cn('text-[10px] font-medium mb-1.5', isDark ? 'text-white' : 'text-foreground')}>
+            Today's Schedule
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-8 h-8 flex items-center justify-center shrink-0"
+              style={{ backgroundColor: effectiveAccent, borderRadius: `${Math.max(cornerRadius - 4, 4)}px` }}
+            >
+              <Calendar className="h-3.5 w-3.5" style={{ color: getContrastColor(effectiveAccent) }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className={cn('text-[10px] font-medium', isDark ? 'text-white' : 'text-foreground')}>
+                Snorkeling Trip
+              </div>
+              <div className={cn('text-[9px]', isDark ? 'text-slate-400' : 'text-muted-foreground')}>
+                2:00 PM · Beach Dock
               </div>
             </div>
           </div>

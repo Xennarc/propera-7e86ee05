@@ -3588,6 +3588,7 @@ export type Database = {
           guest_login_instructions: string | null
           guest_login_subtitle: string | null
           guest_login_title: string | null
+          home_hero_image_url: string | null
           id: string
           is_demo: boolean
           login_accent_color: string | null
@@ -3628,6 +3629,7 @@ export type Database = {
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null
+          home_hero_image_url?: string | null
           id?: string
           is_demo?: boolean
           login_accent_color?: string | null
@@ -3668,6 +3670,7 @@ export type Database = {
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
           guest_login_title?: string | null
+          home_hero_image_url?: string | null
           id?: string
           is_demo?: boolean
           login_accent_color?: string | null
