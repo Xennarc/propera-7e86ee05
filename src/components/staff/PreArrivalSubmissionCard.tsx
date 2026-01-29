@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 import { 
   FileText, 
   Clock, 
@@ -9,7 +12,8 @@ import {
   AlertTriangle, 
   PartyPopper,
   Droplets,
-  MessageSquare
+  MessageSquare,
+  ChevronDown
 } from 'lucide-react';
 import { safeFormatDate } from '@/lib/safe-date-format';
 import { PreArrivalSubmission } from '@/hooks/useStaffGuestStay';
@@ -87,7 +91,47 @@ function InfoItem({ label, value, highlight = false }: {
   );
 }
 
+interface SummaryBadge {
+  label: string;
+  className: string;
+}
+
+function getSummaryBadges(payload: PreArrivalSubmission['payload']): SummaryBadge[] {
+  const badges: SummaryBadge[] = [];
+  
+  // Allergies badge
+  if (payload.allergies) {
+    badges.push({ 
+      label: 'Allergies', 
+      className: 'bg-amber-100 text-amber-800 border-amber-200' 
+    });
+  }
+  
+  // Late arrival badge (20:00 or later)
+  if (payload.arrival_time) {
+    const hour = parseInt(payload.arrival_time.split(':')[0], 10);
+    if (!isNaN(hour) && hour >= 20) {
+      badges.push({ 
+        label: 'Late Arrival', 
+        className: 'bg-orange-100 text-orange-800 border-orange-200' 
+      });
+    }
+  }
+  
+  // Special occasions badge
+  if (Array.isArray(payload.special_occasions) && payload.special_occasions.length > 0) {
+    badges.push({ 
+      label: `${payload.special_occasions.length} Occasion${payload.special_occasions.length > 1 ? 's' : ''}`, 
+      className: 'bg-pink-100 text-pink-800 border-pink-200' 
+    });
+  }
+  
+  return badges;
+}
+
 export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSubmissionCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (isLoading) {
     return (
       <Card>
@@ -128,88 +172,116 @@ export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSu
   const hasOccasions = Array.isArray(payload.special_occasions) && payload.special_occasions.length > 0;
   const hasRequests = payload.special_requests;
   const hasWaterComfort = payload.water_comfort_level;
+  
+  const summaryBadges = getSummaryBadges(payload);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <FileText className="h-5 w-5" />
-          Pre-Arrival Submission
-        </CardTitle>
-        {completedAt && (
-          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-            Completed {safeFormatDate(completedAt, 'MMM d')}
-          </Badge>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Arrival Details */}
-        {hasArrivalDetails && (
-          <Section title="Arrival Details" icon={Plane}>
-            <InfoItem label="Arrival Time" value={payload.arrival_time} />
-            <InfoItem label="Flight" value={payload.arrival_flight_number} />
-            {payload.transfer_preference && payload.transfer_preference !== 'none' && (
-              <InfoItem label="Transfer" value={formatTransferPreference(payload.transfer_preference)} />
-            )}
-          </Section>
-        )}
-
-        {/* Dietary & Allergies */}
-        {hasDietaryInfo && (
-          <Section title="Dietary & Allergies" icon={Utensils}>
-            {payload.allergies && (
-              <div className="flex items-start gap-2 text-sm">
-                <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <span className="font-medium text-amber-700">Allergies: {payload.allergies}</span>
-              </div>
-            )}
-            {Array.isArray(payload.dietary_preferences) && payload.dietary_preferences.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {payload.dietary_preferences.map((pref) => (
-                  <Badge key={pref} variant="secondary" className="text-xs">
-                    {pref}
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                <CardTitle className="text-lg">Pre-Arrival Submission</CardTitle>
+                {/* Summary badges shown only when collapsed */}
+                {!isOpen && summaryBadges.map((badge) => (
+                  <Badge 
+                    key={badge.label} 
+                    variant="outline" 
+                    className={cn("text-xs", badge.className)}
+                  >
+                    {badge.label}
                   </Badge>
                 ))}
               </div>
-            )}
-          </Section>
-        )}
-
-        {/* Water Comfort Level */}
-        {hasWaterComfort && (
-          <Section title="Water Comfort" icon={Droplets}>
-            <p className="text-sm">{formatWaterComfortLevel(payload.water_comfort_level!)}</p>
-          </Section>
-        )}
-
-        {/* Special Occasions */}
-        {hasOccasions && (
-          <Section title="Special Occasions" icon={PartyPopper}>
-            <div className="flex flex-wrap gap-2">
-              {(Array.isArray(payload.special_occasions) ? payload.special_occasions : []).map((occasion) => (
-                <Badge key={occasion} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
-                  {getOccasionEmoji(occasion)} {occasion}
-                </Badge>
-              ))}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {completedAt && (
+                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                    Completed {safeFormatDate(completedAt, 'MMM d')}
+                  </Badge>
+                )}
+                <ChevronDown 
+                  className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                    isOpen && "rotate-180"
+                  )} 
+                />
+              </div>
             </div>
-          </Section>
-        )}
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-6 pt-0">
+            {/* Arrival Details */}
+            {hasArrivalDetails && (
+              <Section title="Arrival Details" icon={Plane}>
+                <InfoItem label="Arrival Time" value={payload.arrival_time} />
+                <InfoItem label="Flight" value={payload.arrival_flight_number} />
+                {payload.transfer_preference && payload.transfer_preference !== 'none' && (
+                  <InfoItem label="Transfer" value={formatTransferPreference(payload.transfer_preference)} />
+                )}
+              </Section>
+            )}
 
-        {/* Special Requests */}
-        {hasRequests && (
-          <Section title="Special Requests" icon={MessageSquare}>
-            <p className="text-sm bg-muted/50 rounded-md p-3 italic">
-              "{payload.special_requests}"
-            </p>
-          </Section>
-        )}
+            {/* Dietary & Allergies */}
+            {hasDietaryInfo && (
+              <Section title="Dietary & Allergies" icon={Utensils}>
+                {payload.allergies && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span className="font-medium text-amber-700">Allergies: {payload.allergies}</span>
+                  </div>
+                )}
+                {Array.isArray(payload.dietary_preferences) && payload.dietary_preferences.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {payload.dietary_preferences.map((pref) => (
+                      <Badge key={pref} variant="secondary" className="text-xs">
+                        {pref}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
 
-        {/* Timestamps */}
-        <div className="border-t pt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          Last updated: {safeFormatDate(updatedAt, 'MMM d, yyyy \'at\' h:mm a')}
-        </div>
-      </CardContent>
+            {/* Water Comfort Level */}
+            {hasWaterComfort && (
+              <Section title="Water Comfort" icon={Droplets}>
+                <p className="text-sm">{formatWaterComfortLevel(payload.water_comfort_level!)}</p>
+              </Section>
+            )}
+
+            {/* Special Occasions */}
+            {hasOccasions && (
+              <Section title="Special Occasions" icon={PartyPopper}>
+                <div className="flex flex-wrap gap-2">
+                  {(Array.isArray(payload.special_occasions) ? payload.special_occasions : []).map((occasion) => (
+                    <Badge key={occasion} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200">
+                      {getOccasionEmoji(occasion)} {occasion}
+                    </Badge>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* Special Requests */}
+            {hasRequests && (
+              <Section title="Special Requests" icon={MessageSquare}>
+                <p className="text-sm bg-muted/50 rounded-md p-3 italic">
+                  "{payload.special_requests}"
+                </p>
+              </Section>
+            )}
+
+            {/* Timestamps */}
+            <div className="border-t pt-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              Last updated: {safeFormatDate(updatedAt, 'MMM d, yyyy \'at\' h:mm a')}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
