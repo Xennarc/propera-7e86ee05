@@ -1,52 +1,205 @@
 
-# Optimize Guest Portal UI for Bottom Navigation Visibility
+# Improve Booking Details - Dynamic Cancellation Window Display
 
-## Problem
-Content at the bottom of guest portal pages can be hidden or cut off by the fixed bottom navigation bar, making it difficult for users to scroll down and view all content.
+## Summary
+Fix the booking details policy section to show accurate, dynamically-generated cancellation information based on actual configured values from the database. Address the screenshot issue showing "60 hours" by fixing the data mapping and improving microcopy.
 
-## Current Implementation
+---
 
-The guest portal uses a layered approach:
-- **Fixed navigation**: 72px height plus device safe-area inset
-- **Main content padding**: `guest-safe-bottom` class provides ~88px bottom padding
-- **Some pages**: Add their own additional padding for sticky bars (e.g., Requests page)
+## Current Issues Identified
 
-## Root Cause
-
-The current bottom padding calculation has a minimal buffer:
-```css
-.guest-safe-bottom {
-  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
-}
+### 1. Data Mapping Bug (Critical)
+In `src/pages/guest/GuestMyBookings.tsx` (line 135), activities are incorrectly mapped:
+```tsx
+// WRONG: Using minutes field
+guest_cancel_cutoff_minutes: b.session?.activity?.guest_cancel_cutoff_minutes ?? 60,
 ```
 
-This provides only 16px of extra space beyond the navigation bar, which can feel cramped and may not account for visual "breathing room" that users expect.
+But the database schema for activities uses **hours** (`guest_cancel_cutoff_hours`). This causes the display to show "60 hours" when it should show "X hours" based on actual config.
+
+### 2. Hardcoded Policy Text
+In `BookingDetailsPolicies.tsx`, the default message is generic:
+```tsx
+`Bookings can be cancelled up to ${booking.cancelCutoffHours} hours before the start time.`
+```
+
+This doesn't account for:
+- Different time units (hours vs minutes)
+- Smart formatting (e.g., "24 hours" vs "2 hours" vs "30 minutes")
+- Restaurant-specific phrasing
+
+### 3. Missing Dynamic Time Format
+The cutoff time display could be more user-friendly by showing relative time when applicable (e.g., "in 2 hours" vs "Jan 29, 5:30 AM").
+
+---
 
 ## Solution
 
-### 1. Increase Base Padding Buffer
-Increase the additional buffer from 16px to 24px for a more comfortable scroll experience:
+### Phase 1: Fix Data Mapping in GuestMyBookings
 
-```css
-.guest-safe-bottom {
-  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 24px);
+Update the RPC result mapping to use correct field names:
+
+**File: `src/pages/guest/GuestMyBookings.tsx`**
+
+```tsx
+// For activities - use hours (database uses guest_cancel_cutoff_hours)
+const activity_bookings = (result?.activity_bookings || []).map((b: any) => ({
+  // ... existing fields ...
+  guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours ?? 4,
+  // ... rest unchanged ...
+}));
+
+// For restaurants - continue using minutes (database uses guest_cancel_cutoff_minutes)
+const restaurant_reservations = (result?.restaurant_reservations || []).map((r: any) => ({
+  // ... existing fields ...
+  guest_cancel_cutoff_minutes: r.slot?.restaurant?.guest_cancel_cutoff_minutes ?? 60,
+  // ... rest unchanged ...
+}));
+```
+
+### Phase 2: Improve mapActivityToDisplayModel 
+
+**File: `src/types/booking-display.ts`**
+
+Update to correctly read the hours field:
+```tsx
+export function mapActivityToDisplayModel(
+  booking: any,
+  guestId: string,
+  timezone?: string
+): BookingDisplayModel {
+  // ...
+  
+  // Activities use HOURS for cancellation cutoff
+  const cutoffHours = booking.guest_cancel_cutoff_hours ?? 4;
+  const cutoffTime = sessionDateTime 
+    ? new Date(sessionDateTime.getTime() - cutoffHours * 60 * 60 * 1000)
+    : undefined;
+  
+  return {
+    // ...
+    cancelCutoffHours: cutoffHours,
+    // ...
+  };
 }
 ```
 
-This provides ~96px minimum padding (72px nav + 24px buffer), giving content more room.
+### Phase 3: Enhance BookingDetailsPolicies Component
 
-### 2. Add Utility Variants for Specific Use Cases
-Create additional utility classes for pages with sticky action bars:
+**File: `src/components/guest/booking-details/BookingDetailsPolicies.tsx`**
 
-```css
-/* Extended safe bottom for pages with sticky action bars */
-.guest-safe-bottom-extended {
-  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 96px);
+#### 3a. Add Smart Time Formatting Helper
+
+```tsx
+/**
+ * Format cutoff duration in human-readable form
+ * e.g., 4 hours, 30 minutes, 2 hours
+ */
+function formatCutoffDuration(hours: number | undefined, isRestaurant: boolean): string {
+  if (hours === undefined || hours === null) return '';
+  
+  // Restaurants typically use shorter windows, check if we should show minutes
+  if (isRestaurant && hours < 2) {
+    const minutes = Math.round(hours * 60);
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+  
+  // For whole hours, show simply
+  if (hours === Math.floor(hours)) {
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  }
+  
+  // For fractional hours, convert to hours and minutes
+  const wholeHours = Math.floor(hours);
+  const remainingMinutes = Math.round((hours - wholeHours) * 60);
+  
+  if (wholeHours === 0) {
+    return `${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+  }
+  
+  if (remainingMinutes === 0) {
+    return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''}`;
+  }
+  
+  return `${wholeHours} hour${wholeHours !== 1 ? 's' : ''} ${remainingMinutes} min`;
 }
 ```
 
-### 3. Standardize Page Padding
-Ensure all guest pages consistently use the layout's safe-bottom padding rather than ad-hoc `pb-*` classes. Pages with sticky bars should use the extended variant or their own calculations that respect the base nav height.
+#### 3b. Add Relative Time Display
+
+```tsx
+import { formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns';
+
+// Show relative time when deadline is within 24 hours
+function formatDeadlineDisplay(cutoffTime: Date): { primary: string; secondary?: string } {
+  const now = new Date();
+  const hoursUntil = differenceInHours(cutoffTime, now);
+  
+  if (cutoffTime < now) {
+    // Deadline passed
+    return { primary: format(cutoffTime, 'MMM d, h:mm a') };
+  }
+  
+  if (hoursUntil < 24) {
+    // Within 24 hours - show relative
+    const minutesUntil = differenceInMinutes(cutoffTime, now);
+    if (minutesUntil < 60) {
+      return { 
+        primary: `${minutesUntil} minutes remaining`,
+        secondary: format(cutoffTime, 'h:mm a')
+      };
+    }
+    return { 
+      primary: `${hoursUntil} hours remaining`,
+      secondary: format(cutoffTime, 'h:mm a')
+    };
+  }
+  
+  // More than 24 hours - show absolute
+  return { primary: format(cutoffTime, 'MMM d, h:mm a') };
+}
+```
+
+#### 3c. Update Display Logic
+
+Generate contextual messages based on booking type and state:
+
+```tsx
+// When cancellation is still available
+{canStillCancel ? (
+  <>
+    <p className="font-medium">Free cancellation available</p>
+    {cutoffTime && (
+      <p className="text-sm opacity-80">
+        {formatDeadlineDisplay(cutoffTime).primary}
+        {formatDeadlineDisplay(cutoffTime).secondary && (
+          <span className="block text-xs">{formatDeadlineDisplay(cutoffTime).secondary}</span>
+        )}
+      </p>
+    )}
+  </>
+) : (
+  // When window is closed
+  <>
+    <p className="font-medium">Cancellation window closed</p>
+    {cutoffTime && (
+      <p className="text-sm opacity-80">
+        Deadline was {format(cutoffTime, 'MMM d, h:mm a')}
+      </p>
+    )}
+  </>
+)}
+
+// Policy explanation text
+{!hasPolicyText && hasCancellationInfo && booking.cancelCutoffHours !== undefined && (
+  <p className="text-sm text-muted-foreground">
+    {booking.type === 'restaurant' 
+      ? `Reservations can be cancelled up to ${formatCutoffDuration(booking.cancelCutoffHours, true)} before your booking time.`
+      : `Bookings can be cancelled up to ${formatCutoffDuration(booking.cancelCutoffHours, false)} before the activity starts.`
+    }
+  </p>
+)}
+```
 
 ---
 
@@ -54,44 +207,52 @@ Ensure all guest pages consistently use the layout's safe-bottom padding rather 
 
 | File | Changes |
 |------|---------|
-| `src/index.css` | Update `guest-safe-bottom` padding, add extended variant |
-| `src/pages/guest/GuestRequestsPage.tsx` | Remove hardcoded `pb-*` classes, rely on layout or extended class |
-| `src/pages/guest/GuestMyBookings.tsx` | Verify no additional padding needed |
+| `src/pages/guest/GuestMyBookings.tsx` | Fix RPC mapping to use `guest_cancel_cutoff_hours` for activities |
+| `src/types/booking-display.ts` | Update `mapActivityToDisplayModel` to correctly handle hours |
+| `src/components/guest/booking-details/BookingDetailsPolicies.tsx` | Add smart formatting helpers, improve microcopy |
 
 ---
 
-## Technical Details
+## Expected Results
 
-### CSS Variable Reference
-- `--guest-nav-h: 72px` - Fixed bottom navigation height
-- `env(safe-area-inset-bottom)` - Device-specific safe area (iPhone home indicator, etc.)
+### Before (Current)
+```
+Cancellation window closed
+Deadline was Jan 29, 5:30 AM
 
-### Calculation Breakdown
-**Current**: 72px + safe-area + 16px = ~88px minimum
-**Proposed**: 72px + safe-area + 24px = ~96px minimum
-
-This 8px increase may seem small, but it:
-- Provides more visual separation between last content item and navigation
-- Accounts for border shadows and visual elements on the nav bar
-- Feels more comfortable when scrolling to the bottom
-
-### GuestRequestsPage Special Case
-This page has a sticky bottom action bar that appears when items are selected. The page currently uses:
-```tsx
-selectedItems.length > 0 ? 'pb-40' : 'pb-24'
+Bookings can be cancelled up to 60 hours before the start time.
 ```
 
-This should be adjusted to use consistent CSS variables or the extended variant to maintain harmony with the layout system.
+### After (Fixed)
+```
+Cancellation window closed  
+Deadline was Jan 29, 5:30 AM
+
+Bookings can be cancelled up to 4 hours before the activity starts.
+```
+
+Or when cancellation is still available:
+```
+Free cancellation available
+2 hours remaining
+(by 3:30 PM)
+
+Bookings can be cancelled up to 4 hours before the activity starts.
+```
 
 ---
 
 ## Testing Checklist
 
-After implementation:
-1. Navigate to Guest Home - verify all content visible above bottom nav
-2. Navigate to My Bookings - scroll to bottom, verify last booking card fully visible
-3. Navigate to Activities catalogue - verify all activity cards visible
-4. Navigate to Restaurant browser - verify all slots visible
-5. Navigate to Requests - select items, verify sticky bar + bottom nav don't overlap content
-6. Test on different device sizes (especially iPhone SE and larger phones)
-7. Verify dark mode appearance
+1. Create an activity with `guest_cancel_cutoff_hours` = 4
+2. Book the activity as a guest
+3. Open booking details and verify:
+   - Correct cutoff time is calculated (4 hours before start)
+   - Policy text shows "4 hours" not "60 hours"
+   - Relative time shows when deadline is close
+4. Test restaurant reservations still work (use minutes)
+5. Test edge cases:
+   - Cutoff exactly 1 hour (singular "hour")
+   - Cutoff 30 minutes (shows "30 minutes")
+   - Cutoff 1.5 hours (shows "1 hour 30 min")
+6. Verify past bookings don't show policy section
