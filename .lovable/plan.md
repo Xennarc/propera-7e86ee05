@@ -1,194 +1,240 @@
 
-# Fix Resort Creation Flow - Complete Analysis & Solution
+# Enhance Activity Configuration for Guest-Facing Information
 
-## Root Cause Analysis
+## Summary
+Make all guest-visible activity information configurable from the staff side, including the "Good to know" section content, cancellation policies, booking cutoff times, and rich content fields. The booking cutoff enforcement already works correctly in the backend—we need to expose the configuration in the staff UI.
 
-The infinite loop (React Error #185) persists because there are **TWO sources of unstable function references**:
+## Current State Analysis
 
-### Problem 1: Inline Arrow Functions in `renderStep()`
-Even though `setStepValid` is now memoized with `useCallback`, the **actual props passed to child components are inline arrow functions**:
+### Database Fields Already Available (Not Exposed in Staff UI)
+The `activities` table has these columns that guests see but staff cannot edit:
 
-```tsx
-// In CreateResortWizard.tsx (lines 127, 135, 143)
-onValidChange={(valid) => setStepValid(0, valid)}  // NEW function every render!
-```
+| Field | Guest Usage | Currently Editable |
+|-------|-------------|-------------------|
+| `short_description` | Activity catalogue cards | No |
+| `full_description` | Activity detail page | No |
+| `difficulty_level` | Badges on detail page | No |
+| `max_age` | Age restrictions | No |
+| `is_swimming_required` | Swimming notice | No |
+| `suitable_for_non_swimmers` | Accessibility | No |
+| `highlights` (JSON) | Key features list | No |
+| `includes` | "What's included" section | No |
+| `health_and_safety_notes` | Safety info card | No |
+| `cancellation_policy_text` | Policy section | No |
+| `faq` (JSON) | FAQ accordion | No |
+| `guest_cutoff_hours` | Booking closes X hours before | Stored but not shown in form |
+| `guest_cancel_cutoff_hours` | Cancel deadline | Stored but not shown in form |
 
-Each render of `CreateResortWizard` creates a **new** arrow function `(valid) => setStepValid(0, valid)`, which causes child `useEffect` hooks to fire repeatedly.
+### Booking Cutoff Enforcement
+The backend validation in `booking-validation.ts` already:
+1. Checks `guest_cutoff_hours` against resort timezone
+2. Returns `CUTOFF_PAST` error if booking attempt is too late
+3. Works correctly for guest portal bookings
 
-### Problem 2: Unstable `setField` callback
-The `setField` function is also not memoized:
-
-```tsx
-// Line 91-93
-const setField = (field: keyof WizardData, value: string | null) => {
-  dispatch({ type: 'SET_FIELD', field, value });
-};
-```
-
-This creates a new function reference every render, and it's used in child `useEffect` dependencies (e.g., `AdminSetupStep` line 36).
-
-### The Infinite Loop Sequence
-1. Parent renders, creates new `onValidChange` and `setField` functions
-2. Child mounts/updates, `useEffect` detects dependency change
-3. `useEffect` calls `onValidChange(true)` or uses `setField`
-4. Parent state updates, parent re-renders
-5. Go to step 1 - infinite loop
+The issue is just UI: staff can't easily configure these values.
 
 ---
 
-## Solution
+## Implementation Plan
 
-### Fix 1: Memoize individual `onValidChange` callbacks
-Create stable, memoized callbacks for each step instead of inline arrow functions:
+### Phase 1: Reorganize ActivityDialog with Tabs
+Transform the single scrolling form into a tabbed interface for better organization.
 
+**Tabs Structure:**
+1. **Basic Info** - Name, category, icon, image, descriptions
+2. **Pricing & Capacity** - Price, duration, capacity limits, age restrictions
+3. **Guest Booking Rules** - All the "Good to know" configurable settings
+4. **Content & Safety** - Includes, highlights, health notes, cancellation policy, FAQ
+
+### Phase 2: Add Missing Fields to Form
+
+#### Tab 1 - Basic Info (existing + new fields)
+- Name (existing)
+- Category (existing)
+- Icon (existing)
+- Hero Image (existing)
+- **Short Description** (NEW) - shown in catalogue cards
+- **Full Description** (NEW) - shown on detail page
+
+#### Tab 2 - Pricing & Capacity (reorganized)
+- Price per Person (existing)
+- Duration (existing)
+- Max Capacity (existing)
+- Min Capacity (existing)
+- **Age Range** (NEW)
+  - Min Age (existing)
+  - Max Age (NEW)
+- **Difficulty Level** (NEW) - EASY / MODERATE / ADVANCED dropdown
+- **Swimming Requirements** (NEW)
+  - Swimming Required toggle
+  - Suitable for Non-swimmers toggle
+
+#### Tab 3 - Guest Booking Rules (the "Good to Know" section)
+All fields that feed into the guest "Good to know" panel:
+
+- Guests Can Book toggle (existing)
+- **Max Guests Per Booking** (existing but hidden - make visible with clear label)
+- **Booking Cutoff Hours** (NEW input with helper text)
+  - Label: "Online booking closes X hours before start"
+  - Default: 2 hours
+- Requires Approval toggle (existing)
+- Guests Can Cancel toggle (existing)
+- **Cancellation Cutoff Hours** (NEW input with helper text)
+  - Label: "Guests can cancel up to X hours before"
+  - Default: 4 hours
+  - Only shown when "Guests Can Cancel" is ON
+- Active toggle (existing)
+
+#### Tab 4 - Content & Safety (NEW tab)
+Rich content fields for the guest detail page:
+
+- **Highlights** (NEW)
+  - Dynamic list input (add/remove items)
+  - Shows as bullet points on guest detail page
+- **What's Included** (NEW)
+  - Multi-line text area
+- **Health & Safety Notes** (NEW)
+  - Multi-line text area with amber warning styling in preview
+- **Cancellation Policy Text** (NEW)
+  - Custom policy wording (overrides default generated text)
+- **FAQ** (NEW - future enhancement)
+  - Question/Answer pair list
+  - Can be deferred to v2
+
+---
+
+## Technical Changes
+
+### File: `src/pages/activities/ActivityDialog.tsx`
+
+1. **Import Tabs component**
 ```tsx
-const onValidChangeStep0 = useCallback((valid: boolean) => {
-  setStepValid(0, valid);
-}, [setStepValid]);
-
-const onValidChangeStep1 = useCallback((valid: boolean) => {
-  setStepValid(1, valid);
-}, [setStepValid]);
-
-const onValidChangeStep2 = useCallback((valid: boolean) => {
-  setStepValid(2, valid);
-}, [setStepValid]);
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 ```
 
-Then use them in `renderStep()`:
+2. **Expand formData state** to include all missing fields:
 ```tsx
-<ResortDetailsStep
-  data={data}
-  setField={setField}
-  onValidChange={onValidChangeStep0}  // Stable reference
-/>
+const [formData, setFormData] = useState({
+  // Existing fields...
+  
+  // NEW fields
+  short_description: '',
+  full_description: '',
+  difficulty_level: null as string | null,
+  max_age: '',
+  is_swimming_required: false,
+  suitable_for_non_swimmers: false,
+  highlights: [] as string[],
+  includes: '',
+  health_and_safety_notes: '',
+  cancellation_policy_text: '',
+});
 ```
 
-### Fix 2: Memoize `setField` callback
-Since `dispatch` from `useReducer` is stable, we can safely memoize `setField`:
+3. **Update useEffect** to populate new fields from activity data
 
-```tsx
-const setField = useCallback((field: keyof WizardData, value: string | null) => {
-  dispatch({ type: 'SET_FIELD', field, value });
-}, []);  // dispatch is stable
+4. **Update activityData** object in handleSubmit to include new fields
+
+5. **Restructure JSX** into tabbed sections
+
+### File: `src/types/database.ts` (verify types)
+Ensure Activity interface includes all fields (mostly already there).
+
+---
+
+## UI/UX Details
+
+### Booking Rules Section Helper Text
+Each field should have clear explanatory text:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Guest Booking Rules                                 │
+├─────────────────────────────────────────────────────┤
+│ ┌─ Booking Cutoff ─────────────────────────────────┐│
+│ │ Hours before activity starts:  [  2  ] hours    ││
+│ │ ℹ️ Guests cannot book within 2h of start time    ││
+│ └──────────────────────────────────────────────────┘│
+│                                                     │
+│ ┌─ Max Guests Per Booking ─────────────────────────┐│
+│ │ Maximum:  [  4  ] guests                         ││
+│ │ ℹ️ Shown in "Good to know" section               ││
+│ └──────────────────────────────────────────────────┘│
+│                                                     │
+│ ┌─ Cancellation Settings ──────────────────────────┐│
+│ │ [✓] Guests Can Cancel                            ││
+│ │ Cancel deadline:  [  4  ] hours before start     ││
+│ │ ℹ️ Guests see "Cancel online up to 4h before"    ││
+│ └──────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────┘
 ```
 
-### Fix 3: Memoize other callbacks
-For completeness, also memoize `handleCreationSuccess` and `handleReset`:
-
-```tsx
-const handleCreationSuccess = useCallback((success: WizardData['success']) => {
-  dispatch({ type: 'SET_SUCCESS', success });
-  onSuccess();
-}, [onSuccess]);
-
-const handleReset = useCallback(() => {
-  dispatch({ type: 'RESET' });
-}, []);
+### Highlights Editor Component
+Simple list editor with add/remove:
+```
+Highlights (shown as feature list to guests)
+┌────────────────────────────────────────────┐
+│ Professional equipment provided        [×] │
+│ Suitable for all skill levels          [×] │
+│ Photo package available                [×] │
+│ [+ Add highlight]                          │
+└────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/resort/CreateResortWizard.tsx` | Memoize all callbacks with `useCallback` |
+| File | Changes |
+|------|---------|
+| `src/pages/activities/ActivityDialog.tsx` | Major restructure: tabs, new fields, expanded form state |
+| `src/types/database.ts` | Verify/add any missing Activity fields |
+
+## Files to Create (Optional)
+
+| File | Purpose |
+|------|---------|
+| `src/components/ui/highlight-list-input.tsx` | Reusable list editor for highlights |
 
 ---
 
-## Implementation Details
+## Guest Portal Display Validation
 
-### Updated CreateResortWizard.tsx
+After implementation, the guest pages should display:
 
-**Line ~91-93** - Memoize `setField`:
-```tsx
-const setField = useCallback((field: keyof WizardData, value: string | null) => {
-  dispatch({ type: 'SET_FIELD', field, value });
-}, []);
-```
+### GuestActivityBookingPage "Good to know" section
+Will now show **actual configured values**:
+- Maximum X guests per booking (from `max_pax_per_booking`)
+- Online booking closes Xh before start time (from `guest_cutoff_hours`)
+- You can cancel online up to Xh before (from `guest_cancel_cutoff_hours`)
 
-**After `setStepValid`** - Add memoized step callbacks:
-```tsx
-const onValidChangeStep0 = useCallback((valid: boolean) => {
-  setStepValid(0, valid);
-}, [setStepValid]);
-
-const onValidChangeStep1 = useCallback((valid: boolean) => {
-  setStepValid(1, valid);
-}, [setStepValid]);
-
-const onValidChangeStep2 = useCallback((valid: boolean) => {
-  setStepValid(2, valid);
-}, [setStepValid]);
-```
-
-**Line ~111-118** - Memoize success/reset handlers:
-```tsx
-const handleCreationSuccess = useCallback((success: WizardData['success']) => {
-  dispatch({ type: 'SET_SUCCESS', success });
-  onSuccess();
-}, [onSuccess]);
-
-const handleReset = useCallback(() => {
-  dispatch({ type: 'RESET' });
-}, []);
-```
-
-**Lines ~120-145** - Update `renderStep()` to use stable callbacks:
-```tsx
-const renderStep = () => {
-  switch (step) {
-    case 0:
-      return (
-        <ResortDetailsStep
-          data={data}
-          setField={setField}
-          onValidChange={onValidChangeStep0}
-        />
-      );
-    case 1:
-      return (
-        <AdminSetupStep
-          data={data}
-          setField={setField}
-          onValidChange={onValidChangeStep1}
-        />
-      );
-    case 2:
-      return (
-        <QuickBrandingStep
-          data={data}
-          setField={setField}
-          onValidChange={onValidChangeStep2}
-        />
-      );
-    // ... rest unchanged
-  }
-};
-```
+### GuestActivityDetailPage
+Will show content from new fields:
+- Short description in header
+- Full description card
+- Difficulty badge
+- Highlights list
+- "What's included" section
+- Health & Safety notes (if configured)
+- Cancellation Policy text (if configured)
+- Swimming requirement notice (if enabled)
 
 ---
 
-## Why This Works
+## No Database Changes Required
 
-1. **`dispatch`** from `useReducer` is guaranteed stable by React
-2. **`setStepValid`** is now memoized with empty deps (uses `setStepValidation` which is stable)
-3. **`setField`** is memoized with empty deps (uses stable `dispatch`)
-4. **Per-step callbacks** are memoized with `[setStepValid]` dependency - since `setStepValid` is stable, these are stable
-5. Child `useEffect` hooks now receive **stable function references** and only run when their actual data dependencies change
+All required columns already exist in the `activities` table. This is purely a frontend enhancement to expose existing database capabilities in the staff UI.
 
 ---
 
 ## Testing Checklist
 
-1. Navigate to `/superadmin/resorts`
-2. Click "Add Resort" button
-3. Verify dialog opens without crashing
-4. Complete Step 1 (Resort Details) and click "Next"
-5. Complete Step 2 (Admin Setup) and click "Next"
-6. Complete Step 3 (Branding - optional) and click "Review & Create"
-7. Review summary and click "Create Resort"
-8. Verify success state displays correctly
-9. Click "Done" to close dialog
-10. Verify resort appears in the list
+1. Create a new activity with all fields populated
+2. Verify all content appears on guest detail page
+3. Edit booking cutoff hours and verify:
+   - Guest sees correct "booking closes Xh before" text
+   - Guest is blocked from booking within cutoff window
+4. Edit cancellation hours and verify guest sees correct text
+5. Toggle "Guests Can Cancel" off and verify cancellation option is hidden
+6. Add highlights and verify they appear on guest detail page
+7. Test with existing activities (ensure backward compatibility)
