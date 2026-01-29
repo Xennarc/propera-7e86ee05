@@ -1,123 +1,81 @@
 
+Goal: Fix the “Send Login Credentials” flow for pre-arrival guests (it currently fails), then verify end-to-end that an email is sent and logged with correct resort branding and credentials.
 
-# Pre-Arrival Details Collapsible Display
+What I found (why it fails)
+- The “Send Login Credentials” button shown in your screenshot is rendered by `PrearrivalProfileCard`.
+- `PrearrivalProfileCard` constructs a partial `Guest` object (`dialogGuest`) for `SendGuestCredentialsDialog`, but it hard-codes:
+  - `room_number: ''`
+- The email-sending backend function (`send-guest-credentials`) requires `roomNumber` (and rejects empty/undefined values). So pre-arrival sends can fail even though the guest exists and has a real room number in the database.
+- Additionally, `SendGuestCredentialsDialog` will also throw before calling the backend if the resort context doesn’t have `currentResort.code` ready (less likely, but we should harden the UI).
 
-## Overview
-Convert the `PreArrivalSubmissionCard` into a collapsible expandable section that staff can open to view pre-arrival details. This provides a cleaner interface where the pre-arrival information doesn't take up screen real estate until explicitly expanded.
+Primary fix (minimal diff, aligned to current architecture)
+1) Pass the real room number into `PrearrivalProfileCard`
+- File: `src/components/prearrival/PrearrivalProfileCard.tsx`
+  - Add a prop: `roomNumber: string`
+  - Populate `dialogGuest.room_number = roomNumber` instead of `''`
+  - (Optional but good) also populate `portal_pin_last4` if available in the parent guest object so the dialog can display that state accurately.
 
-## Current State
-- `PreArrivalSubmissionCard.tsx` displays pre-arrival submission data in a full card
-- Always visible with all sections expanded
-- Contains: Arrival Details, Dietary & Allergies, Water Comfort, Special Occasions, Special Requests
+2) Wire it from the guest detail page
+- File: `src/pages/guests/GuestDetailPage.tsx`
+  - When rendering `<PrearrivalProfileCard ... />`, pass `roomNumber={guest.room_number}`
+  - (Optional) pass `portalPinLast4={guest.portal_pin_last4}` if we choose to add that prop too.
 
-## Proposed Design
+Hardening (so this never breaks again if something is missing)
+3) Add a “required field” guard in `SendGuestCredentialsDialog`
+- File: `src/components/guests/SendGuestCredentialsDialog.tsx`
+  - Before calling `supabase.functions.invoke('send-guest-credentials', ...)`, verify:
+    - `guest.room_number` exists
+    - `guest.check_in_date` exists
+    - computed `lastName` is non-empty
+    - `currentResort.code` exists
+  - If missing, show a clear destructive toast explaining what’s missing (e.g., “Room number is missing—please add it to the guest to send credentials.”) and do not attempt send.
+  - This prevents silent failures and saves staff time.
 
-### Visual Appearance
-- **Collapsed State**: Shows a compact summary bar with:
-  - FileText icon + "Pre-Arrival Submission" title
-  - Status badge (Completed / Pending)
-  - Key flags as small badges (e.g., "Has Allergies", "Late Arrival", "Special Occasion")
-  - Chevron icon to expand
-  
-- **Expanded State**: 
-  - Full details as currently displayed
-  - All sections visible: Arrival, Dietary, Water Comfort, Occasions, Requests
-  - Collapse button to close
+End-to-end verification checklist (after implementation)
+A) UI test (staff console)
+1. Sign in as `Trml_admin` (password `123456`)
+2. Open a pre-arrival guest with an email (e.g., Sam Smith, Room 222)
+3. Click “Send Login Credentials”
+4. In the dialog, confirm:
+   - Room shows “222”
+   - Last name is correct
+   - PIN shows either a generated PIN or masked existing PIN (and regenerates if needed)
+5. Click “Send Credentials”
+6. Confirm the UI shows:
+   - A success toast (“Credentials sent!”)
+   - Button state changes to “Sent!” for that guest in the dialog
 
-### Implementation
+B) Backend logging verification (email status for staff visibility)
+1. Confirm a new row appears in `guest_outbound_messages` for:
+   - `template_key = 'guest_credentials'`
+   - `status` transitions to `sent` (or `failed` with `error_message`)
+   - `provider_message_id` is populated on success
+2. If it fails:
+   - Confirm the row is created as `queued` then updated to `failed`
+   - Confirm the UI surfaces the error text clearly
 
-**File: `src/components/staff/PreArrivalSubmissionCard.tsx`**
+C) Email verification (branding + credentials)
+1. Confirm the email arrives to the guest address
+2. Verify:
+   - From name: `${resortName} <reservations@propera.cc>`
+   - Resort logo appears (if `login_logo_url` exists)
+   - Color theme uses `login_primary_color` (fallback teal)
+   - Portal URL uses the resort code: `https://propera.cc/resort/{code}/guest/login`
+   - Credentials match: Room, Last Name, PIN
+   - CTA button navigates to the portal URL
 
-1. Import the `Collapsible`, `CollapsibleTrigger`, and `CollapsibleContent` components from `@/components/ui/collapsible`
+Edge cases to validate
+- Guest missing email → button remains disabled and helper copy shows “Add guest email to enable sending”
+- Guest missing room number → sending blocked with clear toast
+- Resort code not loaded → sending blocked with clear toast
+- Resend/API provider error → status becomes `failed`, staff can retry
 
-2. Add local state for open/closed: `const [isOpen, setIsOpen] = useState(false)`
+Files that will be modified
+- `src/components/prearrival/PrearrivalProfileCard.tsx` (add roomNumber prop + set dialogGuest.room_number correctly)
+- `src/pages/guests/GuestDetailPage.tsx` (pass roomNumber into PrearrivalProfileCard)
+- `src/components/guests/SendGuestCredentialsDialog.tsx` (guardrails + clearer error messaging)
 
-3. Restructure the card layout:
-   - CardHeader becomes the CollapsibleTrigger with summary info
-   - CardContent wraps in CollapsibleContent
-   - Add chevron icon that rotates based on open state
-
-4. Add summary badges in collapsed header:
-   - If `payload.allergies` exists → show "Allergies" badge (amber)
-   - If late arrival (arrival_time >= 20:00) → show "Late Arrival" badge
-   - If `special_occasions` has items → show occasion count badge
-   - If `completedAt` exists → show "Completed" badge
-
-### Code Changes
-
-```tsx
-// Add imports
-import { useState } from 'react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
-
-// Inside component
-const [isOpen, setIsOpen] = useState(false);
-
-// Helper for late arrival detection
-const isLateArrival = payload.arrival_time && parseInt(payload.arrival_time.split(':')[0], 10) >= 20;
-
-// Summary badges for collapsed state
-const summaryBadges = [];
-if (payload.allergies) summaryBadges.push({ label: 'Allergies', variant: 'amber' });
-if (isLateArrival) summaryBadges.push({ label: 'Late Arrival', variant: 'orange' });
-if (Array.isArray(payload.special_occasions) && payload.special_occasions.length > 0) {
-  summaryBadges.push({ label: `${payload.special_occasions.length} Occasion(s)`, variant: 'pink' });
-}
-
-// New structure:
-return (
-  <Card>
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              <CardTitle className="text-lg">Pre-Arrival Submission</CardTitle>
-              {/* Summary badges in collapsed view */}
-              {!isOpen && summaryBadges.map(...)}
-            </div>
-            <div className="flex items-center gap-2">
-              {completedAt && <Badge variant="success">Completed</Badge>}
-              <ChevronDown className={cn("h-5 w-5 transition-transform", isOpen && "rotate-180")} />
-            </div>
-          </div>
-        </CardHeader>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <CardContent className="space-y-6 pt-0">
-          {/* Existing sections... */}
-        </CardContent>
-      </CollapsibleContent>
-    </Collapsible>
-  </Card>
-);
-```
-
-### Behavior
-- Default: **Collapsed** (saves space on guest detail page)
-- Click header to expand/collapse
-- Summary badges give quick visual cues without opening
-- Smooth animation via Radix Collapsible
-
-### Edge Cases
-- **No submission**: Continue showing the "No pre-arrival information submitted" empty state
-- **Loading**: Continue showing skeleton
-- **All fields empty**: Show "No details provided" message in expanded state
-
-## Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/components/staff/PreArrivalSubmissionCard.tsx` | Convert to collapsible component with summary badges |
-
-## Testing Checklist
-1. View a guest with pre-arrival submission → collapsed by default, shows summary badges
-2. Click to expand → shows full details
-3. Click again → collapses smoothly
-4. Check guest without submission → shows empty state (not collapsible)
-5. Verify allergies badge appears when guest has allergies
-6. Verify late arrival badge appears for 20:00+ arrival times
-7. Verify special occasions badge shows correct count
-
+Success criteria
+- Pre-arrival guest can be sent credentials successfully from the Pre-Arrival card
+- A `guest_outbound_messages` record is created/updated with accurate status
+- Guest receives a correctly branded email containing correct portal URL + room/last/PIN
