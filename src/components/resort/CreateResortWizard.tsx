@@ -88,9 +88,9 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
 
   const { step, data } = state;
 
-  const setField = (field: keyof WizardData, value: string | null) => {
+  const setField = useCallback((field: keyof WizardData, value: string | null) => {
     dispatch({ type: 'SET_FIELD', field, value });
-  };
+  }, []);
 
   const goNext = () => {
     if (step < STEPS.length - 1) {
@@ -108,14 +108,27 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
     setStepValidation(prev => ({ ...prev, [stepIndex]: valid }));
   }, []);
 
-  const handleCreationSuccess = (success: WizardData['success']) => {
+  // Memoized step validation callbacks to prevent infinite re-renders
+  const onValidChangeStep0 = useCallback((valid: boolean) => {
+    setStepValid(0, valid);
+  }, [setStepValid]);
+
+  const onValidChangeStep1 = useCallback((valid: boolean) => {
+    setStepValid(1, valid);
+  }, [setStepValid]);
+
+  const onValidChangeStep2 = useCallback((valid: boolean) => {
+    setStepValid(2, valid);
+  }, [setStepValid]);
+
+  const handleCreationSuccess = useCallback((success: WizardData['success']) => {
     dispatch({ type: 'SET_SUCCESS', success });
     onSuccess();
-  };
+  }, [onSuccess]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     dispatch({ type: 'RESET' });
-  };
+  }, []);
 
   const renderStep = () => {
     switch (step) {
@@ -124,7 +137,7 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
           <ResortDetailsStep
             data={data}
             setField={setField}
-            onValidChange={(valid) => setStepValid(0, valid)}
+            onValidChange={onValidChangeStep0}
           />
         );
       case 1:
@@ -132,7 +145,7 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
           <AdminSetupStep
             data={data}
             setField={setField}
-            onValidChange={(valid) => setStepValid(1, valid)}
+            onValidChange={onValidChangeStep1}
           />
         );
       case 2:
@@ -140,7 +153,7 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
           <QuickBrandingStep
             data={data}
             setField={setField}
-            onValidChange={(valid) => setStepValid(2, valid)}
+            onValidChange={onValidChangeStep2}
           />
         );
       case 3:
