@@ -46,9 +46,9 @@ export function PrearrivalActivitiesPreview() {
       if (!guest) return [];
 
       const { data, error } = await supabase.rpc('guest_get_available_sessions', {
-        p_resort_id: guest.resortId,
-        p_date: selectedDate,
         p_guest_id: guest.guestId,
+        p_date: selectedDate,
+        p_category: null,
       });
 
       if (error) {
