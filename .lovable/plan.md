@@ -1,81 +1,56 @@
 
-Goal: Fix the “Send Login Credentials” flow for pre-arrival guests (it currently fails), then verify end-to-end that an email is sent and logged with correct resort branding and credentials.
+# Fix: Send Login Credentials Button Does Nothing
 
-What I found (why it fails)
-- The “Send Login Credentials” button shown in your screenshot is rendered by `PrearrivalProfileCard`.
-- `PrearrivalProfileCard` constructs a partial `Guest` object (`dialogGuest`) for `SendGuestCredentialsDialog`, but it hard-codes:
-  - `room_number: ''`
-- The email-sending backend function (`send-guest-credentials`) requires `roomNumber` (and rejects empty/undefined values). So pre-arrival sends can fail even though the guest exists and has a real room number in the database.
-- Additionally, `SendGuestCredentialsDialog` will also throw before calling the backend if the resort context doesn’t have `currentResort.code` ready (less likely, but we should harden the UI).
+## Root Cause
+The **"Send Login Credentials" button** in `PrearrivalProfileCard.tsx` does nothing because the `SendGuestCredentialsDialog` component is **never rendered** in the JSX.
 
-Primary fix (minimal diff, aligned to current architecture)
-1) Pass the real room number into `PrearrivalProfileCard`
-- File: `src/components/prearrival/PrearrivalProfileCard.tsx`
-  - Add a prop: `roomNumber: string`
-  - Populate `dialogGuest.room_number = roomNumber` instead of `''`
-  - (Optional but good) also populate `portal_pin_last4` if available in the parent guest object so the dialog can display that state accurately.
+The component has all the pieces in place:
+- Import: `SendGuestCredentialsDialog` is imported (line 42)
+- State: `credentialsDialogOpen` is created (line 83)
+- Handler: `handleSendEmail` sets `credentialsDialogOpen = true` (line 136)
+- Guest object: `dialogGuest` is constructed with correct data (lines 124-133)
 
-2) Wire it from the guest detail page
-- File: `src/pages/guests/GuestDetailPage.tsx`
-  - When rendering `<PrearrivalProfileCard ... />`, pass `roomNumber={guest.room_number}`
-  - (Optional) pass `portalPinLast4={guest.portal_pin_last4}` if we choose to add that prop too.
+**But the dialog component itself is never included in the return JSX** — the state gets set to `true`, but there's nothing listening to it.
 
-Hardening (so this never breaks again if something is missing)
-3) Add a “required field” guard in `SendGuestCredentialsDialog`
-- File: `src/components/guests/SendGuestCredentialsDialog.tsx`
-  - Before calling `supabase.functions.invoke('send-guest-credentials', ...)`, verify:
-    - `guest.room_number` exists
-    - `guest.check_in_date` exists
-    - computed `lastName` is non-empty
-    - `currentResort.code` exists
-  - If missing, show a clear destructive toast explaining what’s missing (e.g., “Room number is missing—please add it to the guest to send credentials.”) and do not attempt send.
-  - This prevents silent failures and saves staff time.
+## The Fix
+Add the `<SendGuestCredentialsDialog />` component to the JSX in `PrearrivalProfileCard.tsx`. This needs to be added in **both return paths**:
 
-End-to-end verification checklist (after implementation)
-A) UI test (staff console)
-1. Sign in as `Trml_admin` (password `123456`)
-2. Open a pre-arrival guest with an email (e.g., Sam Smith, Room 222)
-3. Click “Send Login Credentials”
-4. In the dialog, confirm:
-   - Room shows “222”
-   - Last name is correct
-   - PIN shows either a generated PIN or masked existing PIN (and regenerates if needed)
-5. Click “Send Credentials”
-6. Confirm the UI shows:
-   - A success toast (“Credentials sent!”)
-   - Button state changes to “Sent!” for that guest in the dialog
+1. **Empty state return** (around line 243) — for guests with no pre-arrival data yet
+2. **Main card return** (around line 510) — for guests with pre-arrival data
 
-B) Backend logging verification (email status for staff visibility)
-1. Confirm a new row appears in `guest_outbound_messages` for:
-   - `template_key = 'guest_credentials'`
-   - `status` transitions to `sent` (or `failed` with `error_message`)
-   - `provider_message_id` is populated on success
-2. If it fails:
-   - Confirm the row is created as `queued` then updated to `failed`
-   - Confirm the UI surfaces the error text clearly
+## Technical Implementation
 
-C) Email verification (branding + credentials)
-1. Confirm the email arrives to the guest address
-2. Verify:
-   - From name: `${resortName} <reservations@propera.cc>`
-   - Resort logo appears (if `login_logo_url` exists)
-   - Color theme uses `login_primary_color` (fallback teal)
-   - Portal URL uses the resort code: `https://propera.cc/resort/{code}/guest/login`
-   - Credentials match: Room, Last Name, PIN
-   - CTA button navigates to the portal URL
+**File: `src/components/prearrival/PrearrivalProfileCard.tsx`**
 
-Edge cases to validate
-- Guest missing email → button remains disabled and helper copy shows “Add guest email to enable sending”
-- Guest missing room number → sending blocked with clear toast
-- Resort code not loaded → sending blocked with clear toast
-- Resend/API provider error → status becomes `failed`, staff can retry
+Add the dialog component right before the closing fragments in both return statements:
 
-Files that will be modified
-- `src/components/prearrival/PrearrivalProfileCard.tsx` (add roomNumber prop + set dialogGuest.room_number correctly)
-- `src/pages/guests/GuestDetailPage.tsx` (pass roomNumber into PrearrivalProfileCard)
-- `src/components/guests/SendGuestCredentialsDialog.tsx` (guardrails + clearer error messaging)
+```tsx
+{/* Add this before the closing </Card> in both empty state and main card */}
+<SendGuestCredentialsDialog
+  open={credentialsDialogOpen}
+  onOpenChange={setCredentialsDialogOpen}
+  guests={[dialogGuest]}
+  onSuccess={handleCredentialsSent}
+/>
+```
 
-Success criteria
-- Pre-arrival guest can be sent credentials successfully from the Pre-Arrival card
-- A `guest_outbound_messages` record is created/updated with accurate status
-- Guest receives a correctly branded email containing correct portal URL + room/last/PIN
+### Specific Locations:
+1. **Empty state** (ends ~line 244): Insert after closing `</Card>`, wrap both in a fragment
+2. **Main card** (ends ~line 511): Insert after closing `</Card>`, wrap both in a fragment
+
+### Changes Required:
+- Wrap both return paths in `<>...</>` fragments
+- Add the dialog component after each `</Card>`
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/prearrival/PrearrivalProfileCard.tsx` | Add `<SendGuestCredentialsDialog />` to both return paths |
+
+## Testing Checklist
+1. Navigate to a pre-arrival guest (e.g., one showing "No pre-arrival details yet")
+2. Click "Send Login Credentials" button
+3. Verify the dialog opens with correct guest data (Room, Last Name, PIN/placeholder)
+4. Confirm email can be edited and credentials can be sent
+5. Also test on a guest with pre-arrival data (the "Resend" button scenario)
