@@ -147,7 +147,8 @@ export function mapActivityToDisplayModel(
     ? new Date(`${booking.date}T${booking.start_time}`)
     : null;
   
-  const cutoffHours = booking.guest_cancel_cutoff_hours ?? booking.guest_cancel_cutoff_minutes ?? 24;
+  // Activities use HOURS for cancellation cutoff (not minutes)
+  const cutoffHours = booking.guest_cancel_cutoff_hours ?? 4;
   const cutoffTime = sessionDateTime 
     ? new Date(sessionDateTime.getTime() - cutoffHours * 60 * 60 * 1000)
     : undefined;

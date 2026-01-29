@@ -132,7 +132,7 @@ export default function GuestMyBookings() {
         category: b.session?.activity?.category,
         duration_minutes: b.session?.activity?.duration_minutes,
         guest_can_cancel: b.session?.activity?.guest_can_cancel,
-        guest_cancel_cutoff_minutes: b.session?.activity?.guest_cancel_cutoff_minutes ?? 60,
+        guest_cancel_cutoff_hours: b.session?.activity?.guest_cancel_cutoff_hours ?? 4,
         max_pax_per_booking: 10,
         image_url: b.session?.activity?.image_url,
         booking_type: 'activity' as const,
