@@ -1,185 +1,52 @@
 
-# Enhance Activity Configuration for Guest-Facing Information
+# Optimize Guest Portal UI for Bottom Navigation Visibility
 
-## Summary
-Make all guest-visible activity information configurable from the staff side, including the "Good to know" section content, cancellation policies, booking cutoff times, and rich content fields. The booking cutoff enforcement already works correctly in the backend—we need to expose the configuration in the staff UI.
+## Problem
+Content at the bottom of guest portal pages can be hidden or cut off by the fixed bottom navigation bar, making it difficult for users to scroll down and view all content.
 
-## Current State Analysis
+## Current Implementation
 
-### Database Fields Already Available (Not Exposed in Staff UI)
-The `activities` table has these columns that guests see but staff cannot edit:
+The guest portal uses a layered approach:
+- **Fixed navigation**: 72px height plus device safe-area inset
+- **Main content padding**: `guest-safe-bottom` class provides ~88px bottom padding
+- **Some pages**: Add their own additional padding for sticky bars (e.g., Requests page)
 
-| Field | Guest Usage | Currently Editable |
-|-------|-------------|-------------------|
-| `short_description` | Activity catalogue cards | No |
-| `full_description` | Activity detail page | No |
-| `difficulty_level` | Badges on detail page | No |
-| `max_age` | Age restrictions | No |
-| `is_swimming_required` | Swimming notice | No |
-| `suitable_for_non_swimmers` | Accessibility | No |
-| `highlights` (JSON) | Key features list | No |
-| `includes` | "What's included" section | No |
-| `health_and_safety_notes` | Safety info card | No |
-| `cancellation_policy_text` | Policy section | No |
-| `faq` (JSON) | FAQ accordion | No |
-| `guest_cutoff_hours` | Booking closes X hours before | Stored but not shown in form |
-| `guest_cancel_cutoff_hours` | Cancel deadline | Stored but not shown in form |
+## Root Cause
 
-### Booking Cutoff Enforcement
-The backend validation in `booking-validation.ts` already:
-1. Checks `guest_cutoff_hours` against resort timezone
-2. Returns `CUTOFF_PAST` error if booking attempt is too late
-3. Works correctly for guest portal bookings
-
-The issue is just UI: staff can't easily configure these values.
-
----
-
-## Implementation Plan
-
-### Phase 1: Reorganize ActivityDialog with Tabs
-Transform the single scrolling form into a tabbed interface for better organization.
-
-**Tabs Structure:**
-1. **Basic Info** - Name, category, icon, image, descriptions
-2. **Pricing & Capacity** - Price, duration, capacity limits, age restrictions
-3. **Guest Booking Rules** - All the "Good to know" configurable settings
-4. **Content & Safety** - Includes, highlights, health notes, cancellation policy, FAQ
-
-### Phase 2: Add Missing Fields to Form
-
-#### Tab 1 - Basic Info (existing + new fields)
-- Name (existing)
-- Category (existing)
-- Icon (existing)
-- Hero Image (existing)
-- **Short Description** (NEW) - shown in catalogue cards
-- **Full Description** (NEW) - shown on detail page
-
-#### Tab 2 - Pricing & Capacity (reorganized)
-- Price per Person (existing)
-- Duration (existing)
-- Max Capacity (existing)
-- Min Capacity (existing)
-- **Age Range** (NEW)
-  - Min Age (existing)
-  - Max Age (NEW)
-- **Difficulty Level** (NEW) - EASY / MODERATE / ADVANCED dropdown
-- **Swimming Requirements** (NEW)
-  - Swimming Required toggle
-  - Suitable for Non-swimmers toggle
-
-#### Tab 3 - Guest Booking Rules (the "Good to Know" section)
-All fields that feed into the guest "Good to know" panel:
-
-- Guests Can Book toggle (existing)
-- **Max Guests Per Booking** (existing but hidden - make visible with clear label)
-- **Booking Cutoff Hours** (NEW input with helper text)
-  - Label: "Online booking closes X hours before start"
-  - Default: 2 hours
-- Requires Approval toggle (existing)
-- Guests Can Cancel toggle (existing)
-- **Cancellation Cutoff Hours** (NEW input with helper text)
-  - Label: "Guests can cancel up to X hours before"
-  - Default: 4 hours
-  - Only shown when "Guests Can Cancel" is ON
-- Active toggle (existing)
-
-#### Tab 4 - Content & Safety (NEW tab)
-Rich content fields for the guest detail page:
-
-- **Highlights** (NEW)
-  - Dynamic list input (add/remove items)
-  - Shows as bullet points on guest detail page
-- **What's Included** (NEW)
-  - Multi-line text area
-- **Health & Safety Notes** (NEW)
-  - Multi-line text area with amber warning styling in preview
-- **Cancellation Policy Text** (NEW)
-  - Custom policy wording (overrides default generated text)
-- **FAQ** (NEW - future enhancement)
-  - Question/Answer pair list
-  - Can be deferred to v2
-
----
-
-## Technical Changes
-
-### File: `src/pages/activities/ActivityDialog.tsx`
-
-1. **Import Tabs component**
-```tsx
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+The current bottom padding calculation has a minimal buffer:
+```css
+.guest-safe-bottom {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 16px);
+}
 ```
 
-2. **Expand formData state** to include all missing fields:
-```tsx
-const [formData, setFormData] = useState({
-  // Existing fields...
-  
-  // NEW fields
-  short_description: '',
-  full_description: '',
-  difficulty_level: null as string | null,
-  max_age: '',
-  is_swimming_required: false,
-  suitable_for_non_swimmers: false,
-  highlights: [] as string[],
-  includes: '',
-  health_and_safety_notes: '',
-  cancellation_policy_text: '',
-});
+This provides only 16px of extra space beyond the navigation bar, which can feel cramped and may not account for visual "breathing room" that users expect.
+
+## Solution
+
+### 1. Increase Base Padding Buffer
+Increase the additional buffer from 16px to 24px for a more comfortable scroll experience:
+
+```css
+.guest-safe-bottom {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 24px);
+}
 ```
 
-3. **Update useEffect** to populate new fields from activity data
+This provides ~96px minimum padding (72px nav + 24px buffer), giving content more room.
 
-4. **Update activityData** object in handleSubmit to include new fields
+### 2. Add Utility Variants for Specific Use Cases
+Create additional utility classes for pages with sticky action bars:
 
-5. **Restructure JSX** into tabbed sections
-
-### File: `src/types/database.ts` (verify types)
-Ensure Activity interface includes all fields (mostly already there).
-
----
-
-## UI/UX Details
-
-### Booking Rules Section Helper Text
-Each field should have clear explanatory text:
-
-```
-┌─────────────────────────────────────────────────────┐
-│ Guest Booking Rules                                 │
-├─────────────────────────────────────────────────────┤
-│ ┌─ Booking Cutoff ─────────────────────────────────┐│
-│ │ Hours before activity starts:  [  2  ] hours    ││
-│ │ ℹ️ Guests cannot book within 2h of start time    ││
-│ └──────────────────────────────────────────────────┘│
-│                                                     │
-│ ┌─ Max Guests Per Booking ─────────────────────────┐│
-│ │ Maximum:  [  4  ] guests                         ││
-│ │ ℹ️ Shown in "Good to know" section               ││
-│ └──────────────────────────────────────────────────┘│
-│                                                     │
-│ ┌─ Cancellation Settings ──────────────────────────┐│
-│ │ [✓] Guests Can Cancel                            ││
-│ │ Cancel deadline:  [  4  ] hours before start     ││
-│ │ ℹ️ Guests see "Cancel online up to 4h before"    ││
-│ └──────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────┘
+```css
+/* Extended safe bottom for pages with sticky action bars */
+.guest-safe-bottom-extended {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 96px);
+}
 ```
 
-### Highlights Editor Component
-Simple list editor with add/remove:
-```
-Highlights (shown as feature list to guests)
-┌────────────────────────────────────────────┐
-│ Professional equipment provided        [×] │
-│ Suitable for all skill levels          [×] │
-│ Photo package available                [×] │
-│ [+ Add highlight]                          │
-└────────────────────────────────────────────┘
-```
+### 3. Standardize Page Padding
+Ensure all guest pages consistently use the layout's safe-bottom padding rather than ad-hoc `pb-*` classes. Pages with sticky bars should use the extended variant or their own calculations that respect the base nav height.
 
 ---
 
@@ -187,54 +54,44 @@ Highlights (shown as feature list to guests)
 
 | File | Changes |
 |------|---------|
-| `src/pages/activities/ActivityDialog.tsx` | Major restructure: tabs, new fields, expanded form state |
-| `src/types/database.ts` | Verify/add any missing Activity fields |
-
-## Files to Create (Optional)
-
-| File | Purpose |
-|------|---------|
-| `src/components/ui/highlight-list-input.tsx` | Reusable list editor for highlights |
+| `src/index.css` | Update `guest-safe-bottom` padding, add extended variant |
+| `src/pages/guest/GuestRequestsPage.tsx` | Remove hardcoded `pb-*` classes, rely on layout or extended class |
+| `src/pages/guest/GuestMyBookings.tsx` | Verify no additional padding needed |
 
 ---
 
-## Guest Portal Display Validation
+## Technical Details
 
-After implementation, the guest pages should display:
+### CSS Variable Reference
+- `--guest-nav-h: 72px` - Fixed bottom navigation height
+- `env(safe-area-inset-bottom)` - Device-specific safe area (iPhone home indicator, etc.)
 
-### GuestActivityBookingPage "Good to know" section
-Will now show **actual configured values**:
-- Maximum X guests per booking (from `max_pax_per_booking`)
-- Online booking closes Xh before start time (from `guest_cutoff_hours`)
-- You can cancel online up to Xh before (from `guest_cancel_cutoff_hours`)
+### Calculation Breakdown
+**Current**: 72px + safe-area + 16px = ~88px minimum
+**Proposed**: 72px + safe-area + 24px = ~96px minimum
 
-### GuestActivityDetailPage
-Will show content from new fields:
-- Short description in header
-- Full description card
-- Difficulty badge
-- Highlights list
-- "What's included" section
-- Health & Safety notes (if configured)
-- Cancellation Policy text (if configured)
-- Swimming requirement notice (if enabled)
+This 8px increase may seem small, but it:
+- Provides more visual separation between last content item and navigation
+- Accounts for border shadows and visual elements on the nav bar
+- Feels more comfortable when scrolling to the bottom
 
----
+### GuestRequestsPage Special Case
+This page has a sticky bottom action bar that appears when items are selected. The page currently uses:
+```tsx
+selectedItems.length > 0 ? 'pb-40' : 'pb-24'
+```
 
-## No Database Changes Required
-
-All required columns already exist in the `activities` table. This is purely a frontend enhancement to expose existing database capabilities in the staff UI.
+This should be adjusted to use consistent CSS variables or the extended variant to maintain harmony with the layout system.
 
 ---
 
 ## Testing Checklist
 
-1. Create a new activity with all fields populated
-2. Verify all content appears on guest detail page
-3. Edit booking cutoff hours and verify:
-   - Guest sees correct "booking closes Xh before" text
-   - Guest is blocked from booking within cutoff window
-4. Edit cancellation hours and verify guest sees correct text
-5. Toggle "Guests Can Cancel" off and verify cancellation option is hidden
-6. Add highlights and verify they appear on guest detail page
-7. Test with existing activities (ensure backward compatibility)
+After implementation:
+1. Navigate to Guest Home - verify all content visible above bottom nav
+2. Navigate to My Bookings - scroll to bottom, verify last booking card fully visible
+3. Navigate to Activities catalogue - verify all activity cards visible
+4. Navigate to Restaurant browser - verify all slots visible
+5. Navigate to Requests - select items, verify sticky bar + bottom nav don't overlap content
+6. Test on different device sizes (especially iPhone SE and larger phones)
+7. Verify dark mode appearance
