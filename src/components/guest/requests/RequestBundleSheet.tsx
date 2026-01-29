@@ -39,7 +39,7 @@ import { SelectedItem } from './MultiSelectItemGrid';
 import { validateScheduledTime } from '@/hooks/useServiceRequests';
 import { useSubmitCooldown, formatCooldownTime } from '@/hooks/useSubmitCooldown';
 
-// Constants for multi-select limits
+// Default constants (will be overridden by settings)
 export const MAX_BUNDLE_ITEMS = 10;
 export const MAX_TOTAL_QUANTITY = 20;
 
@@ -51,6 +51,11 @@ interface RequestBundleSheetProps {
   onRemoveItem: (catalogId: string) => void;
   onSubmit: (params: BundleSubmitParams) => Promise<void>;
   isSubmitting: boolean;
+  // Dynamic settings
+  maxBundleItems?: number;
+  maxTotalQuantity?: number;
+  requestsStartHour?: number;
+  requestsEndHour?: number;
 }
 
 export interface BundleSubmitParams {
@@ -60,18 +65,16 @@ export interface BundleSubmitParams {
   items: Array<{ catalogId: string; quantity: number }>;
 }
 
-// Generate time slots (every 30 min from 6 AM to 11 PM)
-function generateTimeSlots(): string[] {
+// Generate time slots dynamically
+function generateTimeSlots(startHour: number, endHour: number): string[] {
   const slots: string[] = [];
-  for (let hour = 6; hour <= 23; hour++) {
+  for (let hour = startHour; hour <= endHour; hour++) {
     for (let min = 0; min < 60; min += 30) {
       slots.push(`${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`);
     }
   }
   return slots;
 }
-
-const TIME_SLOTS = generateTimeSlots();
 
 export function RequestBundleSheet({
   open,
@@ -81,6 +84,10 @@ export function RequestBundleSheet({
   onRemoveItem,
   onSubmit,
   isSubmitting,
+  maxBundleItems = MAX_BUNDLE_ITEMS,
+  maxTotalQuantity = MAX_TOTAL_QUANTITY,
+  requestsStartHour = 6,
+  requestsEndHour = 23,
 }: RequestBundleSheetProps) {
   const [isAsap, setIsAsap] = useState(true);
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
@@ -89,6 +96,12 @@ export function RequestBundleSheet({
   
   // Cooldown hook for rate limiting UI
   const { isOnCooldown, remainingSeconds, startCooldown } = useSubmitCooldown('request_bundle', 30);
+
+  // Generate time slots based on settings
+  const timeSlots = useMemo(() => 
+    generateTimeSlots(requestsStartHour, requestsEndHour), 
+    [requestsStartHour, requestsEndHour]
+  );
 
   const totalCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -111,24 +124,24 @@ export function RequestBundleSheet({
 
   // Filter available time slots for today
   const availableTimeSlots = useMemo(() => {
-    if (!scheduledDate) return TIME_SLOTS;
+    if (!scheduledDate) return timeSlots;
     
     const now = new Date();
     const isToday = startOfDay(scheduledDate).getTime() === startOfDay(now).getTime();
     
-    if (!isToday) return TIME_SLOTS;
+    if (!isToday) return timeSlots;
     
     const bufferTime = addMinutes(now, 15);
-    return TIME_SLOTS.filter((time) => {
+    return timeSlots.filter((time) => {
       const [hours, minutes] = time.split(':').map(Number);
       const slotTime = setMinutes(setHours(scheduledDate, hours), minutes);
       return !isBefore(slotTime, bufferTime);
     });
-  }, [scheduledDate]);
+  }, [scheduledDate, timeSlots]);
 
   const canSubmit = selectedItems.length > 0 && 
-    selectedItems.length <= MAX_BUNDLE_ITEMS &&
-    totalCount <= MAX_TOTAL_QUANTITY &&
+    selectedItems.length <= maxBundleItems &&
+    totalCount <= maxTotalQuantity &&
     !timeValidationError &&
     !isOnCooldown;
 
@@ -164,7 +177,7 @@ export function RequestBundleSheet({
       
       if (isToday) {
         const bufferTime = addMinutes(now, 15);
-        const firstAvailable = TIME_SLOTS.find((time) => {
+        const firstAvailable = timeSlots.find((time) => {
           const [hours, minutes] = time.split(':').map(Number);
           const slotTime = setMinutes(setHours(date, hours), minutes);
           return !isBefore(slotTime, bufferTime);
@@ -175,7 +188,7 @@ export function RequestBundleSheet({
         }
       }
     }
-  }, []);
+  }, [timeSlots]);
 
   // Header icon
   const headerIcon = (
@@ -188,13 +201,13 @@ export function RequestBundleSheet({
   const footer = (
     <div className="space-y-2">
       {/* Limit warning */}
-      {(selectedItems.length > MAX_BUNDLE_ITEMS || totalCount > MAX_TOTAL_QUANTITY) && (
+      {(selectedItems.length > maxBundleItems || totalCount > maxTotalQuantity) && (
         <Alert variant="destructive" className="py-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            {selectedItems.length > MAX_BUNDLE_ITEMS 
-              ? `Maximum ${MAX_BUNDLE_ITEMS} items per request. Please remove some items.`
-              : `Maximum ${MAX_TOTAL_QUANTITY} total items. Please reduce quantities.`}
+            {selectedItems.length > maxBundleItems 
+              ? `Maximum ${maxBundleItems} items per request. Please remove some items.`
+              : `Maximum ${maxTotalQuantity} total items. Please reduce quantities.`}
           </AlertDescription>
         </Alert>
       )}
@@ -224,7 +237,7 @@ export function RequestBundleSheet({
         )}
       </Button>
       <p className="text-[10px] text-muted-foreground text-center">
-        {selectedItems.length}/{MAX_BUNDLE_ITEMS} items • We'll route to the right team{departments.length > 1 ? 's' : ''}.
+        {selectedItems.length}/{maxBundleItems} items • We'll route to the right team{departments.length > 1 ? 's' : ''}.
       </p>
     </div>
   );

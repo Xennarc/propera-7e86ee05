@@ -4,12 +4,13 @@ import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useRequestCatalog, useServiceRequestMutations, useGuestServiceRequests, CatalogItem } from '@/hooks/useServiceRequests';
+import { useRequestSettings } from '@/hooks/useRequestSettings';
 import { RequestsHeader } from '@/components/guest/requests/RequestsHeader';
 import { RequestCategoryAccordion } from '@/components/guest/requests/RequestCategoryAccordion';
 import { RequestNotesCard } from '@/components/guest/requests/RequestNotesCard';
 import { RequestsStickyBar } from '@/components/guest/requests/RequestsStickyBar';
 import { RequestsEmptyState, RequestsLoadingSkeleton } from '@/components/guest/requests/RequestsEmptyState';
-import { RequestBundleSheet, BundleSubmitParams, MAX_BUNDLE_ITEMS, MAX_TOTAL_QUANTITY } from '@/components/guest/requests/RequestBundleSheet';
+import { RequestBundleSheet, BundleSubmitParams } from '@/components/guest/requests/RequestBundleSheet';
 import { PrearrivalRequestsBlockedState } from '@/components/guest/PrearrivalRequestsBlockedState';
 import { SimpleRequestFlow } from '@/components/guest/requests/SimpleRequestFlow';
 import { SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
@@ -39,6 +40,9 @@ export default function GuestRequestsPage() {
     guest?.resortId || '',
     !!guest?.resortId
   );
+
+  // Fetch dynamic settings
+  const { settings } = useRequestSettings(guest?.resortId || '', !!guest?.resortId);
 
   const { createBundle, isCreatingBundle } = useServiceRequestMutations(
     guest?.guestId || '',
@@ -99,9 +103,9 @@ export default function GuestRequestsPage() {
         return prev.filter((i) => i.catalogId !== item.id);
       }
       
-      // Check if adding would exceed limit
-      if (prev.length >= MAX_BUNDLE_ITEMS) {
-        toast.error(`Maximum ${MAX_BUNDLE_ITEMS} items per request`, {
+      // Check if adding would exceed limit (using dynamic settings)
+      if (prev.length >= settings.maxBundleItems) {
+        toast.error(`Maximum ${settings.maxBundleItems} items per request`, {
           description: 'Remove an item before adding more.',
         });
         return prev;
@@ -128,9 +132,9 @@ export default function GuestRequestsPage() {
       const newQuantity = Math.max(1, Math.min(10, targetItem.quantity + delta));
       const newTotal = currentTotal - targetItem.quantity + newQuantity;
       
-      // Block increase if would exceed total limit
-      if (delta > 0 && newTotal > MAX_TOTAL_QUANTITY) {
-        toast.error(`Maximum ${MAX_TOTAL_QUANTITY} total items`, {
+      // Block increase if would exceed total limit (using dynamic settings)
+      if (delta > 0 && newTotal > settings.maxTotalQuantity) {
+        toast.error(`Maximum ${settings.maxTotalQuantity} total items`, {
           description: 'Reduce quantities elsewhere first.',
         });
         return prev;
@@ -142,7 +146,7 @@ export default function GuestRequestsPage() {
           : item
       );
     });
-  }, []);
+  }, [settings.maxTotalQuantity]);
 
   const handleRemoveItem = useCallback((catalogId: string) => {
     setSelectedItems((prev) => prev.filter((i) => i.catalogId !== catalogId));
@@ -172,8 +176,8 @@ export default function GuestRequestsPage() {
       // Use extended safe bottom when sticky bar is visible
       selectedItems.length > 0 && 'guest-safe-bottom-extended'
     )}>
-      {/* Header */}
-      <RequestsHeader activeCount={activeCount} />
+      {/* Header - with dynamic tagline */}
+      <RequestsHeader activeCount={activeCount} tagline={settings.headerTagline} />
 
       {/* Main content */}
       <main>
@@ -184,6 +188,8 @@ export default function GuestRequestsPage() {
             isError 
             errorMessage="We couldn't load the request options."
             onRetry={() => refetch()}
+            title={settings.emptyStateTitle}
+            description={settings.emptyStateDescription}
           />
         ) : (
           <motion.div
@@ -227,7 +233,7 @@ export default function GuestRequestsPage() {
         disabled={selectedItems.length === 0}
       />
 
-      {/* Bundle Sheet (review + submit) */}
+      {/* Bundle Sheet (review + submit) - with dynamic settings */}
       <RequestBundleSheet
         open={bundleSheetOpen}
         onOpenChange={setBundleSheetOpen}
@@ -236,6 +242,10 @@ export default function GuestRequestsPage() {
         onRemoveItem={handleRemoveItem}
         onSubmit={handleSubmitBundle}
         isSubmitting={isCreatingBundle}
+        maxBundleItems={settings.maxBundleItems}
+        maxTotalQuantity={settings.maxTotalQuantity}
+        requestsStartHour={settings.requestsStartHour}
+        requestsEndHour={settings.requestsEndHour}
       />
     </div>
   );
