@@ -1,4 +1,4 @@
-import { useState, useReducer } from 'react';
+import { useState, useReducer, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, User, Palette, FileCheck, ChevronLeft, ChevronRight, Check, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -104,9 +104,9 @@ export function CreateResortWizard({ onSuccess, onClose }: CreateResortWizardPro
     }
   };
 
-  const setStepValid = (stepIndex: number, valid: boolean) => {
+  const setStepValid = useCallback((stepIndex: number, valid: boolean) => {
     setStepValidation(prev => ({ ...prev, [stepIndex]: valid }));
-  };
+  }, []);
 
   const handleCreationSuccess = (success: WizardData['success']) => {
     dispatch({ type: 'SET_SUCCESS', success });
