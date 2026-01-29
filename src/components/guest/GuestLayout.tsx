@@ -232,7 +232,7 @@ export function GuestLayout() {
 
   return (
     <div 
-      className="guest-branded flex min-h-screen flex-col bg-background"
+      className="guest-branded guest-page-bg flex h-[100dvh] flex-col bg-background overflow-hidden"
       style={brandingStyles}
     >
       {/* Mobile-optimized Header with glassmorphism */}
@@ -287,7 +287,7 @@ export function GuestLayout() {
       {/* Main content with safe-area-aware bottom padding */}
       <main 
         ref={mainRef} 
-        className="flex-1 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll guest-page-bg"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
       >
         <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
           <GuestPortalGate>
