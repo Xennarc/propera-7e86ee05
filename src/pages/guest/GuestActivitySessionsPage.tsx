@@ -46,16 +46,13 @@ export default function GuestActivitySessionsPage() {
   const [selectedDate, setSelectedDate] = useState(getInitialDate);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Track scroll for header collapse (use main container, not window)
+  // Track scroll for header collapse
   useEffect(() => {
-    const mainEl = document.querySelector('main');
-    if (!mainEl) return;
-    
     const handleScroll = () => {
-      setIsHeaderCompact(mainEl.scrollTop > 60);
+      setIsHeaderCompact(window.scrollY > 60);
     };
-    mainEl.addEventListener('scroll', handleScroll, { passive: true });
-    return () => mainEl.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const { data: sessions, isLoading, isError } = useQuery({
@@ -222,15 +219,15 @@ export default function GuestActivitySessionsPage() {
                       )}
                     </div>
                     
-                    {/* Content area - vertically centered with min height matching thumbnail */}
-                    <div className="flex-1 min-w-0 min-h-16 flex flex-col justify-center space-y-0.5">
+                    {/* Content area - vertically centered */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
                       {/* Top row: Name + Status badge */}
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-semibold text-foreground truncate leading-tight">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h3 className="font-semibold text-foreground truncate">
                           {session.activity_name}
                         </h3>
                         <span className={cn(
-                          "shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase whitespace-nowrap leading-none",
+                          "shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase whitespace-nowrap",
                           session.requires_approval 
                             ? "bg-warning/15 text-warning" 
                             : "bg-success/15 text-success"
@@ -241,7 +238,7 @@ export default function GuestActivitySessionsPage() {
                       
                       {/* Bottom row: Consolidated metadata */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground leading-tight">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <span className={cn("font-mono font-medium", config.colorClass)}>
                             {session.start_time?.slice(0, 5)}
                           </span>
