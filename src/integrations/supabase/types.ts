@@ -885,6 +885,626 @@ export type Database = {
         }
         Relationships: []
       }
+      buggies: {
+        Row: {
+          capacity: number
+          created_at: string
+          current_stop_id: string | null
+          id: string
+          is_accessible: boolean
+          last_location: Json | null
+          last_location_at: string | null
+          metadata: Json
+          name: string
+          resort_id: string
+          status: Database["public"]["Enums"]["buggy_status"]
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          current_stop_id?: string | null
+          id?: string
+          is_accessible?: boolean
+          last_location?: Json | null
+          last_location_at?: string | null
+          metadata?: Json
+          name: string
+          resort_id: string
+          status?: Database["public"]["Enums"]["buggy_status"]
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          current_stop_id?: string | null
+          id?: string
+          is_accessible?: boolean
+          last_location?: Json | null
+          last_location_at?: string | null
+          metadata?: Json
+          name?: string
+          resort_id?: string
+          status?: Database["public"]["Enums"]["buggy_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggies_current_stop_id_fkey"
+            columns: ["current_stop_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggies_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_drivers: {
+        Row: {
+          assigned_buggy_id: string | null
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          metadata: Json
+          resort_id: string
+          status: Database["public"]["Enums"]["driver_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_buggy_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          resort_id: string
+          status?: Database["public"]["Enums"]["driver_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_buggy_id?: string | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          resort_id?: string
+          status?: Database["public"]["Enums"]["driver_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_drivers_assigned_buggy_id_fkey"
+            columns: ["assigned_buggy_id"]
+            isOneToOne: false
+            referencedRelation: "buggies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_drivers_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_requests: {
+        Row: {
+          created_at: string
+          created_by_staff_user_id: string | null
+          dropoff_location: Json | null
+          dropoff_stop_id: string | null
+          dropoff_text: string | null
+          eta_minutes: number | null
+          guest_id: string | null
+          id: string
+          idempotency_key: string | null
+          needs_accessible: boolean
+          party_size: number
+          pickup_location: Json | null
+          pickup_stop_id: string | null
+          pickup_text: string | null
+          priority: Database["public"]["Enums"]["buggy_priority"]
+          request_source: Database["public"]["Enums"]["buggy_request_source"]
+          request_type: Database["public"]["Enums"]["buggy_request_type"]
+          resort_id: string
+          route_id: string | null
+          scheduled_for: string | null
+          status: Database["public"]["Enums"]["buggy_request_status"]
+          status_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_staff_user_id?: string | null
+          dropoff_location?: Json | null
+          dropoff_stop_id?: string | null
+          dropoff_text?: string | null
+          eta_minutes?: number | null
+          guest_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          needs_accessible?: boolean
+          party_size?: number
+          pickup_location?: Json | null
+          pickup_stop_id?: string | null
+          pickup_text?: string | null
+          priority?: Database["public"]["Enums"]["buggy_priority"]
+          request_source: Database["public"]["Enums"]["buggy_request_source"]
+          request_type: Database["public"]["Enums"]["buggy_request_type"]
+          resort_id: string
+          route_id?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["buggy_request_status"]
+          status_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_staff_user_id?: string | null
+          dropoff_location?: Json | null
+          dropoff_stop_id?: string | null
+          dropoff_text?: string | null
+          eta_minutes?: number | null
+          guest_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          needs_accessible?: boolean
+          party_size?: number
+          pickup_location?: Json | null
+          pickup_stop_id?: string | null
+          pickup_text?: string | null
+          priority?: Database["public"]["Enums"]["buggy_priority"]
+          request_source?: Database["public"]["Enums"]["buggy_request_source"]
+          request_type?: Database["public"]["Enums"]["buggy_request_type"]
+          resort_id?: string
+          route_id?: string | null
+          scheduled_for?: string | null
+          status?: Database["public"]["Enums"]["buggy_request_status"]
+          status_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_requests_dropoff_stop_id_fkey"
+            columns: ["dropoff_stop_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_requests_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_requests_pickup_stop_id_fkey"
+            columns: ["pickup_stop_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_requests_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_requests_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_route_schedules: {
+        Row: {
+          created_at: string
+          days_of_week: number[]
+          departure_times: string[] | null
+          end_time: string
+          id: string
+          interval_minutes: number | null
+          is_active: boolean
+          resort_id: string
+          route_id: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_of_week: number[]
+          departure_times?: string[] | null
+          end_time: string
+          id?: string
+          interval_minutes?: number | null
+          is_active?: boolean
+          resort_id: string
+          route_id: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_of_week?: number[]
+          departure_times?: string[] | null
+          end_time?: string
+          id?: string
+          interval_minutes?: number | null
+          is_active?: boolean
+          resort_id?: string
+          route_id?: string
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_route_schedules_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_route_schedules_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_route_stops: {
+        Row: {
+          created_at: string
+          dwell_minutes: number
+          id: string
+          resort_id: string
+          route_id: string
+          sort_order: number
+          stop_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dwell_minutes?: number
+          id?: string
+          resort_id: string
+          route_id: string
+          sort_order?: number
+          stop_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dwell_minutes?: number
+          id?: string
+          resort_id?: string
+          route_id?: string
+          sort_order?: number
+          stop_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_route_stops_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_route_stops_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_route_stops_stop_id_fkey"
+            columns: ["stop_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_stops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_routes: {
+        Row: {
+          color_tag: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          color_tag?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          color_tag?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_routes_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_stops: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          lat: number | null
+          lng: number | null
+          name: string
+          resort_id: string
+          sort_order: number
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          name: string
+          resort_id: string
+          sort_order?: number
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          resort_id?: string
+          sort_order?: number
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_stops_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_trip_requests: {
+        Row: {
+          created_at: string
+          id: string
+          party_size: number
+          request_id: string
+          resort_id: string
+          state: Database["public"]["Enums"]["buggy_trip_request_state"]
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          party_size: number
+          request_id: string
+          resort_id: string
+          state?: Database["public"]["Enums"]["buggy_trip_request_state"]
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          party_size?: number
+          request_id?: string
+          resort_id?: string
+          state?: Database["public"]["Enums"]["buggy_trip_request_state"]
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_trip_requests_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_requests_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_trip_stops: {
+        Row: {
+          arrived_at: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          location: Json | null
+          related_request_id: string | null
+          resort_id: string
+          sequence: number
+          status: Database["public"]["Enums"]["buggy_trip_stop_status"]
+          stop_id: string | null
+          stop_kind: Database["public"]["Enums"]["buggy_trip_stop_kind"]
+          title: string | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          arrived_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location?: Json | null
+          related_request_id?: string | null
+          resort_id: string
+          sequence?: number
+          status?: Database["public"]["Enums"]["buggy_trip_stop_status"]
+          stop_id?: string | null
+          stop_kind: Database["public"]["Enums"]["buggy_trip_stop_kind"]
+          title?: string | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          arrived_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          location?: Json | null
+          related_request_id?: string | null
+          resort_id?: string
+          sequence?: number
+          status?: Database["public"]["Enums"]["buggy_trip_stop_status"]
+          stop_id?: string | null
+          stop_kind?: Database["public"]["Enums"]["buggy_trip_stop_kind"]
+          title?: string | null
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_trip_stops_related_request_id_fkey"
+            columns: ["related_request_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_stops_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_stops_stop_id_fkey"
+            columns: ["stop_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_stops_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      buggy_trips: {
+        Row: {
+          buggy_id: string | null
+          capacity_total: number | null
+          created_at: string
+          driver_user_id: string | null
+          end_at: string | null
+          id: string
+          metadata: Json
+          notes: string | null
+          resort_id: string
+          start_at: string | null
+          status: Database["public"]["Enums"]["buggy_trip_status"]
+          trip_type: Database["public"]["Enums"]["buggy_trip_type"]
+          updated_at: string
+        }
+        Insert: {
+          buggy_id?: string | null
+          capacity_total?: number | null
+          created_at?: string
+          driver_user_id?: string | null
+          end_at?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          resort_id: string
+          start_at?: string | null
+          status?: Database["public"]["Enums"]["buggy_trip_status"]
+          trip_type?: Database["public"]["Enums"]["buggy_trip_type"]
+          updated_at?: string
+        }
+        Update: {
+          buggy_id?: string | null
+          capacity_total?: number | null
+          created_at?: string
+          driver_user_id?: string | null
+          end_at?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          resort_id?: string
+          start_at?: string | null
+          status?: Database["public"]["Enums"]["buggy_trip_status"]
+          trip_type?: Database["public"]["Enums"]["buggy_trip_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_trips_buggy_id_fkey"
+            columns: ["buggy_id"]
+            isOneToOne: false
+            referencedRelation: "buggies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trips_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_leads: {
         Row: {
           created_at: string
@@ -3607,6 +4227,7 @@ export type Database = {
           prearrival_enabled: boolean
           resort_id: string
           seo_version: number
+          transport_enabled: boolean
           updated_at: string
           updated_by: string | null
         }
@@ -3621,6 +4242,7 @@ export type Database = {
           prearrival_enabled?: boolean
           resort_id: string
           seo_version?: number
+          transport_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -3635,6 +4257,7 @@ export type Database = {
           prearrival_enabled?: boolean
           resort_id?: string
           seo_version?: number
+          transport_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -6439,6 +7062,38 @@ export type Database = {
         | "CANCELLED"
         | "NO_SHOW"
         | "COMPLETED"
+      buggy_priority: "normal" | "high" | "vip"
+      buggy_request_source: "guest" | "staff"
+      buggy_request_status:
+        | "requested"
+        | "queued"
+        | "assigned_to_trip"
+        | "driver_en_route"
+        | "arrived"
+        | "picked_up"
+        | "completed"
+        | "cancelled"
+        | "failed"
+        | "no_show"
+      buggy_request_type: "on_demand" | "scheduled" | "fixed_route"
+      buggy_status: "available" | "en_route" | "out_of_service" | "charging"
+      buggy_trip_request_state:
+        | "queued"
+        | "picked_up"
+        | "dropped_off"
+        | "cancelled"
+        | "no_show"
+      buggy_trip_status:
+        | "planning"
+        | "assigned"
+        | "en_route"
+        | "active"
+        | "completed"
+        | "cancelled"
+      buggy_trip_stop_kind: "pickup" | "dropoff" | "waypoint"
+      buggy_trip_stop_status: "pending" | "arrived" | "completed" | "skipped"
+      buggy_trip_type: "pooled_custom" | "scheduled_pool" | "fixed_route_run"
+      driver_status: "offline" | "online" | "on_trip" | "break"
       feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
       guest_login_token_type: "instant" | "confirm" | "pairing"
@@ -6657,6 +7312,41 @@ export const Constants = {
         "NO_SHOW",
         "COMPLETED",
       ],
+      buggy_priority: ["normal", "high", "vip"],
+      buggy_request_source: ["guest", "staff"],
+      buggy_request_status: [
+        "requested",
+        "queued",
+        "assigned_to_trip",
+        "driver_en_route",
+        "arrived",
+        "picked_up",
+        "completed",
+        "cancelled",
+        "failed",
+        "no_show",
+      ],
+      buggy_request_type: ["on_demand", "scheduled", "fixed_route"],
+      buggy_status: ["available", "en_route", "out_of_service", "charging"],
+      buggy_trip_request_state: [
+        "queued",
+        "picked_up",
+        "dropped_off",
+        "cancelled",
+        "no_show",
+      ],
+      buggy_trip_status: [
+        "planning",
+        "assigned",
+        "en_route",
+        "active",
+        "completed",
+        "cancelled",
+      ],
+      buggy_trip_stop_kind: ["pickup", "dropoff", "waypoint"],
+      buggy_trip_stop_status: ["pending", "arrived", "completed", "skipped"],
+      buggy_trip_type: ["pooled_custom", "scheduled_pool", "fixed_route_run"],
+      driver_status: ["offline", "online", "on_trip", "break"],
       feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
       guest_login_token_type: ["instant", "confirm", "pairing"],
