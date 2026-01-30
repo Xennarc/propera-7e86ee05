@@ -1,120 +1,156 @@
 
-# Switch Guest to In-House View 12 Hours Before Check-In
+# Fix: Guest Portal Pages Appearing Blank After Login
 
-## Summary
-Modify the pre-arrival detection logic to transition guests from the pre-arrival view to the in-house view **12 hours before their check-in day begins**, rather than at midnight on check-in day.
+## Root Cause Analysis
 
----
+The blank page issue is caused by a **React Rules of Hooks violation** in `GuestHome.tsx` and potential silent failures in data fetching hooks.
 
-## Current Behavior
+### Critical Issue Identified
 
-The `useIsPrearrivalGuest()` hook calculates whether a guest is pre-arrival using day-based comparison:
+In `GuestHome.tsx` (lines 62-64):
+```tsx
+const showPrearrival = activeStay?.status === 'pre_arrival' || isPrearrival;
 
-```typescript
-// Current logic
-const daysUntilArrival = differenceInDays(checkInDate, todayStart);
-return { isPrearrival: daysUntilArrival > 0 };
+if (showPrearrival) {
+  return <GuestPrearrivalHome activeStay={activeStay} />;  // ← EARLY RETURN
+}
+
+// HOOKS BELOW ARE CALLED CONDITIONALLY (VIOLATES REACT RULES)
+const { data: bookings, isLoading } = useQuery({ ... });  // Line 82
+const { data: canSubmitFeedback } = useQuery({ ... });    // Line 97
+const { data: resort } = useQuery({ ... });               // Line 111
 ```
 
-**Result**: Guest switches to in-house view at **midnight** on check-in day (00:00 resort time).
+**React's Rules of Hooks require that hooks are called unconditionally at the top level.** When `showPrearrival` is true, the component returns early, but on subsequent renders when it becomes false, React sees different hooks being called - causing a silent crash and blank page.
+
+### Secondary Issues
+
+1. **Missing Global Error Handler**: Unhandled promise rejections in async data fetching can crash the app silently.
+2. **Insufficient Loading States**: Some pages don't show loading states while data is being fetched, appearing "blank" temporarily.
+3. **Pre-arrival Logic Edge Cases**: The 12-hour transition logic change may cause edge cases where `isPrearrival` flickers between true/false.
 
 ---
 
-## New Behavior
+## Solution
 
-Switch to hour-based comparison to trigger the transition **12 hours earlier**:
+### Phase 1: Fix React Hooks Violation in GuestHome.tsx
 
-```typescript
-// New logic  
-const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
-return { isPrearrival: hoursUntilArrival > 12 };
-```
+**Move ALL hooks to the top of the component**, before any conditional returns:
 
-**Result**: Guest switches to in-house view at **12:00 PM (noon)** on the day before check-in.
-
----
-
-## Technical Implementation
-
-### File: `src/hooks/usePrearrivalData.ts`
-
-**Changes to `useIsPrearrivalGuest()` function:**
-
-```typescript
-import { differenceInHours, differenceInDays, startOfDay, parseISO } from 'date-fns';
-
-export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArrival: number; hoursUntilArrival: number } {
+```tsx
+export default function GuestHome() {
   const { guest } = useGuestAuth();
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { isPrearrival } = useIsPrearrivalGuest();
+  const { activeStay, isLoading: stayLoading } = useActiveStay();
+  const { data: prearrivalData } = usePrearrivalData();
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // ✅ MOVE ALL QUERIES TO TOP - BEFORE CONDITIONAL RETURNS
+  const { data: bookings, isLoading } = useQuery({
+    queryKey: ['guest-bookings', guest?.guestId],
+    queryFn: async () => { ... },
+    enabled: !!guest && !isPrearrival,  // ← Disable when pre-arrival
+  });
+
+  const { data: canSubmitFeedback } = useQuery({
+    queryKey: ['can-submit-feedback', guest?.guestId],
+    queryFn: async () => { ... },
+    enabled: !!guest && !isPrearrival,  // ← Disable when pre-arrival
+  });
+
+  const { data: resort } = useQuery({
+    queryKey: ['guest-resort', guest?.resortId],
+    queryFn: async () => { ... },
+    enabled: !!guest,  // Keep enabled for branding
+  });
+
+  const { showOnboarding, completeOnboarding, skipOnboarding } = useGuestOnboarding(
+    guest?.guestId || '',
+    guest?.resortId || ''
+  );
+
+  // ✅ NOW CONDITIONAL RETURNS ARE SAFE
+  const showPrearrival = activeStay?.status === 'pre_arrival' || isPrearrival;
   
-  if (!guest) {
-    return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
+  if (showPrearrival) {
+    return <GuestPrearrivalHome activeStay={activeStay} />;
   }
 
-  // Get current time in the resort's timezone
-  const resortTimezone = guest.resortTimezone || 'UTC';
-  const nowLocal = nowInTimezone(resortTimezone);
-  
-  // Parse check-in date as start of day in resort timezone
-  // check_in_date is stored as YYYY-MM-DD, treat as 00:00 resort time
-  const checkInDate = startOfDay(parseISO(guest.checkInDate));
+  if (!guest) return null;
+  if (isLoading) return <GuestHomeLoading />;
 
-  // Calculate hours until check-in day starts
-  const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
-  
-  // Calculate days for UI display purposes
-  const todayStart = startOfDay(nowLocal);
-  const daysUntilArrival = differenceInDays(checkInDate, todayStart);
-
-  // CHANGE: Switch to in-house view 12 hours before check-in day
-  // e.g., if check-in is Jan 15, guest sees in-house view from Jan 14 at 12:00 PM
-  const isPrearrival = hoursUntilArrival > 12;
-
-  return {
-    isPrearrival,
-    daysUntilArrival: Math.max(0, daysUntilArrival),
-    hoursUntilArrival: Math.max(0, hoursUntilArrival),
-  };
+  // ... rest of component
 }
 ```
 
----
+### Phase 2: Add Global Unhandled Rejection Handler
 
-## Key Changes
+Add a defensive error handler in `App.tsx` to catch any unhandled promise rejections:
 
-| Aspect | Before | After |
-|--------|--------|-------|
-| Comparison | `differenceInDays() > 0` | `differenceInHours() > 12` |
-| Transition time | 00:00 on check-in day | 12:00 PM day before check-in |
-| Return type | `{ isPrearrival, daysUntilArrival }` | `{ isPrearrival, daysUntilArrival, hoursUntilArrival }` |
+```tsx
+// In App.tsx - add useEffect at app root level
+useEffect(() => {
+  const handleRejection = (event: PromiseRejectionEvent) => {
+    console.error("Unhandled rejection:", event.reason);
+    // Prevent blank screen by catching the error
+    event.preventDefault();
+  };
 
----
+  window.addEventListener("unhandledrejection", handleRejection);
+  return () => window.removeEventListener("unhandledrejection", handleRejection);
+}, []);
+```
 
-## Example Timeline
+### Phase 3: Ensure Loading States Are Shown
 
-**Guest check-in date**: January 15, 2026
+Update components to explicitly show loading states during the initial data fetch:
 
-| Resort Local Time | `hoursUntilArrival` | `isPrearrival` | View Shown |
-|-------------------|---------------------|----------------|------------|
-| Jan 14, 10:00 AM | 14 hours | `true` | Pre-Arrival |
-| Jan 14, 11:59 AM | 12.02 hours | `true` | Pre-Arrival |
-| **Jan 14, 12:00 PM** | **12 hours** | **`false`** | **In-House** |
-| Jan 14, 6:00 PM | 6 hours | `false` | In-House |
-| Jan 15, 12:00 AM | 0 hours | `false` | In-House |
+**GuestHome.tsx:**
+```tsx
+// After hooks, before content
+if (!guest) return null;
+if (stayLoading) return <GuestHomeLoading />;
+if (isLoading && !showPrearrival) return <GuestHomeLoading />;
+```
 
----
+**GuestPrearrivalHome.tsx:**
+Already has proper loading handling - no changes needed.
 
-## Affected Components
+### Phase 4: Stabilize Pre-arrival Detection
 
-The following components consume `useIsPrearrivalGuest()` and will automatically benefit from the updated logic:
+Memoize the `isPrearrival` calculation to prevent flickering:
 
-| Component | Usage |
-|-----------|-------|
-| `GuestLayout.tsx` | Lock icon on restricted nav items |
-| `GuestHome.tsx` | Decides whether to render `GuestPrearrivalHome` |
-| `GuestPortalGate.tsx` | Shows pre-arrival wizard prompt |
-| `GuestRequestsPage.tsx` | Shows blocked state for requests |
+```tsx
+// In usePrearrivalData.ts
+export function useIsPrearrivalGuest() {
+  const { guest } = useGuestAuth();
+  
+  // Memoize to prevent recalculation on every render
+  return useMemo(() => {
+    if (!guest) {
+      return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
+    }
 
-No changes needed in these components — they already use the `isPrearrival` boolean.
+    const resortTimezone = guest.resortTimezone || 'UTC';
+    const nowLocal = nowInTimezone(resortTimezone);
+    const todayStart = startOfDay(nowLocal);
+    const checkInDate = startOfDay(parseISO(guest.checkInDate));
+    const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
+    const daysUntilArrival = differenceInDays(checkInDate, todayStart);
+    const isPrearrival = hoursUntilArrival > 12;
+
+    return {
+      isPrearrival,
+      daysUntilArrival: Math.max(0, daysUntilArrival),
+      hoursUntilArrival: Math.max(0, hoursUntilArrival),
+    };
+  }, [guest?.checkInDate, guest?.resortTimezone]);
+}
+```
 
 ---
 
@@ -122,15 +158,53 @@ No changes needed in these components — they already use the `isPrearrival` bo
 
 | File | Changes |
 |------|---------|
-| `src/hooks/usePrearrivalData.ts` | Update `useIsPrearrivalGuest()` to use hour-based comparison with 12-hour threshold; add `hoursUntilArrival` to return type |
+| `src/pages/guest/GuestHome.tsx` | Move all `useQuery` hooks to top of component, add loading state checks |
+| `src/hooks/usePrearrivalData.ts` | Wrap `useIsPrearrivalGuest` return in `useMemo` for stability |
+| `src/App.tsx` | Add global unhandled rejection handler component |
+
+---
+
+## Technical Details
+
+### React Hooks Rule
+
+React tracks hooks by call order. If component renders with:
+- Render 1: Hook A → Hook B → Hook C → early return
+- Render 2: Hook A → Hook B → Hook C → Hook D → Hook E
+
+React throws: "Rendered more hooks than during the previous render."
+
+In production React, this may fail silently, causing a blank screen.
+
+### Fix Pattern
+
+Always call hooks unconditionally, then use `enabled` flag for conditional data fetching:
+
+```tsx
+// ❌ BAD: Conditional hook call
+if (someCondition) {
+  return <OtherComponent />;
+}
+const { data } = useQuery({ ... });
+
+// ✅ GOOD: Hook always called, conditionally enabled
+const { data } = useQuery({ 
+  ...,
+  enabled: !!someCondition 
+});
+if (someCondition) {
+  return <OtherComponent />;
+}
+```
 
 ---
 
 ## Testing Checklist
 
-1. **Pre-arrival guest (>12 hours out)**: Sees pre-arrival home page with countdown
-2. **Guest within 12 hours of check-in**: Sees full in-house home page
-3. **Guest on check-in day**: Sees in-house view (already covered by <12 hours)
-4. **Timezone accuracy**: Test with resort in different timezone than browser
-5. **Nav lock icon**: Disappears for "Requests" tab when transitioning to in-house
-6. **Pre-arrival wizard**: No longer shown after transition to in-house
+1. **Fresh Login**: Login as a guest and verify home page loads with content
+2. **Pre-arrival Guest**: Login as pre-arrival guest → see pre-arrival home
+3. **In-house Guest**: Login as in-house guest → see full home page with bookings
+4. **Tab Navigation**: Switch between Home, Activities, Requests, Bookings tabs
+5. **Page Refresh**: Refresh any guest portal page → content loads correctly
+6. **Error Recovery**: Simulate network error → page recovers gracefully
+7. **12-hour Transition**: Test guest exactly 12 hours before check-in → sees in-house view
