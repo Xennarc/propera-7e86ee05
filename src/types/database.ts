@@ -14,6 +14,19 @@ export type OnboardingStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED';
 export type SubscriptionTier = 'ESSENTIAL' | 'PROFESSIONAL' | 'ELITE';
 
+// Transport/Buggy module types
+export type BuggyStatus = 'available' | 'en_route' | 'out_of_service' | 'charging';
+export type DriverStatus = 'offline' | 'online' | 'on_trip' | 'break';
+export type BuggyRequestSource = 'guest' | 'staff';
+export type BuggyRequestType = 'on_demand' | 'scheduled' | 'fixed_route';
+export type BuggyRequestStatus = 'requested' | 'queued' | 'assigned_to_trip' | 'driver_en_route' | 'arrived' | 'picked_up' | 'completed' | 'cancelled' | 'failed' | 'no_show';
+export type BuggyPriority = 'normal' | 'high' | 'vip';
+export type BuggyTripStatus = 'planning' | 'assigned' | 'en_route' | 'active' | 'completed' | 'cancelled';
+export type BuggyTripType = 'pooled_custom' | 'scheduled_pool' | 'fixed_route_run';
+export type BuggyTripRequestState = 'queued' | 'picked_up' | 'dropped_off' | 'cancelled' | 'no_show';
+export type BuggyTripStopKind = 'pickup' | 'dropoff' | 'waypoint';
+export type BuggyTripStopStatus = 'pending' | 'arrived' | 'completed' | 'skipped';
+
 export interface Resort {
   id: string;
   name: string;
@@ -325,4 +338,184 @@ export interface RestaurantClosure {
   updated_at: string;
   // Joined fields
   restaurant?: Restaurant;
+}
+
+// ============================================================================
+// Transport/Buggy Module Types
+// ============================================================================
+
+export interface GeoLocation {
+  lat: number;
+  lng: number;
+}
+
+export interface Buggy {
+  id: string;
+  resort_id: string;
+  name: string;
+  capacity: number;
+  is_accessible: boolean;
+  status: BuggyStatus;
+  current_stop_id: string | null;
+  last_location: GeoLocation | null;
+  last_location_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  current_stop?: BuggyStop;
+}
+
+export interface BuggyDriver {
+  id: string;
+  resort_id: string;
+  user_id: string;
+  status: DriverStatus;
+  assigned_buggy_id: string | null;
+  last_seen_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  assigned_buggy?: Buggy;
+  profile?: Profile;
+}
+
+export interface BuggyStop {
+  id: string;
+  resort_id: string;
+  name: string;
+  zone: string | null;
+  lat: number | null;
+  lng: number | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BuggyRoute {
+  id: string;
+  resort_id: string;
+  name: string;
+  is_active: boolean;
+  color_tag: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  stops?: BuggyRouteStop[];
+}
+
+export interface BuggyRouteStop {
+  id: string;
+  resort_id: string;
+  route_id: string;
+  stop_id: string;
+  sort_order: number;
+  dwell_minutes: number;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  stop?: BuggyStop;
+}
+
+export interface BuggyRouteSchedule {
+  id: string;
+  resort_id: string;
+  route_id: string;
+  days_of_week: number[];
+  start_time: string;
+  end_time: string;
+  interval_minutes: number | null;
+  departure_times: string[] | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  route?: BuggyRoute;
+}
+
+export interface BuggyRequest {
+  id: string;
+  resort_id: string;
+  guest_id: string | null;
+  created_by_staff_user_id: string | null;
+  request_source: BuggyRequestSource;
+  request_type: BuggyRequestType;
+  party_size: number;
+  needs_accessible: boolean;
+  pickup_stop_id: string | null;
+  pickup_text: string | null;
+  pickup_location: GeoLocation | null;
+  dropoff_stop_id: string | null;
+  dropoff_text: string | null;
+  dropoff_location: GeoLocation | null;
+  scheduled_for: string | null;
+  route_id: string | null;
+  priority: BuggyPriority;
+  status: BuggyRequestStatus;
+  status_reason: string | null;
+  eta_minutes: number | null;
+  idempotency_key: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  guest?: Guest;
+  pickup_stop?: BuggyStop;
+  dropoff_stop?: BuggyStop;
+  route?: BuggyRoute;
+}
+
+export interface BuggyTrip {
+  id: string;
+  resort_id: string;
+  trip_type: BuggyTripType;
+  status: BuggyTripStatus;
+  buggy_id: string | null;
+  driver_user_id: string | null;
+  capacity_total: number | null;
+  start_at: string | null;
+  end_at: string | null;
+  notes: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  buggy?: Buggy;
+  driver?: BuggyDriver;
+  requests?: BuggyTripRequest[];
+  stops?: BuggyTripStop[];
+}
+
+export interface BuggyTripRequest {
+  id: string;
+  resort_id: string;
+  trip_id: string;
+  request_id: string;
+  party_size: number;
+  state: BuggyTripRequestState;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  request?: BuggyRequest;
+}
+
+export interface BuggyTripStop {
+  id: string;
+  resort_id: string;
+  trip_id: string;
+  stop_kind: BuggyTripStopKind;
+  stop_id: string | null;
+  title: string | null;
+  location: GeoLocation | null;
+  sequence: number;
+  related_request_id: string | null;
+  status: BuggyTripStopStatus;
+  arrived_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Joined fields
+  stop?: BuggyStop;
+  related_request?: BuggyRequest;
 }

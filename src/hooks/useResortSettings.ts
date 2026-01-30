@@ -10,6 +10,7 @@ export interface ResortSettings {
   prearrival_enabled: boolean;
   loyalty_enabled: boolean;
   guest_booking_enabled: boolean;
+  transport_enabled: boolean;
   branding_version: number;
   seo_version: number;
   updated_at: string;
@@ -22,6 +23,7 @@ export type ResortSettingKey =
   | 'prearrival_enabled'
   | 'loyalty_enabled'
   | 'guest_booking_enabled'
+  | 'transport_enabled'
   | 'branding_version'
   | 'seo_version';
 
@@ -47,6 +49,7 @@ export function useResortSettings(resortId: string | undefined) {
             prearrival_enabled: false,
             loyalty_enabled: false,
             guest_booking_enabled: true,
+            transport_enabled: false,
             branding_version: 1,
             seo_version: 1,
           } as ResortSettings;
