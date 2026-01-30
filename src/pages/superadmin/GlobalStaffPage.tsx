@@ -40,6 +40,7 @@ const RESORT_ROLE_COLORS: Record<ResortRole, string> = {
   ACTIVITIES: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   FNB: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   RESERVATIONS: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+  TRANSPORT: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
 };
 
 export default function GlobalStaffPage() {

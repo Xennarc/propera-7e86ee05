@@ -6282,6 +6282,9 @@ export type Database = {
         }
         Returns: number
       }
+      current_guest_id: { Args: never; Returns: string }
+      current_guest_resort_id: { Args: never; Returns: string }
+      driver_can_access_trip: { Args: { _trip_id: string }; Returns: boolean }
       enqueue_event: {
         Args: { p_event_type: string; p_payload: Json; p_resort_id: string }
         Returns: string
@@ -6435,6 +6438,7 @@ export type Database = {
         Returns: Json
       }
       guest_can_access_guest: { Args: { _guest_id: string }; Returns: boolean }
+      guest_can_access_trip: { Args: { _trip_id: string }; Returns: boolean }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
         Args: { p_booking_id: string; p_guest_id: string }
@@ -6760,6 +6764,10 @@ export type Database = {
       }
       is_demo_write_blocked: { Args: never; Returns: boolean }
       is_guest_session: { Args: never; Returns: boolean }
+      is_resort_driver: {
+        Args: { _resort_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_for_booking: {
         Args: { p_booking_id: string; p_user_id: string }
@@ -6960,12 +6968,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      staff_can_view_transport: {
+        Args: { _resort_id: string; _user_id: string }
+        Returns: boolean
+      }
       staff_can_write_resort: {
         Args: {
           _resort_id: string
           _roles: Database["public"]["Enums"]["resort_role"][]
           _user_id: string
         }
+        Returns: boolean
+      }
+      staff_can_write_transport: {
+        Args: { _resort_id: string; _user_id: string }
         Returns: boolean
       }
       staff_dept_role: {
@@ -7144,6 +7160,7 @@ export type Database = {
         | "ACTIVITIES"
         | "FNB"
         | "RESERVATIONS"
+        | "TRANSPORT"
       resort_status: "ACTIVE" | "INACTIVE" | "DEMO"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
@@ -7400,6 +7417,7 @@ export const Constants = {
         "ACTIVITIES",
         "FNB",
         "RESERVATIONS",
+        "TRANSPORT",
       ],
       resort_status: ["ACTIVE", "INACTIVE", "DEMO"],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],

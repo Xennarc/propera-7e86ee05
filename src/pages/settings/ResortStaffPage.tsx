@@ -25,7 +25,7 @@ interface MembershipWithProfile extends ResortMembership {
   profile: Profile & { global_role?: GlobalRole };
 }
 
-const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB'];
+const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB', 'TRANSPORT'];
 
 const ROLE_COLORS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -34,6 +34,7 @@ const ROLE_COLORS: Record<ResortRole, string> = {
   RESERVATIONS: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
   ACTIVITIES: 'bg-warning/10 text-warning border-warning/20',
   FNB: 'bg-info/10 text-info border-info/20',
+  TRANSPORT: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20',
 };
 
 const ROLE_LABELS: Record<ResortRole, string> = {
@@ -43,6 +44,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  TRANSPORT: 'Transport',
 };
 
 const STATUS_COLORS: Record<string, string> = {

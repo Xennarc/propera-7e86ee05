@@ -88,6 +88,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       'RESERVATIONS': 'Reservations',
       'ACTIVITIES': 'Activities',
       'FNB': 'F&B',
+      'TRANSPORT': 'Transport',
     };
     return currentRole ? roleMap[currentRole] : 'Staff';
   };
