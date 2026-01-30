@@ -49,10 +49,12 @@ export function initErrorCapture(): () => void {
     return false;
   };
 
-  // Capture unhandled promise rejections
+  // Capture unhandled promise rejections - PREVENT BLANK SCREEN
   const handleRejection = (event: PromiseRejectionEvent) => {
     const message = event.reason?.message || String(event.reason);
     captureError(message, 'unhandled');
+    // Prevent the error from bubbling up and crashing React
+    event.preventDefault();
   };
   window.addEventListener('unhandledrejection', handleRejection);
 

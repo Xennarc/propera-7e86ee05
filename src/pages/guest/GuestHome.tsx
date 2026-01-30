@@ -42,6 +42,23 @@ import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 import { useResortBranding } from '@/hooks/useResortBranding';
 
+// Define interface at module level (not inside component)
+interface BookingItem {
+  booking_id: string;
+  booking_type: string;
+  name: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  location: string;
+  notes: string;
+  num_adults: number;
+  num_children: number;
+  booked_by_guest_id: string;
+  booked_by_name: string;
+}
+
 export default function GuestHome() {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
@@ -55,30 +72,14 @@ export default function GuestHome() {
   // Pre-arrival wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Show pre-arrival home if guest hasn't checked in yet
-  // Use active stay status OR fall back to date-based check
+  // Session-based dismissed suggestions - moved before conditional returns
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
+
+  // Determine pre-arrival status for conditional data fetching
   const showPrearrival = activeStay?.status === 'pre_arrival' || isPrearrival;
 
-  if (showPrearrival) {
-    return <GuestPrearrivalHome activeStay={activeStay} />;
-  }
-
-  interface BookingItem {
-    booking_id: string;
-    booking_type: string;
-    name: string;
-    date: string;
-    start_time: string;
-    end_time: string;
-    status: string;
-    location: string;
-    notes: string;
-    num_adults: number;
-    num_children: number;
-    booked_by_guest_id: string;
-    booked_by_name: string;
-  }
-
+  // ✅ ALL HOOKS CALLED UNCONDITIONALLY AT TOP LEVEL
+  // Use `enabled` flag to conditionally fetch data
   const { data: bookings, isLoading } = useQuery({
     queryKey: ['guest-bookings', guest?.guestId],
     queryFn: async () => {
@@ -89,8 +90,8 @@ export default function GuestHome() {
       if (error) throw error;
       return data as BookingItem[];
     },
-    enabled: !!guest,
-    staleTime: 30000, // 30 seconds
+    enabled: !!guest && !showPrearrival, // Disable when pre-arrival
+    staleTime: 30000,
   });
 
   // Check if guest can submit feedback
@@ -104,7 +105,7 @@ export default function GuestHome() {
       if (error) throw error;
       return data as { can_submit: boolean; reason?: string };
     },
-    enabled: !!guest,
+    enabled: !!guest && !showPrearrival, // Disable when pre-arrival
   });
 
   // Fetch resort data including hero image
@@ -123,6 +124,24 @@ export default function GuestHome() {
     enabled: !!guest,
   });
 
+  // Onboarding tour - called unconditionally
+  const { showOnboarding, completeOnboarding, skipOnboarding } = useGuestOnboarding(
+    guest?.guestId || '',
+    guest?.resortId || ''
+  );
+
+  // ✅ NOW CONDITIONAL RETURNS ARE SAFE (all hooks called above)
+  if (showPrearrival) {
+    return <GuestPrearrivalHome activeStay={activeStay} />;
+  }
+
+  if (!guest) return null;
+  
+  // Show loading state while data is being fetched
+  if (stayLoading || isLoading) {
+    return <GuestHomeLoading />;
+  }
+
   // Hero image with fallback chain: home_hero → login_hero → default
   const heroImage = resort?.home_hero_image_url 
     || resort?.login_hero_image_url 
@@ -133,17 +152,7 @@ export default function GuestHome() {
   const totalDays = differenceInDays(parseISO(guest?.checkOutDate || ''), parseISO(guest?.checkInDate || ''));
   const isCheckoutDay = new Date().toISOString().split('T')[0] === guest?.checkOutDate;
 
-  // Session-based dismissed suggestions
-  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>([]);
-
-  // Onboarding tour
-  const { showOnboarding, completeOnboarding, skipOnboarding } = useGuestOnboarding(
-    guest?.guestId || '',
-    guest?.resortId || ''
-  );
-
-  if (!guest) return null;
-
+  // All hooks have been called above - safe to use computed values now
   const firstName = String(guest.fullName ?? 'Guest').split(' ')[0] || 'Guest';
   const todayStr = new Date().toISOString().split('T')[0];
   const tomorrowStr = addDays(new Date(), 1).toISOString().split('T')[0];
@@ -234,9 +243,7 @@ export default function GuestHome() {
     setDismissedSuggestions(prev => [...prev, suggestionId]);
   };
 
-  if (isLoading) {
-    return <GuestHomeLoading />;
-  }
+  // Loading state already handled above after conditional returns
 
   return (
     <>

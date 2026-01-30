@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -181,31 +182,40 @@ export function useUpdatePrearrivalProfile() {
 export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArrival: number; hoursUntilArrival: number } {
   const { guest } = useGuestAuth();
   
-  if (!guest) {
-    return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
-  }
+  // Memoize to prevent recalculation on every render and stabilize the value
+  return useMemo(() => {
+    if (!guest) {
+      return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
+    }
 
-  // Get current time in the resort's timezone (not browser timezone)
-  const resortTimezone = guest.resortTimezone || 'UTC';
-  const nowLocal = nowInTimezone(resortTimezone);
-  const todayStart = startOfDay(nowLocal);
-  
-  // Parse check-in date as start of day (stored as YYYY-MM-DD)
-  const checkInDate = startOfDay(parseISO(guest.checkInDate));
+    try {
+      // Get current time in the resort's timezone (not browser timezone)
+      const resortTimezone = guest.resortTimezone || 'UTC';
+      const nowLocal = nowInTimezone(resortTimezone);
+      const todayStart = startOfDay(nowLocal);
+      
+      // Parse check-in date as start of day (stored as YYYY-MM-DD)
+      const checkInDate = startOfDay(parseISO(guest.checkInDate));
 
-  // Calculate hours until check-in day starts
-  const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
-  
-  // Calculate days for UI display purposes
-  const daysUntilArrival = differenceInDays(checkInDate, todayStart);
+      // Calculate hours until check-in day starts
+      const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
+      
+      // Calculate days for UI display purposes
+      const daysUntilArrival = differenceInDays(checkInDate, todayStart);
 
-  // Switch to in-house view 12 hours before check-in day
-  // e.g., if check-in is Jan 15, guest sees in-house view from Jan 14 at 12:00 PM
-  const isPrearrival = hoursUntilArrival > 12;
+      // Switch to in-house view 12 hours before check-in day
+      // e.g., if check-in is Jan 15, guest sees in-house view from Jan 14 at 12:00 PM
+      const isPrearrival = hoursUntilArrival > 12;
 
-  return {
-    isPrearrival,
-    daysUntilArrival: Math.max(0, daysUntilArrival),
-    hoursUntilArrival: Math.max(0, hoursUntilArrival),
-  };
+      return {
+        isPrearrival,
+        daysUntilArrival: Math.max(0, daysUntilArrival),
+        hoursUntilArrival: Math.max(0, hoursUntilArrival),
+      };
+    } catch (error) {
+      console.error('Error calculating pre-arrival status:', error);
+      // Fail safe: treat as in-house guest if date parsing fails
+      return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
+    }
+  }, [guest?.checkInDate, guest?.resortTimezone, guest?.guestId]);
 }
