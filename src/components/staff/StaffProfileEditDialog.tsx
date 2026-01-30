@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { ResortRole, Profile } from '@/types/database';
 import { Loader2, User, Mail, Building, Shield, Briefcase } from 'lucide-react';
 
-const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB'];
+const ALL_RESORT_ROLES: ResortRole[] = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS', 'ACTIVITIES', 'FNB', 'TRANSPORT'];
 
 const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
@@ -18,6 +18,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  TRANSPORT: 'Transport',
 };
 
 interface StaffProfileEditDialogProps {

@@ -27,6 +27,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  TRANSPORT: 'Transport',
 };
 
 const createAccountSchema = z.object({

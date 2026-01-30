@@ -135,6 +135,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
         'RESERVATIONS': 'Reservations',
         'ACTIVITIES': 'Activities',
         'FNB': 'F&B',
+        'TRANSPORT': 'Transport',
       };
       return roleMap[currentResortRole];
     }

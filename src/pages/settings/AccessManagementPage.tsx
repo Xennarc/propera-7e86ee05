@@ -80,6 +80,7 @@ const ROLE_COLORS: Record<ResortRole, string> = {
   RESERVATIONS: 'bg-amber-500/10 text-amber-600 border-amber-200',
   ACTIVITIES: 'bg-green-500/10 text-green-600 border-green-200',
   FNB: 'bg-orange-500/10 text-orange-600 border-orange-200',
+  TRANSPORT: 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
 };
 
 const ROLE_LABELS: Record<ResortRole, string> = {
@@ -89,6 +90,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  TRANSPORT: 'Transport',
 };
 
 export default function AccessManagementPage() {

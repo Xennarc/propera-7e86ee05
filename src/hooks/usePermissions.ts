@@ -99,6 +99,14 @@ const MODULE_ACCESS: Record<ResortRole | 'SUPER_ADMIN', {
     settings: false,
     guestRequests: true, // Only restaurant requests
   },
+  TRANSPORT: {
+    guests: 'read',
+    activities: 'none',
+    restaurants: 'none',
+    reports: 'read',
+    settings: false,
+    guestRequests: false,
+  },
 };
 
 export function usePermissions(): PermissionResult {

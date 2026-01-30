@@ -33,6 +33,7 @@ const ROLE_COLORS: Record<ResortRole, string> = {
   RESERVATIONS: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
   ACTIVITIES: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30',
   FNB: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30',
+  TRANSPORT: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30',
 };
 
 const ROLE_LABELS: Record<ResortRole, string> = {
@@ -42,6 +43,7 @@ const ROLE_LABELS: Record<ResortRole, string> = {
   RESERVATIONS: 'Reservations',
   ACTIVITIES: 'Activities',
   FNB: 'F&B',
+  TRANSPORT: 'Transport',
 };
 
 import { ErrorBoundary } from '@/components/ui/error-boundary';
