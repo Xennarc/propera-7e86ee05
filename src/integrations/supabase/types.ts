@@ -6066,6 +6066,10 @@ export type Database = {
         Args: { p_token: string; p_user_id: string }
         Returns: Json
       }
+      add_request_to_trip: {
+        Args: { _request_id: string; _trip_id: string }
+        Returns: Json
+      }
       adjust_loyalty_points: {
         Args: {
           p_member_id: string
@@ -6093,6 +6097,10 @@ export type Database = {
         Returns: Json
       }
       archive_closed_requests: { Args: never; Returns: Json }
+      assign_trip_atomic: {
+        Args: { _buggy_id: string; _driver_user_id: string; _trip_id: string }
+        Returns: Json
+      }
       assign_user_role: {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
         Returns: Json
@@ -6117,6 +6125,10 @@ export type Database = {
           p_cancelled_by_user_id?: string
           p_expected_version?: number
         }
+        Returns: Json
+      }
+      cancel_buggy_request: {
+        Args: { _reason?: string; _request_id: string }
         Returns: Json
       }
       cancel_restaurant_reservation_safe: {
@@ -6205,6 +6217,28 @@ export type Database = {
         }
         Returns: string
       }
+      create_buggy_request_idempotent: {
+        Args: {
+          _created_by_staff_user_id?: string
+          _dropoff_location?: Json
+          _dropoff_stop_id?: string
+          _dropoff_text?: string
+          _guest_id?: string
+          _idempotency_key?: string
+          _needs_accessible?: boolean
+          _party_size?: number
+          _pickup_location?: Json
+          _pickup_stop_id?: string
+          _pickup_text?: string
+          _priority?: Database["public"]["Enums"]["buggy_priority"]
+          _request_source?: Database["public"]["Enums"]["buggy_request_source"]
+          _request_type?: Database["public"]["Enums"]["buggy_request_type"]
+          _resort_id: string
+          _route_id?: string
+          _scheduled_for?: string
+        }
+        Returns: Json
+      }
       create_guest_access_link: { Args: { p_stay_id: string }; Returns: Json }
       create_guest_login_token: {
         Args: { p_guest_id: string; p_token_type: string }
@@ -6282,9 +6316,24 @@ export type Database = {
         }
         Returns: number
       }
+      create_trip_from_requests: {
+        Args: {
+          _request_ids: string[]
+          _resort_id: string
+          _trip_type?: Database["public"]["Enums"]["buggy_trip_type"]
+        }
+        Returns: Json
+      }
       current_guest_id: { Args: never; Returns: string }
       current_guest_resort_id: { Args: never; Returns: string }
       driver_can_access_trip: { Args: { _trip_id: string }; Returns: boolean }
+      driver_update_trip_stop_status: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["buggy_trip_stop_status"]
+          _trip_stop_id: string
+        }
+        Returns: Json
+      }
       enqueue_event: {
         Args: { p_event_type: string; p_payload: Json; p_resort_id: string }
         Returns: string
@@ -6886,8 +6935,16 @@ export type Database = {
         }
         Returns: Json
       }
+      remove_request_from_trip: {
+        Args: { _reason?: string; _request_id: string; _trip_id: string }
+        Returns: Json
+      }
       remove_user_role: {
         Args: { p_resort_id: string; p_role_id: string; p_user_id: string }
+        Returns: Json
+      }
+      reorder_trip_stops: {
+        Args: { _ordered_stop_ids: string[]; _trip_id: string }
         Returns: Json
       }
       request_resort_purge: {
