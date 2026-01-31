@@ -6088,6 +6088,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_remove_membership_by_id: {
+        Args: { p_membership_id: string }
+        Returns: boolean
+      }
       admin_remove_resort_member: {
         Args: { p_resort_id: string; p_user_id: string }
         Returns: boolean
@@ -6095,6 +6099,13 @@ export type Database = {
       admin_reset_staff_password: {
         Args: { p_new_password: string; p_user_id: string }
         Returns: Json
+      }
+      admin_update_resort_member_role: {
+        Args: {
+          p_membership_id: string
+          p_new_role: Database["public"]["Enums"]["resort_role"]
+        }
+        Returns: boolean
       }
       archive_closed_requests: { Args: never; Returns: Json }
       assign_trip_atomic: {
