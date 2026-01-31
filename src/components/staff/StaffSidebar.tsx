@@ -45,6 +45,7 @@ import {
   FileText,
   Shield,
   Palette,
+  Car,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
@@ -134,6 +135,14 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       items: [
         { title: 'Restaurants', url: '/staff/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
         { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+      ],
+    },
+    {
+      id: 'transport',
+      title: 'Transport',
+      icon: Car,
+      items: [
+        { title: 'Dispatch', url: '/staff/transport', icon: Car, roles: ['RESORT_ADMIN', 'MANAGER', 'TRANSPORT'] },
       ],
     },
     {
