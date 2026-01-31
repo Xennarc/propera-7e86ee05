@@ -73,7 +73,7 @@ export function NeedsAttentionCard({
       type: 'request',
       title: req.guestName,
       subtitle: req.requestText.slice(0, 50) + (req.requestText.length > 50 ? '...' : ''),
-      href: '/staff/guest-requests',
+      href: '/staff/requests-dashboard',
       priority: 'high',
     });
   });
@@ -210,7 +210,7 @@ export function NeedsAttentionCard({
             asChild 
             className="w-full mt-3 text-primary"
           >
-            <Link to="/staff/guest-requests">
+            <Link to="/staff/requests-dashboard">
               View all {openRequests.length} requests <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>

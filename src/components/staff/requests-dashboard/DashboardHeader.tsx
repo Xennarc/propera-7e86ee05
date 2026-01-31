@@ -1,7 +1,8 @@
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Keyboard, RefreshCw, AlertCircle } from 'lucide-react';
+import { Keyboard, RefreshCw, AlertCircle, Inbox } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { DashboardCounts } from '@/hooks/useRequestsDashboard';
 
@@ -38,6 +39,18 @@ export function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="gap-1.5"
+        >
+          <Link to="/staff/guest-requests">
+            <Inbox className="h-4 w-4" />
+            <span className="hidden sm:inline">Inbox View</span>
+          </Link>
+        </Button>
+
         <Button
           variant="outline"
           size="sm"

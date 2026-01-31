@@ -108,8 +108,8 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       title: 'Guest Requests',
       subtitle: 'Special requests & notes',
       icon: MessageSquare,
-      action: () => navigate('/staff/guest-requests'),
-      keywords: ['special', 'notes', 'messages'],
+      action: () => navigate('/staff/requests-dashboard'),
+      keywords: ['special', 'notes', 'messages', 'dashboard'],
       category: 'navigation',
     },
     // Activities

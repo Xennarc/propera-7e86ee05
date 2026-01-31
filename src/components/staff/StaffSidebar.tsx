@@ -120,7 +120,6 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
         { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
         { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
         { title: 'Requests Dashboard', url: '/staff/requests-dashboard', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests', badge: 'New' },
-        { title: 'Requests Inbox', url: '/staff/guest-requests', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests' },
       ],
     },
     {
