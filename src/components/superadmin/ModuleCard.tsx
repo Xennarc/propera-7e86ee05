@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { 
   ChevronDown, 
@@ -44,6 +45,7 @@ import {
 } from 'lucide-react';
 import type { ModuleViewModel } from '@/lib/feature-flag-modules';
 import type { FeatureFlag } from '@/hooks/useFeatureFlags';
+import { FlagEntitlementBadges } from './FlagEntitlementBadges';
 
 const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -249,52 +251,57 @@ export function ModuleCard({
 
               {/* Child Flags */}
               {childFlags.length > 0 ? (
-                <div className="space-y-2">
-                  {childFlags.map(flag => {
-                    const isOverridden = isResortScope && flag.resort_id !== null;
-                    
-                    return (
-                      <div
-                        key={flag.key}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-lg border",
-                          "bg-muted/20 border-border/40",
-                          !isMasterEnabled && "opacity-50"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-sm">{flag.label}</span>
-                            {flag.tier && (
-                              <Badge variant="outline" className="text-[9px] capitalize">
-                                {flag.tier}
-                              </Badge>
-                            )}
-                            {isOverridden && (
-                              <Badge 
-                                variant="outline" 
-                                className="text-[9px] bg-info/10 text-info border-info/30"
-                              >
-                                Override
-                              </Badge>
-                            )}
-                          </div>
-                          {flag.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                              {flag.description}
-                            </p>
+                <TooltipProvider>
+                  <div className="space-y-2">
+                    {childFlags.map(flag => {
+                      const isOverridden = isResortScope && flag.resort_id !== null;
+                      
+                      return (
+                        <div
+                          key={flag.key}
+                          className={cn(
+                            "flex items-center justify-between p-3 rounded-lg border",
+                            "bg-muted/20 border-border/40",
+                            !isMasterEnabled && "opacity-50"
                           )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm">{flag.label}</span>
+                              {isOverridden && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[9px] bg-info/10 text-info border-info/30"
+                                >
+                                  Override
+                                </Badge>
+                              )}
+                            </div>
+                            {flag.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                {flag.description}
+                              </p>
+                            )}
+                            {/* Entitlement badges */}
+                            <div className="mt-1.5">
+                              <FlagEntitlementBadges
+                                category={flag.category}
+                                tier={flag.tier}
+                                compact
+                              />
+                            </div>
+                          </div>
+                          <Switch
+                            checked={flag.is_enabled}
+                            onCheckedChange={(checked) => onToggleChild(flag, checked)}
+                            disabled={isPending || !isMasterEnabled}
+                            className="ml-4"
+                          />
                         </div>
-                        <Switch
-                          checked={flag.is_enabled}
-                          onCheckedChange={(checked) => onToggleChild(flag, checked)}
-                          disabled={isPending || !isMasterEnabled}
-                          className="ml-4"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </TooltipProvider>
               ) : (
                 <div className="text-center py-4 text-muted-foreground text-sm">
                   No subfeatures configured for this module.
