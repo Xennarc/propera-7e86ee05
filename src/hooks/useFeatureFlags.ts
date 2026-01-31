@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useMemo } from 'react';
 
 export interface FeatureFlag {
   id: string;
@@ -25,6 +26,96 @@ export const FEATURE_CATEGORIES: Record<string, { label: string; icon: string; c
   experimental: { label: 'Experimental', icon: 'FlaskConical', color: 'text-info' },
   danger: { label: 'Danger Zone', icon: 'AlertTriangle', color: 'text-destructive' },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FLAG MAP UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Build a lookup map from flags array
+ */
+export function buildFlagsMap(flags: FeatureFlag[]): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  for (const flag of flags) {
+    map[flag.key] = flag.is_enabled;
+  }
+  return map;
+}
+
+/**
+ * Known module keys that act as parents
+ */
+const MODULE_KEYS = new Set([
+  'enable_dashboards',
+  'enable_guests',
+  'enable_requests',
+  'enable_transport',
+  'enable_prearrival',
+  'enable_reports',
+  'enable_loyalty',
+  'enable_guest_portal',
+]);
+
+/**
+ * Extract the parent module key from a sub-feature key.
+ * 
+ * Pattern: enable_<module>_<subfeature> → enable_<module>
+ * 
+ * Examples:
+ *   enable_transport_guest_booking → enable_transport
+ *   enable_guests_travel_party → enable_guests
+ *   enable_dashboards → null (is itself a module)
+ */
+export function getParentModuleKey(key: string): string | null {
+  // If it's a module key itself, no parent
+  if (MODULE_KEYS.has(key)) {
+    return null;
+  }
+
+  // Try to match against known module prefixes
+  for (const moduleKey of MODULE_KEYS) {
+    // Check if key starts with moduleKey + '_'
+    if (key.startsWith(moduleKey + '_')) {
+      return moduleKey;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Check if a feature flag is effectively enabled.
+ * 
+ * Rules:
+ * - If key is a sub-feature (enable_<module>_<subfeature>):
+ *   Requires BOTH parent module AND sub-feature to be enabled
+ * - Otherwise: just check the key's own value
+ * 
+ * @param key - The feature flag key to check
+ * @param flagsMap - Map of flag keys to their enabled state
+ * @returns true if effectively enabled, false otherwise
+ */
+export function isEnabledEffective(key: string, flagsMap: Record<string, boolean>): boolean {
+  const ownValue = flagsMap[key] ?? false;
+  
+  // If own value is false, no need to check parent
+  if (!ownValue) {
+    return false;
+  }
+
+  // Check for parent module dependency
+  const parentKey = getParentModuleKey(key);
+  if (parentKey) {
+    const parentEnabled = flagsMap[parentKey] ?? false;
+    return parentEnabled && ownValue;
+  }
+
+  return ownValue;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CORE HOOKS
+// ═══════════════════════════════════════════════════════════════════════════
 
 export function useFeatureFlags(resortId?: string) {
   return useQuery({
@@ -73,6 +164,36 @@ export function useFeatureFlags(resortId?: string) {
       return (globalFlags || []).map(f => ({ ...f, scope: f.scope as 'global' | 'resort' }));
     },
   });
+}
+
+/**
+ * Hook that provides resolved feature flags with effective state calculation.
+ * 
+ * Returns:
+ * - flags: The merged flag list (same as useFeatureFlags)
+ * - flagsMap: A Record<key, boolean> for quick lookup
+ * - isEnabled: Function to check if a flag is effectively enabled (respects parent deps)
+ * - isLoading: Query loading state
+ */
+export function useResolvedFeatureFlags(resortId?: string) {
+  const { data: flags, isLoading, error, refetch } = useFeatureFlags(resortId);
+
+  const flagsMap = useMemo(() => {
+    return buildFlagsMap(flags || []);
+  }, [flags]);
+
+  const isEnabled = useMemo(() => {
+    return (key: string): boolean => isEnabledEffective(key, flagsMap);
+  }, [flagsMap]);
+
+  return {
+    flags: flags || [],
+    flagsMap,
+    isEnabled,
+    isLoading,
+    error,
+    refetch,
+  };
 }
 
 export function useToggleFeatureFlag() {
@@ -195,9 +316,68 @@ export function useRemoveResortOverride() {
   });
 }
 
-// Check if a specific feature is enabled
+// Check if a specific feature is enabled (simple check, no parent resolution)
 export function useIsFeatureEnabled(flagKey: string, resortId?: string) {
   const { data: flags } = useFeatureFlags(resortId);
   const flag = flags?.find(f => f.key === flagKey);
   return flag?.is_enabled ?? false;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DEV SANITY CHECK UTILITY
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Development utility to verify effective flag resolution logic.
+ * Call this in dev console or a test file to validate behavior.
+ */
+export function __devTestEffectiveFlags(): void {
+  console.group('🧪 Feature Flag Effective Resolution Tests');
+
+  // Test case 1: Module OFF → subfeature effectively OFF
+  const testCase1: Record<string, boolean> = {
+    enable_transport: false,
+    enable_transport_guest_booking: true,
+    enable_transport_routes: true,
+  };
+  
+  console.log('Test 1: Module OFF, subfeatures ON');
+  console.log('  enable_transport:', isEnabledEffective('enable_transport', testCase1), '(expected: false)');
+  console.log('  enable_transport_guest_booking:', isEnabledEffective('enable_transport_guest_booking', testCase1), '(expected: false ← parent OFF)');
+  console.log('  enable_transport_routes:', isEnabledEffective('enable_transport_routes', testCase1), '(expected: false ← parent OFF)');
+
+  // Test case 2: Module ON → subfeatures respect their own values
+  const testCase2: Record<string, boolean> = {
+    enable_transport: true,
+    enable_transport_guest_booking: true,
+    enable_transport_routes: false,
+  };
+  
+  console.log('\nTest 2: Module ON, mixed subfeatures');
+  console.log('  enable_transport:', isEnabledEffective('enable_transport', testCase2), '(expected: true)');
+  console.log('  enable_transport_guest_booking:', isEnabledEffective('enable_transport_guest_booking', testCase2), '(expected: true)');
+  console.log('  enable_transport_routes:', isEnabledEffective('enable_transport_routes', testCase2), '(expected: false ← own value)');
+
+  // Test case 3: Independent flags (no parent)
+  const testCase3: Record<string, boolean> = {
+    enable_maintenance_mode: true,
+    enable_demo_reset: false,
+  };
+  
+  console.log('\nTest 3: Independent flags (no parent dependency)');
+  console.log('  enable_maintenance_mode:', isEnabledEffective('enable_maintenance_mode', testCase3), '(expected: true)');
+  console.log('  enable_demo_reset:', isEnabledEffective('enable_demo_reset', testCase3), '(expected: false)');
+
+  // Test case 4: Missing key returns false
+  console.log('\nTest 4: Missing key');
+  console.log('  nonexistent_flag:', isEnabledEffective('nonexistent_flag', testCase1), '(expected: false)');
+
+  console.groupEnd();
+}
+
+// Auto-run in development
+if (import.meta.env.DEV) {
+  // Expose to window for manual testing
+  (window as any).__devTestEffectiveFlags = __devTestEffectiveFlags;
+}
+
