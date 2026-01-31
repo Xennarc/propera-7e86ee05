@@ -1,92 +1,137 @@
 
-# Fix: Module Settings RLS Policy for RESORT_ADMIN
+# Plan: Consolidate Requests Inbox into Requests Dashboard
 
-## Problem Identified
-The module toggle switch fails with "Failed to update module setting" because the `resort_settings` table only has an RLS policy for **Super Admins**. RESORT_ADMIN users cannot update settings even though the UI correctly checks their role client-side.
+## Overview
+Remove the Requests Inbox from sidebar navigation and add a simple access link within the Requests Dashboard page. This keeps both views accessible while decluttering navigation.
 
-**Current policy:**
-```sql
-"Super admins full access to resort_settings" -> is_super_admin(auth.uid())
+---
+
+## Current State
+
+| Component | Location |
+|-----------|----------|
+| Requests Dashboard | `/staff/requests-dashboard` (sidebar: Guests > Requests Dashboard) |
+| Requests Inbox | `/staff/guest-requests` (sidebar: Guests > Requests Inbox) |
+| Both appear in sidebar | Under "Guests" navigation group |
+
+---
+
+## Changes Summary
+
+### 1. Remove Requests Inbox from Sidebar Navigation
+
+**File:** `src/components/staff/StaffSidebar.tsx`
+
+Remove the "Requests Inbox" entry from the `navGroups` array:
+
+```typescript
+// REMOVE this line (around line 123):
+{ title: 'Requests Inbox', url: '/staff/guest-requests', icon: Clock, ... }
 ```
 
-This blocks all RESORT_ADMIN users from performing INSERT/UPDATE operations on the table.
+The route itself remains functional - users can still access it directly or via the Dashboard link.
 
 ---
 
-## Solution
+### 2. Add "Inbox View" Button to Dashboard Header
 
-Add an RLS policy to allow RESORT_ADMIN users to manage settings for their own resort, following the existing codebase patterns used for similar tables (e.g., `activities`, `activity_sessions`).
+**File:** `src/components/staff/requests-dashboard/DashboardHeader.tsx`
 
----
+Add a secondary navigation button that links to the Inbox:
 
-## Implementation Steps
-
-### 1. Add RLS Policy for RESORT_ADMIN Access
-
-Create a new migration that adds policies for:
-- **SELECT**: Staff with resort access can read settings for their resort
-- **UPDATE**: RESORT_ADMIN can update settings for their resort  
-- **INSERT**: RESORT_ADMIN can create settings row if it doesn't exist (for upsert)
-
-```sql
--- Allow staff to SELECT resort settings for their resort
-CREATE POLICY "Staff can view resort settings"
-ON public.resort_settings
-FOR SELECT
-TO authenticated
-USING (
-  staff_has_resort_access(auth.uid(), resort_id)
-);
-
--- Allow RESORT_ADMIN to UPDATE resort settings
-CREATE POLICY "Resort admins can update resort settings"
-ON public.resort_settings
-FOR UPDATE
-TO authenticated
-USING (
-  staff_can_write_resort(auth.uid(), resort_id, ARRAY['RESORT_ADMIN'::resort_role])
-)
-WITH CHECK (
-  staff_can_write_resort(auth.uid(), resort_id, ARRAY['RESORT_ADMIN'::resort_role])
-);
-
--- Allow RESORT_ADMIN to INSERT resort settings (for upsert when row doesn't exist)
-CREATE POLICY "Resort admins can insert resort settings"
-ON public.resort_settings
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  staff_can_write_resort(auth.uid(), resort_id, ARRAY['RESORT_ADMIN'::resort_role])
-);
+```
+[Inbox View] [Refresh] [Shortcuts]
 ```
 
-This uses the existing helper functions:
-- `staff_has_resort_access()` - checks Super Admin OR has any resort membership
-- `staff_can_write_resort()` - checks Super Admin OR has specific resort role
+- Uses a subtle `ghost` variant button with `Inbox` icon
+- Links to `/staff/guest-requests`
+- Provides easy access without duplicating sidebar clutter
 
 ---
 
-## Why This Is Safe
+### 3. Update StaffCommandBar Reference
 
-1. **Follows existing patterns**: Uses the same helper functions (`staff_can_write_resort`, `staff_has_resort_access`) found throughout the codebase
-2. **Resort-scoped**: RESORT_ADMIN can only modify settings for resorts they're a member of
-3. **Super Admin preserved**: The existing Super Admin policy remains and continues to work
-4. **No guest access**: Policies only apply to `authenticated` role with staff membership checks
+**File:** `src/components/staff/StaffCommandBar.tsx`
+
+Update the command bar "Guest Requests" action to point to the Dashboard instead:
+
+```typescript
+// Change from:
+action: () => navigate('/staff/guest-requests')
+// To:
+action: () => navigate('/staff/requests-dashboard')
+```
+
+---
+
+### 4. Update Internal Links
+
+**Files to update:**
+
+| File | Current Link | New Link |
+|------|--------------|----------|
+| `src/components/staff/TodayHub.tsx` | `/staff/guest-requests` | `/staff/requests-dashboard` |
+| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | `/staff/guest-requests` | `/staff/requests-dashboard` |
+| `src/components/staff/dashboard/SmartFAB.tsx` | `/staff/guest-requests/new` | Keep as-is (if valid) or remove |
+
+---
+
+## What Stays the Same
+
+- Route `/staff/guest-requests` remains registered in `App.tsx` (no breaking changes)
+- The `StaffRequestsInboxPage` component is preserved (accessible via Dashboard link)
+- Mobile bottom navigation is unaffected (doesn't have Requests Inbox)
+- All existing functionality in both pages continues to work
+
+---
+
+## Visual Result
+
+**Before (Sidebar):**
+```
+Guests
+├── All Guests
+├── Pre-Arrival
+├── Requests Dashboard [New]
+└── Requests Inbox        <-- REMOVED
+```
+
+**After (Sidebar):**
+```
+Guests
+├── All Guests
+├── Pre-Arrival
+└── Requests Dashboard [New]
+```
+
+**Dashboard Header (After):**
+```
+Requests Dashboard
+Last updated 2 minutes ago
+
+[Inbox View] [Refresh] [Shortcuts]
+```
 
 ---
 
 ## Files Changed
 
-| File | Change |
-|------|--------|
-| `supabase/migrations/[timestamp]_add_resort_settings_rls.sql` | New migration adding RLS policies |
+| File | Change Type |
+|------|-------------|
+| `src/components/staff/StaffSidebar.tsx` | Remove nav item |
+| `src/components/staff/requests-dashboard/DashboardHeader.tsx` | Add Inbox button |
+| `src/components/staff/StaffCommandBar.tsx` | Update navigation target |
+| `src/components/staff/TodayHub.tsx` | Update link references |
+| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | Update link references |
 
 ---
 
-## Verification After Fix
+## Risk Assessment
 
-1. Log in as a RESORT_ADMIN user
-2. Navigate to `/staff/settings/modules`
-3. Toggle the Transport module switch
-4. Confirm the toast shows "Module enabled/disabled successfully"
-5. Verify the setting persists on page reload
+| Risk | Mitigation |
+|------|------------|
+| Broken bookmarks to `/staff/guest-requests` | Route preserved - still accessible |
+| Users confused by missing nav item | Clear "Inbox View" button in Dashboard header |
+| Minimal code changes | Only navigation config and a single button addition |
+
+This is a low-risk, additive-compatible change that simplifies navigation while preserving all functionality.
