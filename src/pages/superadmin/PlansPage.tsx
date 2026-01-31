@@ -36,6 +36,7 @@ import {
 } from '@/hooks/usePricingManagement';
 import { PlanPricingTable } from '@/components/superadmin/PlanPricingTable';
 import { AddonPricingTable } from '@/components/superadmin/AddonPricingTable';
+import { CategoryPackagesTab } from '@/components/superadmin/CategoryPackagesTab';
 import { SubscriptionHealthSection } from '@/components/superadmin/SubscriptionHealthSection';
 import { PricingChangeLogDrawer } from '@/components/superadmin/PricingChangeLogDrawer';
 import { useAlertStats } from '@/hooks/useSubscriptionAlerts';
@@ -214,7 +215,7 @@ export default function PlansPage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="plans">
-            <TabsList className="grid w-full max-w-sm grid-cols-2 mb-6">
+            <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
               <TabsTrigger value="plans" className="gap-2">
                 <CreditCard className="h-4 w-4" />
                 Plans
@@ -222,6 +223,10 @@ export default function PlansPage() {
               <TabsTrigger value="addons" className="gap-2">
                 <Package className="h-4 w-4" />
                 Add-ons
+              </TabsTrigger>
+              <TabsTrigger value="categories" className="gap-2">
+                <Layers className="h-4 w-4" />
+                Categories
               </TabsTrigger>
             </TabsList>
 
@@ -231,6 +236,10 @@ export default function PlansPage() {
 
             <TabsContent value="addons">
               <AddonPricingTable addons={addonPricing} isLoading={isLoadingAddons} />
+            </TabsContent>
+
+            <TabsContent value="categories">
+              <CategoryPackagesTab />
             </TabsContent>
           </Tabs>
         </CardContent>
