@@ -5,4 +5,5 @@ export * from './useTripDetails';
 export * from './useBuggies';
 export * from './useBuggyDrivers';
 export * from './useTransportStops';
+export * from './useGuestBuggyRequests';
 export * from './useTransportMutations';
