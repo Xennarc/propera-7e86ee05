@@ -54,7 +54,13 @@ export function TripCard({
   );
   
   return (
-    <div className="rounded-xl border bg-card overflow-hidden">
+    <motion.div 
+      layout
+      className="rounded-xl border bg-card overflow-hidden"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+    >
       {/* Header */}
       <div
         className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
@@ -160,7 +166,7 @@ export function TripCard({
           </div>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

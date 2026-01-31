@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useResort } from '@/contexts/ResortContext';
 import { useResortSettings } from '@/hooks/useResortSettings';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useTransportRequestsSync } from '@/hooks/sync/useTransportSync';
 import { 
   useTransportQueue,
   useTransportTrips,
@@ -44,6 +45,12 @@ export default function TransportPage() {
   const { data: trips = [], isLoading: tripsLoading, refetch: refetchTrips } = useTransportTrips(resortId);
   const { data: buggies = [] } = useBuggies(resortId);
   const { data: drivers = [] } = useBuggyDrivers(resortId);
+  
+  // Realtime sync - subscribes to all transport tables
+  useTransportRequestsSync({
+    resortId,
+    enabled: transportEnabled && canViewTransport,
+  });
   
   // Mutations
   const mutations = useTransportMutations(resortId);

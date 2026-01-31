@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useResortSettings } from '@/hooks/useResortSettings';
+import { useGuestBuggyRequestsSync } from '@/hooks/sync/useTransportSync';
 import { 
   useGuestBuggyRequests, 
   useCancelBuggyRequest,
@@ -50,6 +51,13 @@ export default function GuestMyRidesPage() {
   // Data
   const { data: requests, isLoading } = useGuestBuggyRequests(guest?.guestId, guest?.resortId);
   const cancelMutation = useCancelBuggyRequest();
+
+  // Realtime sync - updates My Rides in real-time
+  useGuestBuggyRequestsSync({
+    guestId: guest?.guestId,
+    resortId: guest?.resortId,
+    enabled: transportEnabled && !!guest,
+  });
 
   if (!guest) return null;
 
