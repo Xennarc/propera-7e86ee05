@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
 import {
   CommandDialog,
   CommandEmpty,
@@ -31,10 +32,11 @@ import {
   Crown,
   User,
   FileText,
+  Car,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface CommandItem {
+interface CommandItemDef {
   id: string;
   title: string;
   subtitle?: string;
@@ -42,6 +44,8 @@ interface CommandItem {
   action: () => void;
   keywords?: string[];
   category: 'navigation' | 'actions' | 'recent';
+  /** Feature flags required for this item to be visible */
+  requiredFlags?: string[];
 }
 
 interface StaffCommandBarProps {
@@ -55,6 +59,14 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
   const { isSuperAdmin } = useAuth();
   const { currentResort } = useResort();
   const permissions = usePermissions();
+  const flagContext = useFeatureFlagAccessSafe();
+
+  // Feature flag check helper
+  const checkFeatureFlags = useCallback((requiredFlags?: string[]): boolean => {
+    if (!requiredFlags || requiredFlags.length === 0) return true;
+    if (!flagContext || flagContext.loading) return true; // Fail open during loading
+    return requiredFlags.every(flag => flagContext.isEnabledEffective(flag));
+  }, [flagContext]);
 
   // Close and navigate
   const handleAction = useCallback((action: () => void) => {
@@ -63,8 +75,8 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
     action();
   }, [onOpenChange]);
 
-  // Navigation items
-  const navigationItems: CommandItem[] = [
+  // Navigation items with feature flags
+  const navigationItems: CommandItemDef[] = useMemo(() => [
     // Today / Operations
     {
       id: 'dashboard',
@@ -74,6 +86,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/dashboard'),
       keywords: ['home', 'overview', 'main'],
       category: 'navigation',
+      requiredFlags: ['enable_dashboards'],
     },
     {
       id: 'today',
@@ -83,6 +96,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/today'),
       keywords: ['operations', 'live', 'current'],
       category: 'navigation',
+      requiredFlags: ['enable_dashboards'],
     },
     // Guests
     {
@@ -93,6 +107,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/guests'),
       keywords: ['visitors', 'customers', 'people'],
       category: 'navigation',
+      requiredFlags: ['enable_guests'],
     },
     {
       id: 'prearrival',
@@ -102,6 +117,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/prearrival'),
       keywords: ['arrivals', 'checkin', 'upcoming'],
       category: 'navigation',
+      requiredFlags: ['enable_prearrival'],
     },
     {
       id: 'requests',
@@ -111,8 +127,9 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/requests-dashboard'),
       keywords: ['special', 'notes', 'messages', 'dashboard'],
       category: 'navigation',
+      requiredFlags: ['enable_requests'],
     },
-    // Activities
+    // Activities (no flag - always visible)
     {
       id: 'activities',
       title: 'Activities',
@@ -131,7 +148,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       keywords: ['schedule', 'timeslots'],
       category: 'navigation',
     },
-    // Dining
+    // Dining (no flag - always visible)
     {
       id: 'restaurants',
       title: 'Restaurants',
@@ -150,6 +167,17 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       keywords: ['reservations', 'tables', 'booking'],
       category: 'navigation',
     },
+    // Transport
+    {
+      id: 'transport',
+      title: 'Transport Dispatch',
+      subtitle: 'Buggy management',
+      icon: Car,
+      action: () => navigate('/staff/transport'),
+      keywords: ['buggy', 'dispatch', 'driver'],
+      category: 'navigation',
+      requiredFlags: ['enable_transport'],
+    },
     // Reports
     {
       id: 'reports',
@@ -159,6 +187,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/reports'),
       keywords: ['analytics', 'stats', 'metrics'],
       category: 'navigation',
+      requiredFlags: ['enable_reports'],
     },
     {
       id: 'reports-sales',
@@ -168,6 +197,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/reports/sales'),
       keywords: ['revenue', 'money', 'performance'],
       category: 'navigation',
+      requiredFlags: ['enable_reports'],
     },
     {
       id: 'reports-cancellations',
@@ -177,6 +207,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/reports/cancellations'),
       keywords: ['cancelled', 'refunds'],
       category: 'navigation',
+      requiredFlags: ['enable_reports'],
     },
     {
       id: 'reports-feedback',
@@ -186,8 +217,20 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/reports/stay-feedback'),
       keywords: ['reviews', 'ratings', 'satisfaction'],
       category: 'navigation',
+      requiredFlags: ['enable_reports'],
     },
-    // Notifications
+    // Loyalty
+    {
+      id: 'loyalty',
+      title: 'Loyalty Members',
+      subtitle: 'Loyalty program members',
+      icon: Crown,
+      action: () => navigate('/staff/loyalty'),
+      keywords: ['rewards', 'points', 'members'],
+      category: 'navigation',
+      requiredFlags: ['enable_loyalty'],
+    },
+    // Notifications (no flag)
     {
       id: 'notifications',
       title: 'Notifications',
@@ -197,7 +240,7 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       keywords: ['alerts', 'messages', 'inbox'],
       category: 'navigation',
     },
-    // Admin
+    // Admin (no flag - role-based only)
     {
       id: 'settings',
       title: 'Settings',
@@ -215,11 +258,12 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/settings/prearrival'),
       keywords: ['onboarding', 'checkin', 'forms'],
       category: 'navigation',
+      requiredFlags: ['enable_prearrival'],
     },
-  ];
+  ], [navigate]);
 
   // Quick action items
-  const actionItems: CommandItem[] = [
+  const actionItems: CommandItemDef[] = useMemo(() => [
     {
       id: 'new-session',
       title: 'New Session',
@@ -246,11 +290,12 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       action: () => navigate('/staff/guests?action=add'),
       keywords: ['new', 'register', 'create'],
       category: 'actions',
+      requiredFlags: ['enable_guests'],
     },
-  ];
+  ], [navigate]);
 
   // Super admin items
-  const superAdminItems: CommandItem[] = isSuperAdmin() ? [
+  const superAdminItems: CommandItemDef[] = useMemo(() => isSuperAdmin() ? [
     {
       id: 'command-center',
       title: 'Command Center',
@@ -269,10 +314,13 @@ export function StaffCommandBar({ open, onOpenChange }: StaffCommandBarProps) {
       keywords: ['properties', 'manage'],
       category: 'navigation',
     },
-  ] : [];
+  ] : [], [isSuperAdmin, navigate]);
 
-  // All items
-  const allItems = [...navigationItems, ...actionItems, ...superAdminItems];
+  // All items - filtered by feature flags
+  const allItems = useMemo(() => {
+    const items = [...navigationItems, ...actionItems, ...superAdminItems];
+    return items.filter(item => checkFeatureFlags(item.requiredFlags));
+  }, [navigationItems, actionItems, superAdminItems, checkFeatureFlags]);
 
   // Filter items based on search
   const filteredItems = search
