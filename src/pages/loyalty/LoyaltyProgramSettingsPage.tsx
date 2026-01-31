@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TierGate } from '@/components/tier/TierGate';
+import { FeatureGate } from '@/components/FeatureGate';
 import { useLoyaltyProgram } from '@/hooks/useLoyaltyProgram';
 import { useResort } from '@/contexts/ResortContext';
 import { ArrowLeft, Save, Sparkles } from 'lucide-react';
@@ -20,7 +21,7 @@ const EARN_CATEGORIES = [
   { id: 'spa', label: 'Spa Treatments', defaultRate: 15 },
 ];
 
-export default function LoyaltyProgramSettingsPage() {
+function LoyaltyProgramSettingsPageContent() {
   const navigate = useNavigate();
   const { currentResort } = useResort();
   const { 
@@ -285,5 +286,13 @@ export default function LoyaltyProgramSettingsPage() {
         </Card>
       )}
     </div>
+  );
+}
+
+export default function LoyaltyProgramSettingsPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_loyalty']} mode="staff">
+      <LoyaltyProgramSettingsPageContent />
+    </FeatureGate>
   );
 }

@@ -19,13 +19,14 @@ import {
   AddRequestToTripDialog,
   TripDetailSheet,
 } from '@/components/transport';
+import { FeatureGate } from '@/components/FeatureGate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Car, RefreshCw, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
 
-export default function TransportPage() {
+function TransportPageContent() {
   const { currentResort } = useResort();
   const resortId = currentResort?.id;
   
@@ -253,5 +254,13 @@ export default function TransportPage() {
         isReordering={mutations.reorderTripStops.isPending}
       />
     </div>
+  );
+}
+
+export default function TransportPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_transport']} mode="staff">
+      <TransportPageContent />
+    </FeatureGate>
   );
 }

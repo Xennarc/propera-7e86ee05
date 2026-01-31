@@ -22,6 +22,7 @@ import { GuestPinManager } from '@/components/guest/GuestPinManager';
 import { GuestQrLoginManager } from '@/components/guest/GuestQrLoginManager';
 import { ErrorState } from '@/components/ui/error-state';
 import { TierGate } from '@/components/tier/TierGate';
+import { FeatureGate } from '@/components/FeatureGate';
 import { usePermissions, hasWriteAccess } from '@/hooks/usePermissions';
 import { useStaffPrearrivalData } from '@/hooks/useStaffPrearrivalData';
 import { GuestAtAGlanceChips } from '@/components/prearrival/GuestAtAGlanceChips';
@@ -80,7 +81,7 @@ function isLateArrival(arrivalTime: string | null | undefined): boolean {
   return hour >= 20;
 }
 
-export default function GuestDetailPage() {
+function GuestDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -954,5 +955,13 @@ export default function GuestDetailPage() {
         canCancel={canEdit}
       />
     </div>
+  );
+}
+
+export default function GuestDetailPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_guests']} mode="staff">
+      <GuestDetailPageContent />
+    </FeatureGate>
   );
 }

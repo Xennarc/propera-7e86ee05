@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
 import { StatCardGridSkeleton } from '@/components/ui/dashboard-skeletons';
+import { FeatureGate } from '@/components/FeatureGate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -490,8 +491,10 @@ function GuestsPageContent() {
 
 export default function GuestsPage() {
   return (
-    <ErrorBoundary onReset={() => window.location.reload()}>
-      <GuestsPageContent />
-    </ErrorBoundary>
+    <FeatureGate requiredFlags={['enable_guests']} mode="staff">
+      <ErrorBoundary onReset={() => window.location.reload()}>
+        <GuestsPageContent />
+      </ErrorBoundary>
+    </FeatureGate>
   );
 }

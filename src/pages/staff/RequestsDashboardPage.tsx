@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRequestsDashboard, RequestWithSLA } from '@/hooks/useRequestsDashboard';
 import { useResortScope } from '@/hooks/sync/useResortScope';
 import { useStaffRequestPermissions, StaffServiceRequest } from '@/hooks/useStaffServiceRequests';
+import { FeatureGate } from '@/components/FeatureGate';
 import { DashboardHeader } from '@/components/staff/requests-dashboard/DashboardHeader';
 import { StatusLaneTabs, StatusLane } from '@/components/staff/requests-dashboard/StatusLaneTabs';
 import { RequestDashboardCard } from '@/components/staff/requests-dashboard/RequestDashboardCard';
@@ -28,7 +29,7 @@ const statusToLane: Record<StaffRequestStatus, StatusLane> = {
   CANCELLED: 'completed',
 };
 
-export default function RequestsDashboardPage() {
+function RequestsDashboardPageContent() {
   const [activeLane, setActiveLane] = useState<StatusLane>('new');
   const [searchQuery, setSearchQuery] = useState('');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -294,5 +295,13 @@ export default function RequestsDashboardPage() {
         onOpenChange={setShortcutsOpen}
       />
     </div>
+  );
+}
+
+export default function RequestsDashboardPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_requests']} mode="staff">
+      <RequestsDashboardPageContent />
+    </FeatureGate>
   );
 }

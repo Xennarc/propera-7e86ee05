@@ -4,6 +4,7 @@ import { Activity, Utensils, UserCheck, Globe, ArrowRight, MessageSquareHeart, D
 import { XCircle, Users } from 'lucide-react';
 import { TierGate, TierBadge } from '@/components/tier/TierGate';
 import { TierFeature } from '@/lib/tier-features';
+import { FeatureGate } from '@/components/FeatureGate';
 
 interface ReportLink {
   title: string;
@@ -72,7 +73,7 @@ const reportLinks: ReportLink[] = [
   },
 ];
 
-export default function Reports() {
+function ReportsContent() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -118,5 +119,13 @@ export default function Reports() {
         })}
       </div>
     </div>
+  );
+}
+
+export default function Reports() {
+  return (
+    <FeatureGate requiredFlags={['enable_reports']} mode="staff">
+      <ReportsContent />
+    </FeatureGate>
   );
 }

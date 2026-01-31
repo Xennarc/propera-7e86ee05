@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TierGate, TierBadge } from '@/components/tier/TierGate';
+import { FeatureGate } from '@/components/FeatureGate';
 import { useLoyaltyProgram, useLoyaltyMembers } from '@/hooks/useLoyaltyProgram';
 import { LoyaltyTierBadge } from '@/components/loyalty/LoyaltyTierBadge';
 import { 
@@ -22,7 +23,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function LoyaltyOverviewPage() {
+function LoyaltyOverviewPageContent() {
   const navigate = useNavigate();
   const { program, programLoading, tiers, isLoyaltyEnabled } = useLoyaltyProgram();
   const { members, isLoading: membersLoading } = useLoyaltyMembers();
@@ -263,5 +264,13 @@ export default function LoyaltyOverviewPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoyaltyOverviewPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_loyalty']} mode="staff">
+      <LoyaltyOverviewPageContent />
+    </FeatureGate>
   );
 }
