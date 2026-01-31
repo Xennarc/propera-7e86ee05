@@ -205,6 +205,12 @@ export const queryKeys = {
     // Addon pricing list
     addons: () => ['superadmin', 'addon-pricing'],
     
+    // Addon feature category mappings
+    addonCategories: () => ['superadmin', 'addon-feature-categories'],
+    
+    // Feature flags grouped by category (for entitlements UI)
+    featureFlagsByCategory: () => ['superadmin', 'feature-flags-by-category'],
+    
     // Pricing change log
     changeLog: () => ['superadmin', 'pricing-change-log'],
     
