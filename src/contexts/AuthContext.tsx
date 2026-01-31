@@ -12,6 +12,7 @@ interface AuthContextType {
   memberships: ResortMembership[];
   loading: boolean;
   userDataLoading: boolean; // True while fetching profile/memberships after auth
+  isAccountDisabled: boolean; // True if account is disabled or deleted
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -31,11 +32,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [memberships, setMemberships] = useState<ResortMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [userDataLoading, setUserDataLoading] = useState(false);
+  const [isAccountDisabled, setIsAccountDisabled] = useState(false);
 
   const fetchUserData = async (userId: string) => {
     setUserDataLoading(true);
     try {
-      // Fetch profile with global_role (single source of truth for super admin)
+      // Fetch profile with global_role and disabled status
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -45,6 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileData) {
         setProfile(profileData as Profile);
         setGlobalRole((profileData.global_role as GlobalRole) || 'STANDARD');
+        
+        // Check if account is disabled or deleted
+        const disabled = Boolean(profileData.is_disabled) || Boolean(profileData.deleted_at);
+        setIsAccountDisabled(disabled);
       }
 
       // Fetch resort memberships (single source of truth for resort roles)
@@ -80,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
           setGlobalRole('STANDARD');
           setMemberships([]);
+          setIsAccountDisabled(false);
         }
         
         setLoading(false);
@@ -130,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setGlobalRole('STANDARD');
     setMemberships([]);
+    setIsAccountDisabled(false);
   };
 
   const isSuperAdmin = () => globalRole === 'SUPER_ADMIN';
@@ -161,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         memberships,
         loading,
         userDataLoading,
+        isAccountDisabled,
         signIn,
         signUp,
         signOut,

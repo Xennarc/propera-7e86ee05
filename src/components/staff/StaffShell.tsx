@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { AccountDisabledScreen } from '@/components/auth/AccountDisabledScreen';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
@@ -33,7 +34,7 @@ export function StaffShell() {
   const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
   
-  const { user, profile, loading, userDataLoading, signOut } = useAuth();
+  const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
 
@@ -63,6 +64,11 @@ export function StaffShell() {
 
   if (!user) {
     return <Navigate to="/staff/auth" replace />;
+  }
+
+  // Account disabled check - show blocked screen
+  if (isAccountDisabled) {
+    return <AccountDisabledScreen />;
   }
 
   if (userDataLoading) {
