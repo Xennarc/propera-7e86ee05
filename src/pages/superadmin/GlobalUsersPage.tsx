@@ -552,7 +552,12 @@ export default function GlobalUsersPage() {
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
