@@ -3,3 +3,9 @@ export { useResortScope, useGuestScope, useResortQueryKey } from './useResortSco
 export type { ResortScope, GuestScope } from './useResortScope';
 export { useRealtimeSubscription, createResortFilter, createFilter } from './useRealtimeSubscription';
 export { useSyncInvalidation } from './useSyncInvalidation';
+export { 
+  useTransportRequestsSync, 
+  useGuestBuggyRequestsSync,
+  useTripDetailSync,
+  transportQueryKeys,
+} from './useTransportSync';

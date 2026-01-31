@@ -7,3 +7,4 @@ export * from './useBuggyDrivers';
 export * from './useTransportStops';
 export * from './useGuestBuggyRequests';
 export * from './useTransportMutations';
+export * from './useBuggyLocation';

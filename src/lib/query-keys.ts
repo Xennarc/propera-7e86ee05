@@ -157,6 +157,45 @@ export const queryKeys = {
     staffPreferences: (resortId: string, guestId: string) => 
       ['staff-guest-preferences', resortId, guestId],
   },
+
+  // ==================== TRANSPORT ====================
+  transport: {
+    // Request queue for staff
+    queue: (resortId: string) => 
+      ['transport-queue', resortId],
+    
+    // Active trips
+    trips: (resortId: string) => 
+      ['transport-trips', resortId],
+    
+    // Trip stops
+    tripStops: (tripId: string) => 
+      ['trip-stops', tripId],
+    
+    // Trip requests (membership)
+    tripRequests: (tripId: string) => 
+      ['trip-requests', tripId],
+    
+    // Buggies fleet
+    buggies: (resortId: string) => 
+      ['buggies', resortId],
+    
+    // Drivers
+    drivers: (resortId: string) => 
+      ['buggy-drivers', resortId],
+    
+    // Stops
+    stops: (resortId: string) => 
+      ['buggy-stops', resortId],
+    
+    // Routes
+    routes: (resortId: string) => 
+      ['buggy-routes', resortId],
+    
+    // Guest's buggy requests
+    guestRequests: (guestId: string) => 
+      ['guest-buggy-requests', guestId],
+  },
 };
 
 /**

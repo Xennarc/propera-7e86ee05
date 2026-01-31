@@ -182,12 +182,54 @@ export function useSyncInvalidation() {
     }
   }, [queryClient]);
 
+  /**
+   * Invalidate transport-related queries
+   */
+  const invalidateTransport = useCallback((resortId: string, options?: {
+    tripId?: string;
+    guestId?: string;
+  }) => {
+    const { tripId, guestId } = options || {};
+
+    // Always invalidate queue and trips
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.transport.queue(resortId) 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.transport.trips(resortId) 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.transport.buggies(resortId) 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: queryKeys.transport.drivers(resortId) 
+    });
+
+    // Specific trip
+    if (tripId) {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.transport.tripStops(tripId) 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.transport.tripRequests(tripId) 
+      });
+    }
+
+    // Guest's requests
+    if (guestId) {
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.transport.guestRequests(guestId) 
+      });
+    }
+  }, [queryClient]);
+
   return {
     invalidateDining,
     invalidateActivities,
     invalidatePrearrival,
     invalidateRequests,
     invalidateGuests,
+    invalidateTransport,
     queryClient,
   };
 }

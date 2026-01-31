@@ -70,43 +70,71 @@ export function BuggyRideCard({ request, onCancel, isCancelling, compact = false
 
   if (compact) {
     return (
-      <Card className={cn(
-        "guest-card overflow-hidden",
-        isActive && "border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-transparent"
-      )}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                config.color
-              )}>
-                <StatusIcon className={cn(
-                  "h-5 w-5 text-white",
-                  config.animate && "animate-pulse"
-                )} />
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Card className={cn(
+          "guest-card overflow-hidden",
+          isActive && "border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-transparent"
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <motion.div 
+                  key={request.status}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                    config.color
+                  )}
+                >
+                  <StatusIcon className={cn(
+                    "h-5 w-5 text-white",
+                    config.animate && "animate-pulse"
+                  )} />
+                </motion.div>
+                <div className="min-w-0">
+                  <motion.p 
+                    key={`label-${request.status}`}
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="font-semibold text-foreground truncate"
+                  >
+                    {config.label}
+                  </motion.p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {pickupName} → {dropoffName}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-foreground truncate">{config.label}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {pickupName} → {dropoffName}
-                </p>
-              </div>
+              {showEta && (
+                <motion.div
+                  key={`eta-${request.eta_minutes}`}
+                  initial={{ scale: 1.2, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                >
+                  <Badge variant="secondary" className="shrink-0">
+                    <Timer className="h-3 w-3 mr-1" />
+                    {request.eta_minutes} min
+                  </Badge>
+                </motion.div>
+              )}
             </div>
-            {showEta && (
-              <Badge variant="secondary" className="shrink-0">
-                <Timer className="h-3 w-3 mr-1" />
-                {request.eta_minutes} min
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
     <motion.div
+      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -116,8 +144,14 @@ export function BuggyRideCard({ request, onCancel, isCancelling, compact = false
         isActive && "border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-transparent"
       )}>
         <CardContent className="p-0">
-          {/* Status Header */}
-          <div className={cn("p-4 text-white", config.color)}>
+          {/* Status Header - animates on status change */}
+          <motion.div 
+            key={request.status}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className={cn("p-4 text-white", config.color)}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <StatusIcon className={cn(
@@ -127,9 +161,14 @@ export function BuggyRideCard({ request, onCancel, isCancelling, compact = false
                 <div>
                   <p className="font-bold text-lg">{config.label}</p>
                   {showEta && (
-                    <p className="text-sm opacity-90">
+                    <motion.p 
+                      key={`eta-${request.eta_minutes}`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-sm opacity-90"
+                    >
                       Estimated arrival: {request.eta_minutes} minutes
-                    </p>
+                    </motion.p>
                   )}
                 </div>
               </div>
@@ -140,7 +179,7 @@ export function BuggyRideCard({ request, onCancel, isCancelling, compact = false
                 </Badge>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Route Info */}
           <div className="p-4 space-y-4">
