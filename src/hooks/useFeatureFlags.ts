@@ -316,6 +316,151 @@ export function useRemoveResortOverride() {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// BULK OPERATIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useBulkToggleFeatureFlags() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      flagKeys, 
+      isEnabled, 
+      resortId 
+    }: { 
+      flagKeys: string[]; 
+      isEnabled: boolean; 
+      resortId?: string;
+    }) => {
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+
+      for (const flagKey of flagKeys) {
+        if (resortId) {
+          // Check if override exists
+          const { data: existing } = await supabase
+            .from('feature_flags')
+            .select('id')
+            .eq('key', flagKey)
+            .eq('resort_id', resortId)
+            .single();
+
+          if (existing) {
+            await supabase
+              .from('feature_flags')
+              .update({ 
+                is_enabled: isEnabled, 
+                updated_by: userId,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existing.id);
+          } else {
+            // Get global flag to copy properties
+            const { data: globalFlag } = await supabase
+              .from('feature_flags')
+              .select('*')
+              .eq('key', flagKey)
+              .is('resort_id', null)
+              .single();
+
+            if (globalFlag) {
+              await supabase
+                .from('feature_flags')
+                .insert({
+                  key: flagKey,
+                  label: globalFlag.label,
+                  description: globalFlag.description,
+                  category: globalFlag.category,
+                  tier: globalFlag.tier,
+                  is_enabled: isEnabled,
+                  is_dangerous: globalFlag.is_dangerous,
+                  scope: 'resort',
+                  resort_id: resortId,
+                  updated_by: userId,
+                });
+            }
+          }
+        } else {
+          // Update global flag
+          await supabase
+            .from('feature_flags')
+            .update({ 
+              is_enabled: isEnabled, 
+              updated_by: userId,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('key', flagKey)
+            .is('resort_id', null);
+        }
+      }
+
+      // Log the bulk activity
+      await supabase.rpc('log_platform_activity', {
+        p_event_type: 'feature_flags_bulk_updated',
+        p_resort_id: resortId || null,
+        p_target_type: 'feature_flag',
+        p_target_name: `${flagKeys.length} flags`,
+        p_metadata: { 
+          affected_keys: flagKeys, 
+          action: isEnabled ? 'bulk_enable' : 'bulk_disable',
+          scope: resortId ? 'resort' : 'global',
+        },
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
+      toast.success(`${variables.flagKeys.length} flags ${variables.isEnabled ? 'enabled' : 'disabled'}`);
+    },
+    onError: (error) => {
+      toast.error('Failed to update feature flags');
+      console.error(error);
+    },
+  });
+}
+
+export function useBulkResetResortOverrides() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      flagKeys, 
+      resortId 
+    }: { 
+      flagKeys: string[]; 
+      resortId: string;
+    }) => {
+      const { error } = await supabase
+        .from('feature_flags')
+        .delete()
+        .in('key', flagKeys)
+        .eq('resort_id', resortId);
+
+      if (error) throw error;
+
+      // Log the reset activity
+      await supabase.rpc('log_platform_activity', {
+        p_event_type: 'feature_flags_bulk_updated',
+        p_resort_id: resortId,
+        p_target_type: 'feature_flag',
+        p_target_name: `${flagKeys.length} overrides`,
+        p_metadata: { 
+          affected_keys: flagKeys, 
+          action: 'reset_overrides',
+          scope: 'resort',
+        },
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['feature-flags'] });
+      toast.success(`${variables.flagKeys.length} overrides reset to global`);
+    },
+    onError: (error) => {
+      toast.error('Failed to reset overrides');
+      console.error(error);
+    },
+  });
+}
+
 // Check if a specific feature is enabled (simple check, no parent resolution)
 export function useIsFeatureEnabled(flagKey: string, resortId?: string) {
   const { data: flags } = useFeatureFlags(resortId);

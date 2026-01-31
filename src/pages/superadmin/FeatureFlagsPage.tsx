@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,15 +6,19 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useResort } from '@/contexts/ResortContext';
 import { toast } from 'sonner';
 import {
   useFeatureFlags,
   useToggleFeatureFlag,
   useRemoveResortOverride,
+  useBulkToggleFeatureFlags,
+  useBulkResetResortOverrides,
   FEATURE_CATEGORIES,
 } from '@/hooks/useFeatureFlags';
+import { buildModuleViewModels, MODULES } from '@/lib/feature-flag-modules';
+import { ModuleCard } from '@/components/superadmin/ModuleCard';
 import {
   ToggleRight,
   Search,
@@ -25,6 +29,8 @@ import {
   Building2,
   Info,
   X,
+  Layers,
+  List,
 } from 'lucide-react';
 import {
   Dialog,
@@ -43,6 +49,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { seedGlobalFeatureFlags } from '@/lib/seedFeatureFlags';
+import type { FeatureFlag } from '@/hooks/useFeatureFlags';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   core: Building2,
@@ -56,6 +63,7 @@ export default function FeatureFlagsPage() {
   const { resorts } = useResort();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedResort, setSelectedResort] = useState<string>('global');
+  const [activeTab, setActiveTab] = useState<'modules' | 'categories'>('modules');
   const [confirmDialog, setConfirmDialog] = useState<{ 
     open: boolean; 
     flagKey: string | null; 
@@ -70,11 +78,17 @@ export default function FeatureFlagsPage() {
     isDangerous: false,
   });
 
+  const isResortScope = selectedResort !== 'global';
+
   const { data: flags, isLoading, refetch } = useFeatureFlags(
-    selectedResort === 'global' ? undefined : selectedResort
+    isResortScope ? selectedResort : undefined
   );
   const toggleFlag = useToggleFeatureFlag();
   const removeOverride = useRemoveResortOverride();
+  const bulkToggle = useBulkToggleFeatureFlags();
+  const bulkReset = useBulkResetResortOverrides();
+
+  const isPending = toggleFlag.isPending || bulkToggle.isPending || bulkReset.isPending;
 
   // Seeding guard - runs once on mount
   const hasSeeded = useRef(false);
@@ -94,7 +108,6 @@ export default function FeatureFlagsPage() {
           });
         } else if (result.seededCount > 0) {
           console.log(`[Feature Flags] Seeded ${result.seededCount} new flags`);
-          // Refetch to show newly seeded flags
           refetch();
         }
       } catch (error) {
@@ -108,19 +121,45 @@ export default function FeatureFlagsPage() {
     runSeeding();
   }, [refetch]);
 
-  const filteredFlags = flags?.filter(flag => {
-    if (!searchQuery) return true;
-    return flag.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           (flag.description?.toLowerCase().includes(searchQuery.toLowerCase()));
-  }) || [];
+  // Build module view models
+  const moduleViewModels = useMemo(() => {
+    return buildModuleViewModels(flags || [], isResortScope);
+  }, [flags, isResortScope]);
 
-  const groupedFlags = Object.entries(FEATURE_CATEGORIES).map(([key, config]) => ({
-    key,
-    ...config,
-    flags: filteredFlags.filter(f => f.category === key),
-  })).filter(g => g.flags.length > 0);
+  // Filter flags for search and category view
+  const filteredFlags = useMemo(() => {
+    if (!flags) return [];
+    if (!searchQuery) return flags;
+    return flags.filter(flag => 
+      flag.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (flag.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [flags, searchQuery]);
 
-  const handleToggle = (flag: typeof filteredFlags[0], newValue: boolean) => {
+  // Group by category for legacy view
+  const groupedFlags = useMemo(() => {
+    return Object.entries(FEATURE_CATEGORIES).map(([key, config]) => ({
+      key,
+      ...config,
+      flags: filteredFlags.filter(f => f.category === key),
+    })).filter(g => g.flags.length > 0);
+  }, [filteredFlags]);
+
+  // Filter module view models by search
+  const filteredModules = useMemo(() => {
+    if (!searchQuery) return moduleViewModels;
+    const query = searchQuery.toLowerCase();
+    return moduleViewModels.filter(m => 
+      m.definition.label.toLowerCase().includes(query) ||
+      m.definition.description.toLowerCase().includes(query) ||
+      m.childFlags.some(f => 
+        f.label.toLowerCase().includes(query) || 
+        f.description?.toLowerCase().includes(query)
+      )
+    );
+  }, [moduleViewModels, searchQuery]);
+
+  const handleToggle = (flag: FeatureFlag, newValue: boolean) => {
     if (flag.is_dangerous) {
       setConfirmDialog({ 
         open: true, 
@@ -139,7 +178,7 @@ export default function FeatureFlagsPage() {
       await toggleFlag.mutateAsync({
         flagKey,
         isEnabled: newValue,
-        resortId: selectedResort === 'global' ? undefined : selectedResort,
+        resortId: isResortScope ? selectedResort : undefined,
       });
     } catch (error) {
       // Error handled in hook
@@ -154,7 +193,7 @@ export default function FeatureFlagsPage() {
   };
 
   const handleRemoveOverride = async (flagKey: string) => {
-    if (selectedResort === 'global') return;
+    if (!isResortScope) return;
     try {
       await removeOverride.mutateAsync({
         flagKey,
@@ -164,6 +203,37 @@ export default function FeatureFlagsPage() {
       // Error handled in hook
     }
   };
+
+  // Bulk action handlers for ModuleCard
+  const handleBulkEnable = async (flagKeys: string[]) => {
+    await bulkToggle.mutateAsync({
+      flagKeys,
+      isEnabled: true,
+      resortId: isResortScope ? selectedResort : undefined,
+    });
+  };
+
+  const handleBulkDisable = async (flagKeys: string[]) => {
+    await bulkToggle.mutateAsync({
+      flagKeys,
+      isEnabled: false,
+      resortId: isResortScope ? selectedResort : undefined,
+    });
+  };
+
+  const handleResetOverrides = async (flagKeys: string[]) => {
+    if (!isResortScope) return;
+    await bulkReset.mutateAsync({
+      flagKeys,
+      resortId: selectedResort,
+    });
+  };
+
+  // Stats for header
+  const totalOverrides = useMemo(() => {
+    if (!isResortScope || !flags) return 0;
+    return flags.filter(f => f.resort_id !== null).length;
+  }, [flags, isResortScope]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -178,6 +248,11 @@ export default function FeatureFlagsPage() {
             Control features globally or per-resort
           </p>
         </div>
+        {isResortScope && totalOverrides > 0 && (
+          <Badge variant="outline" className="self-start md:self-center bg-info/10 text-info border-info/30">
+            {totalOverrides} Active Override{totalOverrides !== 1 ? 's' : ''}
+          </Badge>
+        )}
       </div>
 
       {/* Scope Selector */}
@@ -220,7 +295,7 @@ export default function FeatureFlagsPage() {
       </Card>
 
       {/* Info Banner */}
-      {selectedResort !== 'global' && (
+      {isResortScope && (
         <div className="flex items-start gap-3 p-4 rounded-xl bg-info/10 border border-info/30">
           <Info className="h-5 w-5 text-info mt-0.5" />
           <div>
@@ -247,87 +322,132 @@ export default function FeatureFlagsPage() {
         </div>
       )}
 
-      {/* Feature Flag Groups */}
+      {/* Tabbed Content */}
       {!isLoading && (
-        <div className="space-y-6">
-          {groupedFlags.map(group => {
-            const IconComponent = CATEGORY_ICONS[group.key] || ToggleRight;
-            const isDanger = group.key === 'danger';
-            
-            return (
-              <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
-                <CardHeader className="pb-3">
-                  <CardTitle className={`flex items-center gap-2 ${group.color}`}>
-                    <IconComponent className="h-5 w-5" />
-                    {group.label}
-                  </CardTitle>
-                  {isDanger && (
-                    <CardDescription className="text-destructive">
-                      These flags can significantly impact platform availability. Use with extreme caution.
-                    </CardDescription>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {group.flags.map(flag => {
-                      const isOverridden = flag.scope === 'resort' && selectedResort !== 'global';
-                      
-                      return (
-                        <div
-                          key={flag.key}
-                          className={`flex items-center justify-between p-4 rounded-xl border ${
-                            isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{flag.label}</span>
-                              {flag.tier && (
-                                <Badge variant="outline" className="text-[9px] capitalize">
-                                  {flag.tier}
-                                </Badge>
-                              )}
-                              {isOverridden && (
-                                <Badge 
-                                  variant="outline" 
-                                  className="text-[9px] bg-info/10 text-info border-info/30 cursor-pointer"
-                                  onClick={() => handleRemoveOverride(flag.key)}
-                                >
-                                  Override
-                                  <X className="h-2.5 w-2.5 ml-1" />
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
-                          </div>
-                          <Switch
-                            checked={flag.is_enabled}
-                            onCheckedChange={(checked) => handleToggle(flag, checked)}
-                            disabled={toggleFlag.isPending}
-                            className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'modules' | 'categories')}>
+          <TabsList className="grid w-full max-w-sm grid-cols-2">
+            <TabsTrigger value="modules" className="gap-2">
+              <Layers className="h-4 w-4" />
+              Modules
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="gap-2">
+              <List className="h-4 w-4" />
+              Categories
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Modules View */}
+          <TabsContent value="modules" className="mt-6 space-y-4">
+            {filteredModules.length > 0 ? (
+              filteredModules.map(module => (
+                <ModuleCard
+                  key={module.definition.key}
+                  module={module}
+                  isResortScope={isResortScope}
+                  onToggleMaster={(flagKey, newValue) => {
+                    const flag = flags?.find(f => f.key === flagKey);
+                    if (flag) handleToggle(flag, newValue);
+                  }}
+                  onToggleChild={(flag, newValue) => handleToggle(flag, newValue)}
+                  onBulkEnable={handleBulkEnable}
+                  onBulkDisable={handleBulkDisable}
+                  onResetOverrides={handleResetOverrides}
+                  isPending={isPending}
+                />
+              ))
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Layers className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="font-medium">No modules found</p>
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery ? 'Try adjusting your search' : 'Modules will appear here'}
+                  </p>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </TabsContent>
 
-      {/* Empty State */}
-      {!isLoading && filteredFlags.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ToggleRight className="h-12 w-12 text-muted-foreground/30 mb-3" />
-            <p className="font-medium">No feature flags found</p>
-            <p className="text-sm text-muted-foreground">
-              {searchQuery ? 'Try adjusting your search' : 'Feature flags will appear here'}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Categories View (Legacy) */}
+          <TabsContent value="categories" className="mt-6 space-y-6">
+            {groupedFlags.map(group => {
+              const IconComponent = CATEGORY_ICONS[group.key] || ToggleRight;
+              const isDanger = group.key === 'danger';
+              
+              return (
+                <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className={`flex items-center gap-2 ${group.color}`}>
+                      <IconComponent className="h-5 w-5" />
+                      {group.label}
+                    </CardTitle>
+                    {isDanger && (
+                      <CardDescription className="text-destructive">
+                        These flags can significantly impact platform availability. Use with extreme caution.
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {group.flags.map(flag => {
+                        const isOverridden = flag.resort_id !== null && isResortScope;
+                        
+                        return (
+                          <div
+                            key={flag.key}
+                            className={`flex items-center justify-between p-4 rounded-xl border ${
+                              isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
+                            }`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-sm">{flag.label}</span>
+                                {flag.tier && (
+                                  <Badge variant="outline" className="text-[9px] capitalize">
+                                    {flag.tier}
+                                  </Badge>
+                                )}
+                                {isOverridden && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="text-[9px] bg-info/10 text-info border-info/30 cursor-pointer"
+                                    onClick={() => handleRemoveOverride(flag.key)}
+                                  >
+                                    Override
+                                    <X className="h-2.5 w-2.5 ml-1" />
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
+                            </div>
+                            <Switch
+                              checked={flag.is_enabled}
+                              onCheckedChange={(checked) => handleToggle(flag, checked)}
+                              disabled={isPending}
+                              className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {groupedFlags.length === 0 && (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <ToggleRight className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                  <p className="font-medium">No feature flags found</p>
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery ? 'Try adjusting your search' : 'Feature flags will appear here'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Confirmation Dialog */}
@@ -352,7 +472,7 @@ export default function FeatureFlagsPage() {
             <Button variant="outline" onClick={() => setConfirmDialog({ open: false, flagKey: null, flagLabel: '', newValue: false, isDangerous: false })}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmToggle} disabled={toggleFlag.isPending}>
+            <Button variant="destructive" onClick={confirmToggle} disabled={isPending}>
               Yes, {confirmDialog.newValue ? 'Enable' : 'Disable'}
             </Button>
           </DialogFooter>
