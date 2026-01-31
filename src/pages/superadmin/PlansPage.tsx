@@ -24,6 +24,7 @@ import {
   Package,
   Info,
   Layers,
+  AlertTriangle,
 } from 'lucide-react';
 import { getTierInfo, type SubscriptionTier } from '@/lib/tier-features';
 import {
@@ -36,6 +37,8 @@ import {
 } from '@/hooks/usePricingManagement';
 import { PlanPricingTable } from '@/components/superadmin/PlanPricingTable';
 import { AddonPricingTable } from '@/components/superadmin/AddonPricingTable';
+import { SubscriptionHealthSection } from '@/components/superadmin/SubscriptionHealthSection';
+import { useAlertStats } from '@/hooks/useSubscriptionAlerts';
 
 const TIER_ORDER: SubscriptionTier[] = ['ESSENTIAL', 'PROFESSIONAL', 'ELITE'];
 
@@ -43,6 +46,7 @@ export default function PlansPage() {
   const { data: tierStats, isLoading: isLoadingStats } = useTierStats();
   const { data: planPricing, isLoading: isLoadingPlans } = usePlanPricing();
   const { data: addonPricing, isLoading: isLoadingAddons } = useAddonPricing();
+  const { data: alertStats, isLoading: isLoadingAlerts } = useAlertStats();
   const publishPricing = usePublishPricing();
 
   const estimatedMRR = calculateEstimatedMRR(tierStats, planPricing);
@@ -165,38 +169,48 @@ export default function PlansPage() {
           </CardContent>
         </Card>
 
-        {/* Expiring Soon */}
-        <Card>
+        {/* Expiring Soon - from alerts */}
+        <Card className={alertStats && alertStats.total > 0 ? 'border-warning/50' : ''}>
           <CardContent className="pt-5">
             <TooltipProvider>
               <div className="flex items-center gap-3">
                 <div className="rounded-xl p-2.5 bg-warning/10">
-                  <Calendar className="h-5 w-5 text-warning" />
+                  <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
-                    <p className="text-xs font-medium text-muted-foreground">Expiring Soon</p>
+                    <p className="text-xs font-medium text-muted-foreground">Alerts</p>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Subscriptions expiring within 30 days</p>
+                        <p>Expiring ({alertStats?.expiringSoon || 0}) + Expired ({alertStats?.expired || 0})</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {isLoadingStats ? (
+                  {isLoadingAlerts ? (
                     <Skeleton className="h-7 w-12 mt-1" />
                   ) : (
-                    <p className="text-2xl font-bold text-warning">
-                      {tierStats?.expiringSoon || 0}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-warning">
+                        {alertStats?.total || 0}
+                      </p>
+                      {alertStats && alertStats.expired > 0 && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          {alertStats.expired} expired
+                        </Badge>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             </TooltipProvider>
           </CardContent>
-        </Card>
+      </Card>
+
+      {/* Subscription Health Section */}
+      <SubscriptionHealthSection />
       </div>
 
       {/* Pricing Configuration */}

@@ -6474,6 +6474,10 @@ export type Database = {
       }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
+      generate_subscription_alerts: {
+        Args: { threshold_days_param?: number }
+        Returns: Json
+      }
       get_booking_attendees: {
         Args: {
           p_activity_booking_id?: string
