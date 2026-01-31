@@ -1525,6 +1525,48 @@
   }
 }
 
+/* === Sonner Toast Safe Area Positioning === */
+/* Ensure toasts respect safe areas on mobile devices */
+[data-sonner-toaster] {
+  /* Account for iOS notch on top-positioned toasts */
+  --offset: max(16px, env(safe-area-inset-top, 16px)) !important;
+}
+
+/* On mobile, ensure toasts don't overlap with anything */
+@media (max-width: 767px) {
+  [data-sonner-toaster][data-position^="top"] {
+    top: env(safe-area-inset-top, 0px) !important;
+    padding-top: 8px;
+  }
+  
+  /* If toasts are positioned at bottom (fallback), account for bottom nav */
+  [data-sonner-toaster][data-position^="bottom"] {
+    bottom: calc(var(--guest-nav-h, 72px) + env(safe-area-inset-bottom, 0px) + 8px) !important;
+  }
+  
+  /* Ensure toast doesn't exceed viewport width */
+  [data-sonner-toast] {
+    max-width: calc(100vw - 32px) !important;
+    margin-inline: auto;
+  }
+}
+
+/* Compact toast styling for mobile */
+@media (max-width: 639px) {
+  [data-sonner-toast] {
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+  }
+  
+  [data-sonner-toast] [data-title] {
+    font-size: 14px !important;
+  }
+  
+  [data-sonner-toast] [data-description] {
+    font-size: 13px !important;
+  }
+}
+
 /* === Guest Portal Specific Styles === */
 @layer components {
   /* === Guest Portal CSS Variables === */
