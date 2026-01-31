@@ -650,6 +650,45 @@ export type Database = {
           },
         ]
       }
+      addon_pricing: {
+        Row: {
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          metadata_json: Json
+          monthly_price_cents: number
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          metadata_json?: Json
+          monthly_price_cents: number
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          metadata_json?: Json
+          monthly_price_cents?: number
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       admin_audit_logs: {
         Row: {
           action: string
@@ -3296,6 +3335,48 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_pricing: {
+        Row: {
+          currency: string
+          display_price_text: string | null
+          id: string
+          is_active: boolean
+          metadata_json: Json
+          monthly_price_cents: number
+          overage_text: string | null
+          tier: string
+          updated_at: string
+          updated_by: string | null
+          usage_included: string | null
+        }
+        Insert: {
+          currency?: string
+          display_price_text?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json
+          monthly_price_cents: number
+          overage_text?: string | null
+          tier: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_included?: string | null
+        }
+        Update: {
+          currency?: string
+          display_price_text?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json
+          monthly_price_cents?: number
+          overage_text?: string | null
+          tier?: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_included?: string | null
+        }
+        Relationships: []
+      }
       platform_activity_events: {
         Row: {
           actor_id: string | null
@@ -3817,6 +3898,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pricing_publish_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata_json: Json
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata_json?: Json
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
