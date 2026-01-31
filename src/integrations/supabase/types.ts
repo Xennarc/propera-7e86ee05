@@ -5784,6 +5784,56 @@ export type Database = {
           },
         ]
       }
+      subscription_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_resolved: boolean
+          last_seen_at: string | null
+          metadata_json: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          resort_id: string
+          threshold_days: number | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_resolved?: boolean
+          last_seen_at?: string | null
+          metadata_json?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resort_id: string
+          threshold_days?: number | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_resolved?: boolean
+          last_seen_at?: string | null
+          metadata_json?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resort_id?: string
+          threshold_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_alerts_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_sessions: {
         Row: {
           actions_taken: Json | null
