@@ -7091,6 +7091,35 @@ export type Database = {
           username: string
         }[]
       }
+      superadmin_list_users_filtered: {
+        Args: {
+          _access?: string
+          _global_role?: string
+          _joined_from?: string
+          _joined_to?: string
+          _limit?: number
+          _multi_resort_only?: boolean
+          _offset?: number
+          _q?: string
+          _resort_id?: string
+          _resort_role?: string
+          _sort_by?: string
+          _sort_dir?: string
+          _status?: string
+        }
+        Returns: {
+          created_at: string
+          deleted_at: string
+          full_name: string
+          global_role: string
+          id: string
+          is_disabled: boolean
+          memberships: Json
+          memberships_count: number
+          total_count: number
+          username: string
+        }[]
+      }
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
         Returns: Json
