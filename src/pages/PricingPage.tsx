@@ -8,83 +8,11 @@ import { PricingTrustSection } from '@/components/pricing/PricingTrustSection';
 import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
+import { usePricingConfig } from '@/hooks/usePricingConfig';
 
 // ==========================================
-// PRICING CONFIGURATION (DO NOT CHANGE PRICES)
+// STATIC CONFIGURATION (non-price content)
 // ==========================================
-
-const PLANS = [
-  {
-    id: 'essential',
-    name: 'Essential',
-    badge: 'Get started',
-    badgeVariant: 'default' as const,
-    price: '$499',
-    priceUnit: 'per resort / month',
-    description: 'For boutique resorts launching a clean digital booking experience.',
-    features: [
-      'Guest Portal + Staff Console',
-      'Activities, Excursions & Spa bookings',
-      'Guest profiles + pre-arrival details',
-      'Live availability + capacity controls',
-      'Email notifications (via your configured sender)',
-      'Standard support',
-    ],
-    usage: 'Includes up to 1,500 guest stays / month',
-    overage: 'Overage: $0.10 per guest stay',
-    cta: 'Start with Essential',
-    whoItsFor: 'Ideal for boutique resorts moving away from spreadsheets.',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    badge: 'Most popular',
-    badgeVariant: 'popular' as const,
-    price: '$899',
-    priceUnit: 'per resort / month',
-    description: 'Our most popular plan for full resort operations.',
-    features: [
-      'Everything in Essential, plus:',
-      'Restaurant bookings + request routing',
-      'Department views for smoother daily ops',
-      'Advanced scheduling controls (sessions, time slots, limits)',
-      'Role-based access (so not everyone becomes admin)',
-      'Analytics: bookings, utilization, cancellations',
-    ],
-    usage: 'Includes up to 3,000 guest stays / month',
-    overage: 'Overage: $0.08 per guest stay',
-    cta: 'Choose Professional',
-    whoItsFor: 'Best for island resorts with multiple outlets needing coordination.',
-  },
-  {
-    id: 'enterprise',
-    name: 'Elite',
-    badge: 'Premium control',
-    badgeVariant: 'elite' as const,
-    price: '$1,499',
-    priceUnit: 'per resort / month',
-    description: 'For high-volume resorts and groups that want premium control.',
-    features: [
-      'Everything in Professional, plus:',
-      'Enhanced white-label branding options',
-      'Priority support + faster response times',
-      'Advanced analytics + performance reporting',
-      'Integration readiness (API/webhooks available)',
-      'Optional SLA packages',
-    ],
-    usage: 'Includes up to 6,000 guest stays / month',
-    overage: 'Overage: $0.06 per guest stay',
-    cta: 'Talk to Sales',
-    whoItsFor: 'For high-volume resorts and groups that want premium control.',
-  },
-];
-
-const ADDONS = [
-  { name: 'Loyalty Program Suite', price: '$199 / month', description: 'Guest rewards, tier management, and return visit tracking.' },
-  { name: 'Analytics Plus', price: '$199 / month', description: 'Executive dashboards & deeper insights.' },
-  { name: 'Premium Support', price: '$199 / month', description: 'Priority channels & extended coverage.' },
-  { name: 'Managed Content', price: 'from $150 / month', description: 'We maintain your activity catalog & seasonal updates.' },
-];
 
 const ONBOARDING = {
   priceRange: '$2,500 – $7,500',
@@ -124,6 +52,9 @@ const PRICING_PAGE_SCHEMA = {
 // ==========================================
 
 export default function PricingPage() {
+  // Fetch pricing from DB with safe fallback to defaults
+  const { plans, addons } = usePricingConfig();
+
   return (
     <MarketingLayout currentPage="pricing">
       <SEOHead
@@ -135,10 +66,10 @@ export default function PricingPage() {
       />
 
       <PricingHeroSection />
-      <PricingPlanGrid plans={PLANS} />
+      <PricingPlanGrid plans={plans} />
       <PricingComparisonMatrix />
       <PricingTrustSection />
-      <PricingAddonsSection addons={ADDONS} onboarding={ONBOARDING} />
+      <PricingAddonsSection addons={addons} onboarding={ONBOARDING} />
       <PricingFAQSection faqs={FAQS} />
       <PricingCTASection />
     </MarketingLayout>
