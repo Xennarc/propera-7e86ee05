@@ -27,6 +27,7 @@ import { ShieldX } from 'lucide-react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
+import { SkipLink } from '@/components/a11y/SkipLink';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -134,6 +135,7 @@ export function StaffShell() {
           noIndex={true}
         />
         
+        <SkipLink />
         <div className="flex min-h-screen w-full bg-background">
           {/* Desktop Sidebar - with gradient stroke */}
           <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
@@ -154,8 +156,11 @@ export function StaffShell() {
               onCommandBarOpen={() => setCommandBarOpen(true)}
             />
 
-            <main className={cn(
-              "flex-1 overflow-auto transition-[padding] duration-200",
+            <main 
+              id="main-content"
+              tabIndex={-1}
+              className={cn(
+              "flex-1 overflow-auto transition-[padding] duration-200 focus:outline-none",
               isKeyboardOpen ? "pb-4" : "pb-24 lg:pb-0"
             )}>
               {/* Improved padding scale: tighter on mobile, generous on desktop */}
