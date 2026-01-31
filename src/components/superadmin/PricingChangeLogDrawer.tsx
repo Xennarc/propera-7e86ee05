@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { queryKeys } from '@/lib/query-keys';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { History, Clock, User, FileText, Send, Package, CreditCard } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -37,7 +38,7 @@ export function PricingChangeLogDrawer() {
   const [open, setOpen] = useState(false);
 
   const { data: logs, isLoading } = useQuery({
-    queryKey: ['superadmin', 'pricing-change-log'],
+    queryKey: queryKeys.pricing.changeLog(),
     queryFn: async (): Promise<PricingLogEntry[]> => {
       const { data, error } = await supabase
         .from('pricing_publish_log')

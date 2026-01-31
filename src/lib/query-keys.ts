@@ -196,6 +196,34 @@ export const queryKeys = {
     guestRequests: (guestId: string) => 
       ['guest-buggy-requests', guestId],
   },
+
+  // ==================== SUPERADMIN PRICING ====================
+  pricing: {
+    // Plan pricing list
+    plans: () => ['superadmin', 'plan-pricing'],
+    
+    // Addon pricing list
+    addons: () => ['superadmin', 'addon-pricing'],
+    
+    // Pricing change log
+    changeLog: () => ['superadmin', 'pricing-change-log'],
+    
+    // Tier statistics
+    tierStats: () => ['superadmin', 'tier-stats'],
+    
+    // Public pricing (for invalidation)
+    public: () => ['pricing'],
+  },
+
+  // ==================== SUBSCRIPTION ALERTS ====================
+  subscriptionAlerts: {
+    // Alert list with optional filters
+    list: (filters?: Record<string, unknown>) => 
+      ['superadmin', 'subscription-alerts', filters].filter(Boolean),
+    
+    // Alert stats summary
+    stats: () => ['superadmin', 'subscription-alerts', 'stats'],
+  },
 };
 
 /**

@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/query-keys';
+import { logSubscriptionAlertError } from '@/lib/platform-error-logger';
 
 // ==========================================
 // Types
@@ -45,7 +47,7 @@ export function useSubscriptionAlerts(filters?: {
   includeResolved?: boolean;
 }) {
   return useQuery({
-    queryKey: ['superadmin', 'subscription-alerts', filters],
+    queryKey: queryKeys.subscriptionAlerts.list(filters),
     queryFn: async (): Promise<SubscriptionAlert[]> => {
       // Query alerts with resort join
       // Using type assertion since the table was just created
@@ -85,7 +87,10 @@ export function useSubscriptionAlerts(filters?: {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        logSubscriptionAlertError('fetch_alerts', error.message);
+        throw error;
+      }
 
       // Client-side filtering for tier and search (joined data)
       let results = (data || []) as unknown as SubscriptionAlert[];
@@ -111,14 +116,17 @@ export function useSubscriptionAlerts(filters?: {
 
 export function useAlertStats() {
   return useQuery({
-    queryKey: ['superadmin', 'subscription-alerts', 'stats'],
+    queryKey: queryKeys.subscriptionAlerts.stats(),
     queryFn: async (): Promise<AlertStats> => {
       const { data, error } = await supabase
         .from('subscription_alerts' as any)
         .select('alert_type')
         .eq('is_resolved', false);
 
-      if (error) throw error;
+      if (error) {
+        logSubscriptionAlertError('fetch_alert_stats', error.message);
+        throw error;
+      }
 
       const alerts = (data || []) as unknown as { alert_type: string }[];
       const expiringSoon = alerts.filter((a) => a.alert_type === 'EXPIRING_SOON').length;
@@ -153,11 +161,14 @@ export function useResolveAlert() {
         })
         .eq('id', alertId);
 
-      if (error) throw error;
+      if (error) {
+        logSubscriptionAlertError('resolve_alert', error.message, { alert_id: alertId });
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['superadmin', 'subscription-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['superadmin', 'tier-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.tierStats() });
       toast.success('Alert resolved');
     },
     onError: (error: Error) => {
@@ -175,12 +186,15 @@ export function useGenerateAlerts() {
         body: { threshold_days: thresholdDays },
       });
 
-      if (error) throw error;
+      if (error) {
+        logSubscriptionAlertError('generate_alerts', error.message, { threshold_days: thresholdDays });
+        throw error;
+      }
       return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['superadmin', 'subscription-alerts'] });
-      queryClient.invalidateQueries({ queryKey: ['superadmin', 'tier-stats'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.tierStats() });
       toast.success('Alerts generated', {
         description: `Created: ${data?.created_count || 0}, Resolved: ${data?.resolved_count || 0}`,
       });
