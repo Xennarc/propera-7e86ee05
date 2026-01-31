@@ -77,6 +77,7 @@ const TodaysOpportunitiesPage = lazy(() => import("./pages/staff/TodaysOpportuni
 const PrearrivalDashboardPage = lazy(() => import("./pages/staff/PrearrivalDashboardPage"));
 const StaffInviteAcceptPage = lazy(() => import("./pages/staff/StaffInviteAcceptPage"));
 const StaffDirectoryPage = lazy(() => import("./pages/staff/StaffDirectoryPage"));
+const TransportPage = lazy(() => import("./pages/staff/TransportPage"));
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
 const DemoOnboardingPage = lazy(() => import("./pages/staff/DemoOnboardingPage"));
 const DemoAutoLoginPage = lazy(() => import("./pages/staff/DemoAutoLoginPage"));
@@ -226,6 +227,7 @@ const App = () => (
                   <Route path="today" element={<TodaysOpportunitiesPage />} />
                   <Route path="prearrival" element={<PrearrivalDashboardPage />} />
                   <Route path="team" element={<StaffDirectoryPage />} />
+                  <Route path="transport" element={<TransportPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                   <Route path="settings/users" element={<UserManagementPage />} />
                   <Route path="settings/resorts" element={<ResortsPage />} />
