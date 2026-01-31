@@ -1,137 +1,67 @@
 
-# Plan: Consolidate Requests Inbox into Requests Dashboard
+# Plan: Fix Actions Button Not Responding on `/superadmin/users`
 
-## Overview
-Remove the Requests Inbox from sidebar navigation and add a simple access link within the Requests Dashboard page. This keeps both views accessible while decluttering navigation.
+## Root Cause Identified
 
----
+The Actions button (three-dot menu) in the Users table is **invisible by default** due to `opacity-0` CSS class. It only becomes visible when hovering over the row.
 
-## Current State
-
-| Component | Location |
-|-----------|----------|
-| Requests Dashboard | `/staff/requests-dashboard` (sidebar: Guests > Requests Dashboard) |
-| Requests Inbox | `/staff/guest-requests` (sidebar: Guests > Requests Inbox) |
-| Both appear in sidebar | Under "Guests" navigation group |
-
----
-
-## Changes Summary
-
-### 1. Remove Requests Inbox from Sidebar Navigation
-
-**File:** `src/components/staff/StaffSidebar.tsx`
-
-Remove the "Requests Inbox" entry from the `navGroups` array:
-
-```typescript
-// REMOVE this line (around line 123):
-{ title: 'Requests Inbox', url: '/staff/guest-requests', icon: Clock, ... }
+**Current code (line 555):**
+```tsx
+<Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
 ```
 
-The route itself remains functional - users can still access it directly or via the Dashboard link.
+This causes two problems:
+1. On **mobile/touch devices**, hover doesn't work, so the button is never visible or clickable
+2. On **desktop**, users must hover over the row to see the button, which is not intuitive for many users
 
----
+## Solution
 
-### 2. Add "Inbox View" Button to Dashboard Header
+Update the button's className to make it:
+- **Always visible on mobile** (touch devices need visible targets)
+- **Visible on hover for desktop** (preserves clean aesthetic)
+- Add smooth transition for polish
 
-**File:** `src/components/staff/requests-dashboard/DashboardHeader.tsx`
+## Technical Change
 
-Add a secondary navigation button that links to the Inbox:
+### File: `src/pages/superadmin/GlobalUsersPage.tsx`
 
-```
-[Inbox View] [Refresh] [Shortcuts]
-```
-
-- Uses a subtle `ghost` variant button with `Inbox` icon
-- Links to `/staff/guest-requests`
-- Provides easy access without duplicating sidebar clutter
-
----
-
-### 3. Update StaffCommandBar Reference
-
-**File:** `src/components/staff/StaffCommandBar.tsx`
-
-Update the command bar "Guest Requests" action to point to the Dashboard instead:
-
-```typescript
-// Change from:
-action: () => navigate('/staff/guest-requests')
-// To:
-action: () => navigate('/staff/requests-dashboard')
+**Line 555 - Change from:**
+```tsx
+<Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
 ```
 
----
-
-### 4. Update Internal Links
-
-**Files to update:**
-
-| File | Current Link | New Link |
-|------|--------------|----------|
-| `src/components/staff/TodayHub.tsx` | `/staff/guest-requests` | `/staff/requests-dashboard` |
-| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | `/staff/guest-requests` | `/staff/requests-dashboard` |
-| `src/components/staff/dashboard/SmartFAB.tsx` | `/staff/guest-requests/new` | Keep as-is (if valid) or remove |
-
----
-
-## What Stays the Same
-
-- Route `/staff/guest-requests` remains registered in `App.tsx` (no breaking changes)
-- The `StaffRequestsInboxPage` component is preserved (accessible via Dashboard link)
-- Mobile bottom navigation is unaffected (doesn't have Requests Inbox)
-- All existing functionality in both pages continues to work
-
----
-
-## Visual Result
-
-**Before (Sidebar):**
-```
-Guests
-├── All Guests
-├── Pre-Arrival
-├── Requests Dashboard [New]
-└── Requests Inbox        <-- REMOVED
+**To:**
+```tsx
+<Button variant="ghost" size="icon" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
 ```
 
-**After (Sidebar):**
-```
-Guests
-├── All Guests
-├── Pre-Arrival
-└── Requests Dashboard [New]
-```
+## Breakdown of the Fix
 
-**Dashboard Header (After):**
-```
-Requests Dashboard
-Last updated 2 minutes ago
+| Class | Effect |
+|-------|--------|
+| `opacity-100` | Always visible by default (mobile-first) |
+| `sm:opacity-0` | Hidden on screens 640px+ (desktop) |
+| `sm:group-hover:opacity-100` | Shows on row hover (desktop only) |
+| `transition-opacity` | Smooth fade animation |
 
-[Inbox View] [Refresh] [Shortcuts]
-```
+## Impact Assessment
 
----
+- **No database changes**
+- **No new components**
+- **Single line CSS modification**
+- **Fully backwards compatible**
+- **Significantly improves mobile/touch UX**
 
 ## Files Changed
 
-| File | Change Type |
-|------|-------------|
-| `src/components/staff/StaffSidebar.tsx` | Remove nav item |
-| `src/components/staff/requests-dashboard/DashboardHeader.tsx` | Add Inbox button |
-| `src/components/staff/StaffCommandBar.tsx` | Update navigation target |
-| `src/components/staff/TodayHub.tsx` | Update link references |
-| `src/components/staff/dashboard/NeedsAttentionCard.tsx` | Update link references |
+| File | Change |
+|------|--------|
+| `src/pages/superadmin/GlobalUsersPage.tsx` | Update button className on line 555 |
 
----
+## Testing Checklist
 
-## Risk Assessment
-
-| Risk | Mitigation |
-|------|------------|
-| Broken bookmarks to `/staff/guest-requests` | Route preserved - still accessible |
-| Users confused by missing nav item | Clear "Inbox View" button in Dashboard header |
-| Minimal code changes | Only navigation config and a single button addition |
-
-This is a low-risk, additive-compatible change that simplifies navigation while preserving all functionality.
+After implementation:
+1. Open `/superadmin/users` on mobile viewport - Actions button should be visible
+2. Open on desktop - Actions button appears on row hover
+3. Click button - Dropdown menu opens with all actions (Copy ID, Edit Access, Deactivate, etc.)
+4. Verify all dropdown actions work correctly
