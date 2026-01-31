@@ -5,6 +5,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useRequestCatalog, useServiceRequestMutations, useGuestServiceRequests, CatalogItem } from '@/hooks/useServiceRequests';
 import { useRequestSettings } from '@/hooks/useRequestSettings';
+import { FeatureGate, useFeatureEnabled } from '@/components/FeatureGate';
 import { RequestsHeader } from '@/components/guest/requests/RequestsHeader';
 import { RequestCategoryAccordion } from '@/components/guest/requests/RequestCategoryAccordion';
 import { RequestNotesCard } from '@/components/guest/requests/RequestNotesCard';
@@ -26,7 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
-export default function GuestRequestsPage() {
+function GuestRequestsPageContent() {
   const { guest } = useGuestAuth();
   const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
   
@@ -248,5 +249,19 @@ export default function GuestRequestsPage() {
         requestsEndHour={settings.requestsEndHour}
       />
     </div>
+  );
+}
+
+/**
+ * Wrapper with feature gate for guest request submission
+ */
+export default function GuestRequestsPage() {
+  return (
+    <FeatureGate 
+      requiredFlags={['enable_requests_guest_submit']} 
+      mode="guest"
+    >
+      <GuestRequestsPageContent />
+    </FeatureGate>
   );
 }
