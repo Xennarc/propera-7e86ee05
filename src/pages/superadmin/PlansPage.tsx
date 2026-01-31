@@ -2,70 +2,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useResort } from '@/contexts/ResortContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Link } from 'react-router-dom';
 import {
   CreditCard,
   ArrowRight,
   ToggleRight,
   Settings,
-  AlertCircle,
   Building2,
   TrendingUp,
   Calendar,
+  DollarSign,
+  ExternalLink,
+  Send,
+  Package,
+  Info,
+  Layers,
 } from 'lucide-react';
-import { SubscriptionTier, getTierInfo } from '@/lib/tier-features';
+import { getTierInfo, type SubscriptionTier } from '@/lib/tier-features';
+import {
+  useTierStats,
+  usePlanPricing,
+  useAddonPricing,
+  usePublishPricing,
+  formatCentsToDisplay,
+  calculateEstimatedMRR,
+} from '@/hooks/usePricingManagement';
+import { PlanPricingTable } from '@/components/superadmin/PlanPricingTable';
+import { AddonPricingTable } from '@/components/superadmin/AddonPricingTable';
 
 const TIER_ORDER: SubscriptionTier[] = ['ESSENTIAL', 'PROFESSIONAL', 'ELITE'];
 
 export default function PlansPage() {
-  const { resorts } = useResort();
+  const { data: tierStats, isLoading: isLoadingStats } = useTierStats();
+  const { data: planPricing, isLoading: isLoadingPlans } = usePlanPricing();
+  const { data: addonPricing, isLoading: isLoadingAddons } = useAddonPricing();
+  const publishPricing = usePublishPricing();
 
-  // Aggregate tier distribution stats
-  const { data: tierStats, isLoading } = useQuery({
-    queryKey: ['superadmin', 'plan-stats'],
-    queryFn: async () => {
-      const { data: allResorts, error } = await supabase
-        .from('resorts')
-        .select('id, name, subscription_tier, subscription_started_at, subscription_expires_at, is_demo')
-        .order('subscription_tier');
-
-      if (error) throw error;
-
-      const distribution: Record<string, number> = {
-        ESSENTIAL: 0,
-        PROFESSIONAL: 0,
-        ELITE: 0,
-      };
-
-      let expiringSoon = 0;
-      const now = new Date();
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      for (const resort of allResorts || []) {
-        const tier = resort.subscription_tier || 'ESSENTIAL';
-        if (distribution[tier] !== undefined) {
-          distribution[tier]++;
-        }
-        
-        if (resort.subscription_expires_at) {
-          const expiresAt = new Date(resort.subscription_expires_at);
-          if (expiresAt <= thirtyDaysFromNow && expiresAt > now) {
-            expiringSoon++;
-          }
-        }
-      }
-
-      return {
-        distribution,
-        total: allResorts?.length || 0,
-        expiringSoon,
-        demoCount: allResorts?.filter(r => r.is_demo).length || 0,
-      };
-    },
-  });
+  const estimatedMRR = calculateEstimatedMRR(tierStats, planPricing);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -77,126 +57,201 @@ export default function PlansPage() {
             Plans & Billing
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage subscription tiers and billing configuration
+            Platform pricing, tiers, and subscription health.
           </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/pricing" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Pricing Page
+            </a>
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => publishPricing.mutate()}
+            disabled={publishPricing.isPending}
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {publishPricing.isPending ? 'Publishing...' : 'Publish Pricing'}
+          </Button>
         </div>
       </div>
 
-      {/* Status Card */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-primary" />
-            Platform Billing Status
+      {/* Platform Overview Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Resorts by Tier */}
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl p-2.5 bg-primary/10">
+                <Building2 className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">Total Resorts</p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{tierStats?.total || 0}</p>
+                )}
+              </div>
+            </div>
+            {!isLoadingStats && tierStats && (
+              <div className="mt-3 flex gap-2 flex-wrap">
+                {TIER_ORDER.map((tier) => {
+                  const count = tierStats.distribution[tier] || 0;
+                  const info = getTierInfo(tier);
+                  return (
+                    <Badge
+                      key={tier}
+                      variant="outline"
+                      className={`text-[10px] ${
+                        tier === 'ELITE'
+                          ? 'bg-primary/10 text-primary border-primary/30'
+                          : tier === 'PROFESSIONAL'
+                            ? 'bg-info/10 text-info border-info/30'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {info.name}: {count}
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Estimated MRR */}
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl p-2.5 bg-success/10">
+                <DollarSign className="h-5 w-5 text-success" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">Estimated MRR</p>
+                {isLoadingStats || isLoadingPlans ? (
+                  <Skeleton className="h-7 w-24 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold text-success">
+                    ${estimatedMRR.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Active Paid */}
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl p-2.5 bg-info/10">
+                <TrendingUp className="h-5 w-5 text-info" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground">Active Paid</p>
+                {isLoadingStats ? (
+                  <Skeleton className="h-7 w-16 mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold">
+                    {(tierStats?.distribution.PROFESSIONAL || 0) +
+                      (tierStats?.distribution.ELITE || 0)}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Expiring Soon */}
+        <Card>
+          <CardContent className="pt-5">
+            <TooltipProvider>
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl p-2.5 bg-warning/10">
+                  <Calendar className="h-5 w-5 text-warning" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <p className="text-xs font-medium text-muted-foreground">Expiring Soon</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Subscriptions expiring within 30 days</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  {isLoadingStats ? (
+                    <Skeleton className="h-7 w-12 mt-1" />
+                  ) : (
+                    <p className="text-2xl font-bold text-warning">
+                      {tierStats?.expiringSoon || 0}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Pricing Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-primary" />
+            Pricing Configuration
           </CardTitle>
           <CardDescription>
-            Pricing configuration and subscription expiration alerts will appear here.
+            Manage plan and add-on pricing. Changes are logged and require publishing.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[1, 2, 3, 4].map(i => (
-                <Skeleton key={i} className="h-20" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-xl bg-background border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <Building2 className="h-4 w-4" />
-                  Total Resorts
-                </div>
-                <p className="text-2xl font-bold">{tierStats?.total || 0}</p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-background border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <TrendingUp className="h-4 w-4" />
-                  Active Paid
-                </div>
-                <p className="text-2xl font-bold">
-                  {(tierStats?.distribution.PROFESSIONAL || 0) + (tierStats?.distribution.ELITE || 0)}
-                </p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-background border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <Calendar className="h-4 w-4" />
-                  Expiring Soon
-                </div>
-                <p className="text-2xl font-bold text-warning">{tierStats?.expiringSoon || 0}</p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-background border">
-                <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                  <Settings className="h-4 w-4" />
-                  Demo Resorts
-                </div>
-                <p className="text-2xl font-bold text-muted-foreground">{tierStats?.demoCount || 0}</p>
-              </div>
-            </div>
-          )}
+          <Tabs defaultValue="plans">
+            <TabsList className="grid w-full max-w-sm grid-cols-2 mb-6">
+              <TabsTrigger value="plans" className="gap-2">
+                <CreditCard className="h-4 w-4" />
+                Plans
+              </TabsTrigger>
+              <TabsTrigger value="addons" className="gap-2">
+                <Package className="h-4 w-4" />
+                Add-ons
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="plans">
+              <PlanPricingTable plans={planPricing} isLoading={isLoadingPlans} />
+            </TabsContent>
+
+            <TabsContent value="addons">
+              <AddonPricingTable addons={addonPricing} isLoading={isLoadingAddons} />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
-      {/* Tier Distribution */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Tier Distribution</CardTitle>
-          <CardDescription>
-            Current breakdown of resorts by subscription tier
-          </CardDescription>
+      {/* Guardrails / Source of Truth */}
+      <Card className="border-info/30 bg-info/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Info className="h-5 w-5 text-info" />
+            Source of Truth
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-12" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {TIER_ORDER.map(tier => {
-                const info = getTierInfo(tier);
-                const count = tierStats?.distribution[tier] || 0;
-                const percentage = tierStats?.total ? Math.round((count / tierStats.total) * 100) : 0;
-                
-                return (
-                  <div key={tier} className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
-                    <div className="flex items-center gap-3">
-                      <Badge 
-                        variant="outline" 
-                        className={`capitalize ${
-                          tier === 'ELITE' ? 'bg-primary/10 text-primary border-primary/30' :
-                          tier === 'PROFESSIONAL' ? 'bg-info/10 text-info border-info/30' :
-                          'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {info.name}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">{info.description}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all ${
-                            tier === 'ELITE' ? 'bg-primary' :
-                            tier === 'PROFESSIONAL' ? 'bg-info' :
-                            'bg-muted-foreground'
-                          }`}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-16 text-right">
-                        {count} ({percentage}%)
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>
+            <strong>Tier features</strong> (what each plan includes) are defined in{' '}
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">src/lib/tier-features.ts</code>{' '}
+            and controlled via Feature Flags.
+          </p>
+          <p>
+            <strong>Pricing values</strong> (monthly costs) are now managed in the database and
+            displayed on the public pricing page.
+          </p>
         </CardContent>
       </Card>
 
@@ -204,9 +259,7 @@ export default function PlansPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Quick Links</CardTitle>
-          <CardDescription>
-            Jump to related management tools
-          </CardDescription>
+          <CardDescription>Jump to related management tools</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -224,7 +277,7 @@ export default function PlansPage() {
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
             </Link>
-            
+
             <Link to="/superadmin/feature-flags">
               <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
                 <div className="flex items-center gap-3">

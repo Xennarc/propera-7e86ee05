@@ -1,0 +1,282 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+
+// ==========================================
+// Types
+// ==========================================
+
+export interface PlanPricingRow {
+  id: string;
+  tier: string;
+  monthly_price_cents: number;
+  currency: string;
+  display_price_text: string | null;
+  usage_included: string | null;
+  overage_text: string | null;
+  is_active: boolean;
+  metadata_json: Record<string, unknown>;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface AddonPricingRow {
+  id: string;
+  key: string;
+  name: string;
+  monthly_price_cents: number;
+  currency: string;
+  description: string | null;
+  is_active: boolean;
+  metadata_json: Record<string, unknown>;
+  updated_at: string;
+  updated_by: string | null;
+}
+
+export interface TierStats {
+  distribution: Record<string, number>;
+  total: number;
+  expiringSoon: number;
+  demoCount: number;
+}
+
+// ==========================================
+// Query Hooks
+// ==========================================
+
+export function usePlanPricing() {
+  return useQuery({
+    queryKey: ['superadmin', 'plan-pricing'],
+    queryFn: async (): Promise<PlanPricingRow[]> => {
+      const { data, error } = await supabase
+        .from('plan_pricing')
+        .select('*')
+        .order('monthly_price_cents', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as PlanPricingRow[];
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useAddonPricing() {
+  return useQuery({
+    queryKey: ['superadmin', 'addon-pricing'],
+    queryFn: async (): Promise<AddonPricingRow[]> => {
+      const { data, error } = await supabase
+        .from('addon_pricing')
+        .select('*')
+        .order('monthly_price_cents', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as AddonPricingRow[];
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useTierStats() {
+  return useQuery({
+    queryKey: ['superadmin', 'tier-stats'],
+    queryFn: async (): Promise<TierStats> => {
+      const { data: allResorts, error } = await supabase
+        .from('resorts')
+        .select('id, subscription_tier, subscription_expires_at, is_demo')
+        .order('subscription_tier');
+
+      if (error) throw error;
+
+      const distribution: Record<string, number> = {
+        ESSENTIAL: 0,
+        PROFESSIONAL: 0,
+        ELITE: 0,
+      };
+
+      let expiringSoon = 0;
+      const now = new Date();
+      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      for (const resort of allResorts || []) {
+        const tier = resort.subscription_tier || 'ESSENTIAL';
+        if (distribution[tier] !== undefined) {
+          distribution[tier]++;
+        }
+
+        if (resort.subscription_expires_at) {
+          const expiresAt = new Date(resort.subscription_expires_at);
+          if (expiresAt <= thirtyDaysFromNow && expiresAt > now) {
+            expiringSoon++;
+          }
+        }
+      }
+
+      return {
+        distribution,
+        total: allResorts?.length || 0,
+        expiringSoon,
+        demoCount: allResorts?.filter((r) => r.is_demo).length || 0,
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+// ==========================================
+// Mutation Hooks
+// ==========================================
+
+export function useUpdatePlanPricing() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: {
+      id: string;
+      monthly_price_cents: number;
+      currency: string;
+      is_active: boolean;
+    }) => {
+      const { error } = await supabase
+        .from('plan_pricing')
+        .update({
+          monthly_price_cents: params.monthly_price_cents,
+          currency: params.currency,
+          is_active: params.is_active,
+          updated_by: user?.id || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.id);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from('pricing_publish_log').insert({
+        actor_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        action: 'update_plan_price',
+        metadata_json: {
+          plan_id: params.id,
+          monthly_price_cents: params.monthly_price_cents,
+          currency: params.currency,
+          is_active: params.is_active,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'plan-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      toast.success('Plan pricing updated');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to update plan pricing', { description: error.message });
+    },
+  });
+}
+
+export function useUpdateAddonPricing() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (params: {
+      id: string;
+      monthly_price_cents: number;
+      currency: string;
+      is_active: boolean;
+      name: string;
+    }) => {
+      const { error } = await supabase
+        .from('addon_pricing')
+        .update({
+          monthly_price_cents: params.monthly_price_cents,
+          currency: params.currency,
+          is_active: params.is_active,
+          name: params.name,
+          updated_by: user?.id || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.id);
+
+      if (error) throw error;
+
+      // Log the action
+      await supabase.from('pricing_publish_log').insert({
+        actor_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        action: 'update_addon_price',
+        metadata_json: {
+          addon_id: params.id,
+          name: params.name,
+          monthly_price_cents: params.monthly_price_cents,
+          currency: params.currency,
+          is_active: params.is_active,
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['superadmin', 'addon-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      toast.success('Add-on pricing updated');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to update add-on pricing', { description: error.message });
+    },
+  });
+}
+
+export function usePublishPricing() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async () => {
+      // Log publish event
+      const { error } = await supabase.from('pricing_publish_log').insert({
+        actor_id: user?.id || '00000000-0000-0000-0000-000000000000',
+        action: 'publish_pricing',
+        metadata_json: {
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      toast.success('Pricing published', {
+        description: 'Changes are now visible on the public pricing page.',
+      });
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to publish pricing', { description: error.message });
+    },
+  });
+}
+
+// ==========================================
+// Helpers
+// ==========================================
+
+export function formatCentsToDisplay(cents: number, currency: string = 'USD'): string {
+  const dollars = cents / 100;
+  if (currency === 'USD') {
+    return `$${dollars.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  }
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(dollars);
+}
+
+export function calculateEstimatedMRR(
+  tierStats: TierStats | undefined,
+  planPricing: PlanPricingRow[] | undefined
+): number {
+  if (!tierStats || !planPricing) return 0;
+
+  let mrr = 0;
+  for (const plan of planPricing) {
+    if (plan.is_active) {
+      const count = tierStats.distribution[plan.tier] || 0;
+      mrr += (plan.monthly_price_cents / 100) * count;
+    }
+  }
+  return mrr;
+}
