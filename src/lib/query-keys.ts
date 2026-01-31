@@ -214,6 +214,9 @@ export const queryKeys = {
     // Category to addon mappings with pricing info
     categoryAddonMappings: () => ['superadmin', 'category-addon-mappings'],
     
+    // Addons with their category mappings (for selection UI)
+    addonsWithCategories: () => ['superadmin', 'addons-with-categories'],
+    
     // Pricing change log
     changeLog: () => ['superadmin', 'pricing-change-log'],
     
@@ -222,6 +225,15 @@ export const queryKeys = {
     
     // Public pricing (for invalidation)
     public: () => ['pricing'],
+  },
+
+  // ==================== RESORT ADDONS ====================
+  resorts: {
+    // Resort add-ons
+    addons: (resortId: string) => ['resort', resortId, 'addons'],
+    
+    // Resort entitled categories
+    entitledCategories: (resortId: string) => ['resort', resortId, 'entitled-categories'],
   },
 
   // ==================== SUBSCRIPTION ALERTS ====================

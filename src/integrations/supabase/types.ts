@@ -4122,6 +4122,57 @@ export type Database = {
           },
         ]
       }
+      resort_addons: {
+        Row: {
+          addon_key: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          metadata_json: Json
+          resort_id: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          addon_key: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json
+          resort_id: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          addon_key?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          metadata_json?: Json
+          resort_id?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_addons_addon_key_fkey"
+            columns: ["addon_key"]
+            isOneToOne: false
+            referencedRelation: "addon_pricing"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "resort_addons_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resort_directory: {
         Row: {
           category: string | null
@@ -6208,6 +6259,40 @@ export type Database = {
         }
         Relationships: []
       }
+      resort_addons_with_details_v: {
+        Row: {
+          addon_description: string | null
+          addon_key: string | null
+          addon_name: string | null
+          created_at: string | null
+          currency: string | null
+          ends_at: string | null
+          id: string | null
+          is_active: boolean | null
+          metadata_json: Json | null
+          monthly_price_cents: number | null
+          resort_id: string | null
+          started_at: string | null
+          unlocked_categories: string[] | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_addons_addon_key_fkey"
+            columns: ["addon_key"]
+            isOneToOne: false
+            referencedRelation: "addon_pricing"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "resort_addons_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       security_rls_audit: {
         Row: {
           details: string | null
@@ -6555,6 +6640,10 @@ export type Database = {
         Returns: Json
       }
       get_resort_by_id: { Args: { p_resort_id: string }; Returns: Json }
+      get_resort_entitled_categories: {
+        Args: { p_resort_id: string }
+        Returns: string[]
+      }
       get_resort_public_info: { Args: { p_resort_code: string }; Returns: Json }
       get_role_id_for_resort_role: {
         Args: { p_resort_role: string }

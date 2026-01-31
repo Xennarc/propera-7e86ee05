@@ -58,6 +58,7 @@ import {
   Pause,
   Loader2,
 } from 'lucide-react';
+import { ResortAddonsSection } from './ResortAddonsSection';
 
 interface Resort {
   id: string;
@@ -506,6 +507,11 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                   </div>
                   <p className="text-sm text-muted-foreground">{tierInfo.description}</p>
                 </div>
+
+                {/* Resort Add-ons */}
+                <ResortAddonsSection resortId={resort.id} resortName={resort.name} />
+
+                <Separator />
 
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium">Available Features</h4>
