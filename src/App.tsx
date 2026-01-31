@@ -137,6 +137,8 @@ const GuestLoyaltyPage = lazy(() => import("./pages/guest/GuestLoyaltyPage"));
 const GuestTravelPartyPage = lazy(() => import("./pages/guest/GuestTravelPartyPage"));
 const GuestRequestsCatalogPage = lazy(() => import("./pages/guest/GuestRequestsPage"));
 const GuestMyRequestsPage = lazy(() => import("./pages/guest/GuestMyRequestsPage"));
+const GuestBuggyRequestPage = lazy(() => import("./pages/guest/GuestBuggyRequestPage"));
+const GuestMyRidesPage = lazy(() => import("./pages/guest/GuestMyRidesPage"));
 const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
 const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage"));
 const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
@@ -329,6 +331,8 @@ const App = () => (
                   <Route path="travel-party" element={<GuestTravelPartyPage />} />
                   <Route path="requests" element={<GuestRequestsCatalogPage />} />
                   <Route path="requests/my" element={<GuestMyRequestsPage />} />
+                  <Route path="buggy" element={<GuestBuggyRequestPage />} />
+                  <Route path="my-rides" element={<GuestMyRidesPage />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />

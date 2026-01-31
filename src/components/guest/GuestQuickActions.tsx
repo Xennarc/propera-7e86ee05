@@ -6,10 +6,11 @@ import {
   IconRestaurants,
   IconBookings,
 } from '@/components/icons/ProperaIcons';
-import { Bell, MessageSquarePlus } from 'lucide-react';
+import { Bell, MessageSquarePlus, Car } from 'lucide-react';
 import { RequestQuickSheet } from './RequestQuickSheet';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useRequestCatalog } from '@/hooks/useServiceRequests';
+import { useResortSettings } from '@/hooks/useResortSettings';
 
 interface QuickAction {
   icon: React.ElementType;
@@ -28,7 +29,12 @@ export function GuestQuickActions() {
   // Check if resort has configured a request catalog
   const { data: catalogItems } = useRequestCatalog(guest?.resortId || '', !!guest?.resortId);
   const hasCatalog = catalogItems && catalogItems.length > 0;
+  
+  // Check if transport is enabled
+  const { data: settings } = useResortSettings(guest?.resortId);
+  const transportEnabled = settings?.transport_enabled ?? false;
 
+  // Build quick actions dynamically based on available features
   const quickActions: QuickAction[] = [
     {
       icon: IconActivities,
@@ -46,33 +52,56 @@ export function GuestQuickActions() {
       bgClass: 'bg-amber-500',
       description: 'Reserve a table',
     },
-    {
+  ];
+
+  // Add transport action if enabled (replaces bookings in 3rd slot)
+  if (transportEnabled) {
+    quickActions.push({
+      icon: Car,
+      label: 'Buggy',
+      href: '/guest/buggy',
+      colorClass: 'text-white',
+      bgClass: 'bg-emerald-500',
+      description: 'Request a ride',
+    });
+    quickActions.push({
       icon: IconBookings,
       label: 'Bookings',
       href: '/guest/bookings',
       colorClass: 'text-white',
       bgClass: 'bg-purple-500',
       description: 'View & manage',
-    },
+    });
+  } else {
+    quickActions.push({
+      icon: IconBookings,
+      label: 'Bookings',
+      href: '/guest/bookings',
+      colorClass: 'text-white',
+      bgClass: 'bg-purple-500',
+      description: 'View & manage',
+    });
     // Show either "Requests" (with catalog) or "Make a Request" (simple mode)
-    hasCatalog
-      ? {
-          icon: Bell,
-          label: 'Requests',
-          href: '/guest/requests',
-          colorClass: 'text-white',
-          bgClass: 'bg-sky-500',
-          description: 'Room service & more',
-        }
-      : {
-          icon: MessageSquarePlus,
-          label: 'Request',
-          onClick: () => setQuickSheetOpen(true),
-          colorClass: 'text-white',
-          bgClass: 'bg-sky-500',
-          description: 'Ask for anything',
-        },
-  ];
+    if (hasCatalog) {
+      quickActions.push({
+        icon: Bell,
+        label: 'Requests',
+        href: '/guest/requests',
+        colorClass: 'text-white',
+        bgClass: 'bg-sky-500',
+        description: 'Room service & more',
+      });
+    } else {
+      quickActions.push({
+        icon: MessageSquarePlus,
+        label: 'Request',
+        onClick: () => setQuickSheetOpen(true),
+        colorClass: 'text-white',
+        bgClass: 'bg-sky-500',
+        description: 'Ask for anything',
+      });
+    }
+  }
 
   return (
     <>
