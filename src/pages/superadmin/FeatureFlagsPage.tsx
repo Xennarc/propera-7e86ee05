@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { seedGlobalFeatureFlags } from '@/lib/seedFeatureFlags';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   core: Building2,
@@ -68,11 +70,43 @@ export default function FeatureFlagsPage() {
     isDangerous: false,
   });
 
-  const { data: flags, isLoading } = useFeatureFlags(
+  const { data: flags, isLoading, refetch } = useFeatureFlags(
     selectedResort === 'global' ? undefined : selectedResort
   );
   const toggleFlag = useToggleFeatureFlag();
   const removeOverride = useRemoveResortOverride();
+
+  // Seeding guard - runs once on mount
+  const hasSeeded = useRef(false);
+
+  useEffect(() => {
+    if (hasSeeded.current) return;
+    hasSeeded.current = true;
+
+    const runSeeding = async () => {
+      try {
+        const result = await seedGlobalFeatureFlags(supabase);
+        
+        if (!result.success) {
+          console.warn('[Feature Flags] Seeding had errors:', result.errors);
+          toast.error('Some feature flags could not be seeded', {
+            description: result.errors[0],
+          });
+        } else if (result.seededCount > 0) {
+          console.log(`[Feature Flags] Seeded ${result.seededCount} new flags`);
+          // Refetch to show newly seeded flags
+          refetch();
+        }
+      } catch (error) {
+        console.error('[Feature Flags] Seeding failed:', error);
+        toast.error('Failed to initialize feature flags', {
+          description: 'Please refresh the page to try again.',
+        });
+      }
+    };
+
+    runSeeding();
+  }, [refetch]);
 
   const filteredFlags = flags?.filter(flag => {
     if (!searchQuery) return true;
