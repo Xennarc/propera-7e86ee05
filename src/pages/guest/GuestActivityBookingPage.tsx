@@ -27,6 +27,8 @@ import { AttendeeSelector } from '@/components/guest/AttendeeSelector';
 import { useTravelParty } from '@/hooks/useTravelParty';
 import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils';
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
+import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
+import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
 
 // Map server error messages to error codes
 function mapErrorToCode(error: string): BookingErrorCode {
@@ -62,6 +64,9 @@ export default function GuestActivityBookingPage() {
     isPrearrival?: boolean;
     error?: string;
   } | null>(null);
+
+  // Booking success celebration
+  const { isCelebrating, triggerCelebration, dismissCelebration } = useBookingCelebration();
 
   // Enable real-time sync for activity bookings (must pass resortId for guest sessions)
   useGuestActivitySync(guest?.guestId, guest?.resortId);
@@ -293,6 +298,9 @@ export default function GuestActivityBookingPage() {
     },
     onSuccess: async (data) => {
       if (data.success) {
+        // Trigger celebration animation (non-blocking)
+        triggerCelebration();
+
         queryClient.invalidateQueries({ queryKey: ['guest-bookings'] });
         queryClient.invalidateQueries({ queryKey: ['guest-available-sessions'] });
         queryClient.invalidateQueries({ queryKey: ['guest-all-sessions'] });
@@ -410,8 +418,13 @@ export default function GuestActivityBookingPage() {
     const guestBookingsPath = code ? `/guest/bookings` : '/guest/bookings';
     const isPreArrivalBooking = bookingResult.isPrearrival;
     return (
-      <div className="space-y-4">
-        <Card>
+      <>
+        <BookingSuccessCelebration 
+          isVisible={isCelebrating} 
+          onComplete={dismissCelebration} 
+        />
+        <div className="space-y-4">
+          <Card>
           <CardContent className="py-8 text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">
@@ -446,6 +459,7 @@ export default function GuestActivityBookingPage() {
           </CardContent>
         </Card>
       </div>
+      </>
     );
   }
 
