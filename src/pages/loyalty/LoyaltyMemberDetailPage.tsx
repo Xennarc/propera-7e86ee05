@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useLoyaltyProgram, useLoyaltyMembers, useLoyaltyTransactions, type LoyaltyMember } from '@/hooks/useLoyaltyProgram';
 import { LoyaltyTierBadge } from '@/components/loyalty/LoyaltyTierBadge';
+import { FeatureGate } from '@/components/FeatureGate';
 import { 
   ArrowLeft, 
   User, 
@@ -30,7 +31,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
-export default function LoyaltyMemberDetailPage() {
+function LoyaltyMemberDetailPageContent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { tiers, program } = useLoyaltyProgram();
@@ -399,5 +400,13 @@ export default function LoyaltyMemberDetailPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function LoyaltyMemberDetailPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_loyalty']} mode="staff">
+      <LoyaltyMemberDetailPageContent />
+    </FeatureGate>
   );
 }

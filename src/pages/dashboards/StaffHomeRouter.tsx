@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { FeatureGate } from '@/components/FeatureGate';
 import SuperAdminHome from './SuperAdminHome';
 import ResortAdminHome from './ResortAdminHome';
 import ResortManagerHome from './ResortManagerHome';
@@ -13,7 +14,7 @@ import { MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
-export default function StaffHomeRouter() {
+function StaffHomeRouterContent() {
   const { isSuperAdmin, getResortRole } = useAuth();
   const { currentResort } = useResort();
   const permissions = usePermissions();
@@ -77,4 +78,12 @@ export default function StaffHomeRouter() {
         </Card>
       );
   }
+}
+
+export default function StaffHomeRouter() {
+  return (
+    <FeatureGate requiredFlags={['enable_dashboards']} mode="staff">
+      <StaffHomeRouterContent />
+    </FeatureGate>
+  );
 }

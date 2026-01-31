@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { TierGate } from '@/components/tier/TierGate';
+import { FeatureGate } from '@/components/FeatureGate';
 import { useLoyaltyProgram, type LoyaltyTier } from '@/hooks/useLoyaltyProgram';
 import { LoyaltyTierBadge } from '@/components/loyalty/LoyaltyTierBadge';
 import { ArrowLeft, Plus, Pencil, Trash2, Crown, Star, GripVertical } from 'lucide-react';
@@ -34,7 +35,7 @@ const DEFAULT_TIERS = [
   { name: 'Platinum', min_points: 5000, is_elite: true, badge_color: '#8B5CF6' },
 ];
 
-export default function LoyaltyTiersPage() {
+function LoyaltyTiersPageContent() {
   const navigate = useNavigate();
   const { 
     program, 
@@ -385,5 +386,13 @@ export default function LoyaltyTiersPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function LoyaltyTiersPage() {
+  return (
+    <FeatureGate requiredFlags={['enable_loyalty']} mode="staff">
+      <LoyaltyTiersPageContent />
+    </FeatureGate>
   );
 }
