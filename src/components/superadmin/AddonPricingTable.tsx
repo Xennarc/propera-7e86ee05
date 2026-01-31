@@ -20,13 +20,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { Pencil, Check, X, Package } from 'lucide-react';
+import { Pencil, Check, X, Package, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   type AddonPricingRow,
   formatCentsToDisplay,
   useUpdateAddonPricing,
 } from '@/hooks/usePricingManagement';
+import {
+  type FeatureFlagCategory,
+  CATEGORY_METADATA,
+  useAddonCategoriesMap,
+} from '@/hooks/useAddonEntitlements';
+import { AddonEntitlementsSheet } from './AddonEntitlementsSheet';
+import { cn } from '@/lib/utils';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD'];
 
@@ -44,6 +51,50 @@ interface EditState {
   originalIsActive: boolean;
 }
 
+interface EntitlementSheetState {
+  open: boolean;
+  addonKey: string;
+  addonName: string;
+  currentCategories: FeatureFlagCategory[];
+  isPaidAddon: boolean;
+}
+
+function CategoryChips({
+  categories,
+  flagCounts,
+}: {
+  categories: FeatureFlagCategory[];
+  flagCounts: Record<FeatureFlagCategory, number>;
+}) {
+  if (categories.length === 0) {
+    return (
+      <span className="text-xs text-muted-foreground italic">No categories</span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {categories.map((cat) => {
+        const meta = CATEGORY_METADATA[cat];
+        const count = flagCounts[cat] || 0;
+        return (
+          <Badge
+            key={cat}
+            variant={meta.variant as any}
+            className={cn(
+              'text-[10px] px-1.5 py-0',
+              cat === 'danger' && 'bg-destructive/10 text-destructive border-destructive/30',
+              cat === 'experimental' && 'bg-amber-500/10 text-amber-600 border-amber-500/30'
+            )}
+          >
+            {meta.label} ({count})
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
+
 export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps) {
   const [editState, setEditState] = useState<EditState>({
     id: null,
@@ -54,8 +105,20 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
     originalIsActive: true,
   });
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [entitlementSheet, setEntitlementSheet] = useState<EntitlementSheetState>({
+    open: false,
+    addonKey: '',
+    addonName: '',
+    currentCategories: [],
+    isPaidAddon: false,
+  });
 
   const updateAddon = useUpdateAddonPricing();
+  const { addonMap, flagCountsByCategory, isLoading: categoriesLoading } = useAddonCategoriesMap();
+
+  const getAddonCategories = (addonKey: string): FeatureFlagCategory[] => {
+    return addonMap.get(addonKey)?.categories || [];
+  };
 
   const startEdit = (addon: AddonPricingRow) => {
     setEditState({
@@ -80,7 +143,6 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
   };
 
   const handleSaveClick = () => {
-    // Check if deactivating an active addon
     if (editState.originalIsActive && !editState.is_active) {
       setConfirmDeactivate(true);
     } else {
@@ -103,6 +165,16 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
   const handlePriceChange = (value: string) => {
     const dollars = parseFloat(value) || 0;
     setEditState((prev) => ({ ...prev, monthly_price_cents: Math.round(dollars * 100) }));
+  };
+
+  const openEntitlementSheet = (addon: AddonPricingRow) => {
+    setEntitlementSheet({
+      open: true,
+      addonKey: addon.key,
+      addonName: addon.name,
+      currentCategories: getAddonCategories(addon.key),
+      isPaidAddon: addon.monthly_price_cents > 0,
+    });
   };
 
   if (isLoading) {
@@ -142,6 +214,9 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
                   Name
                 </TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider h-11">
+                  Included Categories
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider h-11">
                   Monthly Price
                 </TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider h-11">
@@ -161,6 +236,7 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
             <TableBody>
               {addons.map((addon) => {
                 const isEditing = editState.id === addon.id;
+                const categories = getAddonCategories(addon.key);
 
                 return (
                   <TableRow key={addon.id} className="transition-colors">
@@ -178,6 +254,16 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
                         />
                       ) : (
                         <span className="font-medium">{addon.name}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {categoriesLoading ? (
+                        <Skeleton className="h-5 w-24" />
+                      ) : (
+                        <CategoryChips
+                          categories={categories}
+                          flagCounts={flagCountsByCategory}
+                        />
                       )}
                     </TableCell>
                     <TableCell>
@@ -250,9 +336,19 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="ghost" onClick={() => startEdit(addon)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEntitlementSheet(addon)}
+                            title="Edit entitlements"
+                          >
+                            <Shield className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => startEdit(addon)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
@@ -267,6 +363,7 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
       <div className="md:hidden space-y-3">
         {addons.map((addon) => {
           const isEditing = editState.id === addon.id;
+          const categories = getAddonCategories(addon.key);
 
           return (
             <div
@@ -276,9 +373,30 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
               <div className="flex items-center justify-between mb-3">
                 <code className="text-xs bg-muted px-2 py-1 rounded">{addon.key}</code>
                 {!isEditing && (
-                  <Button size="sm" variant="ghost" onClick={() => startEdit(addon)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openEntitlementSheet(addon)}
+                    >
+                      <Shield className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => startEdit(addon)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Categories row */}
+              <div className="mb-3">
+                <span className="text-xs text-muted-foreground block mb-1">
+                  Included Categories
+                </span>
+                {categoriesLoading ? (
+                  <Skeleton className="h-5 w-32" />
+                ) : (
+                  <CategoryChips categories={categories} flagCounts={flagCountsByCategory} />
                 )}
               </div>
 
@@ -379,6 +497,16 @@ export function AddonPricingTable({ addons, isLoading }: AddonPricingTableProps)
           saveEdit();
         }}
         isLoading={updateAddon.isPending}
+      />
+
+      {/* Entitlements Sheet */}
+      <AddonEntitlementsSheet
+        open={entitlementSheet.open}
+        onOpenChange={(open) => setEntitlementSheet((prev) => ({ ...prev, open }))}
+        addonKey={entitlementSheet.addonKey}
+        addonName={entitlementSheet.addonName}
+        currentCategories={entitlementSheet.currentCategories}
+        isPaidAddon={entitlementSheet.isPaidAddon}
       />
     </>
   );
