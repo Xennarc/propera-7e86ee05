@@ -9,6 +9,7 @@ import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
+import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
 import { StaffSidebar } from './StaffSidebar';
 import { StaffTopbar } from './StaffTopbar';
 import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
@@ -125,64 +126,66 @@ export function StaffShell() {
   }
 
   return (
-    <TooltipProvider>
-      <SEOHead
-        title="Staff Console"
-        description="Propera staff console for resort operations management."
-        noIndex={true}
-      />
-      
-      <div className="flex min-h-screen w-full bg-background">
-        {/* Desktop Sidebar - with gradient stroke */}
-        <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
-          <StaffSidebar />
-        </aside>
+    <FeatureFlagsProvider resortId={currentResort?.id}>
+      <TooltipProvider>
+        <SEOHead
+          title="Staff Console"
+          description="Propera staff console for resort operations management."
+          noIndex={true}
+        />
+        
+        <div className="flex min-h-screen w-full bg-background">
+          {/* Desktop Sidebar - with gradient stroke */}
+          <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
+            <StaffSidebar />
+          </aside>
 
-        {/* Mobile Sidebar */}
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="p-0 w-[280px]">
-            <StaffSidebar onNavigate={() => setMobileMenuOpen(false)} />
-          </SheetContent>
-        </Sheet>
+          {/* Mobile Sidebar */}
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="p-0 w-[280px]">
+              <StaffSidebar onNavigate={() => setMobileMenuOpen(false)} />
+            </SheetContent>
+          </Sheet>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:pl-64">
-          <StaffTopbar
-            onMenuClick={() => setMobileMenuOpen(true)}
-            onCommandBarOpen={() => setCommandBarOpen(true)}
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col lg:pl-64">
+            <StaffTopbar
+              onMenuClick={() => setMobileMenuOpen(true)}
+              onCommandBarOpen={() => setCommandBarOpen(true)}
+            />
+
+            <main className={cn(
+              "flex-1 overflow-auto transition-[padding] duration-200",
+              isKeyboardOpen ? "pb-4" : "pb-24 lg:pb-0"
+            )}>
+              {/* Improved padding scale: tighter on mobile, generous on desktop */}
+              <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
+                <ErrorBoundary
+                  fallback={<RouteErrorFallback />}
+                  onReset={() => window.location.reload()}
+                >
+                  <Outlet />
+                </ErrorBoundary>
+              </div>
+            </main>
+
+            {/* Mobile Bottom Navigation */}
+            <MobileBottomNav />
+          </div>
+
+          {/* Command Bar */}
+          <StaffCommandBar
+            open={commandBarOpen}
+            onOpenChange={setCommandBarOpen}
           />
 
-          <main className={cn(
-            "flex-1 overflow-auto transition-[padding] duration-200",
-            isKeyboardOpen ? "pb-4" : "pb-24 lg:pb-0"
-          )}>
-            {/* Improved padding scale: tighter on mobile, generous on desktop */}
-            <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
-              <ErrorBoundary
-                fallback={<RouteErrorFallback />}
-                onReset={() => window.location.reload()}
-              >
-                <Outlet />
-              </ErrorBoundary>
-            </div>
-          </main>
-
-          {/* Mobile Bottom Navigation */}
-          <MobileBottomNav />
+          {/* Debug Panel (legacy) */}
+          {showDebugPanel && <StaffDebugPanel />}
+          
+          {/* Debug Console (new) */}
+          {showDebugPanel && <StaffDebugConsole />}
         </div>
-
-        {/* Command Bar */}
-        <StaffCommandBar
-          open={commandBarOpen}
-          onOpenChange={setCommandBarOpen}
-        />
-
-        {/* Debug Panel (legacy) */}
-        {showDebugPanel && <StaffDebugPanel />}
-        
-        {/* Debug Console (new) */}
-        {showDebugPanel && <StaffDebugConsole />}
-      </div>
-    </TooltipProvider>
+      </TooltipProvider>
+    </FeatureFlagsProvider>
   );
 }
