@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ResortRole, GlobalRole } from '@/types/database';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
@@ -27,6 +28,9 @@ import {
   UserX,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
+  Trash2,
+  Ban,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -45,6 +49,9 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { EditUserAccessDrawer } from '@/components/superadmin/EditUserAccessDrawer';
+import { RemoveUserDialog } from '@/components/superadmin/RemoveUserDialog';
+import { RestoreUserDialog } from '@/components/superadmin/RestoreUserDialog';
+import { PermanentDeleteUserDialog } from '@/components/superadmin/PermanentDeleteUserDialog';
 
 const ROLE_COLORS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -62,6 +69,8 @@ interface UserWithMemberships {
   username: string | null;
   global_role: GlobalRole;
   created_at: string;
+  is_disabled: boolean;
+  deleted_at: string | null;
   memberships: {
     id: string;
     resort_id: string;
@@ -70,17 +79,39 @@ interface UserWithMemberships {
   }[];
 }
 
+type UserStatus = 'active' | 'disabled' | 'deleted';
+
+function getUserStatus(user: UserWithMemberships): UserStatus {
+  if (user.deleted_at) return 'deleted';
+  if (user.is_disabled) return 'disabled';
+  return 'active';
+}
+
+const STATUS_BADGE_CONFIG: Record<UserStatus, { label: string; className: string; icon: React.ElementType }> = {
+  active: { label: 'Active', className: 'bg-success/10 text-success border-success/20', icon: CheckCircle },
+  disabled: { label: 'Disabled', className: 'bg-warning/10 text-warning border-warning/20', icon: Ban },
+  deleted: { label: 'Deleted', className: 'bg-destructive/10 text-destructive border-destructive/20', icon: Trash2 },
+};
+
 export default function GlobalUsersPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { resorts } = useResort();
+  const { user: currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [resortFilter, setResortFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithMemberships | null>(null);
   const [accessDrawerOpen, setAccessDrawerOpen] = useState(false);
   const [selectedUserForAccess, setSelectedUserForAccess] = useState<UserWithMemberships | null>(null);
+  
+  // New state for removal dialogs
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUserForAction, setSelectedUserForAction] = useState<UserWithMemberships | null>(null);
 
   // Fetch all users with memberships
   const { data: users, isLoading, refetch } = useQuery({
@@ -88,7 +119,7 @@ export default function GlobalUsersPage() {
     queryFn: async () => {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, username, global_role, created_at')
+        .select('id, full_name, username, global_role, created_at, is_disabled, deleted_at')
         .order('full_name');
 
       if (profilesError) throw profilesError;
@@ -105,6 +136,8 @@ export default function GlobalUsersPage() {
         username: profile.username,
         global_role: profile.global_role as GlobalRole,
         created_at: profile.created_at,
+        is_disabled: profile.is_disabled ?? false,
+        deleted_at: profile.deleted_at ?? null,
         memberships: (memberships || [])
           .filter(m => m.user_id === profile.id)
           .map(m => {
@@ -152,12 +185,23 @@ export default function GlobalUsersPage() {
     if (roleFilter !== 'all' && roleFilter !== 'SUPER_ADMIN' && !user.memberships.some(m => m.resort_role === roleFilter)) {
       return false;
     }
+    // Status filter
+    if (statusFilter !== 'all') {
+      const status = getUserStatus(user);
+      if (status !== statusFilter) return false;
+    }
     return true;
   }) || [];
 
   const pendingInvites = invitations?.filter(i => i.status === 'PENDING') || [];
   const superAdminCount = users?.filter(u => u.global_role === 'SUPER_ADMIN').length || 0;
   const multiResortUsers = users?.filter(u => u.memberships.length > 1).length || 0;
+  const disabledCount = users?.filter(u => u.is_disabled && !u.deleted_at).length || 0;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['global-users-list'] });
+    queryClient.invalidateQueries({ queryKey: ['global-invitations'] });
+  };
 
   const handleGrantSuperAdmin = async () => {
     if (!selectedUser) return;
@@ -291,6 +335,17 @@ export default function GlobalUsersPage() {
                 <SelectItem value="FNB">F&B</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="disabled">Disabled</SelectItem>
+                <SelectItem value="deleted">Deleted</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -358,6 +413,7 @@ export default function GlobalUsersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Resort Access</TableHead>
                   <TableHead>Joined</TableHead>
@@ -365,87 +421,155 @@ export default function GlobalUsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map(user => (
-                  <TableRow key={user.id} className="group">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback className={user.global_role === 'SUPER_ADMIN' ? 'bg-destructive/10 text-destructive' : 'bg-muted'}>
-                            {user.full_name?.charAt(0) || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.full_name || 'Unnamed'}</p>
-                          <p className="text-xs text-muted-foreground">@{user.username || 'no-username'}</p>
+                {filteredUsers.map(user => {
+                  const status = getUserStatus(user);
+                  const statusConfig = STATUS_BADGE_CONFIG[status];
+                  const StatusIcon = statusConfig.icon;
+                  const isCurrentUser = user.id === currentUser?.id;
+                  const isDeleted = status === 'deleted';
+                  
+                  return (
+                    <TableRow key={user.id} className={`group ${isDeleted ? 'opacity-60' : ''}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className={user.global_role === 'SUPER_ADMIN' ? 'bg-destructive/10 text-destructive' : 'bg-muted'}>
+                              {user.full_name?.charAt(0) || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.full_name || 'Unnamed'}</p>
+                            <p className="text-xs text-muted-foreground">@{user.username || 'no-username'}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {user.global_role === 'SUPER_ADMIN' ? (
-                        <Badge className="bg-destructive/10 text-destructive border-destructive/20">
-                          <Crown className="h-3 w-3 mr-1" />
-                          Super Admin
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusConfig.className}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {statusConfig.label}
                         </Badge>
-                      ) : (
-                        <Badge variant="outline">Standard</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-xs">
-                        {user.memberships.length === 0 ? (
-                          <span className="text-sm text-muted-foreground">No resort access</span>
+                      </TableCell>
+                      <TableCell>
+                        {user.global_role === 'SUPER_ADMIN' ? (
+                          <Badge className="bg-destructive/10 text-destructive border-destructive/20">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Super Admin
+                          </Badge>
                         ) : (
-                          user.memberships.slice(0, 3).map(m => (
-                            <Badge key={m.id} variant="outline" className={ROLE_COLORS[m.resort_role]}>
-                              {m.resort_name}
-                            </Badge>
-                          ))
+                          <Badge variant="outline">Standard</Badge>
                         )}
-                        {user.memberships.length > 3 && (
-                          <Badge variant="outline">+{user.memberships.length - 3} more</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(user.created_at), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUserForAccess(user);
-                              setAccessDrawerOpen(true);
-                            }}
-                          >
-                            <Shield className="mr-2 h-4 w-4" />
-                            Edit Access
-                          </DropdownMenuItem>
-                          {user.global_role !== 'SUPER_ADMIN' && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="text-destructive"
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {user.memberships.length === 0 ? (
+                            <span className="text-sm text-muted-foreground">No resort access</span>
+                          ) : (
+                            user.memberships.slice(0, 3).map(m => (
+                              <Badge key={m.id} variant="outline" className={ROLE_COLORS[m.resort_role]}>
+                                {m.resort_name}
+                              </Badge>
+                            ))
+                          )}
+                          {user.memberships.length > 3 && (
+                            <Badge variant="outline">+{user.memberships.length - 3} more</Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(user.created_at), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {!isDeleted && (
+                              <DropdownMenuItem
                                 onClick={() => {
-                                  setSelectedUser(user);
-                                  setConfirmDialogOpen(true);
+                                  setSelectedUserForAccess(user);
+                                  setAccessDrawerOpen(true);
                                 }}
                               >
-                                <Crown className="mr-2 h-4 w-4" />
-                                Grant Super Admin
+                                <Shield className="mr-2 h-4 w-4" />
+                                Edit Access
                               </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                            )}
+                            
+                            {/* Grant Super Admin - only for non-super-admin active users */}
+                            {user.global_role !== 'SUPER_ADMIN' && status === 'active' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setConfirmDialogOpen(true);
+                                  }}
+                                >
+                                  <Crown className="mr-2 h-4 w-4" />
+                                  Grant Super Admin
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {/* Deactivate - for active users, not self */}
+                            {status === 'active' && !isCurrentUser && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-warning focus:text-warning"
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setDeactivateDialogOpen(true);
+                                  }}
+                                >
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Deactivate User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {/* Restore - for disabled users */}
+                            {status === 'disabled' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-success focus:text-success"
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setRestoreDialogOpen(true);
+                                  }}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Restore User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {/* Permanent Delete - for non-self users */}
+                            {!isCurrentUser && !isDeleted && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Permanent Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
@@ -493,9 +617,31 @@ export default function GlobalUsersPage() {
         onOpenChange={setAccessDrawerOpen}
         user={selectedUserForAccess}
         resorts={resorts.map(r => ({ id: r.id, name: r.name }))}
-        onUpdated={() => {
-          queryClient.invalidateQueries({ queryKey: ['global-users-list'] });
-        }}
+        onUpdated={handleRefresh}
+      />
+
+      {/* Deactivate User Dialog */}
+      <RemoveUserDialog
+        open={deactivateDialogOpen}
+        onOpenChange={setDeactivateDialogOpen}
+        user={selectedUserForAction}
+        onSuccess={handleRefresh}
+      />
+
+      {/* Restore User Dialog */}
+      <RestoreUserDialog
+        open={restoreDialogOpen}
+        onOpenChange={setRestoreDialogOpen}
+        user={selectedUserForAction}
+        onSuccess={handleRefresh}
+      />
+
+      {/* Permanent Delete User Dialog */}
+      <PermanentDeleteUserDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        user={selectedUserForAction}
+        onSuccess={handleRefresh}
       />
     </div>
   );

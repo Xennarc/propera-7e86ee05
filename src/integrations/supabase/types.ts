@@ -3822,10 +3822,16 @@ export type Database = {
         Row: {
           account_type: Database["public"]["Enums"]["account_type"]
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           department: string | null
+          disabled_at: string | null
+          disabled_by: string | null
           full_name: string | null
           global_role: Database["public"]["Enums"]["global_role"]
           id: string
+          is_disabled: boolean
           must_reset_password: boolean
           password_reset_completed_at: string | null
           resort_id: string | null
@@ -3838,10 +3844,16 @@ export type Database = {
         Insert: {
           account_type?: Database["public"]["Enums"]["account_type"]
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           department?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
           full_name?: string | null
           global_role?: Database["public"]["Enums"]["global_role"]
           id: string
+          is_disabled?: boolean
           must_reset_password?: boolean
           password_reset_completed_at?: string | null
           resort_id?: string | null
@@ -3854,10 +3866,16 @@ export type Database = {
         Update: {
           account_type?: Database["public"]["Enums"]["account_type"]
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           department?: string | null
+          disabled_at?: string | null
+          disabled_by?: string | null
           full_name?: string | null
           global_role?: Database["public"]["Enums"]["global_role"]
           id?: string
+          is_disabled?: boolean
           must_reset_password?: boolean
           password_reset_completed_at?: string | null
           resort_id?: string | null
@@ -7101,6 +7119,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_is_active: { Args: { p_user_id: string }; Returns: boolean }
       utc_to_resort_tz: {
         Args: { p_resort_id: string; p_timestamp: string }
         Returns: string
