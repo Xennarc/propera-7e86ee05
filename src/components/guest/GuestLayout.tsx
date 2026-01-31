@@ -6,6 +6,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
+import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { hexToHSL } from '@/lib/color-utils';
@@ -13,6 +14,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { GuestNotificationBell } from '@/components/notifications/GuestNotificationBell';
 import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
 import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
+import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
 import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import {
   IconStay,
@@ -247,99 +249,103 @@ export function GuestLayout() {
   }
 
   return (
-    <div 
-      className="guest-branded guest-page-bg flex h-[100dvh] flex-col bg-background overflow-hidden"
-      style={brandingStyles}
-    >
-      {/* Mobile-optimized Header with glassmorphism */}
-      <header className={cn(
-        "sticky top-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
-        isScrolled ? "border-border/30 shadow-md" : "border-transparent"
-      )}>
-        <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto">
-          <Link 
-            to="/guest/profile" 
-            className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
-          >
-            {/* Use branding logo from DB (fresh on each load) */}
-            {branding.login_logo_url ? (
-              <img 
-                src={branding.login_logo_url} 
-                alt={branding.name || guest?.resortName || 'Resort'} 
-                loading="eager"
-                decoding="async"
-                className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
-              />
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-105">
-                <ProperaMark size={28} className="text-primary" />
-              </div>
-            )}
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                {String(branding.name || guest?.resortName || 'Guest Portal')}
-              </h1>
-              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
-                Room {String(guest?.roomNumber || '')}
-              </p>
-            </div>
-          </Link>
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-            <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
-            <GuestNotificationBell />
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={logout}
-              className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
-              title={t('nav.logout')}
-            >
-              <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main content with safe-area-aware bottom padding */}
-      <main 
-        ref={mainRef} 
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
-      >
-        <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
-          <GuestPortalGate>
-            <Outlet />
-          </GuestPortalGate>
-        </div>
-      </main>
-
-      {/* Mobile-optimized Bottom Navigation with premium elevation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
+    <FeatureFlagsProvider resortId={guest?.resortId}>
+      <GuestAccessGate resortName={guest?.resortName}>
         <div 
-          className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
-          style={{ 
-            height: 'var(--guest-nav-h)', 
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
-          }}
+          className="guest-branded guest-page-bg flex h-[100dvh] flex-col bg-background overflow-hidden"
+          style={brandingStyles}
         >
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.href || 
-              (item.href !== '/guest' && location.pathname.startsWith(item.href));
-            const itemWithRestriction = item as typeof item & { restrictPrearrival?: boolean };
-            return (
-              <NavItem 
-                key={item.href} 
-                item={item} 
-                isActive={isActive} 
-                label={t(item.labelKey)}
-                isPrearrivalRestricted={isPrearrival && itemWithRestriction.restrictPrearrival}
-              />
-            );
-          })}
-        </div>
-      </nav>
+          {/* Mobile-optimized Header with glassmorphism */}
+          <header className={cn(
+            "sticky top-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
+            isScrolled ? "border-border/30 shadow-md" : "border-transparent"
+          )}>
+            <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto">
+              <Link 
+                to="/guest/profile" 
+                className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
+              >
+                {/* Use branding logo from DB (fresh on each load) */}
+                {branding.login_logo_url ? (
+                  <img 
+                    src={branding.login_logo_url} 
+                    alt={branding.name || guest?.resortName || 'Resort'} 
+                    loading="eager"
+                    decoding="async"
+                    className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-105">
+                    <ProperaMark size={28} className="text-primary" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h1 className="text-sm sm:text-base font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                    {String(branding.name || guest?.resortName || 'Guest Portal')}
+                  </h1>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
+                    Room {String(guest?.roomNumber || '')}
+                  </p>
+                </div>
+              </Link>
+              <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+                <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
+                <GuestNotificationBell />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={logout}
+                  className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
+                  title={t('nav.logout')}
+                >
+                  <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
+                </Button>
+              </div>
+            </div>
+          </header>
 
-      {/* Debug Console - only shown with ?debug=1 */}
-      {showDebugPanel && <GuestDebugConsole />}
-    </div>
+          {/* Main content with safe-area-aware bottom padding */}
+          <main 
+            ref={mainRef} 
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
+          >
+            <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
+              <GuestPortalGate>
+                <Outlet />
+              </GuestPortalGate>
+            </div>
+          </main>
+
+          {/* Mobile-optimized Bottom Navigation with premium elevation */}
+          <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
+            <div 
+              className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
+              style={{ 
+                height: 'var(--guest-nav-h)', 
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
+              }}
+            >
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.href || 
+                  (item.href !== '/guest' && location.pathname.startsWith(item.href));
+                const itemWithRestriction = item as typeof item & { restrictPrearrival?: boolean };
+                return (
+                  <NavItem 
+                    key={item.href} 
+                    item={item} 
+                    isActive={isActive} 
+                    label={t(item.labelKey)}
+                    isPrearrivalRestricted={isPrearrival && itemWithRestriction.restrictPrearrival}
+                  />
+                );
+              })}
+            </div>
+          </nav>
+
+          {/* Debug Console - only shown with ?debug=1 */}
+          {showDebugPanel && <GuestDebugConsole />}
+        </div>
+      </GuestAccessGate>
+    </FeatureFlagsProvider>
   );
 }

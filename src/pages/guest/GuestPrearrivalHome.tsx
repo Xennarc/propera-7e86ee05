@@ -13,6 +13,7 @@ import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard
 import { PrearrivalSummaryCard } from '@/components/guest/prearrival/PrearrivalSummaryCard';
 import { PrearrivalActivitiesPreview } from '@/components/guest/prearrival/PrearrivalActivitiesPreview';
 import { GuestHomeLoading } from '@/components/guest/GuestLoadingSkeleton';
+import { FeatureGate, FeatureVisible, useFeatureEnabled } from '@/components/FeatureGate';
 import { Plane, Sparkles, ChevronRight, RefreshCw } from 'lucide-react';
 import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ interface GuestPrearrivalHomeProps {
   activeStay?: ActiveStay | null;
 }
 
-export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeProps) {
+function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
   const { guest } = useGuestAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -196,32 +197,36 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
         roomNumber={guest.roomNumber}
       />
 
-      {/* Pre-arrival Checklist OR Summary Card based on completion */}
-      {hasSubmittedData && profile?.prearrival_status === 'completed' ? (
-        <PrearrivalSummaryCard
-          profile={profile}
-          settings={settings}
-          checkInDate={guest.checkInDate}
-          onEdit={() => handleOpenWizard(0)}
-          editLocked={editLocked}
-          editLockedMessage="Some changes may require contacting reception"
-        />
-      ) : (
-        <PrearrivalChecklist 
-          profile={profile || null}
-          settings={settings}
-          onOpenWizard={handleOpenWizard}
-          onOpenActivities={() => navigate('/guest/activities')}
-          onOpenDining={() => navigate('/guest/restaurants')}
-          activityBookingsCount={bookingCounts?.activities || 0}
-          diningBookingsCount={bookingCounts?.dining || 0}
-        />
-      )}
+      {/* Pre-arrival Checklist OR Summary Card based on completion - gated by enable_prearrival_checklist */}
+      <FeatureVisible flag="enable_prearrival_checklist">
+        {hasSubmittedData && profile?.prearrival_status === 'completed' ? (
+          <PrearrivalSummaryCard
+            profile={profile}
+            settings={settings}
+            checkInDate={guest.checkInDate}
+            onEdit={() => handleOpenWizard(0)}
+            editLocked={editLocked}
+            editLockedMessage="Some changes may require contacting reception"
+          />
+        ) : (
+          <PrearrivalChecklist 
+            profile={profile || null}
+            settings={settings}
+            onOpenWizard={handleOpenWizard}
+            onOpenActivities={() => navigate('/guest/activities')}
+            onOpenDining={() => navigate('/guest/restaurants')}
+            activityBookingsCount={bookingCounts?.activities || 0}
+            diningBookingsCount={bookingCounts?.dining || 0}
+          />
+        )}
+      </FeatureVisible>
 
-      {/* Activities Preview with Day Chips */}
-      {settings?.allow_activity_bookings && (
-        <PrearrivalActivitiesPreview />
-      )}
+      {/* Activities Preview with Day Chips - gated by enable_prearrival_activity_booking */}
+      <FeatureVisible flag="enable_prearrival_activity_booking">
+        {settings?.allow_activity_bookings && (
+          <PrearrivalActivitiesPreview />
+        )}
+      </FeatureVisible>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
@@ -269,15 +274,31 @@ export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeP
         </CardContent>
       </Card>
 
-      {/* Pre-arrival Wizard Dialog */}
-      <PrearrivalWizard 
-        open={wizardOpen}
-        onOpenChange={setWizardOpen}
-        profile={profile || null}
-        settings={settings}
-        checkInDate={guest.checkInDate}
-        initialStep={wizardStep}
-      />
+      {/* Pre-arrival Wizard Dialog - gated by enable_prearrival_forms */}
+      <FeatureVisible flag="enable_prearrival_forms">
+        <PrearrivalWizard 
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          profile={profile || null}
+          settings={settings}
+          checkInDate={guest.checkInDate}
+          initialStep={wizardStep}
+        />
+      </FeatureVisible>
     </div>
+  );
+}
+
+/**
+ * Wrapper with feature gate for pre-arrival module
+ */
+export default function GuestPrearrivalHome({ activeStay }: GuestPrearrivalHomeProps) {
+  return (
+    <FeatureGate 
+      requiredFlags={['enable_prearrival']} 
+      mode="guest"
+    >
+      <GuestPrearrivalHomeContent activeStay={activeStay} />
+    </FeatureGate>
   );
 }
