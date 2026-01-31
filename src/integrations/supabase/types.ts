@@ -650,6 +650,35 @@ export type Database = {
           },
         ]
       }
+      addon_feature_categories: {
+        Row: {
+          addon_key: string
+          category: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          addon_key: string
+          category: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          addon_key?: string
+          category?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_feature_categories_addon_key_fkey"
+            columns: ["addon_key"]
+            isOneToOne: false
+            referencedRelation: "addon_pricing"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       addon_pricing: {
         Row: {
           currency: string
@@ -6170,6 +6199,15 @@ export type Database = {
       }
     }
     Views: {
+      feature_category_entitlements_v: {
+        Row: {
+          addon_keys: string[] | null
+          category: string | null
+          flag_keys: string[] | null
+          flags_count: number | null
+        }
+        Relationships: []
+      }
       security_rls_audit: {
         Row: {
           details: string | null
