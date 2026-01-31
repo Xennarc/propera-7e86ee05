@@ -28,6 +28,7 @@ import { Crown, Bell, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
+import { SkipLink } from '@/components/a11y/SkipLink';
 
 const baseNavItems = [
   { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
@@ -251,6 +252,7 @@ export function GuestLayout() {
   return (
     <FeatureFlagsProvider resortId={guest?.resortId}>
       <GuestAccessGate resortName={guest?.resortName}>
+        <SkipLink />
         <div 
           className="guest-branded guest-page-bg flex h-[100dvh] flex-col bg-background overflow-hidden"
           style={brandingStyles}
@@ -289,16 +291,16 @@ export function GuestLayout() {
                 </div>
               </Link>
               <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
-                <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" />
+                <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" aria-label={t('a11y.toggleTheme', 'Toggle theme')} />
                 <GuestNotificationBell />
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={logout}
                   className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
-                  title={t('nav.logout')}
+                  aria-label={t('nav.logout')}
                 >
-                  <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -306,8 +308,10 @@ export function GuestLayout() {
 
           {/* Main content with safe-area-aware bottom padding */}
           <main 
+            id="main-content"
+            tabIndex={-1}
             ref={mainRef} 
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll"
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll focus:outline-none"
           >
             <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
               <GuestPortalGate>

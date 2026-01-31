@@ -285,6 +285,32 @@
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
+  /* Enhanced focus for buttons and interactive elements */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex="0"]:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* === Reduced Motion Compliance === */
+  /* Respect user's motion preferences system-wide */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Allow minimal fades for reduced motion users */
+    .reduce-motion-fade {
+      animation-duration: 150ms !important;
+      transition-duration: 150ms !important;
+    }
+  }
+
   /* Typography scale with increased tracking for headings */
   h1 {
     @apply text-2xl sm:text-3xl md:text-4xl font-semibold;
@@ -2716,4 +2742,94 @@ select:focus,
 /* Sticky shadow when stuck */
 .sticky-shadow {
   box-shadow: 0 4px 12px -2px hsl(var(--foreground) / 0.05);
+}
+
+/* ========================================
+   ACCESSIBILITY - REDUCED MOTION OVERRIDES
+   Disable decorative animations for users who prefer reduced motion
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable marketing canvas animations */
+  .marketing-canvas::after {
+    animation: none !important;
+  }
+
+  .marketing-glow-hero,
+  .marketing-glow-mid,
+  .marketing-glow-cta {
+    animation: none !important;
+  }
+
+  /* Disable ambient float animations */
+  [class*="ambient-float"],
+  [style*="ambient-float"] {
+    animation: none !important;
+  }
+
+  /* Disable guest nav indicator glow pulse */
+  .guest-nav-indicator {
+    animation: none !important;
+  }
+
+  /* Disable chart/chip reveal animations */
+  .chip-stagger,
+  .chart-bar-grow {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Disable floating animations */
+  .float-animation,
+  [class*="animate-float"] {
+    animation: none !important;
+  }
+
+  /* Disable shimmer effects */
+  [class*="shimmer"] {
+    animation: none !important;
+  }
+
+  /* Keep minimal fades for UI feedback but instant transitions */
+  .animate-fade-in {
+    animation-duration: 0.1s !important;
+  }
+
+  /* Disable hover scale effects */
+  .hover-scale:hover,
+  .hover-lift:hover {
+    transform: none !important;
+  }
+}
+
+/* ========================================
+   SCREEN READER ONLY UTILITIES
+   ======================================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only:focus,
+.sr-only.focus\:not-sr-only:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 9999;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
 }

@@ -47,6 +47,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { AccessDenied } from '@/components/ui/access-denied';
 import { CommandBar } from '@/components/superadmin/CommandBar';
 import { AdminNotificationBell } from '@/components/superadmin/AdminNotificationBell';
+import { SkipLink } from '@/components/a11y/SkipLink';
 
 type NavItem = {
   title: string;
@@ -180,13 +181,15 @@ export default function SuperAdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 dark:border-midnight-700/50 bg-sidebar dark:bg-midnight-900 fixed inset-y-0 left-0 z-30">
-        <SuperAdminSidebar />
-      </aside>
+    <>
+      <SkipLink />
+      <div className="flex min-h-screen w-full bg-background">
+        {/* Desktop Sidebar */}
+        <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 dark:border-midnight-700/50 bg-sidebar dark:bg-midnight-900 fixed inset-y-0 left-0 z-30">
+          <SuperAdminSidebar />
+        </aside>
 
-      {/* Main Content Area */}
+        {/* Main Content Area */}
       <div className="flex flex-1 flex-col lg:ml-64">
         {/* Top Header Bar */}
         <header className="sticky top-0 z-20 h-16 border-b border-border/30 dark:border-midnight-700/50 surface-glass-strong">
@@ -194,8 +197,8 @@ export default function SuperAdminLayout() {
             {/* Mobile Menu */}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
               <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
+                <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                  <Menu className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0">
@@ -282,7 +285,7 @@ export default function SuperAdminLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-4 lg:p-6 focus:outline-none">
           <Outlet />
         </main>
       </div>
@@ -290,5 +293,6 @@ export default function SuperAdminLayout() {
       {/* Command Bar */}
       <CommandBar open={commandBarOpen} onOpenChange={setCommandBarOpen} />
     </div>
+    </>
   );
 }
