@@ -478,7 +478,165 @@ export default function GlobalUsersPage() {
             </div>
           ) : paginatedData.items.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-border">
+                {paginatedData.items.map(user => {
+                  const status = getUserStatus(user);
+                  const statusConfig = STATUS_BADGE_CONFIG[status];
+                  const StatusIcon = statusConfig.icon;
+                  const isCurrentUser = user.id === currentUser?.id;
+                  const isDeleted = status === 'deleted';
+
+                  return (
+                    <div key={user.id} className={`p-4 ${isDeleted ? 'opacity-60' : ''}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Avatar className="h-10 w-10 shrink-0">
+                            <AvatarFallback className={user.global_role === 'SUPER_ADMIN' ? 'bg-destructive/10 text-destructive' : 'bg-muted'}>
+                              {user.full_name?.charAt(0) || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium truncate">{user.full_name || 'Unnamed'}</p>
+                            <p className="text-xs text-muted-foreground truncate">@{user.username || 'no-username'}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Mobile Actions Dropdown */}
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-10 w-10 shrink-0"
+                            >
+                              <MoreHorizontal className="h-5 w-5" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => handleCopyId(user.id)}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy User ID
+                            </DropdownMenuItem>
+                            {user.username && (
+                              <DropdownMenuItem onClick={() => handleCopyUsername(user.username!)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy Username
+                              </DropdownMenuItem>
+                            )}
+                            
+                            {!isDeleted && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUserForAccess(user);
+                                    setAccessDrawerOpen(true);
+                                  }}
+                                >
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Edit Access
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {user.global_role !== 'SUPER_ADMIN' && status === 'active' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setConfirmDialogOpen(true);
+                                  }}
+                                >
+                                  <Crown className="mr-2 h-4 w-4" />
+                                  Grant Super Admin
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {!isCurrentUser && status === 'active' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setDeactivateDialogOpen(true);
+                                  }}
+                                >
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Deactivate User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+
+                            {status === 'disabled' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setRestoreDialogOpen(true);
+                                  }}
+                                >
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Restore User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            
+                            {!isCurrentUser && !isDeleted && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => {
+                                    setSelectedUserForAction(user);
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Permanent Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      
+                      {/* User details row */}
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={statusConfig.className}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {statusConfig.label}
+                        </Badge>
+                        {user.global_role === 'SUPER_ADMIN' ? (
+                          <Badge className="bg-destructive/10 text-destructive border-destructive/20">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Super Admin
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Standard</Badge>
+                        )}
+                        {user.memberships.length > 0 && (
+                          <Badge variant="secondary">
+                            {user.memberships.length} resort{user.memberships.length !== 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Joined {format(new Date(user.created_at), 'MMM d, yyyy')}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -550,13 +708,12 @@ export default function GlobalUsersPage() {
                             {format(new Date(user.created_at), 'MMM d, yyyy')}
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
+                            <DropdownMenu modal={false}>
                               <DropdownMenuTrigger asChild>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
                                   className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
@@ -604,30 +761,29 @@ export default function GlobalUsersPage() {
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                                
-                                {/* Deactivate - for active users, not self */}
-                                {status === 'active' && !isCurrentUser && (
+
+                                {/* Deactivate - for non-self active users */}
+                                {!isCurrentUser && status === 'active' && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      className="text-warning focus:text-warning"
+                                      className="text-destructive focus:text-destructive"
                                       onClick={() => {
                                         setSelectedUserForAction(user);
                                         setDeactivateDialogOpen(true);
                                       }}
                                     >
-                                      <UserX className="mr-2 h-4 w-4" />
+                                      <Ban className="mr-2 h-4 w-4" />
                                       Deactivate User
                                     </DropdownMenuItem>
                                   </>
                                 )}
-                                
+
                                 {/* Restore - for disabled users */}
                                 {status === 'disabled' && (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
-                                      className="text-success focus:text-success"
                                       onClick={() => {
                                         setSelectedUserForAction(user);
                                         setRestoreDialogOpen(true);
