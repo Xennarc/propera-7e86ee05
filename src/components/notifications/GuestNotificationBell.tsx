@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
+import { Bell, Calendar, Utensils, CheckCheck, Car } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,13 +21,15 @@ import { cn } from '@/lib/utils';
 function getNotificationIcon(type: string) {
   if (type.includes('ACTIVITY')) return Calendar;
   if (type.includes('RESTAURANT')) return Utensils;
+  if (type.includes('TRANSPORT')) return Car;
   return Bell;
 }
 
 function getNotificationColor(type: string) {
   if (type.includes('PENDING')) return 'text-orange-500';
-  if (type.includes('CONFIRMED')) return 'text-green-500';
-  if (type.includes('CANCELLED')) return 'text-red-500';
+  if (type.includes('CONFIRMED') || type.includes('COMPLETED') || type.includes('ARRIVED')) return 'text-green-500';
+  if (type.includes('CANCELLED') || type.includes('FAILED')) return 'text-red-500';
+  if (type.includes('EN_ROUTE') || type.includes('ASSIGNED')) return 'text-blue-500';
   return 'text-muted-foreground';
 }
 
