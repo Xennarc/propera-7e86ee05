@@ -15,7 +15,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useLoyaltyProgram, useLoyaltyMembers, useLoyaltyTransactions, type LoyaltyMember } from '@/hooks/useLoyaltyProgram';
 import { LoyaltyTierBadge } from '@/components/loyalty/LoyaltyTierBadge';
-import { FeatureGate } from '@/components/FeatureGate';
+import { FeatureGate, FeatureVisible, useFeatureEnabled } from '@/components/FeatureGate';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft, 
   User, 
@@ -27,7 +37,8 @@ import {
   Gift,
   Clock,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  ShieldAlert
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -40,9 +51,13 @@ function LoyaltyMemberDetailPageContent() {
 
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
   const [tierDialogOpen, setTierDialogOpen] = useState(false);
+  const [adjustConfirmDialogOpen, setAdjustConfirmDialogOpen] = useState(false);
   const [adjustAmount, setAdjustAmount] = useState(0);
   const [adjustNote, setAdjustNote] = useState('');
   const [selectedTierId, setSelectedTierId] = useState('');
+  
+  // Sub-feature gating
+  const manualAdjustmentsEnabled = useFeatureEnabled('enable_loyalty_manual_adjustments');
 
   // Fetch member details
   const { data: member, isLoading } = useQuery({
@@ -175,16 +190,25 @@ function LoyaltyMemberDetailPageContent() {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button onClick={() => setAdjustDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adjust Points
-              </Button>
-              <Button variant="outline" onClick={() => {
-                setSelectedTierId(currentTier?.id || '');
-                setTierDialogOpen(true);
-              }}>
-                Change Tier
-              </Button>
+              {manualAdjustmentsEnabled ? (
+                <>
+                  <Button onClick={() => setAdjustDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adjust Points
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setSelectedTierId(currentTier?.id || '');
+                    setTierDialogOpen(true);
+                  }}>
+                    Change Tier
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" disabled className="opacity-60">
+                  <ShieldAlert className="h-4 w-4 mr-2" />
+                  Manual Adjustments Disabled
+                </Button>
+              )}
               {member.guest && (
                 <Button variant="ghost" onClick={() => navigate(`/staff/guests/${member.guest!.id}`)}>
                   <User className="h-4 w-4 mr-2" />

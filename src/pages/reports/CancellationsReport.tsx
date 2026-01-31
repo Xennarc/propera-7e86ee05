@@ -13,6 +13,7 @@ import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { TierGate } from '@/components/tier/TierGate';
+import { FeatureVisible } from '@/components/FeatureGate';
 import { format, subDays, parseISO, getDay, differenceInHours } from 'date-fns';
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
@@ -315,10 +316,12 @@ export default function CancellationsReport() {
           <h1 className="text-3xl font-bold text-foreground">Cancellations Report</h1>
           <p className="text-muted-foreground">Cross-module cancellation analysis and patterns</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+        <FeatureVisible flag="enable_reports_exports">
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </FeatureVisible>
       </div>
 
       {/* Date Presets & Filters */}

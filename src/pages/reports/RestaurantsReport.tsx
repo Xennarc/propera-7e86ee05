@@ -28,6 +28,7 @@ import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { TierGate } from '@/components/tier/TierGate';
+import { FeatureVisible } from '@/components/FeatureGate';
 
 const MEAL_PERIOD_COLORS: Record<string, string> = {
   BREAKFAST: 'hsl(var(--chart-1))',
@@ -269,10 +270,12 @@ export default function RestaurantsReport() {
           <h1 className="text-3xl font-bold text-foreground">Restaurants Report</h1>
           <p className="text-muted-foreground">Restaurant reservation statistics by meal period</p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
+        <FeatureVisible flag="enable_reports_exports">
+          <Button onClick={exportCSV} disabled={!reportData} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </FeatureVisible>
       </div>
 
       {/* Date Presets & Filters */}

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Zap, ListChecks } from 'lucide-react';
+import { Zap, ListChecks, Lock } from 'lucide-react';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 
 type RequestMode = 'quick' | 'multi';
 
@@ -33,11 +34,12 @@ export function RequestModeSwitcher({
   disabled = false 
 }: RequestModeSwitcherProps) {
   const [showPulse, setShowPulse] = useState(false);
+  const multiSelectEnabled = useFeatureEnabled('enable_requests_guest_multi_select');
 
   // First-time hint animation
   useEffect(() => {
     const hasSeenHint = localStorage.getItem(FIRST_VISIT_KEY);
-    if (!hasSeenHint) {
+    if (!hasSeenHint && multiSelectEnabled) {
       // Delay the pulse animation
       const timer = setTimeout(() => {
         setShowPulse(true);
@@ -49,7 +51,13 @@ export function RequestModeSwitcher({
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [multiSelectEnabled]);
+
+  // If multi-select is disabled, don't render the switcher at all
+  // The parent component should default to quick mode
+  if (!multiSelectEnabled) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-2.5">

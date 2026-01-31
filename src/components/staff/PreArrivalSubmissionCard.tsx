@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { 
   FileText, 
   Clock, 
@@ -13,7 +14,8 @@ import {
   PartyPopper,
   Droplets,
   MessageSquare,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from 'lucide-react';
 import { safeFormatDate } from '@/lib/safe-date-format';
 import { PreArrivalSubmission } from '@/hooks/useStaffGuestStay';
@@ -131,7 +133,12 @@ function getSummaryBadges(payload: PreArrivalSubmission['payload']): SummaryBadg
 
 export function PreArrivalSubmissionCard({ submission, isLoading }: PreArrivalSubmissionCardProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const prearrivalTabEnabled = useFeatureEnabled('enable_guests_prearrival_tab');
 
+  // If prearrival tab is disabled, don't render the card at all
+  if (!prearrivalTabEnabled) {
+    return null;
+  }
   if (isLoading) {
     return (
       <Card>
