@@ -211,6 +211,9 @@ export const queryKeys = {
     // Feature flags grouped by category (for entitlements UI)
     featureFlagsByCategory: () => ['superadmin', 'feature-flags-by-category'],
     
+    // Category to addon mappings with pricing info
+    categoryAddonMappings: () => ['superadmin', 'category-addon-mappings'],
+    
     // Pricing change log
     changeLog: () => ['superadmin', 'pricing-change-log'],
     

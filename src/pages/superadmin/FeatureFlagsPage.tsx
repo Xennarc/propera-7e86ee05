@@ -19,6 +19,8 @@ import {
 } from '@/hooks/useFeatureFlags';
 import { buildModuleViewModels, MODULES } from '@/lib/feature-flag-modules';
 import { ModuleCard } from '@/components/superadmin/ModuleCard';
+import { FlagEntitlementBadges, CategoryEntitlementInfo } from '@/components/superadmin/FlagEntitlementBadges';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   ToggleRight,
   Search,
@@ -370,70 +372,78 @@ export default function FeatureFlagsPage() {
 
           {/* Categories View (Legacy) */}
           <TabsContent value="categories" className="mt-6 space-y-6">
-            {groupedFlags.map(group => {
-              const IconComponent = CATEGORY_ICONS[group.key] || ToggleRight;
-              const isDanger = group.key === 'danger';
-              
-              return (
-                <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className={`flex items-center gap-2 ${group.color}`}>
-                      <IconComponent className="h-5 w-5" />
-                      {group.label}
-                    </CardTitle>
-                    {isDanger && (
-                      <CardDescription className="text-destructive">
-                        These flags can significantly impact platform availability. Use with extreme caution.
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {group.flags.map(flag => {
-                        const isOverridden = flag.resort_id !== null && isResortScope;
-                        
-                        return (
-                          <div
-                            key={flag.key}
-                            className={`flex items-center justify-between p-4 rounded-xl border ${
-                              isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-sm">{flag.label}</span>
-                                {flag.tier && (
-                                  <Badge variant="outline" className="text-[9px] capitalize">
-                                    {flag.tier}
-                                  </Badge>
-                                )}
-                                {isOverridden && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className="text-[9px] bg-info/10 text-info border-info/30 cursor-pointer"
-                                    onClick={() => handleRemoveOverride(flag.key)}
-                                  >
-                                    Override
-                                    <X className="h-2.5 w-2.5 ml-1" />
-                                  </Badge>
-                                )}
+            <TooltipProvider>
+              {groupedFlags.map(group => {
+                const IconComponent = CATEGORY_ICONS[group.key] || ToggleRight;
+                const isDanger = group.key === 'danger';
+                
+                return (
+                  <Card key={group.key} className={isDanger ? 'border-destructive/50' : ''}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <CardTitle className={`flex items-center gap-2 ${group.color}`}>
+                          <IconComponent className="h-5 w-5" />
+                          {group.label}
+                        </CardTitle>
+                        <CategoryEntitlementInfo category={group.key as any} />
+                      </div>
+                      {isDanger && (
+                        <CardDescription className="text-destructive">
+                          These flags can significantly impact platform availability. Use with extreme caution.
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {group.flags.map(flag => {
+                          const isOverridden = flag.resort_id !== null && isResortScope;
+                          
+                          return (
+                            <div
+                              key={flag.key}
+                              className={`flex items-center justify-between p-4 rounded-xl border ${
+                                isDanger ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30 border-border/50'
+                              }`}
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium text-sm">{flag.label}</span>
+                                  {isOverridden && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-[9px] bg-info/10 text-info border-info/30 cursor-pointer"
+                                      onClick={() => handleRemoveOverride(flag.key)}
+                                    >
+                                      Override
+                                      <X className="h-2.5 w-2.5 ml-1" />
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
+                                {/* Entitlement info */}
+                                <div className="mt-2">
+                                  <FlagEntitlementBadges
+                                    category={flag.category}
+                                    tier={flag.tier}
+                                    compact
+                                  />
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
+                              <Switch
+                                checked={flag.is_enabled}
+                                onCheckedChange={(checked) => handleToggle(flag, checked)}
+                                disabled={isPending}
+                                className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
+                              />
                             </div>
-                            <Switch
-                              checked={flag.is_enabled}
-                              onCheckedChange={(checked) => handleToggle(flag, checked)}
-                              disabled={isPending}
-                              className={isDanger ? 'data-[state=checked]:bg-destructive' : ''}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </TooltipProvider>
 
             {groupedFlags.length === 0 && (
               <Card>
