@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { useNavAccess } from '@/hooks/useNavAccess';
 import { useResortSettings } from '@/hooks/useResortSettings';
+import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +58,8 @@ interface NavItem {
   roles?: ResortRole[];
   tierFeature?: TierFeature;
   badge?: string;
+  /** Feature flags required for this item to be visible */
+  requiredFlags?: string[];
 }
 
 interface NavGroup {
@@ -65,6 +68,8 @@ interface NavGroup {
   icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
   defaultOpen?: boolean;
+  /** Feature flags required for the entire group to be visible */
+  requiredFlags?: string[];
 }
 
 interface StaffSidebarProps {
@@ -77,12 +82,20 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   const { user, profile, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
   const { canViewNavItem, currentRole } = useNavAccess();
+  const flagContext = useFeatureFlagAccessSafe();
   
-  // Module feature flags
+  // Module feature flags (legacy settings-based)
   const { data: settings } = useResortSettings(currentResort?.id);
   const transportEnabled = settings?.transport_enabled ?? false;
 
   const isAdmin = isSuperAdmin() || currentRole === 'RESORT_ADMIN';
+
+  // Feature flag check helper
+  const checkFeatureFlags = (requiredFlags?: string[]): boolean => {
+    if (!requiredFlags || requiredFlags.length === 0) return true;
+    if (!flagContext || flagContext.loading) return true; // Fail open during loading
+    return requiredFlags.every(flag => flagContext.isEnabledEffective(flag));
+  };
 
   // Get role display
   const getRoleDisplay = () => {
@@ -99,16 +112,17 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     return currentRole ? roleMap[currentRole] : 'Staff';
   };
 
-  // Navigation structure with tier-gating
+  // Navigation structure with tier-gating and feature flags
   const navGroups: NavGroup[] = [
     {
       id: 'operations',
       title: 'Operations',
       icon: Calendar,
       defaultOpen: true,
+      requiredFlags: ['enable_dashboards'],
       items: [
-        { title: 'Dashboard', url: '/staff/dashboard', icon: Building2 },
-        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities' },
+        { title: 'Dashboard', url: '/staff/dashboard', icon: Building2, requiredFlags: ['enable_dashboards'] },
+        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities', requiredFlags: ['enable_dashboards'] },
         { title: 'Team Directory', url: '/staff/team', icon: Users },
       ],
     },
@@ -116,10 +130,11 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       id: 'guests',
       title: 'Guests',
       icon: Users,
+      requiredFlags: ['enable_guests'],
       items: [
-        { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'] },
-        { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links' },
-        { title: 'Requests Dashboard', url: '/staff/requests-dashboard', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests', badge: 'New' },
+        { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], requiredFlags: ['enable_guests'] },
+        { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links', requiredFlags: ['enable_prearrival'] },
+        { title: 'Requests Dashboard', url: '/staff/requests-dashboard', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests', badge: 'New', requiredFlags: ['enable_requests'] },
       ],
     },
     {
@@ -145,32 +160,35 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       id: 'transport',
       title: 'Transport',
       icon: Car,
+      requiredFlags: ['enable_transport'],
       items: [
-        { title: 'Dispatch', url: '/staff/transport', icon: Car, roles: ['RESORT_ADMIN', 'MANAGER', 'TRANSPORT'] },
+        { title: 'Dispatch', url: '/staff/transport', icon: Car, roles: ['RESORT_ADMIN', 'MANAGER', 'TRANSPORT'], requiredFlags: ['enable_transport'] },
       ],
     },
     {
       id: 'loyalty',
       title: 'Loyalty',
       icon: Crown,
+      requiredFlags: ['enable_loyalty'],
       items: [
-        { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management' },
-        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program' },
-        { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_tiers' },
+        { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management', requiredFlags: ['enable_loyalty'] },
+        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program', requiredFlags: ['enable_loyalty'] },
+        { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_tiers', requiredFlags: ['enable_loyalty', 'enable_loyalty_tiers'] },
       ],
     },
     {
       id: 'reports',
       title: 'Reports',
       icon: BarChart3,
+      requiredFlags: ['enable_reports'],
       items: [
-        { title: 'Overview', url: '/staff/reports', icon: BarChart3, roles: ['RESORT_ADMIN', 'MANAGER'] },
-        { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'], tierFeature: 'reports_activities' },
-        { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'], tierFeature: 'reports_restaurants' },
-        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests' },
-        { title: 'Sales', url: '/staff/reports/sales', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_sales_performance' },
-        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: FileText, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_cancellations' },
-        { title: 'Stay Feedback', url: '/staff/reports/stay-feedback', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_feedback' },
+        { title: 'Overview', url: '/staff/reports', icon: BarChart3, roles: ['RESORT_ADMIN', 'MANAGER'], requiredFlags: ['enable_reports'] },
+        { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'], tierFeature: 'reports_activities', requiredFlags: ['enable_reports'] },
+        { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'], tierFeature: 'reports_restaurants', requiredFlags: ['enable_reports'] },
+        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests', requiredFlags: ['enable_reports'] },
+        { title: 'Sales', url: '/staff/reports/sales', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_sales_performance', requiredFlags: ['enable_reports'] },
+        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: FileText, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_cancellations', requiredFlags: ['enable_reports'] },
+        { title: 'Stay Feedback', url: '/staff/reports/stay-feedback', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_feedback', requiredFlags: ['enable_reports'] },
       ],
     },
   ];
@@ -191,13 +209,20 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   };
 
   // Check if group has any visible items
-  // Also check module-level feature flags (e.g., transport_enabled)
+  // Checks: role/tier access, feature flags, and legacy module settings
   const groupHasVisibleItems = (group: NavGroup) => {
-    // Transport group requires transport_enabled setting
+    // Check group-level feature flags first
+    if (!checkFeatureFlags(group.requiredFlags)) {
+      return false;
+    }
+    // Transport group also requires legacy transport_enabled setting (for backward compat)
     if (group.id === 'transport' && !transportEnabled) {
       return false;
     }
-    return group.items.some(item => canViewNavItem(item.roles, item.tierFeature));
+    // Check if any items pass role/tier/flag checks
+    return group.items.some(item => 
+      canViewNavItem(item.roles, item.tierFeature) && checkFeatureFlags(item.requiredFlags)
+    );
   };
 
   // Check if current path is in group
@@ -323,7 +348,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
                 <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5 animate-accordion-down data-[state=closed]:animate-accordion-up">
                   {group.items.map((item) => {
+                    // Check role/tier access AND feature flags
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
+                    if (!checkFeatureFlags(item.requiredFlags)) return null;
 
                     return (
                       <NavLink
@@ -386,6 +413,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                 <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-primary/30 space-y-0.5 animate-accordion-down data-[state=closed]:animate-accordion-up">
                   {adminGroup.items.map((item) => {
                     if (!canViewNavItem(item.roles, item.tierFeature)) return null;
+                    if (!checkFeatureFlags(item.requiredFlags)) return null;
 
                     return (
                       <NavLink
