@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { EditUserAccessDrawer } from '@/components/superadmin/EditUserAccessDrawer';
 
 const ROLE_COLORS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -71,12 +72,15 @@ interface UserWithMemberships {
 
 export default function GlobalUsersPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { resorts } = useResort();
   const [searchQuery, setSearchQuery] = useState('');
   const [resortFilter, setResortFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithMemberships | null>(null);
+  const [accessDrawerOpen, setAccessDrawerOpen] = useState(false);
+  const [selectedUserForAccess, setSelectedUserForAccess] = useState<UserWithMemberships | null>(null);
 
   // Fetch all users with memberships
   const { data: users, isLoading, refetch } = useQuery({
@@ -413,7 +417,12 @@ export default function GlobalUsersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedUserForAccess(user);
+                              setAccessDrawerOpen(true);
+                            }}
+                          >
                             <Shield className="mr-2 h-4 w-4" />
                             Edit Access
                           </DropdownMenuItem>
@@ -477,6 +486,17 @@ export default function GlobalUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Access Drawer */}
+      <EditUserAccessDrawer
+        open={accessDrawerOpen}
+        onOpenChange={setAccessDrawerOpen}
+        user={selectedUserForAccess}
+        resorts={resorts.map(r => ({ id: r.id, name: r.name }))}
+        onUpdated={() => {
+          queryClient.invalidateQueries({ queryKey: ['global-users-list'] });
+        }}
+      />
     </div>
   );
 }
