@@ -332,7 +332,7 @@ export function TodayHub({ className }: TodayHubProps) {
                       )}
                     </CardTitle>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link to="/staff/guest-requests">
+                      <Link to="/staff/requests-dashboard">
                         View all <ChevronRight className="h-4 w-4 ml-1" />
                       </Link>
                     </Button>
@@ -348,7 +348,7 @@ export function TodayHub({ className }: TodayHubProps) {
                       {requests.map((req: any) => (
                         <Link
                           key={req.id}
-                          to="/staff/guest-requests"
+                          to="/staff/requests-dashboard"
                           className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                         >
                           <div className="min-w-0 flex-1">
