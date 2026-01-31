@@ -98,6 +98,7 @@ const ResortDetailPage = lazy(() => import("./pages/superadmin/ResortDetailPage"
 const GlobalUsersPage = lazy(() => import("./pages/superadmin/GlobalUsersPage"));
 const GlobalStaffPage = lazy(() => import("./pages/superadmin/GlobalStaffPage"));
 const FeatureFlagsPage = lazy(() => import("./pages/superadmin/FeatureFlagsPage"));
+const PlansPage = lazy(() => import("./pages/superadmin/PlansPage"));
 const FeatureFlagQAPage = lazy(() => import("./pages/superadmin/FeatureFlagQAPage"));
 const HealthMonitoringPage = lazy(() => import("./pages/superadmin/HealthMonitoringPage"));
 const AuditLogsPage = lazy(() => import("./pages/superadmin/AuditLogsPage"));
@@ -196,6 +197,7 @@ const App = () => (
                   <Route path="users" element={<GlobalUsersPage />} />
                   <Route path="staff" element={<GlobalStaffPage />} />
                   <Route path="feature-flags" element={<FeatureFlagsPage />} />
+                  <Route path="plans" element={<PlansPage />} />
                   <Route path="feature-flags/qa" element={<FeatureFlagQAPage />} />
                   <Route path="health" element={<HealthMonitoringPage />} />
                   <Route path="audit" element={<AuditLogsPage />} />
