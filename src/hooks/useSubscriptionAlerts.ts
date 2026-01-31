@@ -50,9 +50,8 @@ export function useSubscriptionAlerts(filters?: {
     queryKey: queryKeys.subscriptionAlerts.list(filters),
     queryFn: async (): Promise<SubscriptionAlert[]> => {
       // Query alerts with resort join
-      // Using type assertion since the table was just created
       const baseQuery = supabase
-        .from('subscription_alerts' as any)
+        .from('subscription_alerts')
         .select(`
           id,
           resort_id,
@@ -119,7 +118,7 @@ export function useAlertStats() {
     queryKey: queryKeys.subscriptionAlerts.stats(),
     queryFn: async (): Promise<AlertStats> => {
       const { data, error } = await supabase
-        .from('subscription_alerts' as any)
+        .from('subscription_alerts')
         .select('alert_type')
         .eq('is_resolved', false);
 
@@ -153,7 +152,7 @@ export function useResolveAlert() {
   return useMutation({
     mutationFn: async (alertId: string) => {
       const { error } = await supabase
-        .from('subscription_alerts' as any)
+        .from('subscription_alerts')
         .update({
           is_resolved: true,
           resolved_at: new Date().toISOString(),
