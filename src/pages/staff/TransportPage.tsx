@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { useResortSettings } from '@/hooks/useResortSettings';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,7 +21,7 @@ import {
 } from '@/components/transport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Car, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Car, RefreshCw, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
 
@@ -144,24 +145,37 @@ export default function TransportPage() {
   }
   
   // Module not enabled
+  const canManageModules = isSuperAdmin || currentResortRole === 'RESORT_ADMIN';
+  
   if (!transportEnabled) {
     return (
-      <Card className="m-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Car className="h-5 w-5 text-muted-foreground" />
-            Transport Module
-          </CardTitle>
-          <CardDescription>
-            The transport module is not enabled for this resort.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Contact your administrator to enable transport features.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center min-h-[400px] p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+              <Car className="h-7 w-7 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-xl">Transport Module Disabled</CardTitle>
+            <CardDescription>
+              The transport module is not enabled for this resort.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            {canManageModules ? (
+              <Button asChild>
+                <Link to="/staff/settings/modules">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Go to Modules Settings
+                </Link>
+              </Button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Contact your Resort Admin to enable transport features.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
   
