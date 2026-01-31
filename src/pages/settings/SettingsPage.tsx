@@ -1,4 +1,4 @@
-import { Building2, Anchor, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench } from 'lucide-react';
+import { Building2, Anchor, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
@@ -70,6 +70,13 @@ export default function SettingsPage() {
       description: 'Manage day-to-day operational settings',
       icon: Settings2,
       items: [
+        {
+          title: 'Modules',
+          description: 'Enable or disable Propera modules like Transport',
+          icon: LayoutGrid,
+          href: '/staff/settings/modules',
+          visible: canManageResortStaff,
+        },
         {
           title: 'Guest Requests',
           description: 'Configure retention, visibility, departments, and catalog',

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { useNavAccess } from '@/hooks/useNavAccess';
+import { useResortSettings } from '@/hooks/useResortSettings';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +77,10 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   const { user, profile, signOut, isSuperAdmin, getResortRole } = useAuth();
   const { resorts, currentResort, setCurrentResort } = useResort();
   const { canViewNavItem, currentRole } = useNavAccess();
+  
+  // Module feature flags
+  const { data: settings } = useResortSettings(currentResort?.id);
+  const transportEnabled = settings?.transport_enabled ?? false;
 
   const isAdmin = isSuperAdmin() || currentRole === 'RESORT_ADMIN';
 
@@ -177,6 +182,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     title: 'Admin',
     icon: Settings,
     items: [
+      { title: 'Modules', url: '/staff/settings/modules', icon: Settings, roles: ['RESORT_ADMIN'] },
       { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: Users, roles: ['RESORT_ADMIN'], tierFeature: 'settings_staff_management' },
       { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: Plane, roles: ['RESORT_ADMIN'], tierFeature: 'pre_arrival_links' },
       { title: 'Branding', url: '/staff/settings/branding', icon: Palette, roles: ['RESORT_ADMIN'], tierFeature: 'guest_portal_branding' },
@@ -186,7 +192,12 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   };
 
   // Check if group has any visible items
+  // Also check module-level feature flags (e.g., transport_enabled)
   const groupHasVisibleItems = (group: NavGroup) => {
+    // Transport group requires transport_enabled setting
+    if (group.id === 'transport' && !transportEnabled) {
+      return false;
+    }
     return group.items.some(item => canViewNavItem(item.roles, item.tierFeature));
   };
 
