@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/lib/query-keys';
+import {
+  validatePlanPricingUpdate,
+  validateAddonPricingUpdate,
+  formatValidationErrors,
+  VALID_TIERS,
+} from '@/lib/pricing-validation';
+import { logPricingError } from '@/lib/platform-error-logger';
 
 // ==========================================
 // Types
@@ -47,15 +55,28 @@ export interface TierStats {
 
 export function usePlanPricing() {
   return useQuery({
-    queryKey: ['superadmin', 'plan-pricing'],
+    queryKey: queryKeys.pricing.plans(),
     queryFn: async (): Promise<PlanPricingRow[]> => {
       const { data, error } = await supabase
         .from('plan_pricing')
         .select('*')
         .order('monthly_price_cents', { ascending: true });
 
-      if (error) throw error;
-      return (data || []) as PlanPricingRow[];
+      if (error) {
+        logPricingError('fetch_plan_pricing', error.message);
+        throw error;
+      }
+
+      // Runtime validation: filter out invalid tiers
+      const validData = (data || []).filter((row) => {
+        const isValid = VALID_TIERS.includes(row.tier as any);
+        if (!isValid) {
+          console.warn(`[PlanPricing] Skipping invalid tier: ${row.tier}`);
+        }
+        return isValid;
+      });
+
+      return validData as PlanPricingRow[];
     },
     staleTime: 60 * 1000,
   });
@@ -63,14 +84,18 @@ export function usePlanPricing() {
 
 export function useAddonPricing() {
   return useQuery({
-    queryKey: ['superadmin', 'addon-pricing'],
+    queryKey: queryKeys.pricing.addons(),
     queryFn: async (): Promise<AddonPricingRow[]> => {
       const { data, error } = await supabase
         .from('addon_pricing')
         .select('*')
         .order('monthly_price_cents', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        logPricingError('fetch_addon_pricing', error.message);
+        throw error;
+      }
+
       return (data || []) as AddonPricingRow[];
     },
     staleTime: 60 * 1000,
@@ -79,7 +104,7 @@ export function useAddonPricing() {
 
 export function useTierStats() {
   return useQuery({
-    queryKey: ['superadmin', 'tier-stats'],
+    queryKey: queryKeys.pricing.tierStats(),
     queryFn: async (): Promise<TierStats> => {
       const { data: allResorts, error } = await supabase
         .from('resorts')
@@ -138,6 +163,14 @@ export function useUpdatePlanPricing() {
       currency: string;
       is_active: boolean;
     }) => {
+      // Runtime validation
+      const validation = validatePlanPricingUpdate(params);
+      if (!validation.success) {
+        const errorMsg = formatValidationErrors(validation.error);
+        logPricingError('validate_plan_pricing', errorMsg, { params });
+        throw new Error(errorMsg);
+      }
+
       const { error } = await supabase
         .from('plan_pricing')
         .update({
@@ -149,7 +182,10 @@ export function useUpdatePlanPricing() {
         })
         .eq('id', params.id);
 
-      if (error) throw error;
+      if (error) {
+        logPricingError('update_plan_pricing', error.message, { plan_id: params.id });
+        throw error;
+      }
 
       // Log the action
       await supabase.from('pricing_publish_log').insert({
@@ -164,8 +200,9 @@ export function useUpdatePlanPricing() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin', 'plan-pricing'] });
-      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.plans() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.changeLog() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.public() });
       toast.success('Plan pricing updated');
     },
     onError: (error: Error) => {
@@ -186,6 +223,14 @@ export function useUpdateAddonPricing() {
       is_active: boolean;
       name: string;
     }) => {
+      // Runtime validation
+      const validation = validateAddonPricingUpdate(params);
+      if (!validation.success) {
+        const errorMsg = formatValidationErrors(validation.error);
+        logPricingError('validate_addon_pricing', errorMsg, { params });
+        throw new Error(errorMsg);
+      }
+
       const { error } = await supabase
         .from('addon_pricing')
         .update({
@@ -198,7 +243,10 @@ export function useUpdateAddonPricing() {
         })
         .eq('id', params.id);
 
-      if (error) throw error;
+      if (error) {
+        logPricingError('update_addon_pricing', error.message, { addon_id: params.id });
+        throw error;
+      }
 
       // Log the action
       await supabase.from('pricing_publish_log').insert({
@@ -214,8 +262,9 @@ export function useUpdateAddonPricing() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['superadmin', 'addon-pricing'] });
-      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.addons() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.changeLog() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.public() });
       toast.success('Add-on pricing updated');
     },
     onError: (error: Error) => {
@@ -239,10 +288,14 @@ export function usePublishPricing() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        logPricingError('publish_pricing', error.message);
+        throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pricing'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.public() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pricing.changeLog() });
       toast.success('Pricing published', {
         description: 'Changes are now visible on the public pricing page.',
       });
