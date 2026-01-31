@@ -17,7 +17,6 @@ import {
   Settings,
   Building2,
   TrendingUp,
-  Calendar,
   DollarSign,
   ExternalLink,
   Send,
@@ -38,6 +37,7 @@ import {
 import { PlanPricingTable } from '@/components/superadmin/PlanPricingTable';
 import { AddonPricingTable } from '@/components/superadmin/AddonPricingTable';
 import { SubscriptionHealthSection } from '@/components/superadmin/SubscriptionHealthSection';
+import { PricingChangeLogDrawer } from '@/components/superadmin/PricingChangeLogDrawer';
 import { useAlertStats } from '@/hooks/useSubscriptionAlerts';
 
 const TIER_ORDER: SubscriptionTier[] = ['ESSENTIAL', 'PROFESSIONAL', 'ELITE'];
@@ -53,7 +53,7 @@ export default function PlansPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Header - matches Feature Flags structure */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -64,11 +64,12 @@ export default function PlansPage() {
             Platform pricing, tiers, and subscription health.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <PricingChangeLogDrawer />
           <Button variant="outline" size="sm" asChild>
             <a href="/pricing" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-2" />
-              View Pricing Page
+              View Pricing
             </a>
           </Button>
           <Button
@@ -77,31 +78,104 @@ export default function PlansPage() {
             disabled={publishPricing.isPending}
           >
             <Send className="h-4 w-4 mr-2" />
-            {publishPricing.isPending ? 'Publishing...' : 'Publish Pricing'}
+            {publishPricing.isPending ? 'Publishing...' : 'Publish'}
           </Button>
         </div>
       </div>
 
-      {/* Platform Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Resorts by Tier */}
-        <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl p-2.5 bg-primary/10">
-                <Building2 className="h-5 w-5 text-primary" />
+      {/* Filters / Scope Card - matches Feature Flags pattern */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Platform Overview Stats inline */}
+            <div className="flex items-center gap-6 flex-wrap flex-1">
+              {/* Total Resorts */}
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg p-2 bg-primary/10">
+                  <Building2 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Resorts</p>
+                  {isLoadingStats ? (
+                    <Skeleton className="h-5 w-8" />
+                  ) : (
+                    <p className="font-semibold">{tierStats?.total || 0}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">Total Resorts</p>
-                {isLoadingStats ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold">{tierStats?.total || 0}</p>
-                )}
+
+              {/* Estimated MRR */}
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg p-2 bg-success/10">
+                  <DollarSign className="h-4 w-4 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Est. MRR</p>
+                  {isLoadingStats || isLoadingPlans ? (
+                    <Skeleton className="h-5 w-16" />
+                  ) : (
+                    <p className="font-semibold text-success">
+                      ${estimatedMRR.toLocaleString()}
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {/* Paid Resorts */}
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg p-2 bg-info/10">
+                  <TrendingUp className="h-4 w-4 text-info" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Paid</p>
+                  {isLoadingStats ? (
+                    <Skeleton className="h-5 w-8" />
+                  ) : (
+                    <p className="font-semibold">
+                      {(tierStats?.distribution.PROFESSIONAL || 0) +
+                        (tierStats?.distribution.ELITE || 0)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Alerts */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 cursor-help">
+                      <div className={`rounded-lg p-2 ${alertStats && alertStats.total > 0 ? 'bg-warning/20' : 'bg-warning/10'}`}>
+                        <AlertTriangle className={`h-4 w-4 ${alertStats && alertStats.total > 0 ? 'text-warning' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Alerts</p>
+                        {isLoadingAlerts ? (
+                          <Skeleton className="h-5 w-8" />
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <p className={`font-semibold ${alertStats && alertStats.total > 0 ? 'text-warning' : ''}`}>
+                              {alertStats?.total || 0}
+                            </p>
+                            {alertStats && alertStats.expired > 0 && (
+                              <Badge variant="destructive" className="text-[9px] px-1 py-0">
+                                {alertStats.expired}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Expiring: {alertStats?.expiringSoon || 0} | Expired: {alertStats?.expired || 0}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
+
+            {/* Tier Distribution Badges */}
             {!isLoadingStats && tierStats && (
-              <div className="mt-3 flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
                 {TIER_ORDER.map((tier) => {
                   const count = tierStats.distribution[tier] || 0;
                   const info = getTierInfo(tier);
@@ -123,99 +197,13 @@ export default function PlansPage() {
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Estimated MRR */}
-        <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl p-2.5 bg-success/10">
-                <DollarSign className="h-5 w-5 text-success" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">Estimated MRR</p>
-                {isLoadingStats || isLoadingPlans ? (
-                  <Skeleton className="h-7 w-24 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold text-success">
-                    ${estimatedMRR.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Paid */}
-        <Card>
-          <CardContent className="pt-5">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl p-2.5 bg-info/10">
-                <TrendingUp className="h-5 w-5 text-info" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-muted-foreground">Active Paid</p>
-                {isLoadingStats ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold">
-                    {(tierStats?.distribution.PROFESSIONAL || 0) +
-                      (tierStats?.distribution.ELITE || 0)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Expiring Soon - from alerts */}
-        <Card className={alertStats && alertStats.total > 0 ? 'border-warning/50' : ''}>
-          <CardContent className="pt-5">
-            <TooltipProvider>
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl p-2.5 bg-warning/10">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs font-medium text-muted-foreground">Alerts</p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-3 w-3 text-muted-foreground/50 cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Expiring ({alertStats?.expiringSoon || 0}) + Expired ({alertStats?.expired || 0})</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  {isLoadingAlerts ? (
-                    <Skeleton className="h-7 w-12 mt-1" />
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-warning">
-                        {alertStats?.total || 0}
-                      </p>
-                      {alertStats && alertStats.expired > 0 && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          {alertStats.expired} expired
-                        </Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TooltipProvider>
-          </CardContent>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Subscription Health Section */}
-      <SubscriptionHealthSection />
-      </div>
-
-      {/* Pricing Configuration */}
+      {/* Pricing Configuration - matches Feature Flags tabs pattern */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
             Pricing Configuration
@@ -248,30 +236,26 @@ export default function PlansPage() {
         </CardContent>
       </Card>
 
-      {/* Guardrails / Source of Truth */}
-      <Card className="border-info/30 bg-info/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Info className="h-5 w-5 text-info" />
-            Source of Truth
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>
-            <strong>Tier features</strong> (what each plan includes) are defined in{' '}
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">src/lib/tier-features.ts</code>{' '}
-            and controlled via Feature Flags.
-          </p>
-          <p>
-            <strong>Pricing values</strong> (monthly costs) are now managed in the database and
-            displayed on the public pricing page.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Subscription Health Section */}
+      <SubscriptionHealthSection />
 
-      {/* Quick Links */}
+      {/* Source of Truth - Info Banner style matching Feature Flags */}
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-info/10 border border-info/30">
+        <Info className="h-5 w-5 text-info mt-0.5" />
+        <div>
+          <p className="font-medium text-sm">Source of Truth</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            <strong>Tier features</strong> are defined in{' '}
+            <code className="text-[10px] bg-muted px-1 py-0.5 rounded">src/lib/tier-features.ts</code>{' '}
+            and controlled via Feature Flags.{' '}
+            <strong>Pricing values</strong> are managed in the database.
+          </p>
+        </div>
+      </div>
+
+      {/* Quick Links - matches Feature Flags card styling */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-lg">Quick Links</CardTitle>
           <CardDescription>Jump to related management tools</CardDescription>
         </CardHeader>
@@ -284,8 +268,8 @@ export default function PlansPage() {
                     <Settings className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Tier Management</p>
-                    <p className="text-sm text-muted-foreground">Change resort subscription tiers</p>
+                    <p className="font-medium text-sm">Tier Management</p>
+                    <p className="text-xs text-muted-foreground">Change resort subscription tiers</p>
                   </div>
                 </div>
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -299,8 +283,8 @@ export default function PlansPage() {
                     <ToggleRight className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <p className="font-medium">Feature Flags</p>
-                    <p className="text-sm text-muted-foreground">Control features by tier and resort</p>
+                    <p className="font-medium text-sm">Feature Flags</p>
+                    <p className="text-xs text-muted-foreground">Control features by tier and resort</p>
                   </div>
                 </div>
                 <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
