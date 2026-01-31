@@ -135,3 +135,17 @@ export function formatFeedbackMessage(
 ): string {
   return `Feedback received from ${guestName}, check-out ${checkOutDate}. Overall rating: ${overallRating}/5.`;
 }
+
+/**
+ * Helper to format transport notification messages for staff
+ */
+export function formatTransportStaffMessage(
+  guestName: string,
+  roomNumber: string,
+  pickupLocation: string,
+  partySize: number,
+  requestType: 'on_demand' | 'scheduled' | 'fixed_route'
+): string {
+  const typeLabel = requestType === 'on_demand' ? 'on-demand' : requestType === 'scheduled' ? 'scheduled' : 'fixed route';
+  return `${guestName} (Room ${roomNumber}) requested ${typeLabel} transport from ${pickupLocation} for ${partySize} guest${partySize > 1 ? 's' : ''}.`;
+}
