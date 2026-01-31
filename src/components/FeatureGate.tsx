@@ -4,6 +4,45 @@
  * Centralized feature flag gating with premium fallback UI.
  * Wraps any content that should only render when specific flags are enabled.
  * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CODE CONVENTIONS - Feature Flag Gating Patterns
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * ✅ RECOMMENDED PATTERNS:
+ * 
+ * 1. Route/Page Gating (primary pattern):
+ *    <FeatureGate requiredFlags={['enable_transport']}>
+ *      <TransportDashboard />
+ *    </FeatureGate>
+ * 
+ * 2. Inline UI Element Gating:
+ *    <FeatureVisible flag="enable_loyalty_manual_adjustments">
+ *      <AdjustPointsButton />
+ *    </FeatureVisible>
+ * 
+ * 3. Logic-Based Gating in Hooks:
+ *    const canAdjust = useFeatureEnabled('enable_loyalty_manual_adjustments');
+ *    if (!canAdjust) return null;
+ * 
+ * 4. Multiple Features Check:
+ *    const { allEnabled } = useFeaturesEnabled(['enable_reports', 'enable_reports_exports']);
+ * 
+ * ❌ AVOID:
+ * 
+ * - Calling useFeatureFlags() directly in leaf components
+ *   → Use useFeatureFlagAccess() from provider instead
+ * 
+ * - Duplicating flag checks across parent and child components
+ *   → Gate at ONE level (prefer route/page level)
+ * 
+ * - Using raw flagsMap without considering parent module dependencies
+ *   → Always use isEnabledEffective() for correct resolution
+ * 
+ * - Forgetting to wrap portals with FeatureFlagsProvider
+ *   → StaffShell and GuestLayout handle this automatically
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
  * Usage:
  *   <FeatureGate requiredFlags={['enable_transport']}>
  *     <TransportDashboard />
