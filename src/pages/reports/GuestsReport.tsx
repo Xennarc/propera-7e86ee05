@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Download, Users, Bed, Calendar } from 'lucide-react';
+import { Download, Users, Bed, Calendar, Lock } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
+import { FeatureVisible } from '@/components/FeatureGate';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { format, subDays, differenceInDays } from 'date-fns';
@@ -131,10 +132,12 @@ export default function GuestsReport() {
           <h1 className="text-3xl font-bold text-foreground">Guests Report</h1>
           <p className="text-muted-foreground">Guest mix, channels, and length of stay analysis</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
-        </Button>
+        <FeatureVisible flag="enable_reports_exports">
+          <Button onClick={exportCSV} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </FeatureVisible>
       </div>
 
       {/* Date Presets & Filters */}

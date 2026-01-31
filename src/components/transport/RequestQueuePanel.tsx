@@ -15,9 +15,11 @@ import {
   Inbox,
   Accessibility,
   Star,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { RequestQueueCard } from './RequestQueueCard';
 import type { TransportQueueRequest } from '@/hooks/transport/useTransportQueue';
 
@@ -42,6 +44,9 @@ export function RequestQueuePanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  
+  // Sub-feature flag for staff dispatch actions
+  const dispatchEnabled = useFeatureEnabled('enable_requests_staff_dispatch');
   
   // Filter and search requests
   const filteredRequests = useMemo(() => {
@@ -188,44 +193,51 @@ export function RequestQueuePanel({
           </Button>
         </div>
         
-        {/* Selection mode toggle */}
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant={selectionMode ? 'secondary' : 'outline'}
-            className="h-9"
-            onClick={toggleSelectionMode}
-          >
-            {selectionMode ? (
+        {/* Selection mode toggle - gated by dispatch flag */}
+        {dispatchEnabled ? (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={selectionMode ? 'secondary' : 'outline'}
+              className="h-9"
+              onClick={toggleSelectionMode}
+            >
+              {selectionMode ? (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  {selectedIds.size} selected
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4 mr-2" />
+                  Select Multiple
+                </>
+              )}
+            </Button>
+            
+            {selectionMode && (
               <>
-                <CheckSquare className="h-4 w-4 mr-2" />
-                {selectedIds.size} selected
-              </>
-            ) : (
-              <>
-                <Square className="h-4 w-4 mr-2" />
-                Select Multiple
+                <Button size="sm" variant="ghost" onClick={selectAll} className="h-9">
+                  Select All
+                </Button>
+                <Button 
+                  size="sm"
+                  disabled={selectedIds.size === 0 || isCreatingTrip}
+                  onClick={handleCreateTrip}
+                  className="h-9 ml-auto"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Trip ({selectedIds.size})
+                </Button>
               </>
             )}
-          </Button>
-          
-          {selectionMode && (
-            <>
-              <Button size="sm" variant="ghost" onClick={selectAll} className="h-9">
-                Select All
-              </Button>
-              <Button 
-                size="sm"
-                disabled={selectedIds.size === 0 || isCreatingTrip}
-                onClick={handleCreateTrip}
-                className="h-9 ml-auto"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Trip ({selectedIds.size})
-              </Button>
-            </>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Lock className="h-4 w-4" />
+            <span>Staff dispatch actions disabled</span>
+          </div>
+        )}
       </div>
       
       {/* Request list */}

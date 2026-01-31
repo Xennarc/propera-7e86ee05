@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Key, Copy, RefreshCw, Check, Shield } from 'lucide-react';
+import { Key, Copy, RefreshCw, Check, Shield, Lock } from 'lucide-react';
+import { FeatureVisible, useFeatureEnabled } from '@/components/FeatureGate';
 import { formatDistanceToNow } from 'date-fns';
 
 interface GuestPinManagerProps {
@@ -97,6 +99,27 @@ export function GuestPinManager({
   };
 
   const hasPin = portalEnabled && pinLast4;
+  const pinEnabled = useFeatureEnabled('enable_guests_pin_management');
+
+  // If PIN management is disabled, show a disabled hint card
+  if (!pinEnabled) {
+    return (
+      <Card className="opacity-70">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-muted-foreground">
+            <Lock className="h-5 w-5" />
+            Guest Portal PIN
+            <Badge variant="outline" className="ml-auto text-xs">Disabled</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            PIN management has been disabled for this resort.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>

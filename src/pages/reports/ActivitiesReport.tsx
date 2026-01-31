@@ -26,6 +26,7 @@ import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { ReportStatCard } from '@/components/reports/ReportStatCard';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FeatureVisible } from '@/components/FeatureGate';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { TierGate } from '@/components/tier/TierGate';
@@ -300,10 +301,12 @@ export default function ActivitiesReport() {
           <h1 className="text-2xl font-bold text-foreground">Activities Report</h1>
           <p className="text-muted-foreground">Activity booking statistics and revenue analysis</p>
         </div>
-        <Button onClick={exportCSV} disabled={!reportData || isLoading} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
+        <FeatureVisible flag="enable_reports_exports">
+          <Button onClick={exportCSV} disabled={!reportData || isLoading} variant="outline">
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </FeatureVisible>
       </div>
 
       {/* Filters */}
