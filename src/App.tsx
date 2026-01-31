@@ -101,6 +101,7 @@ const FeatureFlagsPage = lazy(() => import("./pages/superadmin/FeatureFlagsPage"
 const HealthMonitoringPage = lazy(() => import("./pages/superadmin/HealthMonitoringPage"));
 const AuditLogsPage = lazy(() => import("./pages/superadmin/AuditLogsPage"));
 const SupportToolsPage = lazy(() => import("./pages/superadmin/SupportToolsPage"));
+const TransportQAPage = lazy(() => import("./pages/superadmin/TransportQAPage"));
 const NotificationsPage = lazy(() => import("./pages/notifications/NotificationsPage"));
 const LoyaltyOverviewPage = lazy(() => import("./pages/loyalty/LoyaltyOverviewPage"));
 const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyProgramSettingsPage"));
@@ -197,6 +198,7 @@ const App = () => (
                   <Route path="health" element={<HealthMonitoringPage />} />
                   <Route path="audit" element={<AuditLogsPage />} />
                   <Route path="support" element={<SupportToolsPage />} />
+                  <Route path="transport-qa" element={<TransportQAPage />} />
                 </Route>
                 
                 {/* Staff routes */}

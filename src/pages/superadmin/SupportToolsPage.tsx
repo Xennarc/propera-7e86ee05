@@ -36,6 +36,7 @@ import {
   Search,
   Zap,
   History,
+  Car,
 } from 'lucide-react';
 import {
   Select,
@@ -404,7 +405,7 @@ export default function SupportToolsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin/health')}>
               <Activity className="h-5 w-5 text-primary" />
               <span className="font-semibold">System Health</span>
@@ -419,6 +420,11 @@ export default function SupportToolsPage() {
               <User className="h-5 w-5 text-primary" />
               <span className="font-semibold">User Lookup</span>
               <span className="text-xs text-muted-foreground">Find and manage users</span>
+            </Button>
+            <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin/transport-qa')}>
+              <Car className="h-5 w-5 text-primary" />
+              <span className="font-semibold">Transport QA</span>
+              <span className="text-xs text-muted-foreground">Test buggy module flows</span>
             </Button>
             <Button variant="outline" className="h-auto p-4 flex flex-col items-start gap-2" onClick={() => navigate('/superadmin')}>
               <Search className="h-5 w-5 text-primary" />

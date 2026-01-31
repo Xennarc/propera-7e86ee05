@@ -102,7 +102,7 @@ serve(async (req) => {
     // Prefer resort with code=DEMO, otherwise get the first is_demo=true resort
     const { data: demoResorts, error: resortError } = await supabase
       .from("resorts")
-      .select("id, code, is_demo, name")
+      .select("id, code, is_demo, name, feature_flags")
       .or(`code.eq.${DEMO_RESORT_CODE},is_demo.eq.true`)
       .order("code", { ascending: true }); // DEMO comes first alphabetically
 
@@ -140,10 +140,10 @@ serve(async (req) => {
     }
 
     const results = {
-      deleted: { activity_bookings: 0, restaurant_reservations: 0, guest_requests: 0, booking_attendees: 0 },
+      deleted: { activity_bookings: 0, restaurant_reservations: 0, guest_requests: 0, booking_attendees: 0, buggy_requests: 0 },
       freshness: { guests_updated: 0 },
       availability: { sessions_created: 0, slots_created: 0, sessions_archived: 0, slots_archived: 0 },
-      seeded: { activity_bookings: 0, restaurant_reservations: 0, service_requests: 0 },
+      seeded: { activity_bookings: 0, restaurant_reservations: 0, service_requests: 0, transport: { stops: 0, routes: 0, buggies: 0, drivers: 0, requests: 0 } },
     };
 
     const today = new Date();
@@ -714,6 +714,250 @@ serve(async (req) => {
     }
 
     console.log(`Service requests seeded: ${results.seeded.service_requests}`);
+
+    // ============================================================
+    // PASS 7: TRANSPORT - Seed stops, routes, buggies, drivers, requests
+    // ============================================================
+    console.log("Pass 7: Auto-healing transport infrastructure...");
+
+    // Check if transport module is enabled
+    const transportEnabled = demoResort.feature_flags?.transport_enabled ?? false;
+    
+    if (transportEnabled && !isDryRun) {
+      // Count existing stops
+      const { count: stopsCount } = await supabase
+        .from("buggy_stops")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId);
+
+      // Seed stops if needed (target: 15 stops)
+      if ((stopsCount || 0) < 5) {
+        const stopData = [
+          // Main areas
+          { name: "Main Reception", zone: "Central", sort_order: 1, is_active: true },
+          { name: "Beach Bar", zone: "Beach", sort_order: 2, is_active: true },
+          { name: "Sunset Restaurant", zone: "Beach", sort_order: 3, is_active: true },
+          { name: "Overwater Spa", zone: "Spa", sort_order: 4, is_active: true },
+          { name: "Dive Center", zone: "Water Sports", sort_order: 5, is_active: true },
+          { name: "Water Sports Jetty", zone: "Water Sports", sort_order: 6, is_active: true },
+          { name: "Kids Club", zone: "Central", sort_order: 7, is_active: true },
+          { name: "Fitness Center", zone: "Central", sort_order: 8, is_active: true },
+          // Villa zones
+          { name: "Beach Villas - North", zone: "Beach Villas", sort_order: 10, is_active: true },
+          { name: "Beach Villas - South", zone: "Beach Villas", sort_order: 11, is_active: true },
+          { name: "Water Villas - Sunrise", zone: "Water Villas", sort_order: 12, is_active: true },
+          { name: "Water Villas - Sunset", zone: "Water Villas", sort_order: 13, is_active: true },
+          { name: "Garden Villas", zone: "Garden Villas", sort_order: 14, is_active: true },
+          { name: "Pool Villas", zone: "Pool Villas", sort_order: 15, is_active: true },
+          { name: "Presidential Suite", zone: "Premium", sort_order: 16, is_active: true },
+        ].map(s => ({ ...s, resort_id: demoResortId }));
+
+        const { data: insertedStops } = await supabase
+          .from("buggy_stops")
+          .upsert(stopData, { onConflict: "resort_id,name", ignoreDuplicates: true })
+          .select();
+        
+        results.seeded.transport.stops = insertedStops?.length || 0;
+      }
+
+      // Get all stops for route creation
+      const { data: allStops } = await supabase
+        .from("buggy_stops")
+        .select("id, name, zone")
+        .eq("resort_id", demoResortId)
+        .eq("is_active", true);
+
+      // Count existing routes
+      const { count: routesCount } = await supabase
+        .from("buggy_routes")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId);
+
+      // Seed routes if needed (target: 3 routes)
+      if ((routesCount || 0) < 2 && allStops?.length) {
+        const routeData = [
+          { name: "Beach Circuit", color_tag: "#3B82F6", is_active: true },
+          { name: "Villa Express", color_tag: "#10B981", is_active: true },
+          { name: "Restaurant Shuttle", color_tag: "#F59E0B", is_active: true },
+        ].map(r => ({ ...r, resort_id: demoResortId }));
+
+        const { data: insertedRoutes } = await supabase
+          .from("buggy_routes")
+          .upsert(routeData, { onConflict: "resort_id,name", ignoreDuplicates: true })
+          .select();
+
+        results.seeded.transport.routes = insertedRoutes?.length || 0;
+      }
+
+      // Count existing buggies
+      const { count: buggiesCount } = await supabase
+        .from("buggies")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId);
+
+      // Seed buggies if needed (target: 5 buggies)
+      if ((buggiesCount || 0) < 3) {
+        const buggyData = [
+          { name: "Buggy Alpha", capacity: 4, status: "available", is_accessible: false },
+          { name: "Buggy Beta", capacity: 6, status: "available", is_accessible: false },
+          { name: "Buggy Gamma", capacity: 4, status: "available", is_accessible: true },
+          { name: "Buggy Delta", capacity: 4, status: "in_use", is_accessible: false },
+          { name: "Buggy Echo", capacity: 6, status: "available", is_accessible: false },
+        ].map(b => ({ ...b, resort_id: demoResortId, metadata: {} }));
+
+        const { data: insertedBuggies } = await supabase
+          .from("buggies")
+          .upsert(buggyData, { onConflict: "resort_id,name", ignoreDuplicates: true })
+          .select();
+
+        results.seeded.transport.buggies = insertedBuggies?.length || 0;
+      }
+
+      // Get staff users for driver assignment
+      const { data: staffUsers } = await supabase
+        .from("resort_memberships")
+        .select("user_id, profiles!inner(display_name)")
+        .eq("resort_id", demoResortId)
+        .in("role", ["TRANSPORT", "STAFF", "MANAGER"])
+        .limit(4);
+
+      // Count existing drivers
+      const { count: driversCount } = await supabase
+        .from("buggy_drivers")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId);
+
+      // Seed drivers if needed (target: 3 drivers)
+      if ((driversCount || 0) < 2 && staffUsers?.length) {
+        const driverData = staffUsers.slice(0, 3).map(u => ({
+          resort_id: demoResortId,
+          user_id: u.user_id,
+          status: "online",
+          metadata: {},
+          last_seen_at: new Date().toISOString(),
+        }));
+
+        const { data: insertedDrivers } = await supabase
+          .from("buggy_drivers")
+          .upsert(driverData, { onConflict: "resort_id,user_id", ignoreDuplicates: true })
+          .select();
+
+        results.seeded.transport.drivers = insertedDrivers?.length || 0;
+      }
+
+      // Delete old demo buggy requests (older than 1 day)
+      const yesterday = formatDate(addDays(today, -1));
+      // First count, then delete
+      const { count: oldRequestsCount } = await supabase
+        .from("buggy_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId)
+        .lt("created_at", yesterday);
+      
+      if (oldRequestsCount && oldRequestsCount > 0) {
+        await supabase
+          .from("buggy_requests")
+          .delete()
+          .eq("resort_id", demoResortId)
+          .lt("created_at", yesterday);
+      }
+      
+      results.deleted.buggy_requests = oldRequestsCount || 0;
+
+      // Count active buggy requests
+      const { count: activeRequestsCount } = await supabase
+        .from("buggy_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("resort_id", demoResortId)
+        .not("status", "in", "(completed,cancelled,failed)");
+
+      // Seed sample requests if needed (target: 4 active requests)
+      if ((activeRequestsCount || 0) < 2 && allStops?.length) {
+        const { data: demoGuest } = await supabase
+          .from("guests")
+          .select("id, room_number, first_name, last_name")
+          .eq("resort_id", demoResortId)
+          .eq("room_number", "101")
+          .lte("check_in_date", todayStr)
+          .gte("check_out_date", todayStr)
+          .single();
+
+        const { data: otherGuest } = await supabase
+          .from("guests")
+          .select("id, room_number")
+          .eq("resort_id", demoResortId)
+          .eq("room_number", "102")
+          .lte("check_in_date", todayStr)
+          .gte("check_out_date", todayStr)
+          .single();
+
+        if (demoGuest && allStops.length >= 4) {
+          const reception = allStops.find(s => s.name.includes("Reception"));
+          const beach = allStops.find(s => s.name.includes("Beach Bar"));
+          const spa = allStops.find(s => s.name.includes("Spa"));
+          const dive = allStops.find(s => s.name.includes("Dive"));
+          const restaurant = allStops.find(s => s.name.includes("Restaurant"));
+
+          const sampleRequests = [
+            // On-demand request - just created
+            {
+              resort_id: demoResortId,
+              guest_id: demoGuest.id,
+              request_type: "on_demand",
+              request_source: "guest_app",
+              pickup_stop_id: reception?.id || allStops[0].id,
+              dropoff_stop_id: beach?.id || allStops[1].id,
+              party_size: 2,
+              status: "requested",
+              priority: "normal",
+              needs_accessible: false,
+              created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 min ago
+            },
+            // Scheduled request for later today
+            {
+              resort_id: demoResortId,
+              guest_id: demoGuest.id,
+              request_type: "scheduled",
+              request_source: "guest_app",
+              pickup_stop_id: spa?.id || allStops[2].id,
+              dropoff_stop_id: restaurant?.id || allStops[3].id,
+              party_size: 4,
+              status: "queued",
+              priority: "normal",
+              needs_accessible: false,
+              scheduled_for: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours from now
+              created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 min ago
+            },
+          ];
+
+          // Add request from other guest if exists
+          if (otherGuest) {
+            sampleRequests.push({
+              resort_id: demoResortId,
+              guest_id: otherGuest.id,
+              request_type: "on_demand",
+              request_source: "guest_app",
+              pickup_stop_id: dive?.id || allStops[3].id,
+              dropoff_stop_id: reception?.id || allStops[0].id,
+              party_size: 1,
+              status: "requested",
+              priority: "high",
+              needs_accessible: true,
+              created_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 min ago
+            });
+          }
+
+          const { data: insertedRequests } = await supabase
+            .from("buggy_requests")
+            .insert(sampleRequests)
+            .select();
+
+          results.seeded.transport.requests = insertedRequests?.length || 0;
+        }
+      }
+    }
+
+    console.log(`Transport seeded:`, results.seeded.transport);
 
     // Update log entry with results
     const duration = Date.now() - startTime;
