@@ -90,6 +90,24 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     is_dangerous: false,
     scope: 'global',
   },
+  {
+    key: 'enable_guests_pin_management',
+    label: 'Guest PIN Management',
+    description: 'Allow staff to generate and manage guest login PINs for the guest portal.',
+    category: 'core',
+    tier: 'starter',
+    is_dangerous: false,
+    scope: 'global',
+  },
+  {
+    key: 'enable_guests_prearrival_tab',
+    label: 'Guest Pre-Arrival Tab',
+    description: 'Show the Pre-Arrival tab on guest detail pages.',
+    category: 'core',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
 
   // Requests Module
   {
