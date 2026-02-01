@@ -30,11 +30,13 @@ export function GuestQuickActions() {
   const { data: catalogItems } = useRequestCatalog(guest?.resortId || '', !!guest?.resortId);
   const hasCatalog = catalogItems && catalogItems.length > 0;
   
-  // Check if transport is enabled via feature flag (modern system)
+  // Check feature flags (both can be enabled simultaneously)
   const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
+  const requestsEnabled = useFeatureEnabled('enable_requests_guest_submit');
 
-  // Build quick actions dynamically based on available features
+  // Build quick actions dynamically - additive logic (both features can coexist)
   const quickActions: QuickAction[] = [
+    // Always show Activities & Dining
     {
       icon: IconActivities,
       label: 'Activities',
@@ -53,7 +55,7 @@ export function GuestQuickActions() {
     },
   ];
 
-  // Add transport action if enabled (replaces bookings in 3rd slot)
+  // Add transport if enabled
   if (transportEnabled) {
     quickActions.push({
       icon: Car,
@@ -63,24 +65,20 @@ export function GuestQuickActions() {
       bgClass: 'bg-emerald-500',
       description: 'Request a ride',
     });
-    quickActions.push({
-      icon: IconBookings,
-      label: 'Bookings',
-      href: '/guest/bookings',
-      colorClass: 'text-white',
-      bgClass: 'bg-purple-500',
-      description: 'View & manage',
-    });
-  } else {
-    quickActions.push({
-      icon: IconBookings,
-      label: 'Bookings',
-      href: '/guest/bookings',
-      colorClass: 'text-white',
-      bgClass: 'bg-purple-500',
-      description: 'View & manage',
-    });
-    // Show either "Requests" (with catalog) or "Make a Request" (simple mode)
+  }
+
+  // Always add Bookings
+  quickActions.push({
+    icon: IconBookings,
+    label: 'Bookings',
+    href: '/guest/bookings',
+    colorClass: 'text-white',
+    bgClass: 'bg-purple-500',
+    description: 'View & manage',
+  });
+
+  // Add Requests if enabled (independent of transport)
+  if (requestsEnabled) {
     if (hasCatalog) {
       quickActions.push({
         icon: Bell,
@@ -104,7 +102,10 @@ export function GuestQuickActions() {
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+      <div className={cn(
+        "grid gap-2.5 sm:gap-3",
+        quickActions.length <= 4 ? "grid-cols-4" : "grid-cols-5"
+      )}>
         {quickActions.map((action, index) => {
           const Icon = action.icon;
           const content = (
