@@ -15,78 +15,20 @@ import { GuestNotificationBell } from '@/components/notifications/GuestNotificat
 import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
 import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
-import { useEffect, useRef, useState, useMemo, memo } from 'react';
+import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
+import { useEffect, useRef, useState, memo } from 'react';
 import {
-  IconStay,
-  IconActivities,
-  IconRestaurants,
-  IconBookings,
   IconLogout,
 } from '@/components/icons/ProperaIcons';
 import { ProperaMark, ProperaLoader } from '@/components/icons/ProperaLogo';
-import { Crown, Bell, Lock } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { SkipLink } from '@/components/a11y/SkipLink';
 
-const baseNavItems = [
-  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
-  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
-  { icon: Bell, labelKey: 'nav.requests', href: '/guest/requests', key: 'guest-requests', restrictPrearrival: true },
-  { icon: IconBookings, labelKey: 'nav.bookings', href: '/guest/bookings', key: 'guest-bookings' },
-];
-
-const loyaltyNavItem = { icon: Crown, labelKey: 'nav.loyalty', href: '/guest/loyalty', key: 'guest-loyalty' };
-
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
-
-// Memoized nav item with unified lime indicator
-const NavItem = memo(({ item, isActive, label, isPrearrivalRestricted }: { 
-  item: { icon: React.ComponentType<{ className?: string }>; href: string }; 
-  isActive: boolean; 
-  label: string;
-  isPrearrivalRestricted?: boolean;
-}) => {
-  const Icon = item.icon;
-  return (
-    <Link
-      to={item.href}
-      className={cn(
-        "guest-nav-item relative min-w-[60px] tap-target touch-passive",
-        isActive 
-          ? "text-primary" 
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-      )}
-    >
-      {/* Active indicator using guest branding with glow */}
-      {isActive && (
-        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary guest-nav-indicator shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
-      )}
-      <div className="relative">
-        <Icon className={cn(
-          "h-5 w-5 sm:h-6 sm:w-6 transition-all duration-200 guest-nav-icon",
-          isActive && "scale-110 drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)]"
-        )} />
-        {/* Lock overlay for pre-arrival restricted items */}
-        {isPrearrivalRestricted && (
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-muted flex items-center justify-center">
-            <Lock className="h-2 w-2 text-muted-foreground" />
-          </div>
-        )}
-      </div>
-      {/* Minimum 11px text for mobile readability */}
-      <span className={cn(
-        "text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap text-center",
-        isActive && "font-bold text-primary"
-      )}>
-        {label}
-      </span>
-    </Link>
-  );
-});
-NavItem.displayName = 'NavItem';
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
@@ -163,16 +105,8 @@ export function GuestLayout() {
   });
   const isLoyaltyEnabled = !!loyaltyProgram?.is_enabled;
 
-  // Build nav items based on loyalty status
-  const navItems = useMemo(() => {
-    return isLoyaltyEnabled ? [...baseNavItems, loyaltyNavItem] : baseNavItems;
-  }, [isLoyaltyEnabled]);
-
-  // Get current tab key
-  const currentTab = navItems.find(item => 
-    location.pathname === item.href || 
-    (item.href !== '/guest' && location.pathname.startsWith(item.href))
-  )?.key || 'guest-home';
+  // Get current path for scroll tracking
+  const currentTab = location.pathname;
 
   // Track scroll for header shadow
   useEffect(() => {
@@ -320,31 +254,8 @@ export function GuestLayout() {
             </div>
           </main>
 
-          {/* Mobile-optimized Bottom Navigation with premium elevation */}
-          <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
-            <div 
-              className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
-              style={{ 
-                height: 'var(--guest-nav-h)', 
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
-              }}
-            >
-              {navItems.map((item) => {
-                const isActive = location.pathname === item.href || 
-                  (item.href !== '/guest' && location.pathname.startsWith(item.href));
-                const itemWithRestriction = item as typeof item & { restrictPrearrival?: boolean };
-                return (
-                  <NavItem 
-                    key={item.href} 
-                    item={item} 
-                    isActive={isActive} 
-                    label={t(item.labelKey)}
-                    isPrearrivalRestricted={isPrearrival && itemWithRestriction.restrictPrearrival}
-                  />
-                );
-              })}
-            </div>
-          </nav>
+          {/* Mobile-optimized Bottom Navigation - feature-flag gated */}
+          <GuestBottomNav isLoyaltyEnabled={isLoyaltyEnabled} />
 
           {/* Debug Console - only shown with ?debug=1 */}
           {showDebugPanel && <GuestDebugConsole />}
