@@ -6659,6 +6659,15 @@ export type Database = {
         Returns: Json
       }
       get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
+      get_effective_feature_flags: {
+        Args: { _guest_id?: string; _resort_id: string }
+        Returns: {
+          category: string
+          is_enabled: boolean
+          key: string
+          label: string
+        }[]
+      }
       get_effective_retention: {
         Args: { _dept_key: string; _resort_id: string }
         Returns: {
