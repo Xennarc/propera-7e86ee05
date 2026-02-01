@@ -255,7 +255,7 @@ export default function GuestHome() {
         />
       )}
 
-      <div className="space-y-5 md:space-y-6">
+      <div className="space-y-5 md:space-y-6 guest-safe-bottom">
       {/* Pre-arrival Nudge for In-Stay Guests - persistent until completed */}
       {!isPrearrival && 
        prearrivalData?.settings?.is_enabled && 

@@ -10,7 +10,7 @@ import { Bell, MessageSquarePlus, Car } from 'lucide-react';
 import { RequestQuickSheet } from './RequestQuickSheet';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useRequestCatalog } from '@/hooks/useServiceRequests';
-import { useResortSettings } from '@/hooks/useResortSettings';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 
 interface QuickAction {
   icon: React.ElementType;
@@ -30,9 +30,8 @@ export function GuestQuickActions() {
   const { data: catalogItems } = useRequestCatalog(guest?.resortId || '', !!guest?.resortId);
   const hasCatalog = catalogItems && catalogItems.length > 0;
   
-  // Check if transport is enabled
-  const { data: settings } = useResortSettings(guest?.resortId);
-  const transportEnabled = settings?.transport_enabled ?? false;
+  // Check if transport is enabled via feature flag (modern system)
+  const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
 
   // Build quick actions dynamically based on available features
   const quickActions: QuickAction[] = [
