@@ -370,6 +370,52 @@ export function useFeatureEnabled(flag: string): boolean {
 }
 
 /**
+ * Stable hook that distinguishes "unknown/loading" from "definitely disabled".
+ * 
+ * Returns:
+ * - enabled: true/false when resolved, null when truly unknown (loading with no cache)
+ * - loading: Whether the flags are currently being fetched
+ * - resolved: Convenience boolean indicating if we have a definitive answer
+ * 
+ * Use this when you need to show a loading state instead of hiding content.
+ */
+export function useFeatureEnabledStable(flag: string): {
+  enabled: boolean | null;
+  loading: boolean;
+  resolved: boolean;
+} {
+  const flagContext = useFeatureFlagAccessSafe();
+  
+  // No provider - treat as enabled (fail open)
+  if (!flagContext) {
+    return { enabled: true, loading: false, resolved: true };
+  }
+  
+  const hasCachedData = Object.keys(flagContext.flagsMap).length > 0;
+  
+  // If loading but have cache, use cached value
+  if (flagContext.loading && hasCachedData) {
+    return {
+      enabled: flagContext.isEnabledEffective(flag),
+      loading: true,
+      resolved: true, // We have a definitive cached answer
+    };
+  }
+  
+  // If loading with no cache - truly unknown
+  if (flagContext.loading && !hasCachedData) {
+    return { enabled: null, loading: true, resolved: false };
+  }
+  
+  // Fully loaded
+  return {
+    enabled: flagContext.isEnabledEffective(flag),
+    loading: false,
+    resolved: true,
+  };
+}
+
+/**
  * Hook for checking multiple features
  */
 export function useFeaturesEnabled(flags: string[]): {

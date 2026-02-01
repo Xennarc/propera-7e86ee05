@@ -10,7 +10,8 @@ import { Bell, MessageSquarePlus, Car } from 'lucide-react';
 import { RequestQuickSheet } from './RequestQuickSheet';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useRequestCatalog } from '@/hooks/useServiceRequests';
-import { useFeatureEnabled } from '@/components/FeatureGate';
+import { useFeatureEnabledStable } from '@/components/FeatureGate';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface QuickAction {
   icon: React.ElementType;
@@ -22,17 +23,35 @@ interface QuickAction {
   description?: string;
 }
 
+/**
+ * Skeleton placeholder for quick action buttons during loading
+ */
+function QuickActionSkeleton() {
+  return (
+    <div className="h-full min-h-[88px] sm:min-h-[100px] rounded-2xl overflow-hidden">
+      <Skeleton className="h-full w-full" />
+    </div>
+  );
+}
+
 export function GuestQuickActions() {
   const { guest } = useGuestAuth();
   const [quickSheetOpen, setQuickSheetOpen] = useState(false);
 
   // Check if resort has configured a request catalog
-  const { data: catalogItems } = useRequestCatalog(guest?.resortId || '', !!guest?.resortId);
+  const { data: catalogItems, isLoading: catalogLoading } = useRequestCatalog(guest?.resortId || '', !!guest?.resortId);
   const hasCatalog = catalogItems && catalogItems.length > 0;
   
-  // Check feature flags (both can be enabled simultaneously)
-  const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
-  const requestsEnabled = useFeatureEnabled('enable_requests_guest_submit');
+  // Check feature flags with stable resolution (distinguishes loading vs false)
+  const transport = useFeatureEnabledStable('enable_transport_guest_booking');
+  const requests = useFeatureEnabledStable('enable_requests_guest_submit');
+  
+  // Determine if we're still resolving critical flags
+  const flagsResolving = !transport.resolved || !requests.resolved;
+  
+  // Use resolved values (null becomes false after resolution)
+  const transportEnabled = transport.enabled === true;
+  const requestsEnabled = requests.enabled === true;
 
   // Build quick actions dynamically - additive logic (both features can coexist)
   const quickActions: QuickAction[] = [
@@ -99,6 +118,18 @@ export function GuestQuickActions() {
         description: 'Ask for anything',
       });
     }
+  }
+
+  // Show skeleton grid while flags are resolving (first load only)
+  if (flagsResolving) {
+    return (
+      <div className="grid grid-cols-4 gap-2.5 sm:gap-3">
+        <QuickActionSkeleton />
+        <QuickActionSkeleton />
+        <QuickActionSkeleton />
+        <QuickActionSkeleton />
+      </div>
+    );
   }
 
   return (
