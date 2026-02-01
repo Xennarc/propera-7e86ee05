@@ -342,8 +342,18 @@ export function FeatureVisible({
 export function useFeatureEnabled(flag: string): boolean {
   const flagContext = useFeatureFlagAccessSafe();
   
-  if (!flagContext) return true; // Fail open
-  if (flagContext.loading) return false;
+  if (!flagContext) return true; // Fail open - no provider
+  
+  // During loading, check if we have cached data
+  // This prevents flicker when flags are already cached from previous render
+  if (flagContext.loading) {
+    // If we have any flags in the map, use them (cached data)
+    if (Object.keys(flagContext.flagsMap).length > 0) {
+      return flagContext.isEnabledEffective(flag);
+    }
+    // No cached data yet - fail closed for security
+    return false;
+  }
   
   return flagContext.isEnabledEffective(flag);
 }
