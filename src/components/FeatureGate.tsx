@@ -112,10 +112,11 @@ export function FeatureGate({
     return <>{children}</>;
   }
 
-  const { loading, isEnabledEffective } = flagContext;
+  const { loading, isEnabledEffective, flagsMap } = flagContext;
 
-  // Loading state
-  if (loading) {
+  // Loading state - only show loader if no cached data available
+  // This prevents feature flash when navigating with stale-while-revalidate
+  if (loading && Object.keys(flagsMap).length === 0) {
     return <FeatureGateLoader />;
   }
 
