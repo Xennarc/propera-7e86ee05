@@ -1,177 +1,155 @@
 
-# Fix Plan: Guest Portal Feature Visibility & Business Logic
+# Fix: Guest PIN Management Showing "Disabled" Despite Features Being Enabled
 
-## Summary
+## Problem Summary
 
-This plan addresses three interconnected issues affecting the Guest Portal:
+The "Guest Portal PIN" card on the Guest Detail page shows **"PIN management has been disabled for this resort"** even though all feature flags appear enabled.
 
-1. **Production build not deploying** - Recent code changes haven't reached production
-2. **FeatureVisible component bug** - Returns `null` during loading state without checking cached data
-3. **Business logic update** - When both Buggy and Requests are enabled, only show Buggy in the quick actions grid
+**Root Cause:** The feature flag `enable_guests_pin_management` does not exist in the database.
 
 ---
 
 ## Technical Analysis
 
-### Issue 1: Production Build Failure
+### Current State
 
-The user confirmed the publish started failing after the recent feature flag edits. The screenshot shows the OLD behavior (3 buttons only), which confirms the code changes made earlier in this session haven't deployed.
+| Component | Status |
+|-----------|--------|
+| `enable_guests_pin_management` in `feature-flag-registry.ts` | ❌ **MISSING** |
+| `enable_guests_pin_management` in `feature-flag-modules.ts` | ✅ Listed as child of `enable_guests` |
+| `enable_guests_pin_management` in `feature_flags` table | ❌ **NOT SEEDED** |
+| `enable_guests` (parent) in database | ✅ Enabled globally |
 
-**Root cause**: Need to verify the build compiles successfully. The changes we made are syntactically correct, but we should ensure there are no hidden issues.
+### Resolution Logic Chain
 
-### Issue 2: FeatureVisible Loading State Bug
-
-The `FeatureVisible` component (used for inline UI element gating) has the same bug that was fixed in `useFeatureEnabled` - it returns `null` during loading without checking for cached data:
-
-```typescript
-// Current (buggy) - line 334
-if (flagContext.loading) return null;  // No cache check!
+```
+GuestPinManager.tsx
+└── useFeatureEnabled('enable_guests_pin_management')
+    └── isEnabledEffective(key, flagsMap)
+        └── flagsMap['enable_guests_pin_management'] 
+            └── undefined (not in DB)
+                └── ?? false → Returns FALSE
 ```
 
-This causes inline elements to flash/disappear during refetches.
+### Files Affected
 
-### Issue 3: Business Logic - Buggy vs Requests Priority
-
-**User's clarification**: When both transport (Buggy) and requests features are enabled, the Buggy shortcut should take priority in the quick actions grid. Requests should NOT appear in the quick actions if Buggy is already there.
-
-Current logic (additive):
-- Activities, Dining, Buggy (if enabled), Bookings, Requests (if enabled)
-
-Required logic (priority):
-- Activities, Dining, **Buggy OR Requests** (Buggy takes priority), Bookings
+| File | Change Required |
+|------|-----------------|
+| `src/lib/feature-flag-registry.ts` | Add flag definition |
+| Database migration | Seed the flag row |
+| `src/lib/feature-flag-modules.ts` | ✅ Already correct |
+| `src/components/guest/GuestPinManager.tsx` | ✅ No changes needed |
 
 ---
 
-## Technical Solution
+## Implementation Plan
 
-### Fix 1: FeatureVisible Cached Data Check
+### Step 1: Add Flag to Registry
 
-Update `FeatureVisible` to check for cached flags before returning null during loading:
+Add the `enable_guests_pin_management` definition to `src/lib/feature-flag-registry.ts`:
 
 ```typescript
-export function FeatureVisible({ flag, children }: { 
-  flag: string; 
-  children: React.ReactNode;
-}) {
-  const flagContext = useFeatureFlagAccessSafe();
-  
-  if (!flagContext) return <>{children}</>;
-  
-  // During loading, check for cached data (stale-while-revalidate)
-  if (flagContext.loading) {
-    if (Object.keys(flagContext.flagsMap).length > 0) {
-      // Use cached data
-      if (!flagContext.isEnabledEffective(flag)) return null;
-      return <>{children}</>;
-    }
-    return null; // No cached data - fail closed
-  }
-  
-  if (!flagContext.isEnabledEffective(flag)) return null;
-  
-  return <>{children}</>;
-}
+// After enable_guests_history definition (around line 93)
+{
+  key: 'enable_guests_pin_management',
+  label: 'Guest PIN Management',
+  description: 'Allow staff to generate and manage guest login PINs for the guest portal.',
+  category: 'core',
+  tier: 'starter',
+  is_dangerous: false,
+  scope: 'global',
+},
 ```
 
-### Fix 2: GuestQuickActions Priority Logic
+### Step 2: Add `enable_guests_prearrival_tab` (Also Missing)
 
-Update the quick actions logic so Buggy takes priority over Requests in the grid:
+While fixing this, I noticed `enable_guests_prearrival_tab` is also listed in `feature-flag-modules.ts` but missing from the registry. Add it as well:
 
 ```typescript
-// Check feature flags
-const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
-const requestsEnabled = useFeatureEnabled('enable_requests_guest_submit');
-
-// Build quick actions - Buggy takes priority over Requests in grid
-const quickActions: QuickAction[] = [
-  // Always show Activities & Dining
-  { icon: IconActivities, label: 'Activities', ... },
-  { icon: IconRestaurants, label: 'Dining', ... },
-];
-
-// Add transport if enabled (takes priority slot)
-if (transportEnabled) {
-  quickActions.push({
-    icon: Car,
-    label: 'Buggy',
-    href: '/guest/buggy',
-    ...
-  });
-}
-
-// Always add Bookings
-quickActions.push({
-  icon: IconBookings,
-  label: 'Bookings',
-  href: '/guest/bookings',
-  ...
-});
-
-// Add Requests ONLY if transport is NOT enabled
-// (When transport is on, requests is still accessible via bottom nav)
-if (requestsEnabled && !transportEnabled) {
-  if (hasCatalog) {
-    quickActions.push({
-      icon: Bell,
-      label: 'Requests',
-      href: '/guest/requests',
-      ...
-    });
-  } else {
-    quickActions.push({
-      icon: MessageSquarePlus,
-      label: 'Request',
-      onClick: () => setQuickSheetOpen(true),
-      ...
-    });
-  }
-}
+{
+  key: 'enable_guests_prearrival_tab',
+  label: 'Guest Pre-Arrival Tab',
+  description: 'Show the Pre-Arrival tab on guest detail pages.',
+  category: 'core',
+  tier: 'professional',
+  is_dangerous: false,
+  scope: 'global',
+},
 ```
 
-This maintains a clean 4-button grid: **Activities, Dining, Buggy, Bookings** when transport is enabled.
+### Step 3: Seed Database with Migration
+
+Create a migration to insert both flags:
+
+```sql
+-- Insert enable_guests_pin_management (enabled by default)
+INSERT INTO feature_flags (key, label, description, category, tier, is_enabled, is_dangerous, scope)
+VALUES (
+  'enable_guests_pin_management',
+  'Guest PIN Management',
+  'Allow staff to generate and manage guest login PINs for the guest portal.',
+  'core',
+  'starter',
+  true,
+  false,
+  'global'
+)
+ON CONFLICT (key, COALESCE(resort_id, '00000000-0000-0000-0000-000000000000')) DO NOTHING;
+
+-- Insert enable_guests_prearrival_tab (enabled by default)
+INSERT INTO feature_flags (key, label, description, category, tier, is_enabled, is_dangerous, scope)
+VALUES (
+  'enable_guests_prearrival_tab',
+  'Guest Pre-Arrival Tab',
+  'Show the Pre-Arrival tab on guest detail pages.',
+  'core',
+  'professional',
+  true,
+  false,
+  'global'
+)
+ON CONFLICT (key, COALESCE(resort_id, '00000000-0000-0000-0000-000000000000')) DO NOTHING;
+```
 
 ---
 
-## Files to Modify
+## Why This Fix Is Correct
 
-| File | Lines | Change |
-|------|-------|--------|
-| `src/components/FeatureGate.tsx` | 324-338 | Add cached data check to `FeatureVisible` |
-| `src/components/guest/GuestQuickActions.tsx` | 80-101 | Update logic: show Requests only if transport is disabled |
+1. **Follows Existing Patterns**: Other flags like `enable_guests_history` and `enable_guests_preferences` are defined in both the registry and seeded in the database
 
----
+2. **Respects Parent-Child Model**: The flag's parent (`enable_guests`) is already enabled globally, so once `enable_guests_pin_management` is seeded as `true`, it will be effectively enabled
 
-## Expected Result After Implementation
+3. **No Component Changes Needed**: `GuestPinManager.tsx` logic is correct—it's just checking a flag that doesn't exist
 
-**Home Page Quick Actions** (when both transport and requests are enabled):
-- Activities (teal)
-- Dining (amber)
-- Buggy (emerald)
-- Bookings (purple)
-
-**Bottom Navigation** (unchanged):
-- Home, Activities, Requests, Bookings
-
-Guests can still access Requests via the bottom navigation - it's just not duplicated in the quick actions grid when Buggy is already providing a transport shortcut.
+4. **Enables Resort Overrides**: Once the global flag exists, resorts can create overrides to disable PIN management if needed
 
 ---
 
-## Why This Is the Right Approach
+## Alternative Considered (Not Recommended)
 
-1. **Clean 4-button grid** - Maintains visual balance and prevents cramped 5-button layout
-2. **No feature loss** - Requests is still fully accessible via bottom nav
-3. **Priority makes sense** - Buggy is a "quick action" (request a ride now), while Requests is a browsing experience better suited to the dedicated nav item
-4. **Fixes loading issues** - Both `FeatureVisible` and `useFeatureEnabled` will use cached data during refetches
+Change `GuestPinManager` to check `enable_guests` instead:
+```typescript
+const pinEnabled = useFeatureEnabled('enable_guests');
+```
+
+**Why rejected:** This loses granular control. Some resorts may want guests module enabled but PIN management disabled.
+
+---
+
+## Expected Result
+
+After implementation:
+
+1. **Default Behavior**: PIN management enabled for all resorts
+2. **Super Admin Control**: Can toggle `enable_guests_pin_management` globally or per-resort
+3. **UI Consistency**: "Guest Portal PIN" card shows the generate/reset PIN interface instead of "disabled" message
 
 ---
 
 ## Testing Checklist
 
-After implementation:
-- Navigate to Guest Home at The Residence Falhumaafushi
-- Verify 4 quick actions: Activities, Dining, Buggy, Bookings
-- Verify Requests is NOT in quick actions (since Buggy is enabled)
-- Click Requests in bottom nav - verify page loads correctly (no "Feature Not Available")
-- Click Buggy quick action - verify transport page loads correctly
-- Refresh page - verify all features remain visible
-- Navigate between pages rapidly - verify no flashing/flickering
+- [ ] Navigate to Guest Detail page for any guest
+- [ ] Verify "Guest Portal PIN" card shows "Generate PIN" or "Reset PIN" (not disabled message)
+- [ ] Verify Super Admin can see and toggle `enable_guests_pin_management` in Feature Flags page
+- [ ] Verify creating a resort override for this flag works correctly
+- [ ] Verify disabling the flag shows the "disabled" message again
