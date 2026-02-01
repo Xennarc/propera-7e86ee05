@@ -1,67 +1,146 @@
 
-# Plan: Fix Actions Button Not Responding on `/superadmin/users`
+# Investigation Summary: Guest Portal Issues
 
-## Root Cause Identified
+I've thoroughly analyzed the codebase and identified the root causes of all three issues you reported. Here's my detailed findings and fix plan:
 
-The Actions button (three-dot menu) in the Users table is **invisible by default** due to `opacity-0` CSS class. It only becomes visible when hovering over the row.
+---
 
-**Current code (line 555):**
+## Issue 1: Guest Requests Feature Not Showing
+
+### Root Cause
+The `GuestRequestsPage` is gated by `enable_requests_guest_submit` flag:
 ```tsx
-<Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+// src/pages/guest/GuestRequestsPage.tsx, line 260-262
+<FeatureGate 
+  requiredFlags={['enable_requests_guest_submit']} 
+  mode="guest"
+>
 ```
 
-This causes two problems:
-1. On **mobile/touch devices**, hover doesn't work, so the button is never visible or clickable
-2. On **desktop**, users must hover over the row to see the button, which is not intuitive for many users
+**However, this flag does NOT exist in the database.** My query confirmed only these request-related flags exist:
+- `enable_requests` (global: false, resort override: true)
+- `enable_requests_guest_portal` (global: false, resort override: true)
 
-## Solution
+The flag `enable_requests_guest_submit` is referenced in `feature-flag-modules.ts` as a child flag but was never seeded into the `feature_flags` table.
 
-Update the button's className to make it:
-- **Always visible on mobile** (touch devices need visible targets)
-- **Visible on hover for desktop** (preserves clean aesthetic)
-- Add smooth transition for polish
+### Fix
+1. Add the missing `enable_requests_guest_submit` flag to the feature flag registry (`feature-flag-registry.ts`)
+2. Create a database migration to seed this flag into the `feature_flags` table (globally OFF by default, matching the existing pattern)
+3. Enable it at the resort level for the specific resort
 
-## Technical Change
+---
 
-### File: `src/pages/superadmin/GlobalUsersPage.tsx`
+## Issue 2: Buggy Request Feature Not Showing on Home Page
 
-**Line 555 - Change from:**
+### Root Cause
+The `GuestQuickActions` component (lines 33-35) uses `resort_settings.transport_enabled` to decide whether to show the buggy action:
+
 ```tsx
-<Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100">
+// src/components/guest/GuestQuickActions.tsx
+const { data: settings } = useResortSettings(guest?.resortId);
+const transportEnabled = settings?.transport_enabled ?? false;
 ```
 
-**To:**
+This is a **dual-gating issue**:
+- The `resort_settings.transport_enabled` column is checked for the Home quick actions
+- The `enable_transport` feature flag is checked elsewhere (e.g., Staff dashboard)
+- But the Quick Actions uses the legacy `resort_settings` approach, NOT the feature flag system
+
+Meanwhile, `GuestBuggyRequestPage.tsx` also checks `settings?.transport_enabled` (line 31), so if the guest manually navigates to `/guest/buggy`, they'd see "Transport not available" even though the feature flag is ON.
+
+**Current state in database:**
+- `enable_transport` feature flag: **enabled** for resort
+- `enable_transport_guest_booking` feature flag: **enabled** for resort
+- But `resort_settings.transport_enabled` may be **false**
+
+### Fix
+Update `GuestQuickActions.tsx` to use the feature flag system (`useFeatureEnabled`) instead of (or in addition to) the legacy `resort_settings` approach. This aligns transport visibility with the modern feature flag architecture.
+
+The recommended approach:
 ```tsx
-<Button variant="ghost" size="icon" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
 ```
 
-## Breakdown of the Fix
+This ensures the quick action visibility is controlled by the same system as the rest of the app.
 
-| Class | Effect |
-|-------|--------|
-| `opacity-100` | Always visible by default (mobile-first) |
-| `sm:opacity-0` | Hidden on screens 640px+ (desktop) |
-| `sm:group-hover:opacity-100` | Shows on row hover (desktop only) |
-| `transition-opacity` | Smooth fade animation |
+---
 
-## Impact Assessment
+## Issue 3: Guest Home Page Scrolling Restricted
 
-- **No database changes**
-- **No new components**
-- **Single line CSS modification**
-- **Fully backwards compatible**
-- **Significantly improves mobile/touch UX**
+### Root Cause
+The `GuestHome.tsx` component's outer wrapper uses `space-y-5` but does NOT apply the `guest-safe-bottom` class:
 
-## Files Changed
+```tsx
+// src/pages/guest/GuestHome.tsx, line 258
+<div className="space-y-5 md:space-y-6">
+```
 
+Compare to `GuestRequestsPage.tsx` which correctly applies it:
+```tsx
+// src/pages/guest/GuestRequestsPage.tsx, line 166
+<div className={cn(
+  'space-y-5',
+  selectedItems.length > 0 && 'guest-safe-bottom-extended'
+)}>
+```
+
+The `guest-safe-bottom` class adds necessary bottom padding:
+```css
+.guest-safe-bottom {
+  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 32px);
+}
+```
+
+Without this class, the bottom content gets hidden under the fixed bottom navigation bar.
+
+### Fix
+Add the `guest-safe-bottom` class to the main content wrapper in `GuestHome.tsx`:
+```tsx
+<div className="space-y-5 md:space-y-6 guest-safe-bottom">
+```
+
+---
+
+## Implementation Plan
+
+### Step 1: Fix Missing Feature Flag (Requests)
+1. Add `enable_requests_guest_submit` definition to `src/lib/feature-flag-registry.ts`
+2. Create database migration to seed the flag globally (default OFF)
+3. Create resort-specific override to enable it where needed
+
+### Step 2: Fix Transport Quick Action Visibility
+1. Update `src/components/guest/GuestQuickActions.tsx` to use `useFeatureEnabled('enable_transport_guest_booking')` OR `useFeatureEnabled('enable_transport')`
+2. Optionally update `GuestBuggyRequestPage.tsx` to use the same feature flag pattern for consistency
+
+### Step 3: Fix Home Page Scrolling
+1. Add `guest-safe-bottom` class to the main wrapper in `src/pages/guest/GuestHome.tsx`
+
+---
+
+## Technical Details
+
+### Files to Modify
 | File | Change |
 |------|--------|
-| `src/pages/superadmin/GlobalUsersPage.tsx` | Update button className on line 555 |
+| `src/lib/feature-flag-registry.ts` | Add `enable_requests_guest_submit` definition |
+| `src/components/guest/GuestQuickActions.tsx` | Use `useFeatureEnabled` for transport check |
+| `src/pages/guest/GuestHome.tsx` | Add `guest-safe-bottom` class |
 
-## Testing Checklist
+### Database Migration
+Create new flag in `feature_flags` table:
+- key: `enable_requests_guest_submit`
+- category: `guest`
+- tier: `starter`
+- is_enabled: `false` (global default)
+- scope: `global`
 
-After implementation:
-1. Open `/superadmin/users` on mobile viewport - Actions button should be visible
-2. Open on desktop - Actions button appears on row hover
-3. Click button - Dropdown menu opens with all actions (Copy ID, Edit Access, Deactivate, etc.)
-4. Verify all dropdown actions work correctly
+---
+
+## Risk Assessment
+
+All fixes are **additive and low-risk**:
+1. Adding a new feature flag definition doesn't affect existing flags
+2. Changing the transport check to use feature flags is a simple conditional swap
+3. Adding a CSS class is non-breaking
+
+No business logic, API calls, or database mutations are affected.
