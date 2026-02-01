@@ -250,7 +250,7 @@ export function GuestLayout() {
   }
 
   return (
-    <FeatureFlagsProvider resortId={guest?.resortId}>
+    <FeatureFlagsProvider resortId={guest?.resortId} guestId={guest?.guestId}>
       <GuestAccessGate resortName={guest?.resortName}>
         <SkipLink />
         <div 
