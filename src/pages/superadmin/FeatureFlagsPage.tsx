@@ -18,6 +18,7 @@ import {
   FEATURE_CATEGORIES,
 } from '@/hooks/useFeatureFlags';
 import { buildModuleViewModels, MODULES } from '@/lib/feature-flag-modules';
+import { FeatureFlagDiagnosticsDrawer } from '@/components/superadmin/FeatureFlagDiagnosticsDrawer';
 import { ModuleCard } from '@/components/superadmin/ModuleCard';
 import { FlagEntitlementBadges, CategoryEntitlementInfo } from '@/components/superadmin/FlagEntitlementBadges';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -250,11 +251,14 @@ export default function FeatureFlagsPage() {
             Control features globally or per-resort
           </p>
         </div>
-        {isResortScope && totalOverrides > 0 && (
-          <Badge variant="outline" className="self-start md:self-center bg-info/10 text-info border-info/30">
-            {totalOverrides} Active Override{totalOverrides !== 1 ? 's' : ''}
-          </Badge>
-        )}
+        <div className="flex items-center gap-3 self-start md:self-center">
+          {isResortScope && totalOverrides > 0 && (
+            <Badge variant="outline" className="bg-info/10 text-info border-info/30">
+              {totalOverrides} Active Override{totalOverrides !== 1 ? 's' : ''}
+            </Badge>
+          )}
+          <FeatureFlagDiagnosticsDrawer />
+        </div>
       </div>
 
       {/* Scope Selector */}
