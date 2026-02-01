@@ -1,146 +1,162 @@
 
-# Investigation Summary: Guest Portal Issues
+# Fix Plan: Guest Portal Feature Visibility Issues
 
-I've thoroughly analyzed the codebase and identified the root causes of all three issues you reported. Here's my detailed findings and fix plan:
+## Summary
 
----
+Two distinct issues are preventing features from appearing in the Guest Portal for The Residence Falhumaafushi:
 
-## Issue 1: Guest Requests Feature Not Showing
-
-### Root Cause
-The `GuestRequestsPage` is gated by `enable_requests_guest_submit` flag:
-```tsx
-// src/pages/guest/GuestRequestsPage.tsx, line 260-262
-<FeatureGate 
-  requiredFlags={['enable_requests_guest_submit']} 
-  mode="guest"
->
-```
-
-**However, this flag does NOT exist in the database.** My query confirmed only these request-related flags exist:
-- `enable_requests` (global: false, resort override: true)
-- `enable_requests_guest_portal` (global: false, resort override: true)
-
-The flag `enable_requests_guest_submit` is referenced in `feature-flag-modules.ts` as a child flag but was never seeded into the `feature_flags` table.
-
-### Fix
-1. Add the missing `enable_requests_guest_submit` flag to the feature flag registry (`feature-flag-registry.ts`)
-2. Create a database migration to seed this flag into the `feature_flags` table (globally OFF by default, matching the existing pattern)
-3. Enable it at the resort level for the specific resort
+1. **Missing Database Override** for `enable_requests_guest_submit` flag
+2. **Loading State Bug** in `useFeatureEnabled` hook causing transport to not render
 
 ---
 
-## Issue 2: Buggy Request Feature Not Showing on Home Page
+## Issue 1: Guest Requests Not Showing
 
-### Root Cause
-The `GuestQuickActions` component (lines 33-35) uses `resort_settings.transport_enabled` to decide whether to show the buggy action:
+### Problem
+The `enable_requests_guest_submit` flag was seeded globally (OFF) but no resort-level override exists.
 
-```tsx
-// src/components/guest/GuestQuickActions.tsx
-const { data: settings } = useResortSettings(guest?.resortId);
-const transportEnabled = settings?.transport_enabled ?? false;
+### Solution
+Create a database migration to add the resort override.
+
+### Database Change
+```sql
+INSERT INTO public.feature_flags (
+  key, label, description, category, tier, 
+  is_enabled, is_dangerous, scope, resort_id
+)
+SELECT 
+  'enable_requests_guest_submit',
+  'Guest Request Submission',
+  'Allow guests to submit service requests via the guest portal.',
+  'guest',
+  'starter',
+  true,
+  false,
+  'resort',
+  '91dea0e5-963a-43eb-aab0-aafe921cc8f5'
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.feature_flags 
+  WHERE key = 'enable_requests_guest_submit' 
+  AND resort_id = '91dea0e5-963a-43eb-aab0-aafe921cc8f5'
+);
 ```
-
-This is a **dual-gating issue**:
-- The `resort_settings.transport_enabled` column is checked for the Home quick actions
-- The `enable_transport` feature flag is checked elsewhere (e.g., Staff dashboard)
-- But the Quick Actions uses the legacy `resort_settings` approach, NOT the feature flag system
-
-Meanwhile, `GuestBuggyRequestPage.tsx` also checks `settings?.transport_enabled` (line 31), so if the guest manually navigates to `/guest/buggy`, they'd see "Transport not available" even though the feature flag is ON.
-
-**Current state in database:**
-- `enable_transport` feature flag: **enabled** for resort
-- `enable_transport_guest_booking` feature flag: **enabled** for resort
-- But `resort_settings.transport_enabled` may be **false**
-
-### Fix
-Update `GuestQuickActions.tsx` to use the feature flag system (`useFeatureEnabled`) instead of (or in addition to) the legacy `resort_settings` approach. This aligns transport visibility with the modern feature flag architecture.
-
-The recommended approach:
-```tsx
-const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
-```
-
-This ensures the quick action visibility is controlled by the same system as the rest of the app.
 
 ---
 
-## Issue 3: Guest Home Page Scrolling Restricted
+## Issue 2: Transport/Buggy Not Showing
 
-### Root Cause
-The `GuestHome.tsx` component's outer wrapper uses `space-y-5` but does NOT apply the `guest-safe-bottom` class:
+### Problem
+The `useFeatureEnabled` hook returns `false` while the feature flags query is loading. Since `GuestQuickActions` renders immediately with the page, it doesn't show the transport button.
 
-```tsx
-// src/pages/guest/GuestHome.tsx, line 258
-<div className="space-y-5 md:space-y-6">
+### Root Cause (Code Path)
+```
+GuestLayout renders
+  → FeatureFlagsProvider initializes (query starts loading)
+  → GuestHome renders
+    → GuestQuickActions renders
+      → useFeatureEnabled('enable_transport_guest_booking')
+        → flagContext.loading === true
+        → returns FALSE ← Transport button hidden!
+  → Feature flags query completes
+    → BUT GuestQuickActions already rendered with false
 ```
 
-Compare to `GuestRequestsPage.tsx` which correctly applies it:
-```tsx
-// src/pages/guest/GuestRequestsPage.tsx, line 166
-<div className={cn(
-  'space-y-5',
-  selectedItems.length > 0 && 'guest-safe-bottom-extended'
-)}>
-```
+### Solution
+Modify `useFeatureEnabled` to properly handle loading state by checking cached data or returning a "pending" state that triggers a re-render.
 
-The `guest-safe-bottom` class adds necessary bottom padding:
-```css
-.guest-safe-bottom {
-  padding-bottom: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 32px);
+### Code Change (src/components/FeatureGate.tsx)
+
+Replace the current `useFeatureEnabled` implementation:
+
+**Before:**
+```typescript
+export function useFeatureEnabled(flag: string): boolean {
+  const flagContext = useFeatureFlagAccessSafe();
+  
+  if (!flagContext) return true; // Fail open
+  if (flagContext.loading) return false;
+  
+  return flagContext.isEnabledEffective(flag);
 }
 ```
 
-Without this class, the bottom content gets hidden under the fixed bottom navigation bar.
-
-### Fix
-Add the `guest-safe-bottom` class to the main content wrapper in `GuestHome.tsx`:
-```tsx
-<div className="space-y-5 md:space-y-6 guest-safe-bottom">
+**After:**
+```typescript
+export function useFeatureEnabled(flag: string): boolean {
+  const flagContext = useFeatureFlagAccessSafe();
+  
+  if (!flagContext) return true; // Fail open - no provider
+  
+  // During loading, check if we have cached data
+  // This prevents flicker when flags are already cached from previous render
+  if (flagContext.loading) {
+    // If we have any flags in the map, use them (cached data)
+    if (Object.keys(flagContext.flagsMap).length > 0) {
+      return flagContext.isEnabledEffective(flag);
+    }
+    // No cached data yet - fail closed for security
+    return false;
+  }
+  
+  return flagContext.isEnabledEffective(flag);
+}
 ```
+
+**Rationale:** TanStack Query keeps cached data during refetches (`isPending` vs `isLoading`). The `flagsMap` will contain previous data, so we can use it while new data loads. This prevents the transport button from flickering or being hidden during refetches.
 
 ---
 
-## Implementation Plan
+## Files to Modify
 
-### Step 1: Fix Missing Feature Flag (Requests)
-1. Add `enable_requests_guest_submit` definition to `src/lib/feature-flag-registry.ts`
-2. Create database migration to seed the flag globally (default OFF)
-3. Create resort-specific override to enable it where needed
-
-### Step 2: Fix Transport Quick Action Visibility
-1. Update `src/components/guest/GuestQuickActions.tsx` to use `useFeatureEnabled('enable_transport_guest_booking')` OR `useFeatureEnabled('enable_transport')`
-2. Optionally update `GuestBuggyRequestPage.tsx` to use the same feature flag pattern for consistency
-
-### Step 3: Fix Home Page Scrolling
-1. Add `guest-safe-bottom` class to the main wrapper in `src/pages/guest/GuestHome.tsx`
+| File | Change Type | Description |
+|------|-------------|-------------|
+| Database migration | CREATE | Add resort override for `enable_requests_guest_submit` |
+| `src/components/FeatureGate.tsx` | EDIT | Fix loading state handling in `useFeatureEnabled` hook |
 
 ---
 
 ## Technical Details
 
-### Files to Modify
-| File | Change |
-|------|--------|
-| `src/lib/feature-flag-registry.ts` | Add `enable_requests_guest_submit` definition |
-| `src/components/guest/GuestQuickActions.tsx` | Use `useFeatureEnabled` for transport check |
-| `src/pages/guest/GuestHome.tsx` | Add `guest-safe-bottom` class |
+### Why the Transport Issue Persists Despite Correct Database State
 
-### Database Migration
-Create new flag in `feature_flags` table:
-- key: `enable_requests_guest_submit`
-- category: `guest`
-- tier: `starter`
-- is_enabled: `false` (global default)
-- scope: `global`
+The `useFeatureFlags` hook uses TanStack Query without an explicit `staleTime`, so it inherits the global default of 30 seconds. When the Guest Layout mounts:
+
+1. `FeatureFlagsProvider` starts the query
+2. Child components render immediately (React doesn't wait)
+3. `useFeatureEnabled` sees `loading: true` and returns `false`
+4. Transport button is excluded from the quick actions array
+5. Query completes, but the array was already built
+
+The fix ensures cached data (if available) is used during loading, preventing this race condition.
+
+### Safety Considerations
+
+- The fix maintains "fail closed" behavior when there's no cached data (first load)
+- Only uses cached data when the query is refetching (data already exists)
+- No changes to feature flag resolution logic or parent/child dependency checking
+- Additive change that doesn't break existing behavior
 
 ---
 
-## Risk Assessment
+## Acceptance Criteria
 
-All fixes are **additive and low-risk**:
-1. Adding a new feature flag definition doesn't affect existing flags
-2. Changing the transport check to use feature flags is a simple conditional swap
-3. Adding a CSS class is non-breaking
+After implementation:
+- [ ] Guest can see "Requests" feature in the guest portal
+- [ ] Guest can see "Buggy" quick action on the home page
+- [ ] Both features work correctly when clicked
+- [ ] No console errors related to feature flags
+- [ ] Features still work after a page refresh
+- [ ] Features work on first visit (cold cache)
 
-No business logic, API calls, or database mutations are affected.
+---
+
+## Testing Plan
+
+1. Log in as a guest at The Residence Falhumaafushi
+2. Navigate to the Home page (`/guest`)
+3. Verify "Buggy" quick action appears in the grid
+4. Click "Buggy" and verify the transport booking page loads
+5. Navigate to Requests tab in bottom navigation
+6. Verify the request catalog loads (not "Feature Not Available" screen)
+7. Submit a test request to verify end-to-end flow
+8. Refresh the page and verify both features still appear
