@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
-import { useResortSettings } from '@/hooks/useResortSettings';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { useActiveStay } from '@/hooks/useActiveStay';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { 
@@ -26,9 +26,9 @@ export default function GuestBuggyRequestPage() {
   const { activeStay } = useActiveStay();
   const isPrearrival = activeStay?.status === 'pre_arrival';
   
-  // Feature flag check
-  const { data: settings, isLoading: settingsLoading } = useResortSettings(guest?.resortId);
-  const transportEnabled = settings?.transport_enabled ?? false;
+  // Feature flag check (modern system)
+  const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
+  const settingsLoading = false; // Feature flags load synchronously via context
   
   // Data hooks
   const { data: stops, isLoading: stopsLoading } = useGuestTransportStops(guest?.resortId);

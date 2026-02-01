@@ -111,6 +111,15 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     scope: 'global',
   },
   {
+    key: 'enable_requests_guest_submit',
+    label: 'Guest Request Submission',
+    description: 'Allow guests to submit service requests via the guest portal catalog.',
+    category: 'guest',
+    tier: 'starter',
+    is_dangerous: false,
+    scope: 'global',
+  },
+  {
     key: 'enable_requests_sla_tracking',
     label: 'SLA Tracking',
     description: 'Enable SLA monitoring and alerts for requests.',
