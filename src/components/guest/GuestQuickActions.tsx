@@ -77,8 +77,9 @@ export function GuestQuickActions() {
     description: 'View & manage',
   });
 
-  // Add Requests if enabled (independent of transport)
-  if (requestsEnabled) {
+  // Add Requests ONLY if transport is NOT enabled
+  // (When transport is on, requests is still accessible via bottom nav)
+  if (requestsEnabled && !transportEnabled) {
     if (hasCatalog) {
       quickActions.push({
         icon: Bell,

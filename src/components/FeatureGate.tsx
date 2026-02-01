@@ -331,7 +331,17 @@ export function FeatureVisible({
   const flagContext = useFeatureFlagAccessSafe();
   
   if (!flagContext) return <>{children}</>;
-  if (flagContext.loading) return null;
+  
+  // During loading, check for cached data (stale-while-revalidate)
+  if (flagContext.loading) {
+    if (Object.keys(flagContext.flagsMap).length > 0) {
+      // Use cached data
+      if (!flagContext.isEnabledEffective(flag)) return null;
+      return <>{children}</>;
+    }
+    return null; // No cached data - fail closed
+  }
+  
   if (!flagContext.isEnabledEffective(flag)) return null;
   
   return <>{children}</>;
