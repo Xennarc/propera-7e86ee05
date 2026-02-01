@@ -48,7 +48,8 @@
     "profile": "Profile",
     "logout": "Logout",
     "notifications": "Notifications",
-    "loyalty": "Rewards"
+    "loyalty": "Rewards",
+    "ride": "Ride"
   },
   "home": {
     "goodMorning": "Good morning",

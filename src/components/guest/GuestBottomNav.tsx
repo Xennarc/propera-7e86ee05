@@ -46,7 +46,7 @@ const requestsNavItem: NavItemDef = {
 
 const transportNavItem: NavItemDef = { 
   icon: Car, 
-  labelKey: 'nav.buggy', 
+  labelKey: 'nav.ride', 
   href: '/guest/buggy', 
   key: 'guest-buggy',
   featureFlag: 'enable_transport_guest_booking',
