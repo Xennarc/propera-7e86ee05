@@ -1,113 +1,95 @@
 
+# Fix Plan: Guest Portal Feature Visibility & Business Logic
 
-# Fix Plan: Guest Portal Feature Visibility Issues
+## Summary
 
-## Executive Summary
+This plan addresses three interconnected issues affecting the Guest Portal:
 
-After thorough investigation, I've identified that the Guest Portal is showing "Feature Not Available" for the Requests page despite all feature flags being correctly configured in the database. The investigation revealed **three interconnected issues** that need to be addressed together.
+1. **Production build not deploying** - Recent code changes haven't reached production
+2. **FeatureVisible component bug** - Returns `null` during loading state without checking cached data
+3. **Business logic update** - When both Buggy and Requests are enabled, only show Buggy in the quick actions grid
 
 ---
 
-## Root Cause Analysis
+## Technical Analysis
 
-### Issue 1: FeatureGate Component Loading State Race Condition
+### Issue 1: Production Build Failure
 
-The `FeatureGate` component has inconsistent loading state handling compared to the `useFeatureEnabled` hook:
+The user confirmed the publish started failing after the recent feature flag edits. The screenshot shows the OLD behavior (3 buttons only), which confirms the code changes made earlier in this session haven't deployed.
 
-| Component | Behavior During Loading |
-|-----------|------------------------|
-| `useFeatureEnabled` hook | Uses cached data if available (CORRECT) |
-| `FeatureGate` component | Shows loading skeleton regardless of cached data (BUG) |
+**Root cause**: Need to verify the build compiles successfully. The changes we made are syntactically correct, but we should ensure there are no hidden issues.
 
-When the user navigates to `/guest/requests`:
-1. `FeatureGate` checks `loading` state
-2. If loading, it shows skeleton (even if cached data exists)
-3. Once loading completes, it should work BUT...
+### Issue 2: FeatureVisible Loading State Bug
 
-### Issue 2: GuestQuickActions Conditional Logic Error
+The `FeatureVisible` component (used for inline UI element gating) has the same bug that was fixed in `useFeatureEnabled` - it returns `null` during loading without checking for cached data:
 
-The `GuestQuickActions` component has an XOR logic issue where transport and requests are mutually exclusive:
-
-```tsx
-if (transportEnabled) {
-  // Show Buggy + Bookings (NO requests!)
-} else {
-  // Show Bookings + Requests (NO buggy!)
-}
+```typescript
+// Current (buggy) - line 334
+if (flagContext.loading) return null;  // No cache check!
 ```
 
-This means **when transport is enabled, the Requests button disappears from the home quick actions grid**. The user can only access Requests via bottom navigation.
+This causes inline elements to flash/disappear during refetches.
 
-### Issue 3: Both Features Should Coexist
+### Issue 3: Business Logic - Buggy vs Requests Priority
 
-Looking at the second screenshot, the home page shows:
-- Activities, Dining, Bookings, Requests (4 buttons)
-- Bottom nav: Home, Activities, Requests, Bookings
+**User's clarification**: When both transport (Buggy) and requests features are enabled, the Buggy shortcut should take priority in the quick actions grid. Requests should NOT appear in the quick actions if Buggy is already there.
 
-But when transport is enabled AND requests is enabled, the logic should show:
-- Activities, Dining, Buggy, Bookings, Requests (5 buttons in grid - needs 5-column or 2-row layout)
+Current logic (additive):
+- Activities, Dining, Buggy (if enabled), Bookings, Requests (if enabled)
 
----
-
-## Database State Verification
-
-All flags are correctly configured in the database:
-
-| Flag Key | Global | Resort Override |
-|----------|--------|-----------------|
-| `enable_requests` | false | **true** |
-| `enable_requests_guest_submit` | false | **true** |
-| `enable_transport` | false | **true** |
-| `enable_transport_guest_booking` | false | **true** |
-
-Parent-child resolution works correctly:
-- `enable_requests_guest_submit` → parent `enable_requests` → both ON → effective: **true**
-- `enable_transport_guest_booking` → parent `enable_transport` → both ON → effective: **true**
+Required logic (priority):
+- Activities, Dining, **Buggy OR Requests** (Buggy takes priority), Bookings
 
 ---
 
 ## Technical Solution
 
-### Fix 1: FeatureGate Loading State Optimization
+### Fix 1: FeatureVisible Cached Data Check
 
-Apply the same cached-data-during-loading pattern to the `FeatureGate` component:
-
-**File:** `src/components/FeatureGate.tsx`
+Update `FeatureVisible` to check for cached flags before returning null during loading:
 
 ```typescript
-// Current (buggy):
-if (loading) {
-  return <FeatureGateLoader />;
-}
-
-// Fixed:
-if (loading) {
-  // If we have cached flags, use them instead of showing loader
-  if (Object.keys(flagContext.flagsMap).length > 0) {
-    // Fall through to flag checking with cached data
-  } else {
-    return <FeatureGateLoader />;
+export function FeatureVisible({ flag, children }: { 
+  flag: string; 
+  children: React.ReactNode;
+}) {
+  const flagContext = useFeatureFlagAccessSafe();
+  
+  if (!flagContext) return <>{children}</>;
+  
+  // During loading, check for cached data (stale-while-revalidate)
+  if (flagContext.loading) {
+    if (Object.keys(flagContext.flagsMap).length > 0) {
+      // Use cached data
+      if (!flagContext.isEnabledEffective(flag)) return null;
+      return <>{children}</>;
+    }
+    return null; // No cached data - fail closed
   }
+  
+  if (!flagContext.isEnabledEffective(flag)) return null;
+  
+  return <>{children}</>;
 }
 ```
 
-This prevents the "Feature Not Available" flash when navigating between pages with cached flag data.
+### Fix 2: GuestQuickActions Priority Logic
 
-### Fix 2: GuestQuickActions Dual-Feature Support
-
-Redesign the quick actions grid to support **both transport AND requests** when both are enabled:
-
-**File:** `src/components/guest/GuestQuickActions.tsx`
+Update the quick actions logic so Buggy takes priority over Requests in the grid:
 
 ```typescript
-// Build actions array supporting both features
+// Check feature flags
+const transportEnabled = useFeatureEnabled('enable_transport_guest_booking');
+const requestsEnabled = useFeatureEnabled('enable_requests_guest_submit');
+
+// Build quick actions - Buggy takes priority over Requests in grid
 const quickActions: QuickAction[] = [
   // Always show Activities & Dining
   { icon: IconActivities, label: 'Activities', ... },
   { icon: IconRestaurants, label: 'Dining', ... },
 ];
 
-// Add transport if enabled
+// Add transport if enabled (takes priority slot)
 if (transportEnabled) {
   quickActions.push({
     icon: Car,
@@ -125,8 +107,9 @@ quickActions.push({
   ...
 });
 
-// Add Requests if enabled (independent of transport)
-if (requestsEnabled) {
+// Add Requests ONLY if transport is NOT enabled
+// (When transport is on, requests is still accessible via bottom nav)
+if (requestsEnabled && !transportEnabled) {
   if (hasCatalog) {
     quickActions.push({
       icon: Bell,
@@ -145,94 +128,50 @@ if (requestsEnabled) {
 }
 ```
 
-Also update the grid layout to handle 4-5 items:
-```tsx
-<div className={cn(
-  "grid gap-2.5 sm:gap-3",
-  quickActions.length <= 4 ? "grid-cols-4" : "grid-cols-5"
-)}>
-```
-
-### Fix 3: Add Request Feature Flag Check
-
-Add a feature flag check for requests visibility in the quick actions:
-
-```typescript
-const requestsEnabled = useFeatureEnabled('enable_requests_guest_submit');
-```
+This maintains a clean 4-button grid: **Activities, Dining, Buggy, Bookings** when transport is enabled.
 
 ---
 
 ## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/components/FeatureGate.tsx` | Lines 115-120: Add cached data check before showing loader |
-| `src/components/guest/GuestQuickActions.tsx` | Lines 36-103: Rewrite action building logic to support both features |
+| File | Lines | Change |
+|------|-------|--------|
+| `src/components/FeatureGate.tsx` | 324-338 | Add cached data check to `FeatureVisible` |
+| `src/components/guest/GuestQuickActions.tsx` | 80-101 | Update logic: show Requests only if transport is disabled |
 
 ---
 
-## Implementation Details
+## Expected Result After Implementation
 
-### FeatureGate.tsx Changes
+**Home Page Quick Actions** (when both transport and requests are enabled):
+- Activities (teal)
+- Dining (amber)
+- Buggy (emerald)
+- Bookings (purple)
 
-The change is minimal - just add a fallthrough condition when cached data is available:
+**Bottom Navigation** (unchanged):
+- Home, Activities, Requests, Bookings
 
-```typescript
-// Lines 115-120, current:
-const { loading, isEnabledEffective } = flagContext;
-
-if (loading) {
-  return <FeatureGateLoader />;
-}
-
-// Lines 115-125, fixed:
-const { loading, isEnabledEffective, flagsMap } = flagContext;
-
-// Only show loader if no cached data available
-// This prevents feature flash when navigating with stale-while-revalidate
-if (loading && Object.keys(flagsMap).length === 0) {
-  return <FeatureGateLoader />;
-}
-```
-
-### GuestQuickActions.tsx Changes
-
-Rewrite the action building logic to be additive rather than mutually exclusive:
-
-1. Remove the `if (transportEnabled) { ... } else { ... }` branching
-2. Build the array incrementally based on each feature flag
-3. Handle the grid layout for 4-5 items dynamically
-4. Add the `useFeatureEnabled('enable_requests_guest_submit')` check
+Guests can still access Requests via the bottom navigation - it's just not duplicated in the quick actions grid when Buggy is already providing a transport shortcut.
 
 ---
 
-## Expected Outcome After Fix
+## Why This Is the Right Approach
 
-1. **Home Page Quick Actions:** Shows Activities, Dining, Buggy, Bookings, Requests (5 items when both transport and requests are enabled)
-2. **Requests Page:** Loads immediately without "Feature Not Available" flash
-3. **Buggy Page:** Accessible and functional
-4. **Loading States:** No content flash during refetches
+1. **Clean 4-button grid** - Maintains visual balance and prevents cramped 5-button layout
+2. **No feature loss** - Requests is still fully accessible via bottom nav
+3. **Priority makes sense** - Buggy is a "quick action" (request a ride now), while Requests is a browsing experience better suited to the dedicated nav item
+4. **Fixes loading issues** - Both `FeatureVisible` and `useFeatureEnabled` will use cached data during refetches
 
 ---
 
 ## Testing Checklist
 
 After implementation:
-- [ ] Navigate to Guest Home → verify Buggy button appears
-- [ ] Navigate to Guest Home → verify Requests button appears
-- [ ] Click Requests → page loads without "Feature Not Available"
-- [ ] Click Buggy → page loads without "Transport not available"
-- [ ] Refresh page → features still visible
-- [ ] Switch between pages rapidly → no flash/flicker
-
----
-
-## Risk Assessment
-
-**Low Risk:** 
-- All changes are additive/non-breaking
-- No database changes required
-- Feature flag logic remains intact
-- Only affects conditional rendering, not data flow
-
+- Navigate to Guest Home at The Residence Falhumaafushi
+- Verify 4 quick actions: Activities, Dining, Buggy, Bookings
+- Verify Requests is NOT in quick actions (since Buggy is enabled)
+- Click Requests in bottom nav - verify page loads correctly (no "Feature Not Available")
+- Click Buggy quick action - verify transport page loads correctly
+- Refresh page - verify all features remain visible
+- Navigate between pages rapidly - verify no flashing/flickering
