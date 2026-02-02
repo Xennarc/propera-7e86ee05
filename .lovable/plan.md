@@ -1,106 +1,147 @@
 
-# Quick-Add Driver Flow for Resources Panel
+# Transport Setup Wizard
 
 ## Overview
-Add a streamlined "Add Driver" button to the Resources Panel that allows staff to register existing staff members as buggy drivers directly from the Transport Dispatch view.
+Create a guided onboarding wizard that helps staff configure the Transport module with essential resources before going live. The wizard ensures stops, buggies, and drivers are set up properly, preventing confusion when staff first access the dispatch console.
 
 ## User Flow
-1. Staff clicks "+ Add Driver" button in the Drivers section header
-2. A compact dialog opens with a searchable dropdown of eligible staff members
-3. Staff selects a user from the list
-4. On confirm, a new `buggy_drivers` record is created (status: 'offline')
-5. The new driver appears in the Resources Panel immediately
+1. Staff opens Transport page for the first time (or when resources are missing)
+2. A setup banner appears prompting them to complete setup
+3. Clicking "Start Setup" opens a 4-step wizard dialog
+4. After completing all steps, the wizard marks setup as complete and transitions to the dispatch console
 
-## Implementation Details
+## Wizard Steps
 
-### 1. Create AddDriverDialog Component
-**File:** `src/components/transport/dispatch/AddDriverDialog.tsx`
+### Step 1: Stops
+- Title: "Define Pickup & Dropoff Locations"
+- Description: "Add the key locations where guests can request buggy pickups"
+- Features:
+  - Add stops with name and optional zone grouping
+  - Drag-to-reorder stops
+  - Quick-add common locations (Reception, Main Pool, Restaurant, etc.)
+  - Minimum requirement: At least 2 stops to proceed
 
-- Dialog with single Select field showing eligible staff members
-- Query `resort_memberships` + `profiles` to get staff users
-- Filter out users already registered as drivers
-- Insert into `buggy_drivers` table with initial 'offline' status
-- Show success toast with driver name
+### Step 2: Buggies
+- Title: "Add Your Fleet"
+- Description: "Register the buggies/carts available for transport"
+- Features:
+  - Add buggy with name, capacity, and accessibility flag
+  - Show capacity visualization (seats icon)
+  - Minimum requirement: At least 1 buggy to proceed
 
-### 2. Create Hook for Eligible Staff
-**File:** `src/hooks/transport/useEligibleDrivers.ts`
+### Step 3: Drivers
+- Title: "Assign Drivers"
+- Description: "Link staff members who will operate the buggies"
+- Features:
+  - Reuse the existing `AddDriverDialog` pattern (staff member picker)
+  - Show registered drivers with role badges
+  - Minimum requirement: At least 1 driver to proceed
 
-- Fetch `resort_memberships` joined with `profiles` for the current resort
-- Exclude users who already have a `buggy_drivers` record
-- Return user_id, full_name, resort_role for display
+### Step 4: Review & Go Live
+- Title: "Ready to Launch"
+- Summary of configured resources:
+  - X stops across Y zones
+  - X buggies (total capacity: Y seats)
+  - X registered drivers
+- "Complete Setup" button marks wizard as done
+- Success state with confetti animation and "Start Dispatching" CTA
 
-### 3. Add Mutation to useTransportMutations
-**File:** `src/hooks/transport/useTransportMutations.ts`
+## Technical Implementation
 
-- Add `registerDriver` mutation that inserts into `buggy_drivers`
-- Include query invalidation for `buggy-drivers` key
+### 1. New Hook: `useTransportSetupMutations`
+**File:** `src/hooks/transport/useTransportSetupMutations.ts`
 
-### 4. Update ResourcesPanel
-**File:** `src/components/transport/dispatch/ResourcesPanel.tsx`
+Provides mutations for:
+- `addStop`: Insert into `buggy_stops`
+- `updateStop`: Update stop name/zone
+- `deleteStop`: Soft-delete (set `is_active = false`)
+- `reorderStops`: Batch update `sort_order`
+- `addBuggy`: Insert into `buggies`
+- `updateBuggy`: Update buggy details
+- `deleteBuggy`: Soft-delete (set status to 'out_of_service')
 
-- Add `resortId` prop to enable mutations
-- Add "+ Add Driver" icon button next to Drivers section header
-- Integrate AddDriverDialog with open/close state
+### 2. New Hook: `useTransportSetupStatus`
+**File:** `src/hooks/transport/useTransportSetupStatus.ts`
+
+Calculates setup completion:
+```typescript
+interface TransportSetupStatus {
+  stopsCount: number;
+  buggiesCount: number;
+  driversCount: number;
+  isComplete: boolean; // All >= 1
+  isDismissed: boolean; // localStorage flag
+}
+```
+
+### 3. Wizard Components
+
+**Directory:** `src/components/transport/setup/`
+
+| Component | Purpose |
+|-----------|---------|
+| `TransportSetupWizard.tsx` | Main wizard with step state and navigation |
+| `StopsSetupStep.tsx` | Step 1: Manage stops with inline add/edit/delete |
+| `BuggiesSetupStep.tsx` | Step 2: Manage buggies with inline add/edit |
+| `DriversSetupStep.tsx` | Step 3: Assign drivers (reuse eligible drivers hook) |
+| `ReviewSetupStep.tsx` | Step 4: Summary and completion |
+| `SetupProgressIndicator.tsx` | Shared step indicator component |
+| `QuickAddStops.tsx` | Pre-populated common stop templates |
+| `index.ts` | Exports |
+
+### 4. Setup Banner Integration
+**File:** `src/components/transport/setup/TransportSetupBanner.tsx`
+
+- Displayed above the dispatch console when setup is incomplete
+- Uses existing `SetupBanner` pattern
+- Dismissible but re-appears if resources are deleted back to zero
+- "Start Setup" button opens the wizard dialog
 
 ### 5. Update TransportPage
 **File:** `src/pages/staff/TransportPage.tsx`
 
-- Pass `resortId` to ResourcesPanel
+- Import `TransportSetupBanner` and `TransportSetupWizard`
+- Query setup status using `useTransportSetupStatus`
+- Show banner when `!isComplete && !isDismissed`
+- Include wizard dialog with open/close state
 
-### 6. Export new components
-**File:** `src/components/transport/dispatch/index.ts`
+## Files to Create
 
-- Export AddDriverDialog
+| File | Description |
+|------|-------------|
+| `src/hooks/transport/useTransportSetupMutations.ts` | CRUD mutations for stops and buggies |
+| `src/hooks/transport/useTransportSetupStatus.ts` | Setup completion check |
+| `src/components/transport/setup/TransportSetupWizard.tsx` | Main wizard component |
+| `src/components/transport/setup/StopsSetupStep.tsx` | Step 1 |
+| `src/components/transport/setup/BuggiesSetupStep.tsx` | Step 2 |
+| `src/components/transport/setup/DriversSetupStep.tsx` | Step 3 |
+| `src/components/transport/setup/ReviewSetupStep.tsx` | Step 4 |
+| `src/components/transport/setup/TransportSetupBanner.tsx` | Trigger banner |
+| `src/components/transport/setup/index.ts` | Exports |
 
----
+## Files to Edit
 
-## Technical Notes
+| File | Changes |
+|------|---------|
+| `src/pages/staff/TransportPage.tsx` | Add banner + wizard integration |
+| `src/hooks/transport/index.ts` | Export new hooks |
 
-### RLS Compatibility
-The existing policy `staff_insert_buggy_drivers` allows authenticated users with `staff_can_write_transport(auth.uid(), resort_id)` to insert. No database changes required.
+## UI/UX Considerations
 
-### Staff Eligibility Query
-```typescript
-// Get resort staff not already registered as drivers
-const { data: staff } = await supabase
-  .from('resort_memberships')
-  .select('user_id, profiles!inner(id, full_name)')
-  .eq('resort_id', resortId);
+- **Mobile-first**: Wizard is a full-height dialog with scrollable steps
+- **Progressive disclosure**: Each step only shows what's needed
+- **Inline editing**: Add/edit items without leaving the step
+- **Validation feedback**: Clear indicators when minimum requirements are met
+- **Empty states**: Friendly guidance, not error messages
+- **Animation**: Smooth step transitions using Framer Motion (matching existing patterns)
 
-const { data: existingDrivers } = await supabase
-  .from('buggy_drivers')
-  .select('user_id')
-  .eq('resort_id', resortId);
+## Database Considerations
+No schema changes required. The wizard uses existing tables:
+- `buggy_stops`: Pickup/dropoff locations
+- `buggies`: Fleet inventory
+- `buggy_drivers`: Driver assignments
 
-// Filter eligible = staff - existingDrivers
-```
+Existing RLS policies (`staff_insert_buggy_stops`, `staff_insert_buggies`, `staff_insert_buggy_drivers`) already support these operations for authorized staff roles.
 
-### Insert Pattern
-```typescript
-const { error } = await supabase
-  .from('buggy_drivers')
-  .insert({
-    resort_id: resortId,
-    user_id: selectedUserId,
-    status: 'offline', // default, driver goes online when they open driver app
-  });
-```
-
----
-
-## Files Changed Summary
-| File | Action |
-|------|--------|
-| `src/components/transport/dispatch/AddDriverDialog.tsx` | Create |
-| `src/hooks/transport/useEligibleDrivers.ts` | Create |
-| `src/hooks/transport/useTransportMutations.ts` | Edit (add mutation) |
-| `src/hooks/transport/index.ts` | Edit (export new hook) |
-| `src/components/transport/dispatch/ResourcesPanel.tsx` | Edit (add button + dialog) |
-| `src/components/transport/dispatch/index.ts` | Edit (export) |
-| `src/pages/staff/TransportPage.tsx` | Edit (pass resortId prop) |
-
-## UX Considerations
-- Empty state in dialog if no eligible staff (all already registered)
-- Show role badge next to staff name for context
-- Disable submit until staff member is selected
-- Loading state during mutation
+## Persistence
+Setup completion is tracked via resource counts, not a dedicated flag. If all resources are deleted, the setup banner returns. This ensures data integrity without adding database columns.
