@@ -10,6 +10,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useFeatureEnabled } from '@/components/FeatureGate';
 import { useActiveStay } from '@/hooks/useActiveStay';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import { useGuestRideRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import { 
   useGuestTransportStops, 
   useGuestTransportRoutes,
@@ -36,6 +37,13 @@ export default function GuestBuggyRequestPage() {
   const { activeRide, isLoading: rideLoading } = useActiveGuestRide(guest?.guestId, guest?.resortId);
   
   const createRequest = useCreateBuggyRequest();
+
+  // Realtime sync with toast notifications for status changes
+  useGuestRideRealtimeSync({
+    guestId: guest?.guestId,
+    resortId: guest?.resortId,
+    enabled: transportEnabled && !!guest,
+  });
   
   if (!guest) return null;
 
