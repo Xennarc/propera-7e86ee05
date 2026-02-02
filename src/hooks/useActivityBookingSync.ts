@@ -2,6 +2,10 @@ import { useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 interface UseActivityBookingSyncOptions {
   sessionId?: string;
@@ -13,6 +17,8 @@ interface UseActivityBookingSyncOptions {
 /**
  * Hook for real-time sync of activity bookings between guest and staff portals.
  * Invalidates relevant queries when bookings change.
+ * 
+ * NOTE: For guest portal usage, skips legacy channel if unified realtime is active.
  */
 export function useActivityBookingSync({ 
   sessionId, 
@@ -22,6 +28,11 @@ export function useActivityBookingSync({
 }: UseActivityBookingSyncOptions = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
   
   // Use provided resortId (for guests) or currentResort.id (for staff)
   const resortId = providedResortId || currentResort?.id;
@@ -72,6 +83,14 @@ export function useActivityBookingSync({
 
   useEffect(() => {
     if (!enabled || !resortId) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useActivityBookingSync] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     // Build filter based on provided options
     let filter = `resort_id=eq.${resortId}`;
@@ -100,18 +119,26 @@ export function useActivityBookingSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, resortId, sessionId, guestId, handleBookingChange]);
+  }, [enabled, resortId, sessionId, guestId, handleBookingChange, skipLegacyChannel]);
 }
 
 /**
  * Hook for real-time sync of activity sessions (capacity changes, status changes)
+ * 
+ * NOTE: For guest portal usage, skips legacy channel if unified realtime is active.
  */
 export function useActivitySessionSync({ 
   resortId: providedResortId,
+  guestId,
   enabled = true 
-}: { resortId?: string; enabled?: boolean } = {}) {
+}: { resortId?: string; guestId?: string; enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
   
   // Use provided resortId (for guests) or currentResort.id (for staff)
   const resortId = providedResortId || currentResort?.id;
@@ -144,6 +171,14 @@ export function useActivitySessionSync({
 
   useEffect(() => {
     if (!enabled || !resortId) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useActivitySessionSync] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     const channel = supabase
       .channel(`activity-sessions-sync-${resortId}`)
@@ -162,7 +197,7 @@ export function useActivitySessionSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, resortId, handleSessionChange]);
+  }, [enabled, resortId, handleSessionChange, skipLegacyChannel]);
 }
 
 /**
@@ -172,7 +207,7 @@ export function useGuestActivitySync(guestId: string | undefined, resortId?: str
   const enabled = !!guestId && !!resortId;
   
   useActivityBookingSync({ guestId, resortId, enabled });
-  useActivitySessionSync({ resortId, enabled });
+  useActivitySessionSync({ resortId, guestId, enabled });
 }
 
 /**

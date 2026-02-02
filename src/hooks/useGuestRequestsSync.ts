@@ -4,6 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { queryKeys } from '@/lib/query-keys';
 import { useDebouncedCallback } from './useDebouncedCallback';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 // Debounce delay for realtime invalidations (prevents refetch storms)
 const REALTIME_DEBOUNCE_MS = 500;
@@ -16,6 +20,9 @@ interface UseGuestRequestsSyncOptions {
 /**
  * Hook for real-time sync of guest requests between guest and staff portals.
  * Subscribes to `service_requests` table (the active table).
+ * 
+ * NOTE: For guest portal usage (when guestId is provided), 
+ * skips legacy channel if unified realtime is active.
  */
 export function useGuestRequestsSync({ 
   guestId, 
@@ -23,6 +30,11 @@ export function useGuestRequestsSync({
 }: UseGuestRequestsSyncOptions = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
 
   // Debounced invalidation to prevent rapid refetches
   const invalidateQueries = useDebouncedCallback((queryKey: unknown[]) => {
@@ -54,6 +66,14 @@ export function useGuestRequestsSync({
 
   useEffect(() => {
     if (!enabled || !currentResort?.id) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useGuestRequestsSync] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     // Build filter - use resort_id for staff, guest_id for guest-specific
     let filter = `resort_id=eq.${currentResort.id}`;
@@ -81,7 +101,7 @@ export function useGuestRequestsSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, guestId, handleRequestChange]);
+  }, [enabled, currentResort?.id, guestId, handleRequestChange, skipLegacyChannel]);
 }
 
 /**

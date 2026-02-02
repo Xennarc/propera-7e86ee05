@@ -3,6 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription, createFilter, createResortFilter } from './useRealtimeSubscription';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { toast } from 'sonner';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 /**
  * Driver-side realtime sync for trip updates.
@@ -92,6 +96,9 @@ export function useDriverRealtimeSync({
  * Guest-side realtime sync for ride status updates.
  * Subscribes to buggy_requests filtered by guest_id.
  * Provides toast notifications on status changes.
+ * 
+ * NOTE: Skips legacy channel creation if unified realtime is active.
+ * Toast logic is now handled by the unified hook when active.
  */
 export function useGuestRideRealtimeSync({
   guestId,
@@ -103,6 +110,10 @@ export function useGuestRideRealtimeSync({
   enabled?: boolean;
 }) {
   const queryClient = useQueryClient();
+  
+  // Check if unified realtime is active
+  const unifiedContext = useGuestRealtimeContext();
+  const skipLegacyChannel = unifiedContext?.unifiedActive ?? false;
 
   // Debounce invalidation
   const debouncedInvalidate = useDebouncedCallback(() => {
@@ -167,6 +178,13 @@ export function useGuestRideRealtimeSync({
     }
   }, [guestId, debouncedInvalidate]);
 
+  // Skip legacy channel if unified realtime is active
+  const shouldEnable = enabled && !!guestId && !skipLegacyChannel;
+  
+  if (DEBUG_REALTIME_DEPRECATION && skipLegacyChannel && enabled && !!guestId) {
+    console.debug('[useGuestRideRealtimeSync] Skipping legacy channel - unified realtime active');
+  }
+
   // Subscribe to buggy_requests for this guest
   useRealtimeSubscription({
     channelKey: `guest-ride-realtime-${guestId || 'none'}`,
@@ -177,6 +195,6 @@ export function useGuestRideRealtimeSync({
       },
     ],
     onChange: handleChange,
-    enabled: enabled && !!guestId,
+    enabled: shouldEnable,
   });
 }

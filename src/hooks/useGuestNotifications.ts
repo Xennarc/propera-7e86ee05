@@ -4,6 +4,10 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 interface GuestNotification {
   id: string;
@@ -20,10 +24,22 @@ export function useGuestNotifications() {
   const { guest } = useGuestAuth();
   const queryClient = useQueryClient();
   const guestId = guest?.guestId;
+  
+  // Check if unified realtime is active
+  const unifiedContext = useGuestRealtimeContext();
+  const skipLegacyChannel = unifiedContext?.unifiedActive ?? false;
 
-  // Set up realtime subscription
+  // Set up realtime subscription (skipped if unified realtime is active)
   useEffect(() => {
     if (!guestId) return;
+    
+    // Skip legacy channel if unified realtime is handling it
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useGuestNotifications] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     const channel = supabase
       .channel(`guest-notifications-${guestId}`)
@@ -46,7 +62,7 @@ export function useGuestNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [guestId, queryClient]);
+  }, [guestId, queryClient, skipLegacyChannel]);
 
   // Fetch notifications
   const { data: notifications = [], isLoading, refetch } = useQuery({
