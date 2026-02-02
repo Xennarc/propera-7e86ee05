@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -6,9 +8,10 @@ import {
   User, 
   Accessibility, 
   CircleDot,
-  Inbox,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AddDriverDialog } from './AddDriverDialog';
 import type { BuggyRow } from '@/hooks/transport/useBuggies';
 import type { DriverRow } from '@/hooks/transport/useBuggyDrivers';
 
@@ -16,6 +19,7 @@ interface ResourcesPanelProps {
   buggies: BuggyRow[];
   drivers: DriverRow[];
   isLoading: boolean;
+  resortId?: string;
 }
 
 const buggyStatusConfig: Record<string, { label: string; className: string }> = {
@@ -33,7 +37,9 @@ const driverStatusConfig: Record<string, { label: string; className: string }> =
   offline: { label: 'Offline', className: 'bg-muted-foreground' },
 };
 
-export function ResourcesPanel({ buggies, drivers, isLoading }: ResourcesPanelProps) {
+export function ResourcesPanel({ buggies, drivers, isLoading, resortId }: ResourcesPanelProps) {
+  const [showAddDriver, setShowAddDriver] = useState(false);
+  
   const availableBuggies = buggies.filter(b => b.status === 'available');
   const availableDrivers = drivers.filter(d => d.status === 'available');
   
@@ -85,9 +91,19 @@ export function ResourcesPanel({ buggies, drivers, isLoading }: ResourcesPanelPr
                 <User className="h-4 w-4 text-muted-foreground" />
                 Drivers
               </h3>
-              <Badge variant="secondary" className="h-5 text-xs">
-                {drivers.length}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setShowAddDriver(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <Badge variant="secondary" className="h-5 text-xs">
+                  {drivers.length}
+                </Badge>
+              </div>
             </div>
             
             {isLoading ? (
@@ -108,6 +124,13 @@ export function ResourcesPanel({ buggies, drivers, isLoading }: ResourcesPanelPr
           </div>
         </div>
       </ScrollArea>
+      
+      {/* Add Driver Dialog */}
+      <AddDriverDialog
+        open={showAddDriver}
+        onOpenChange={setShowAddDriver}
+        resortId={resortId}
+      />
     </div>
   );
 }

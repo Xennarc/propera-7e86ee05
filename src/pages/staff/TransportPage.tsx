@@ -316,6 +316,7 @@ function TransportPageContent() {
                     buggies={buggies}
                     drivers={drivers}
                     isLoading={queueLoading}
+                    resortId={resortId}
                   />
                 </ResizablePanel>
               </>

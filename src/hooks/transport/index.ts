@@ -12,3 +12,4 @@ export * from './useBuggyLocation';
 export * from './useDriverSession';
 export * from './useTransportHistory';
 export * from './useTransportMetrics';
+export * from './useEligibleDrivers';
