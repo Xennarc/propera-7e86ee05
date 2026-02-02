@@ -13,3 +13,5 @@ export * from './useDriverSession';
 export * from './useTransportHistory';
 export * from './useTransportMetrics';
 export * from './useEligibleDrivers';
+export * from './useTransportSetupStatus';
+export * from './useTransportSetupMutations';
