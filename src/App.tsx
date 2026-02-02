@@ -82,6 +82,11 @@ const TransportSettingsPage = lazy(() => import("./pages/staff/TransportSettings
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
 const DemoOnboardingPage = lazy(() => import("./pages/staff/DemoOnboardingPage"));
 const DemoAutoLoginPage = lazy(() => import("./pages/staff/DemoAutoLoginPage"));
+
+// Driver Portal
+const DriverLayout = lazy(() => import("./components/driver/DriverLayout").then(m => ({ default: m.DriverLayout })));
+const DriverHomePage = lazy(() => import("./pages/driver/DriverHomePage"));
+const DriverTripRunnerPage = lazy(() => import("./pages/driver/DriverTripRunnerPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
@@ -269,6 +274,12 @@ const App = () => (
                 
                 {/* Staff invitation acceptance (public) */}
                 <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
+                
+                {/* Driver Portal routes */}
+                <Route path="/driver" element={<DriverLayout />}>
+                  <Route index element={<DriverHomePage />} />
+                  <Route path="trip/:tripId" element={<DriverTripRunnerPage />} />
+                </Route>
                 
                 {/* Demo auto-login routes */}
                 <Route path="/demo/login" element={<DemoLoginPage />} />
