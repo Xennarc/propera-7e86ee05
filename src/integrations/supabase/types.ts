@@ -6633,7 +6633,16 @@ export type Database = {
       }
       current_guest_id: { Args: never; Returns: string }
       current_guest_resort_id: { Args: never; Returns: string }
-      driver_can_access_trip: { Args: { _trip_id: string }; Returns: boolean }
+      driver_can_access_trip: { Args: { p_trip_id: string }; Returns: boolean }
+      driver_complete_trip_atomic: {
+        Args: { p_trip_id: string }
+        Returns: Json
+      }
+      driver_set_status_atomic: {
+        Args: { p_new_status: string }
+        Returns: Json
+      }
+      driver_start_trip_atomic: { Args: { p_trip_id: string }; Returns: Json }
       driver_update_trip_stop_status: {
         Args: {
           _new_status: Database["public"]["Enums"]["buggy_trip_stop_status"]
