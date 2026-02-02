@@ -20,13 +20,24 @@ import {
   TripDetailSheet,
 } from '@/components/transport';
 import { TransportHistoryTab } from '@/components/transport/history';
+import { 
+  SuggestedPools, 
+  ResourcesPanel, 
+  TripPreviewSheet,
+} from '@/components/transport/dispatch';
 import { FeatureGate } from '@/components/FeatureGate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Car, RefreshCw, Settings, History, LayoutDashboard } from 'lucide-react';
+import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from '@/components/ui/resizable';
+import { AlertTriangle, Car, RefreshCw, Settings, History, LayoutDashboard, PanelRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
+import type { TransportQueueRequest } from '@/hooks/transport/useTransportQueue';
 
 function TransportPageContent() {
   const { currentResort } = useResort();
@@ -64,6 +75,11 @@ function TransportPageContent() {
   const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
   const [detailTripId, setDetailTripId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dispatch' | 'history'>('dispatch');
+  const [showResourcesPanel, setShowResourcesPanel] = useState(true);
+  
+  // Trip preview state
+  const [previewRequests, setPreviewRequests] = useState<TransportQueueRequest[]>([]);
+  const [showTripPreview, setShowTripPreview] = useState(false);
   
   // Get trip for dialogs
   const assigningTrip = trips.find(t => t.id === assigningTripId) || null;
@@ -74,8 +90,25 @@ function TransportPageContent() {
   
   // Handlers
   const handleCreateTrip = useCallback((requestIds: string[]) => {
-    mutations.createTripFromRequests.mutate({ requestIds });
-  }, [mutations]);
+    // Show preview instead of creating directly
+    const selectedRequests = queueRequests.filter(r => requestIds.includes(r.id));
+    setPreviewRequests(selectedRequests);
+    setShowTripPreview(true);
+  }, [queueRequests]);
+  
+  const handleConfirmCreateTrip = useCallback(() => {
+    if (previewRequests.length > 0) {
+      mutations.createTripFromRequests.mutate(
+        { requestIds: previewRequests.map(r => r.id) },
+        { 
+          onSuccess: () => {
+            setShowTripPreview(false);
+            setPreviewRequests([]);
+          }
+        }
+      );
+    }
+  }, [previewRequests, mutations]);
   
   const handleCancelRequest = useCallback((requestId: string) => {
     mutations.cancelRequest.mutate({ requestId });
@@ -198,6 +231,15 @@ function TransportPageContent() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowResourcesPanel(!showResourcesPanel)}
+            className="hidden lg:flex"
+          >
+            <PanelRight className="h-4 w-4 mr-2" />
+            Resources
+          </Button>
           {(isSuperAdmin || currentResortRole === 'RESORT_ADMIN' || currentResortRole === 'MANAGER') && (
             <Button variant="outline" size="sm" asChild>
               <Link to="/staff/transport/settings">
@@ -225,17 +267,35 @@ function TransportPageContent() {
         </div>
         
         <TabsContent value="dispatch" className="flex-1 mt-0 overflow-hidden">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
-            <div className="min-h-0 overflow-hidden">
-              <RequestQueuePanel
-                requests={queueRequests}
-                isLoading={queueLoading}
-                onCreateTrip={handleCreateTrip}
-                onCancelRequest={handleCancelRequest}
-                isCreatingTrip={mutations.createTripFromRequests.isPending}
-              />
-            </div>
-            <div className="min-h-0 overflow-hidden">
+          {/* 3-Column Dispatch Console */}
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Left: Request Queue */}
+            <ResizablePanel defaultSize={35} minSize={25} className="min-h-0">
+              <div className="h-full flex flex-col overflow-hidden">
+                {/* Suggested Pools */}
+                <SuggestedPools
+                  requests={queueRequests}
+                  onCreatePool={handleCreateTrip}
+                  isCreating={mutations.createTripFromRequests.isPending}
+                />
+                
+                {/* Request Queue */}
+                <div className="flex-1 overflow-hidden">
+                  <RequestQueuePanel
+                    requests={queueRequests}
+                    isLoading={queueLoading}
+                    onCreateTrip={handleCreateTrip}
+                    onCancelRequest={handleCancelRequest}
+                    isCreatingTrip={mutations.createTripFromRequests.isPending}
+                  />
+                </div>
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            {/* Center: Trip Planner */}
+            <ResizablePanel defaultSize={40} minSize={30} className="min-h-0">
               <TripsPanel
                 trips={trips}
                 isLoading={tripsLoading}
@@ -245,8 +305,22 @@ function TransportPageContent() {
                 onViewTripDetails={setDetailTripId}
                 onRefresh={refetchTrips}
               />
-            </div>
-          </div>
+            </ResizablePanel>
+            
+            {/* Right: Resources Panel (collapsible) */}
+            {showResourcesPanel && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={25} minSize={20} className="min-h-0 hidden lg:block">
+                  <ResourcesPanel
+                    buggies={buggies}
+                    drivers={drivers}
+                    isLoading={queueLoading}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
         </TabsContent>
         
         <TabsContent value="history" className="flex-1 mt-0 overflow-hidden">
@@ -281,6 +355,15 @@ function TransportPageContent() {
         stops={detailStops}
         onReorderStops={handleReorderStops}
         isReordering={mutations.reorderTripStops.isPending}
+      />
+      
+      {/* Trip Preview Sheet */}
+      <TripPreviewSheet
+        open={showTripPreview}
+        onOpenChange={setShowTripPreview}
+        requests={previewRequests}
+        onConfirm={handleConfirmCreateTrip}
+        isCreating={mutations.createTripFromRequests.isPending}
       />
     </div>
   );

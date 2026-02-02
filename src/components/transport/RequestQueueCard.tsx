@@ -12,7 +12,7 @@ import {
   X 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, differenceInMinutes } from 'date-fns';
 import type { TransportQueueRequest } from '@/hooks/transport/useTransportQueue';
 
 interface RequestQueueCardProps {
@@ -54,6 +54,12 @@ export function RequestQueueCard({
   
   const pickupName = request.pickup_stop?.name || request.pickup_text || 'Unknown';
   const dropoffName = request.dropoff_stop?.name || request.dropoff_text || 'Unknown';
+  
+  // Calculate wait time for SLA badge
+  const waitMinutes = differenceInMinutes(new Date(), new Date(request.created_at));
+  const slaMinutes = 15;
+  const isOverSla = waitMinutes > slaMinutes;
+  const isNearSla = waitMinutes > slaMinutes * 0.75;
   
   return (
     <motion.div
@@ -140,7 +146,20 @@ export function RequestQueueCard({
           </span>
           <span>{type.label}</span>
         </div>
-        <span>{formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}</span>
+        <div className="flex items-center gap-2">
+          {/* Wait time SLA badge */}
+          <Badge 
+            variant="outline" 
+            className={cn(
+              'text-xs gap-1 tabular-nums',
+              isOverSla && 'bg-destructive/10 text-destructive border-destructive/30',
+              !isOverSla && isNearSla && 'bg-amber-500/10 text-amber-600 border-amber-500/30',
+            )}
+          >
+            <Clock className="h-3 w-3" />
+            {waitMinutes}m
+          </Badge>
+        </div>
       </div>
     </motion.div>
   );
