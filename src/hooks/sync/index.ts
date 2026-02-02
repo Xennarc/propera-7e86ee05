@@ -13,3 +13,4 @@ export {
   useDriverRealtimeSync, 
   useGuestRideRealtimeSync,
 } from './useDriverRealtimeSync';
+export { useUnifiedGuestRealtime } from './useUnifiedGuestRealtime';
