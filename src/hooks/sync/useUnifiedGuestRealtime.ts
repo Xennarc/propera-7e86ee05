@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
-// Toggle for debug logging
-const DEBUG_REALTIME = false;
+// Debug via query param: ?debugRealtime=1
+const DEBUG_REALTIME = typeof window !== 'undefined' && 
+  new URLSearchParams(window.location.search).get('debugRealtime') === '1';
 
 interface UseUnifiedGuestRealtimeOptions {
   guestId: string;
@@ -17,6 +18,9 @@ type TablePayload = RealtimePostgresChangesPayload<Record<string, unknown>> & {
   table?: string;
 };
 
+// Domain types for batching
+type Domain = 'notifications' | 'transport' | 'activities' | 'dining' | 'requests' | 'prearrival';
+
 // Debounce timers per domain
 interface DebouncedInvalidators {
   notifications: ReturnType<typeof setTimeout> | null;
@@ -27,12 +31,46 @@ interface DebouncedInvalidators {
   prearrival: ReturnType<typeof setTimeout> | null;
 }
 
+// Dirty flags for batching
+interface DirtyFlags {
+  notifications: boolean;
+  transport: boolean;
+  activities: boolean;
+  dining: boolean;
+  requests: boolean;
+  prearrival: boolean;
+}
+
+// Event dedupe entry
+interface DedupeEntry {
+  timestamp: number;
+}
+
 const DEBOUNCE_MS = 300;
+const DEDUPE_WINDOW_MS = 1500; // 1.5 seconds
+const TOAST_COOLDOWN_MS = 3000; // 3 seconds between transport toasts
+
+/**
+ * Generate dedupe key from payload
+ */
+function getDedupeKey(payload: TablePayload): string {
+  const table = payload.table || 'unknown';
+  const eventType = payload.eventType || 'unknown';
+  const recordId = (payload.new as Record<string, unknown>)?.id || 
+                   (payload.old as Record<string, unknown>)?.id || 
+                   'unknown';
+  return `${table}:${recordId}:${eventType}`;
+}
 
 /**
  * Unified guest realtime subscription hook.
  * Subscribes to all guest-relevant tables in a single channel,
  * reducing connection count by ~85% compared to individual subscriptions.
+ * 
+ * Performance features:
+ * - Event deduplication (ignores same event within 1.5s)
+ * - Domain batching (consolidates invalidations per debounce window)
+ * - Toast rate limiting (prevents spam on rapid status changes)
  */
 export function useUnifiedGuestRealtime({
   guestId,
@@ -41,6 +79,8 @@ export function useUnifiedGuestRealtime({
 }: UseUnifiedGuestRealtimeOptions) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  
+  // Debounce timers per domain
   const debouncersRef = useRef<DebouncedInvalidators>({
     notifications: null,
     transport: null,
@@ -49,6 +89,32 @@ export function useUnifiedGuestRealtime({
     requests: null,
     prearrival: null,
   });
+  
+  // Dirty flags for batching
+  const dirtyRef = useRef<DirtyFlags>({
+    notifications: false,
+    transport: false,
+    activities: false,
+    dining: false,
+    requests: false,
+    prearrival: false,
+  });
+  
+  // Query keys to invalidate per domain (accumulated during dirty window)
+  const pendingKeysRef = useRef<Record<Domain, string[][]>>({
+    notifications: [],
+    transport: [],
+    activities: [],
+    dining: [],
+    requests: [],
+    prearrival: [],
+  });
+  
+  // Event deduplication map
+  const dedupeMapRef = useRef<Map<string, DedupeEntry>>(new Map());
+  
+  // Toast cooldown tracking
+  const lastToastRef = useRef<number>(0);
 
   // Clear all debounce timers
   const clearDebouncers = useCallback(() => {
@@ -65,20 +131,75 @@ export function useUnifiedGuestRealtime({
     };
   }, []);
 
-  // Debounced invalidation helper
-  const debouncedInvalidate = useCallback(
-    (domain: keyof DebouncedInvalidators, queryKeys: string[][]) => {
+  // Clean up old dedupe entries periodically
+  const cleanupDedupe = useCallback(() => {
+    const now = Date.now();
+    const map = dedupeMapRef.current;
+    for (const [key, entry] of map.entries()) {
+      if (now - entry.timestamp > DEDUPE_WINDOW_MS * 2) {
+        map.delete(key);
+      }
+    }
+  }, []);
+
+  // Check if event should be deduped
+  const shouldDedupe = useCallback((payload: TablePayload): boolean => {
+    const key = getDedupeKey(payload);
+    const now = Date.now();
+    const existing = dedupeMapRef.current.get(key);
+    
+    if (existing && now - existing.timestamp < DEDUPE_WINDOW_MS) {
+      if (DEBUG_REALTIME) {
+        console.debug('[UnifiedRealtime] Deduped event:', key);
+      }
+      return true;
+    }
+    
+    // Update timestamp
+    dedupeMapRef.current.set(key, { timestamp: now });
+    
+    // Cleanup old entries occasionally
+    if (dedupeMapRef.current.size > 50) {
+      cleanupDedupe();
+    }
+    
+    return false;
+  }, [cleanupDedupe]);
+
+  // Batched invalidation helper - accumulates keys and flushes on debounce
+  const batchedInvalidate = useCallback(
+    (domain: Domain, queryKeys: string[][]) => {
+      // Mark domain dirty and accumulate keys
+      dirtyRef.current[domain] = true;
+      pendingKeysRef.current[domain].push(...queryKeys);
+      
+      // If timer already running, let it handle the batch
       if (debouncersRef.current[domain]) {
-        clearTimeout(debouncersRef.current[domain]!);
+        return;
       }
 
       debouncersRef.current[domain] = setTimeout(() => {
-        if (DEBUG_REALTIME) {
-          console.debug(`[UnifiedRealtime] Invalidating ${domain}:`, queryKeys);
+        if (dirtyRef.current[domain]) {
+          const keysToInvalidate = pendingKeysRef.current[domain];
+          
+          if (DEBUG_REALTIME) {
+            console.debug(`[UnifiedRealtime] Flushing ${domain}:`, keysToInvalidate.length, 'keys');
+          }
+          
+          // Dedupe keys before invalidating
+          const uniqueKeys = new Map<string, string[]>();
+          keysToInvalidate.forEach((key) => {
+            uniqueKeys.set(JSON.stringify(key), key);
+          });
+          
+          uniqueKeys.forEach((key) => {
+            queryClient.invalidateQueries({ queryKey: key });
+          });
+          
+          // Reset
+          dirtyRef.current[domain] = false;
+          pendingKeysRef.current[domain] = [];
         }
-        queryKeys.forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: key });
-        });
         debouncersRef.current[domain] = null;
       }, DEBOUNCE_MS);
     },
@@ -89,35 +210,46 @@ export function useUnifiedGuestRealtime({
   const handleNotifications = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Notifications event:', payload);
+        console.debug('[UnifiedRealtime] Notifications event:', payload.eventType);
       }
-      debouncedInvalidate('notifications', [
+      batchedInvalidate('notifications', [
         ['guest-notifications', guestId],
         ['guest-unread-count', guestId],
       ]);
     },
-    [guestId, debouncedInvalidate]
+    [guestId, batchedInvalidate]
   );
 
   const handleTransport = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Transport event:', payload);
+        console.debug('[UnifiedRealtime] Transport event:', payload.eventType);
       }
 
       // Invalidate transport query keys
-      debouncedInvalidate('transport', [
+      batchedInvalidate('transport', [
         ['guest-buggy-requests', guestId],
         ['guest-active-ride', guestId],
         ['transport-requests', resortId],
       ]);
 
-      // Show toast for ride status changes (preserve existing behavior)
-      if (payload.eventType === 'UPDATE' && payload.new) {
+      // Toast rate limiting for ride status changes
+      if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
         const newStatus = (payload.new as Record<string, unknown>).status as string | undefined;
-        const oldStatus = (payload.old as Record<string, unknown>)?.status as string | undefined;
+        const oldStatus = (payload.old as Record<string, unknown>).status as string | undefined;
 
-        if (newStatus && newStatus !== oldStatus) {
+        // Only toast on meaningful transitions with valid old/new status
+        if (newStatus && oldStatus && newStatus !== oldStatus) {
+          const now = Date.now();
+          
+          // Rate limit toasts
+          if (now - lastToastRef.current < TOAST_COOLDOWN_MS) {
+            if (DEBUG_REALTIME) {
+              console.debug('[UnifiedRealtime] Toast rate limited');
+            }
+            return;
+          }
+          
           const statusMessages: Record<string, string> = {
             ASSIGNED: 'A driver has been assigned to your ride',
             EN_ROUTE: 'Your ride is on the way',
@@ -128,78 +260,84 @@ export function useUnifiedGuestRealtime({
 
           const message = statusMessages[newStatus];
           if (message) {
+            lastToastRef.current = now;
             toast.info(message, { duration: 4000 });
           }
         }
       }
     },
-    [guestId, resortId, debouncedInvalidate]
+    [guestId, resortId, batchedInvalidate]
   );
 
   const handleActivities = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Activities event:', payload);
+        console.debug('[UnifiedRealtime] Activities event:', payload.eventType);
       }
-      debouncedInvalidate('activities', [
+      batchedInvalidate('activities', [
         ['guest-activity-bookings', guestId],
         ['activity-bookings', resortId],
         ['activity-sessions', resortId],
         ['activities-with-sessions', resortId],
       ]);
     },
-    [guestId, resortId, debouncedInvalidate]
+    [guestId, resortId, batchedInvalidate]
   );
 
   const handleDining = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Dining event:', payload);
+        console.debug('[UnifiedRealtime] Dining event:', payload.eventType);
       }
-      debouncedInvalidate('dining', [
+      batchedInvalidate('dining', [
         ['guest-dining-reservations', guestId],
         ['dining-reservations', resortId],
         ['dining-slots', resortId],
         ['restaurant-time-slots', resortId],
       ]);
     },
-    [guestId, resortId, debouncedInvalidate]
+    [guestId, resortId, batchedInvalidate]
   );
 
   const handleRequests = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Requests event:', payload);
+        console.debug('[UnifiedRealtime] Requests event:', payload.eventType);
       }
-      debouncedInvalidate('requests', [
+      batchedInvalidate('requests', [
         ['guest-service-requests', guestId],
         ['service-requests', resortId],
       ]);
     },
-    [guestId, resortId, debouncedInvalidate]
+    [guestId, resortId, batchedInvalidate]
   );
 
   const handlePrearrival = useCallback(
     (payload: TablePayload) => {
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Prearrival event:', payload);
+        console.debug('[UnifiedRealtime] Prearrival event:', payload.eventType);
       }
-      debouncedInvalidate('prearrival', [
+      batchedInvalidate('prearrival', [
         ['prearrival-data', guestId],
         ['prearrival-profile', guestId],
         ['prearrival-history', guestId],
       ]);
     },
-    [guestId, debouncedInvalidate]
+    [guestId, batchedInvalidate]
   );
 
-  // Central event router
+  // Central event router with deduplication
   const handleEvent = useCallback(
     (payload: TablePayload) => {
+      // Dedupe check
+      if (shouldDedupe(payload)) {
+        return;
+      }
+      
       const table = payload.table;
 
       if (DEBUG_REALTIME) {
-        console.debug('[UnifiedRealtime] Event received:', { table, eventType: payload.eventType });
+        console.debug('[UnifiedRealtime] Event:', { table, eventType: payload.eventType });
       }
 
       switch (table) {
@@ -229,7 +367,7 @@ export function useUnifiedGuestRealtime({
           }
       }
     },
-    [handleNotifications, handleTransport, handleActivities, handleDining, handleRequests, handlePrearrival]
+    [shouldDedupe, handleNotifications, handleTransport, handleActivities, handleDining, handleRequests, handlePrearrival]
   );
 
   // Table configurations
@@ -258,6 +396,15 @@ export function useUnifiedGuestRealtime({
     }
 
     const channelName = `guest-unified-${resortId}-${guestId}`;
+
+    // Prevent duplicate channels - clean up existing first
+    if (channelRef.current) {
+      if (DEBUG_REALTIME) {
+        console.debug('[UnifiedRealtime] Cleaning up existing channel before creating new one');
+      }
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
     if (DEBUG_REALTIME) {
       console.debug('[UnifiedRealtime] Creating channel:', channelName);
@@ -291,12 +438,36 @@ export function useUnifiedGuestRealtime({
       }
     });
 
-    // Cleanup
+    // Cleanup - always runs on unmount or dependency change
     return () => {
       if (DEBUG_REALTIME) {
         console.debug('[UnifiedRealtime] Cleaning up channel:', channelName);
       }
       clearDebouncers();
+      
+      // Clear pending keys
+      pendingKeysRef.current = {
+        notifications: [],
+        transport: [],
+        activities: [],
+        dining: [],
+        requests: [],
+        prearrival: [],
+      };
+      
+      // Reset dirty flags
+      dirtyRef.current = {
+        notifications: false,
+        transport: false,
+        activities: false,
+        dining: false,
+        requests: false,
+        prearrival: false,
+      };
+      
+      // Clear dedupe map
+      dedupeMapRef.current.clear();
+      
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
