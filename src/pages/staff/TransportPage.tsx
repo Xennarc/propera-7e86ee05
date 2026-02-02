@@ -190,10 +190,20 @@ function TransportPageContent() {
             Manage buggy requests and trips
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          {(isSuperAdmin || currentResortRole === 'RESORT_ADMIN' || currentResortRole === 'MANAGER') && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/staff/transport/settings">
+                <Settings className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Settings</span>
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
       
       {/* Main content - responsive grid */}

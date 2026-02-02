@@ -2,6 +2,7 @@
 export * from './useTransportQueue';
 export * from './useTransportTrips';
 export * from './useTripDetails';
+export * from './useTransportSettings';
 export * from './useBuggies';
 export * from './useBuggyDrivers';
 export * from './useTransportStops';
