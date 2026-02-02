@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTripStops, useTripRequests } from '@/hooks/transport/useTripDetails';
 import {
   useDriverTrips,
@@ -8,7 +9,9 @@ import {
   useCompleteTripMutation,
   useUpdateStopStatusMutation,
 } from '@/hooks/transport/useDriverSession';
+import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
+import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -61,9 +64,18 @@ export default function DriverTripRunnerPage() {
   const { tripId } = useParams<{ tripId: string }>();
   const navigate = useNavigate();
   const { currentResort } = useResort();
+  const { user } = useAuth();
   const resortId = currentResort?.id;
   
   const { driverSession, isOnline } = useOutletContext<DriverOutletContext>();
+
+  // Realtime sync for faster updates
+  useDriverRealtimeSync({
+    driverId: user?.id,
+    resortId,
+    tripId,
+    enabled: !!tripId,
+  });
 
   // Data
   const { data: trips = [] } = useDriverTrips(resortId);
@@ -248,6 +260,15 @@ export default function DriverTripRunnerPage() {
                       Arrived
                     </Badge>
                   )}
+                </div>
+                {/* Navigation link */}
+                <div className="mt-3">
+                  <StopNavigationLink
+                    stopName={currentStop.stop_name || currentStop.title || 'Stop'}
+                    zone={(currentStop as any).zone}
+                    location={(currentStop as any).location}
+                    variant="button"
+                  />
                 </div>
               </div>
 

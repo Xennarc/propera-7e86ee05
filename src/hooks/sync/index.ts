@@ -9,3 +9,7 @@ export {
   useTripDetailSync,
   transportQueryKeys,
 } from './useTransportSync';
+export { 
+  useDriverRealtimeSync, 
+  useGuestRideRealtimeSync,
+} from './useDriverRealtimeSync';
