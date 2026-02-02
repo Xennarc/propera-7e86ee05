@@ -1064,8 +1064,65 @@ export type Database = {
           },
         ]
       }
+      buggy_request_events: {
+        Row: {
+          actor_type: string
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          payload: Json
+          request_id: string
+          resort_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_type: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          payload?: Json
+          request_id: string
+          resort_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_type?: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          payload?: Json
+          request_id?: string
+          resort_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_request_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buggy_requests: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           created_by_staff_user_id: string | null
           dropoff_location: Json | null
@@ -1091,6 +1148,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by_staff_user_id?: string | null
           dropoff_location?: Json | null
@@ -1116,6 +1176,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by_staff_user_id?: string | null
           dropoff_location?: Json | null
@@ -1375,6 +1438,60 @@ export type Database = {
           },
         ]
       }
+      buggy_trip_events: {
+        Row: {
+          actor_type: string
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          payload: Json
+          resort_id: string
+          to_status: string | null
+          trip_id: string
+        }
+        Insert: {
+          actor_type: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          payload?: Json
+          resort_id: string
+          to_status?: string | null
+          trip_id: string
+        }
+        Update: {
+          actor_type?: string
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          payload?: Json
+          resort_id?: string
+          to_status?: string | null
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buggy_trip_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buggy_trip_events_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buggy_trip_requests: {
         Row: {
           created_at: string
@@ -1512,6 +1629,9 @@ export type Database = {
       }
       buggy_trips: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           buggy_id: string | null
           capacity_total: number | null
           created_at: string
@@ -1527,6 +1647,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           buggy_id?: string | null
           capacity_total?: number | null
           created_at?: string
@@ -1542,6 +1665,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           buggy_id?: string | null
           capacity_total?: number | null
           created_at?: string
@@ -5884,6 +6010,89 @@ export type Database = {
           },
         ]
       }
+      transport_settings: {
+        Row: {
+          archive_after_days: number
+          created_at: string
+          gps_throttle_seconds: number
+          guest_booking_enabled: boolean
+          history_retention_days: number
+          id: string
+          location_required: boolean
+          max_party_size: number
+          max_pickup_detour_meters: number
+          max_stops_per_trip: number
+          max_wait_minutes: number
+          notify_guest_eta_minutes: number
+          notify_guest_on_arrived: boolean
+          notify_guest_on_assigned: boolean
+          notify_guest_on_driver_en_route: boolean
+          pooling_enabled: boolean
+          pooling_window_minutes: number
+          presence_interval_seconds: number
+          resort_id: string
+          service_enabled: boolean
+          service_hours: Json
+          updated_at: string
+        }
+        Insert: {
+          archive_after_days?: number
+          created_at?: string
+          gps_throttle_seconds?: number
+          guest_booking_enabled?: boolean
+          history_retention_days?: number
+          id?: string
+          location_required?: boolean
+          max_party_size?: number
+          max_pickup_detour_meters?: number
+          max_stops_per_trip?: number
+          max_wait_minutes?: number
+          notify_guest_eta_minutes?: number
+          notify_guest_on_arrived?: boolean
+          notify_guest_on_assigned?: boolean
+          notify_guest_on_driver_en_route?: boolean
+          pooling_enabled?: boolean
+          pooling_window_minutes?: number
+          presence_interval_seconds?: number
+          resort_id: string
+          service_enabled?: boolean
+          service_hours?: Json
+          updated_at?: string
+        }
+        Update: {
+          archive_after_days?: number
+          created_at?: string
+          gps_throttle_seconds?: number
+          guest_booking_enabled?: boolean
+          history_retention_days?: number
+          id?: string
+          location_required?: boolean
+          max_party_size?: number
+          max_pickup_detour_meters?: number
+          max_stops_per_trip?: number
+          max_wait_minutes?: number
+          notify_guest_eta_minutes?: number
+          notify_guest_on_arrived?: boolean
+          notify_guest_on_assigned?: boolean
+          notify_guest_on_driver_en_route?: boolean
+          pooling_enabled?: boolean
+          pooling_window_minutes?: number
+          presence_interval_seconds?: number
+          resort_id?: string
+          service_enabled?: boolean
+          service_hours?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_settings_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: true
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       travel_parties: {
         Row: {
           created_at: string
@@ -6634,19 +6843,16 @@ export type Database = {
       current_guest_id: { Args: never; Returns: string }
       current_guest_resort_id: { Args: never; Returns: string }
       driver_can_access_trip: { Args: { p_trip_id: string }; Returns: boolean }
-      driver_complete_trip_atomic: {
-        Args: { p_trip_id: string }
-        Returns: Json
-      }
+      driver_complete_trip_atomic: { Args: { _trip_id: string }; Returns: Json }
       driver_set_status_atomic: {
         Args: { p_new_status: string }
         Returns: Json
       }
-      driver_start_trip_atomic: { Args: { p_trip_id: string }; Returns: Json }
+      driver_start_trip_atomic: { Args: { _trip_id: string }; Returns: Json }
       driver_update_trip_stop_status: {
         Args: {
           _new_status: Database["public"]["Enums"]["buggy_trip_stop_status"]
-          _trip_stop_id: string
+          _stop_id: string
         }
         Returns: Json
       }
@@ -7244,6 +7450,32 @@ export type Database = {
       now_in_resort_tz: { Args: { p_resort_id: string }; Returns: string }
       peek_guest_login_token: { Args: { p_raw_token: string }; Returns: Json }
       purge_archived_requests: { Args: never; Returns: Json }
+      record_request_event: {
+        Args: {
+          _actor_type: string
+          _actor_user_id: string
+          _event_type: string
+          _from_status?: string
+          _payload?: Json
+          _request_id: string
+          _resort_id: string
+          _to_status?: string
+        }
+        Returns: string
+      }
+      record_trip_event: {
+        Args: {
+          _actor_type: string
+          _actor_user_id: string
+          _event_type: string
+          _from_status?: string
+          _payload?: Json
+          _resort_id: string
+          _to_status?: string
+          _trip_id: string
+        }
+        Returns: string
+      }
       regenerate_prearrival_link: {
         Args: { p_guest_id: string }
         Returns: Json
@@ -7426,6 +7658,10 @@ export type Database = {
       }
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
+        Returns: Json
+      }
+      upsert_transport_settings_atomic: {
+        Args: { p_resort_id: string; p_settings: Json }
         Returns: Json
       }
       user_has_all_permissions: {
