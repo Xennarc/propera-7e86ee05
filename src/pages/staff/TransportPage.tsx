@@ -11,6 +11,7 @@ import {
   useBuggies,
   useBuggyDrivers,
   useTransportMutations,
+  useTransportSetupStatus,
 } from '@/hooks/transport';
 import { 
   RequestQueuePanel, 
@@ -25,6 +26,7 @@ import {
   ResourcesPanel, 
   TripPreviewSheet,
 } from '@/components/transport/dispatch';
+import { TransportSetupBanner, TransportSetupWizard } from '@/components/transport/setup';
 import { FeatureGate } from '@/components/FeatureGate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,12 +72,17 @@ function TransportPageContent() {
   // Mutations
   const mutations = useTransportMutations(resortId);
   
+  // Setup status
+  const setupStatus = useTransportSetupStatus(resortId);
+  const showSetupBanner = !setupStatus.isComplete && !setupStatus.isDismissed && !setupStatus.isLoading;
+  
   // Dialog state
   const [assigningTripId, setAssigningTripId] = useState<string | null>(null);
   const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
   const [detailTripId, setDetailTripId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dispatch' | 'history'>('dispatch');
   const [showResourcesPanel, setShowResourcesPanel] = useState(true);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   
   // Trip preview state
   const [previewRequests, setPreviewRequests] = useState<TransportQueueRequest[]>([]);
@@ -251,6 +258,19 @@ function TransportPageContent() {
         </div>
       </div>
       
+      {/* Setup Banner */}
+      {showSetupBanner && (
+        <div className="px-4 pt-4">
+          <TransportSetupBanner
+            stopsCount={setupStatus.stopsCount}
+            buggiesCount={setupStatus.buggiesCount}
+            driversCount={setupStatus.driversCount}
+            onStartSetup={() => setShowSetupWizard(true)}
+            onDismiss={setupStatus.dismissSetup}
+          />
+        </div>
+      )}
+      
       {/* Tab navigation */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dispatch' | 'history')} className="flex-1 flex flex-col">
         <div className="px-4 pt-2 border-b">
@@ -365,6 +385,14 @@ function TransportPageContent() {
         requests={previewRequests}
         onConfirm={handleConfirmCreateTrip}
         isCreating={mutations.createTripFromRequests.isPending}
+      />
+      
+      {/* Setup Wizard */}
+      <TransportSetupWizard
+        open={showSetupWizard}
+        onOpenChange={setShowSetupWizard}
+        resortId={resortId}
+        onComplete={setupStatus.dismissSetup}
       />
     </div>
   );
