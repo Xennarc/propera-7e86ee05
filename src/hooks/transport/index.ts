@@ -10,3 +10,4 @@ export * from './useGuestBuggyRequests';
 export * from './useTransportMutations';
 export * from './useBuggyLocation';
 export * from './useDriverSession';
+export * from './useTransportHistory';
