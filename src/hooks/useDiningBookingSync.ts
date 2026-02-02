@@ -3,6 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useSyncInvalidation } from '@/hooks/sync/useSyncInvalidation';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 interface UseDiningBookingSyncOptions {
   slotId?: string;
@@ -14,6 +18,8 @@ interface UseDiningBookingSyncOptions {
 /**
  * Hook for real-time sync of restaurant reservations between guest and staff portals.
  * Mirrors the activity booking sync pattern.
+ * 
+ * NOTE: For guest portal usage, skips legacy channel if unified realtime is active.
  */
 export function useDiningBookingSync({ 
   slotId, 
@@ -24,6 +30,11 @@ export function useDiningBookingSync({
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
   const { invalidateDining } = useSyncInvalidation();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
   
   // Use provided resortId (for guests) or currentResort.id (for staff)
   const resortId = providedResortId || currentResort?.id;
@@ -75,6 +86,14 @@ export function useDiningBookingSync({
 
   useEffect(() => {
     if (!enabled || !resortId) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useDiningBookingSync] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     // Build filter based on provided options
     let filter = `resort_id=eq.${resortId}`;
@@ -103,18 +122,26 @@ export function useDiningBookingSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, resortId, slotId, guestId, handleReservationChange]);
+  }, [enabled, resortId, slotId, guestId, handleReservationChange, skipLegacyChannel]);
 }
 
 /**
  * Hook for real-time sync of restaurant time slots (capacity changes, status changes)
+ * 
+ * NOTE: For guest portal usage, skips legacy channel if unified realtime is active.
  */
 export function useDiningSlotSync({ 
   resortId: providedResortId,
+  guestId,
   enabled = true 
-}: { resortId?: string; enabled?: boolean } = {}) {
+}: { resortId?: string; guestId?: string; enabled?: boolean } = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
   
   // Use provided resortId (for guests) or currentResort.id (for staff)
   const resortId = providedResortId || currentResort?.id;
@@ -150,6 +177,14 @@ export function useDiningSlotSync({
 
   useEffect(() => {
     if (!enabled || !resortId) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[useDiningSlotSync] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     const channel = supabase
       .channel(`dining-slots-sync-${resortId}`)
@@ -168,7 +203,7 @@ export function useDiningSlotSync({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, resortId, handleSlotChange]);
+  }, [enabled, resortId, handleSlotChange, skipLegacyChannel]);
 }
 
 /**
@@ -178,7 +213,7 @@ export function useGuestDiningSync(guestId: string | undefined, resortId?: strin
   const enabled = !!guestId && !!resortId;
   
   useDiningBookingSync({ guestId, resortId, enabled });
-  useDiningSlotSync({ resortId, enabled });
+  useDiningSlotSync({ resortId, guestId, enabled });
 }
 
 /**

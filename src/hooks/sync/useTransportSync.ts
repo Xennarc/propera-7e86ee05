@@ -3,6 +3,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription, createResortFilter, createFilter } from './useRealtimeSubscription';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { queryKeys } from '@/lib/query-keys';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 /**
  * Query keys for transport module
@@ -121,6 +125,8 @@ interface UseGuestBuggyRequestsSyncOptions {
 /**
  * Guest-side realtime sync for their buggy requests.
  * Subscribes to buggy_requests filtered by guest_id.
+ * 
+ * NOTE: Skips legacy channel creation if unified realtime is active.
  */
 export function useGuestBuggyRequestsSync({
   guestId,
@@ -128,6 +134,10 @@ export function useGuestBuggyRequestsSync({
   enabled = true,
 }: UseGuestBuggyRequestsSyncOptions) {
   const queryClient = useQueryClient();
+  
+  // Check if unified realtime is active
+  const unifiedContext = useGuestRealtimeContext();
+  const skipLegacyChannel = unifiedContext?.unifiedActive ?? false;
 
   // Debounce invalidation
   const debouncedInvalidate = useDebouncedCallback(() => {
@@ -148,6 +158,13 @@ export function useGuestBuggyRequestsSync({
     }
   }, [guestId, debouncedInvalidate]);
 
+  // Skip legacy channel if unified realtime is active
+  const shouldEnable = enabled && !!guestId && !skipLegacyChannel;
+  
+  if (DEBUG_REALTIME_DEPRECATION && skipLegacyChannel && enabled && !!guestId) {
+    console.debug('[useGuestBuggyRequestsSync] Skipping legacy channel - unified realtime active');
+  }
+
   // Subscribe to buggy_requests for this guest
   useRealtimeSubscription({
     channelKey: `transport-guest-${guestId || 'none'}`,
@@ -158,7 +175,7 @@ export function useGuestBuggyRequestsSync({
       },
     ],
     onChange: handleChange,
-    enabled: enabled && !!guestId,
+    enabled: shouldEnable,
   });
 }
 

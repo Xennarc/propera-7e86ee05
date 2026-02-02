@@ -2,6 +2,10 @@ import { useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
+import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+
+// Debug flag for development
+const DEBUG_REALTIME_DEPRECATION = false;
 
 interface UsePrearrivalRealtimeOptions {
   guestId?: string;
@@ -11,10 +15,18 @@ interface UsePrearrivalRealtimeOptions {
 /**
  * Hook to subscribe to real-time updates for prearrival_profiles
  * Automatically invalidates relevant queries when data changes
+ * 
+ * NOTE: For guest portal usage (when guestId is provided),
+ * skips legacy channel if unified realtime is active.
  */
 export function usePrearrivalRealtime({ guestId, enabled = true }: UsePrearrivalRealtimeOptions = {}) {
   const queryClient = useQueryClient();
   const { currentResort } = useResort();
+  
+  // Check if unified realtime is active (only applicable when guestId is provided)
+  const unifiedContext = useGuestRealtimeContext();
+  const isGuestContext = !!guestId;
+  const skipLegacyChannel = isGuestContext && (unifiedContext?.unifiedActive ?? false);
 
   const handleProfileChange = useCallback((payload: any) => {
     const changedGuestId = payload.new?.guest_id || payload.old?.guest_id;
@@ -53,6 +65,14 @@ export function usePrearrivalRealtime({ guestId, enabled = true }: UsePrearrival
 
   useEffect(() => {
     if (!enabled || !currentResort?.id) return;
+    
+    // Skip legacy channel if unified realtime is active for guest context
+    if (skipLegacyChannel) {
+      if (DEBUG_REALTIME_DEPRECATION) {
+        console.debug('[usePrearrivalRealtime] Skipping legacy channel - unified realtime active');
+      }
+      return;
+    }
 
     // Create channel for prearrival_profiles changes
     const channel = supabase
@@ -86,7 +106,7 @@ export function usePrearrivalRealtime({ guestId, enabled = true }: UsePrearrival
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, currentResort?.id, guestId, handleProfileChange, handleEventChange]);
+  }, [enabled, currentResort?.id, guestId, handleProfileChange, handleEventChange, skipLegacyChannel]);
 }
 
 /**
