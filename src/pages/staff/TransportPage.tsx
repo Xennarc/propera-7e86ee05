@@ -19,10 +19,12 @@ import {
   AddRequestToTripDialog,
   TripDetailSheet,
 } from '@/components/transport';
+import { TransportHistoryTab } from '@/components/transport/history';
 import { FeatureGate } from '@/components/FeatureGate';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Car, RefreshCw, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, Car, RefreshCw, Settings, History, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
 
@@ -61,6 +63,7 @@ function TransportPageContent() {
   const [assigningTripId, setAssigningTripId] = useState<string | null>(null);
   const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
   const [detailTripId, setDetailTripId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dispatch' | 'history'>('dispatch');
   
   // Get trip for dialogs
   const assigningTrip = trips.find(t => t.id === assigningTripId) || null;
@@ -206,34 +209,50 @@ function TransportPageContent() {
         </div>
       </div>
       
-      {/* Main content - responsive grid */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
-          {/* Request Queue */}
-          <div className="min-h-0 overflow-hidden">
-            <RequestQueuePanel
-              requests={queueRequests}
-              isLoading={queueLoading}
-              onCreateTrip={handleCreateTrip}
-              onCancelRequest={handleCancelRequest}
-              isCreatingTrip={mutations.createTripFromRequests.isPending}
-            />
-          </div>
-          
-          {/* Trips Panel */}
-          <div className="min-h-0 overflow-hidden">
-            <TripsPanel
-              trips={trips}
-              isLoading={tripsLoading}
-              onAssignTrip={setAssigningTripId}
-              onAddRequestToTrip={setAddingToTripId}
-              onRemoveRequest={handleRemoveRequest}
-              onViewTripDetails={setDetailTripId}
-              onRefresh={refetchTrips}
-            />
-          </div>
+      {/* Tab navigation */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dispatch' | 'history')} className="flex-1 flex flex-col">
+        <div className="px-4 pt-2 border-b">
+          <TabsList>
+            <TabsTrigger value="dispatch" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Dispatch
+            </TabsTrigger>
+            <TabsTrigger value="history" className="gap-2">
+              <History className="h-4 w-4" />
+              History
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
+        
+        <TabsContent value="dispatch" className="flex-1 mt-0 overflow-hidden">
+          <div className="h-full grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
+            <div className="min-h-0 overflow-hidden">
+              <RequestQueuePanel
+                requests={queueRequests}
+                isLoading={queueLoading}
+                onCreateTrip={handleCreateTrip}
+                onCancelRequest={handleCancelRequest}
+                isCreatingTrip={mutations.createTripFromRequests.isPending}
+              />
+            </div>
+            <div className="min-h-0 overflow-hidden">
+              <TripsPanel
+                trips={trips}
+                isLoading={tripsLoading}
+                onAssignTrip={setAssigningTripId}
+                onAddRequestToTrip={setAddingToTripId}
+                onRemoveRequest={handleRemoveRequest}
+                onViewTripDetails={setDetailTripId}
+                onRefresh={refetchTrips}
+              />
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="flex-1 mt-0 overflow-hidden">
+          <TransportHistoryTab resortId={resortId} />
+        </TabsContent>
+      </Tabs>
       
       {/* Dialogs */}
       <AssignTripDialog
