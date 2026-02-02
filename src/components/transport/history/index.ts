@@ -4,3 +4,8 @@ export * from './RequestHistoryList';
 export * from './TripHistoryList';
 export * from './RequestHistorySheet';
 export * from './TripHistorySheet';
+export * from './TransportMetricsCards';
+export * from './TransportPeakHoursChart';
+export * from './DriverPerformanceTable';
+export * from './TransportHistoryExport';
+export * from './TransportReportingView';
