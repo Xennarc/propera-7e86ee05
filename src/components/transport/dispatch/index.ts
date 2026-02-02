@@ -5,3 +5,4 @@ export * from './WaitTimeBadge';
 export * from './TripEditLock';
 export * from './QuickReassign';
 export * from './TripActions';
+export * from './AddDriverDialog';

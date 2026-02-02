@@ -176,6 +176,36 @@ export function useTransportMutations(resortId: string | undefined) {
     },
   });
   
+  const registerDriver = useMutation({
+    mutationFn: async ({
+      userId,
+      fullName,
+    }: {
+      userId: string;
+      fullName: string;
+    }) => {
+      const { error } = await supabase
+        .from('buggy_drivers')
+        .insert({
+          resort_id: resortId,
+          user_id: userId,
+          status: 'offline',
+        });
+      
+      if (error) throw error;
+      return { fullName };
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.fullName} registered as driver`);
+      queryClient.invalidateQueries({ queryKey: ['buggy-drivers', resortId] });
+      queryClient.invalidateQueries({ queryKey: ['eligible-drivers', resortId] });
+    },
+    onError: (error: any) => {
+      console.error('Register driver error:', error);
+      toast.error(error.message || 'Failed to register driver');
+    },
+  });
+  
   return {
     createTripFromRequests,
     addRequestToTrip,
@@ -183,12 +213,14 @@ export function useTransportMutations(resortId: string | undefined) {
     assignTrip,
     reorderTripStops,
     cancelRequest,
+    registerDriver,
     isLoading:
       createTripFromRequests.isPending ||
       addRequestToTrip.isPending ||
       removeRequestFromTrip.isPending ||
       assignTrip.isPending ||
       reorderTripStops.isPending ||
-      cancelRequest.isPending,
+      cancelRequest.isPending ||
+      registerDriver.isPending,
   };
 }
