@@ -136,12 +136,13 @@ function TransportPageContent() {
   
   const handleAssignTrip = useCallback((buggyId: string, driverUserId: string) => {
     if (assigningTripId) {
-      mutations.assignTrip.mutate(
+      // Use new atomic RPC via dispatch actions hook
+      dispatchActions.assignTrip.mutate(
         { tripId: assigningTripId, buggyId, driverUserId },
         { onSuccess: () => setAssigningTripId(null) }
       );
     }
-  }, [assigningTripId, mutations]);
+  }, [assigningTripId, dispatchActions]);
   
   const handleAddRequestsToTrip = useCallback((requestIds: string[]) => {
     if (addingToTripId && requestIds.length > 0) {
