@@ -173,7 +173,7 @@ export default function DriverTripRunnerPage() {
     );
   }
 
-  const isPending = startTrip.isPending || completeTrip.isPending || updateStop.isPending;
+  const isPending = lifecycleActions.isUpdating || updateStop.isPending;
 
   return (
     <div className="flex flex-col min-h-screen">
