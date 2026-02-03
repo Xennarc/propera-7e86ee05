@@ -110,6 +110,8 @@ export function useTransportRequestsSync({
       { table: 'buggy_trip_requests', filter: resortId ? createResortFilter(resortId) : undefined },
       { table: 'buggies', filter: resortId ? createResortFilter(resortId) : undefined },
       { table: 'buggy_drivers', filter: resortId ? createResortFilter(resortId) : undefined },
+      // Phase 8: Include transport events for audit/lifecycle updates
+      { table: 'transport_events', filter: resortId ? createResortFilter(resortId) : undefined },
     ],
     onChange: handleChange,
     enabled: enabled && !!resortId,
