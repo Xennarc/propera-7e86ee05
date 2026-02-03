@@ -1,162 +1,137 @@
 
-# Comprehensive Fix: Transport Module Issues
+# Fix Plan: Dispatch Trip Creation & Request Attachment
 
-## Issues Summary
+## Problem Summary
+The dispatch workflow silently fails due to **enum value mismatches** in the legacy RPCs. Database logs show:
+- `invalid input value for enum buggy_trip_request_state: "active"` (valid: `queued`)
+- `invalid input value for enum buggy_request_status: "pending"` (valid: `requested`)
 
-| Issue | Root Cause | Impact |
-|-------|-----------|--------|
-| "Staff dispatch actions disabled" banner | Missing `enable_requests_staff_dispatch` feature flag in database | Cannot create trips or manage requests |
-| Drivers show as 0 available | UI filters for `status === 'available'` but DB uses `status === 'online'` | AssignTripDialog shows "No drivers online" |
-| Drivers appear as "Unknown Driver" | Profile `full_name` is empty in database | No way to identify which staff account a driver belongs to |
-| Plus icon to add driver shows empty | RPC working, but UI might not show names due to empty profile names | Cannot easily add drivers |
+Additionally, some RPCs are missing and the Driver Portal isn't querying the new `lifecycle_state` column.
 
 ---
 
-## Solution Overview
+## Phase A: Fix Existing RPCs (Database)
 
-### Part 1: Database Migration - Add Missing Feature Flag
+### A1. Fix `add_request_to_trip` RPC
+Update the legacy RPC to use correct enum values:
+- Change `'active'` → `'queued'` for `buggy_trip_request_state`
+- Change `'pending'` → `'requested'` or `'queued'` for `buggy_request_status` checks
+- Also update the status filter from `status = 'pending'` to `status IN ('requested', 'queued')`
 
-Create the `enable_requests_staff_dispatch` flag that controls staff dispatch actions:
+### A2. Create `rpc_transport_attach_requests_to_trip`
+New atomic RPC for adding requests to an existing planning trip:
 
-```sql
--- Insert the missing feature flag (global default: enabled)
-INSERT INTO feature_flags (key, label, description, category, scope, tier, is_enabled)
-VALUES (
-  'enable_requests_staff_dispatch',
-  'Staff Dispatch Actions',
-  'Allow staff to create trips, assign drivers, and manage dispatch queue',
-  'core',
-  'global',
-  'essential',
-  true
-)
-ON CONFLICT (key, COALESCE(resort_id, '00000000-0000-0000-0000-000000000000'))
-DO NOTHING;
+```text
+Parameters:
+  - p_resort_id uuid
+  - p_trip_id uuid
+  - p_request_ids uuid[]
+
+Validation:
+  - Trip exists, belongs to resort, is in 'planning' state
+  - Requests belong to resort, not cancelled, not already attached
+
+Actions:
+  - Attach requests (set attached_trip_id)
+  - Create buggy_trip_requests junction entries with state='queued'
+  - Create pickup/dropoff stops in buggy_trip_stops
+  - Insert REQUEST_ATTACHED events
+
+Returns: { success, trip_id, attached_count, request_ids }
 ```
 
-### Part 2: Fix Driver Status Filtering in UI
+### A3. Create `rpc_transport_cancel_empty_trip`
+Allows staff to remove empty planning trips:
 
-**File: `src/components/transport/dispatch/ResourcesPanel.tsx`**
+```text
+Parameters:
+  - p_resort_id uuid
+  - p_trip_id uuid
 
-1. Change the driver status filter from `'available'` to `'online'`:
-   ```typescript
-   // Line 45: Change from
-   const availableDrivers = drivers.filter(d => d.status === 'available');
-   // To
-   const availableDrivers = drivers.filter(d => d.status === 'online');
-   ```
+Validation:
+  - Trip exists and belongs to resort
+  - Trip is in 'planning' state
+  - Trip has 0 active requests attached
 
-2. Update the `driverStatusConfig` to use correct enum values:
-   ```typescript
-   const driverStatusConfig: Record<string, { label: string; className: string }> = {
-     online: { label: 'Online', className: 'bg-green-500' },      // Was 'available'
-     on_trip: { label: 'On Trip', className: 'bg-blue-500' },
-     break: { label: 'On Break', className: 'bg-amber-500' },
-     offline: { label: 'Offline', className: 'bg-muted-foreground' },
-   };
-   ```
+Actions:
+  - Set lifecycle_state = 'cancelled', status = 'cancelled'
+  - Insert TRIP_CANCELLED event with reason='Empty trip removed by staff'
 
-**File: `src/components/transport/dispatch/QuickReassign.tsx`**
-
-Update driver filtering to use `'online'`:
-```typescript
-// Line 41: Change from
-const availableDrivers = drivers.filter(d => d.status === 'available' || d.user_id === currentDriverId);
-// To
-const availableDrivers = drivers.filter(d => d.status === 'online' || d.user_id === currentDriverId);
-```
-
-### Part 3: Improve Driver Name Display
-
-**File: `src/components/transport/dispatch/ResourcesPanel.tsx`**
-
-Update the DriverCard to show user email as fallback when no name is available:
-
-```typescript
-// In DriverCard component
-<span className="font-medium text-sm block">
-  {driver.full_name || `Driver (${driver.user_id.slice(0, 8)}...)`}
-</span>
-```
-
-**File: `src/hooks/transport/useBuggyDrivers.ts`**
-
-Fetch email from profiles as additional fallback:
-```typescript
-const { data: profiles } = await supabase
-  .from('profiles')
-  .select('id, full_name')  // Note: profiles table doesn't have email column
-  .in('id', userIds);
-```
-
-Since the profiles table doesn't have an email column, we'll improve the display by showing a truncated user ID as fallback.
-
-### Part 4: Improve AddDriverDialog Display
-
-**File: `src/components/transport/dispatch/AddDriverDialog.tsx`**
-
-The dialog correctly shows `driver.full_name` from the RPC. The issue is that the profile names in the database are empty. We should show a fallback:
-
-```typescript
-<span>{driver.full_name || `Staff Member (ID: ${driver.user_id.slice(0, 8)}...)`}</span>
+Returns: { success, trip_id }
 ```
 
 ---
 
-## Files to Modify
+## Phase B: Frontend Wiring (Minimal UI Changes)
 
-| File | Changes |
-|------|---------|
-| **Database Migration** | Add `enable_requests_staff_dispatch` feature flag |
-| `src/components/transport/dispatch/ResourcesPanel.tsx` | Fix status filter (`'available'` → `'online'`), update driverStatusConfig, improve fallback display |
-| `src/components/transport/dispatch/QuickReassign.tsx` | Fix status filter (`'available'` → `'online'`) |
-| `src/components/transport/dispatch/AddDriverDialog.tsx` | Add fallback display for empty names |
-| `src/components/transport/AssignTripDialog.tsx` | Add fallback display for empty driver names (already uses `'online'` correctly) |
+### B1. Update `useTransportDispatchActions` hook
+Add new mutation wrappers:
+- `attachRequestsToTrip` → calls `rpc_transport_attach_requests_to_trip`
+- `cancelEmptyTrip` → calls `rpc_transport_cancel_empty_trip`
+
+Ensure all RPCs show proper error toasts on failure (never silent revert).
+
+### B2. Update `AddRequestToTripDialog` handler
+In `TransportPage.tsx`, change `handleAddRequestsToTrip`:
+- Current: calls legacy `add_request_to_trip` sequentially
+- New: calls `dispatchActions.attachRequestsToTrip.mutate()` with array of request IDs
+- On success: close dialog, invalidate caches
+- On error: show toast, keep dialog open
+
+### B3. Add "Cancel Trip" action for empty planning trips
+In `TripCard.tsx`:
+- Add a condition: if `trip.status === 'planning' && activeRequests.length === 0`
+- Show a "Cancel Empty Trip" button or menu item
+- Calls `dispatchActions.cancelEmptyTrip.mutate({ tripId })`
+
+---
+
+## Phase C: Driver Portal Query Fix
+
+### C1. Update `useDriverTrips` query
+Currently filters by:
+```typescript
+.in('status', ['assigned', 'en_route', 'active'])
+```
+
+Should also include `lifecycle_state` for the new state machine:
+```typescript
+.or(`status.in.(assigned,en_route,active),lifecycle_state.in.(assigned,enroute_to_pickup,arrived_pickup,enroute_to_dropoff)`)
+```
+
+This ensures drivers see trips assigned through the new atomic RPCs.
 
 ---
 
 ## Technical Details
 
-### Driver Status Enum Reference
-The database uses `driver_status` enum with values:
-- `offline` - Driver is not working
-- `online` - Driver is available for assignment
-- `on_trip` - Driver is currently executing a trip
-- `break` - Driver is on break
+### Files to Create/Modify
 
-### Feature Flag Behavior
-When `enable_requests_staff_dispatch` is:
-- **Enabled (true)**: Staff can select requests, create trips, and manage dispatch
-- **Disabled (false)**: Shows "Staff dispatch actions disabled" banner, hides selection controls
+| Type | File | Change |
+|------|------|--------|
+| Database | New migration | Fix `add_request_to_trip`, create `rpc_transport_attach_requests_to_trip`, create `rpc_transport_cancel_empty_trip` |
+| Hook | `src/hooks/transport/useTransportDispatchActions.ts` | Add `attachRequestsToTrip` and `cancelEmptyTrip` mutations |
+| UI | `src/pages/staff/TransportPage.tsx` | Update `handleAddRequestsToTrip` to use new atomic RPC |
+| UI | `src/components/transport/TripCard.tsx` | Add "Cancel Trip" button for empty planning trips |
+| Query | `src/hooks/transport/useDriverSession.ts` | Update `useDriverTrips` filter to include `lifecycle_state` |
+
+### Enum Value Reference
+
+| Enum | Valid Values |
+|------|-------------|
+| `buggy_request_status` | `requested`, `queued`, `assigned_to_trip`, `driver_en_route`, `arrived`, `picked_up`, `completed`, `cancelled`, `failed`, `no_show` |
+| `buggy_trip_request_state` | `queued`, `picked_up`, `dropped_off`, `cancelled`, `no_show` |
+| `buggy_trip_status` | `planning`, `assigned`, `en_route`, `active`, `completed`, `cancelled` |
 
 ---
 
-## Data Cleanup Note
+## Expected Outcomes
 
-The "Unknown Driver" issue is partially a **data issue** - the profiles for driver users have empty `full_name` fields. Staff members should update their profiles with their names. However, the code changes above will provide better fallback displays until that happens.
+After implementation:
 
----
-
-## Testing Plan
-
-After implementing:
-
-1. **Verify Feature Flag**
-   - Navigate to Transport page
-   - Confirm "Staff dispatch actions disabled" banner is gone
-   - Verify selection checkboxes appear for requests
-
-2. **Verify Driver Availability**
-   - Open Resources panel
-   - Confirm online drivers show as "X drivers available" (not 0)
-   - Verify driver status badges show "Online" with green indicator
-
-3. **Test Trip Assignment Flow**
-   - Select a request and create a trip
-   - Click "Assign Buggy & Driver"
-   - Verify dropdown shows online drivers
-   - Complete assignment and verify trip moves to "Assigned" status
-
-4. **Verify Driver Names**
-   - Check that drivers with empty profile names show a reasonable fallback
-   - Confirm the display is clear enough to identify which driver is which
+1. **"Create Trip"** → Creates trip atomically, requests move from queue to trip
+2. **"Add Request"** → Attaches requests to existing trip, updates counts
+3. **"Assign Buggy & Driver"** → Works when trip has ≥1 request
+4. **Driver Portal** → Shows assigned trips immediately
+5. **Errors** → Visible toasts with descriptive messages (no silent reverts)
+6. **Empty trips** → Can be cancelled via new action button
