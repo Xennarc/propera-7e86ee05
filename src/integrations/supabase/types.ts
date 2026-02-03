@@ -7666,6 +7666,14 @@ export type Database = {
         Returns: Json
       }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
+      rpc_transport_create_trip_from_requests: {
+        Args: {
+          p_created_by_staff_id: string
+          p_request_ids: string[]
+          p_resort_id: string
+        }
+        Returns: Json
+      }
       seed_resort_departments: {
         Args: { p_resort_id: string }
         Returns: undefined
