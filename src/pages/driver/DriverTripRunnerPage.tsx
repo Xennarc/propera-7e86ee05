@@ -236,9 +236,37 @@ export default function DriverTripRunnerPage() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Lifecycle State Actions - for intermediate states */}
+        {currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && nextActionLabel && (
+          <Card className="border-primary/50 shadow-md">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Status</p>
+                  <p className="font-medium">{LIFECYCLE_STATE_LABELS[currentLifecycleState]}</p>
+                </div>
+                <Badge variant="outline">{currentLifecycleState.replace(/_/g, ' ')}</Badge>
+              </div>
+              <Button
+                size="lg"
+                className="w-full h-14 text-base"
+                onClick={handleAdvanceState}
+                disabled={isPending}
+              >
+                {lifecycleActions.isUpdating ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                )}
+                {nextActionLabel}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Stop (prominent) */}
-        {currentStop && trip?.status !== 'assigned' && (
+        {currentStop && currentLifecycleState !== 'assigned' && (
           <Card className="border-primary/50 shadow-lg bg-primary/5">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
