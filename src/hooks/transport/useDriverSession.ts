@@ -75,7 +75,7 @@ export function useDriverStatusMutation(resortId: string | undefined) {
       // Call the atomic RPC
       const { data, error } = await (supabase.rpc as Function)(
         'driver_set_status_atomic',
-        { _new_status: newStatus }
+        { p_new_status: newStatus }
       );
 
       if (error) throw error;
@@ -246,7 +246,7 @@ export function useUpdateStopStatusMutation(resortId: string | undefined, tripId
       const { data, error } = await (supabase.rpc as Function)(
         'driver_update_trip_stop_status',
         { 
-          _trip_stop_id: stopId,
+          _stop_id: stopId,
           _new_status: newStatus,
         }
       );
