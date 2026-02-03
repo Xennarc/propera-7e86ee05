@@ -6860,6 +6860,16 @@ export type Database = {
         Args: { p_event_type: string; p_payload: Json; p_resort_id: string }
         Returns: string
       }
+      find_orphaned_transport_requests: {
+        Args: { _resort_id: string }
+        Returns: {
+          created_at: string
+          has_trip_link: boolean
+          issue: string
+          request_id: string
+          status: string
+        }[]
+      }
       generate_guest_pin: { Args: { p_guest_id: string }; Returns: Json }
       generate_prearrival_token: { Args: { p_guest_id: string }; Returns: Json }
       generate_subscription_alerts: {
