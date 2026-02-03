@@ -1,210 +1,209 @@
 
-# Driver Portal Access & Discoverability Fix
+# Driver Assignment Fix: Comprehensive Plan
 
 ## Problem Statement
-The Driver Portal exists at `/driver` but there is no way for registered drivers to discover or navigate to it. Staff members registered as buggy drivers have no visible UI element to enter "driver mode". They would need to manually type `/driver` in the URL, which is not discoverable.
+When accessing the Transport module's Resources panel to assign driver roles, the user selection dropdown shows no staff members to select from. This is a critical functionality gap that prevents proper transport operations.
 
-## Current Architecture
+## Root Cause Analysis
 
-### What Works:
-- **Driver Registration**: Admins register staff via `AddDriverDialog` or `DriversSetupStep`
-- **Authorization**: `DriverLayout` correctly checks `buggy_drivers` table for user access
-- **Driver Operations**: Full trip execution (start, stop updates, complete, GPS, presence)
-- **Routes**: `/driver` and `/driver/trip/:tripId` properly configured
+After thorough investigation, I've identified **three interconnected issues**:
 
-### What's Missing:
-1. No navigation link to `/driver` anywhere in the staff portal
-2. Registered drivers receive no indication they have driver access
-3. No contextual "Switch to Driver Mode" affordance
+### Issue 1: RLS Policy Complexity with Nested Joins
+The `useEligibleDrivers` hook queries `resort_memberships` with an INNER JOIN to `profiles`:
+```typescript
+.select(`user_id, resort_role, profiles!inner(id, full_name)`)
+```
+
+The problem: When RLS is evaluated on the `profiles` table during this join, the policy `Staff can view profiles in same resort` performs its own join back to `resort_memberships`. This creates a complex nested RLS evaluation that may not resolve correctly in all scenarios, especially for users who are not RESORT_ADMIN or SUPER_ADMIN.
+
+**Evidence**: The `user_select_own_memberships` policy only allows viewing other memberships if you're SUPER_ADMIN or RESORT_ADMIN:
+```sql
+(user_id = auth.uid()) OR is_super_admin(auth.uid()) OR has_resort_role(auth.uid(), resort_id, ARRAY['RESORT_ADMIN'::resort_role])
+```
+
+A MANAGER trying to see all staff memberships would fail this check for rows where `user_id != auth.uid()`.
+
+### Issue 2: Missing UI Access Control
+The Add Driver button in `ResourcesPanel.tsx` has **no permission gating**. It's always visible, but the underlying query returns empty for users without proper RLS permissions.
+
+### Issue 3: Permission Definition Gap
+The `canManageResources` permission in `usePermissions.ts` (line 149) only allows SUPER_ADMIN and RESORT_ADMIN:
+```typescript
+canManageResources: superAdmin || currentResortRole === 'RESORT_ADMIN',
+```
+
+MANAGER role is explicitly excluded, despite the requirement that "Manager or higher" should access this feature.
+
+---
 
 ## Solution Design
 
-### 1. Add "Driver Mode" Entry Point in Staff Dashboard
+### Part 1: Fix RLS Policy for Resort Memberships (Database)
 
-Create a prominent card in the TodayHub that appears ONLY for users registered as buggy drivers. This card:
-- Shows the driver's current status (Offline/Online)
-- Provides a clear "Enter Driver Mode" CTA
-- Is visually distinct to make it easy to find
+Add an RLS policy that allows staff with transport write permissions to view all memberships in their resort:
 
-### 2. Add "Driver Mode" to Mobile Bottom Nav
+```sql
+-- Allow transport staff to view memberships for driver assignment
+CREATE POLICY "Transport staff can view memberships for driver assignment"
+ON public.resort_memberships
+FOR SELECT
+TO authenticated
+USING (
+  public.staff_can_write_transport(auth.uid(), resort_id)
+);
+```
 
-For registered drivers on mobile, add a contextual quick-action in the "More" menu sheet that links directly to `/driver`.
+This leverages the existing `staff_can_write_transport` function which already allows TRANSPORT, MANAGER, and RESORT_ADMIN roles.
 
-### 3. Add "Driver Mode" to Staff Sidebar
+### Part 2: Create Transport Resource Management Permission
 
-For registered drivers on desktop, add a navigation item in the sidebar under a "Your Role" or inline in the existing Transport section.
+Add a new permission specifically for transport resource management:
 
-### 4. Optional: Driver Registration Notification
+```sql
+INSERT INTO permissions (key, label, category) VALUES
+('transport.drivers.manage', 'Manage Buggy Drivers', 'Transport'),
+('transport.buggies.manage', 'Manage Buggies', 'Transport'),
+('transport.stops.manage', 'Manage Transport Stops', 'Transport'),
+('transport.view', 'View Transport Module', 'Transport');
+```
 
-When an admin registers a staff member as a driver, show a toast or send a notification informing them they now have driver access. (Lower priority - can be Phase 2)
+### Part 3: Add UI Permission Gating
+
+Update `ResourcesPanel.tsx` to conditionally show the Add Driver button based on permissions:
+
+```typescript
+// Only show Add Driver button for users who can manage transport resources
+const canManageDrivers = isSuperAdmin || 
+  currentResortRole === 'MANAGER' || 
+  currentResortRole === 'RESORT_ADMIN';
+```
+
+### Part 4: Update usePermissions Hook
+
+Add transport-specific permissions to the `usePermissions` hook:
+
+```typescript
+canManageTransportResources: superAdmin || 
+  currentResortRole === 'RESORT_ADMIN' || 
+  currentResortRole === 'MANAGER',
+```
 
 ---
 
-## Technical Implementation
+## Implementation Steps
 
-### Phase 1: Core Access Points
+### Step 1: Database Migration
+Create RLS policy update to allow transport staff to view resort memberships:
+- Add new SELECT policy on `resort_memberships` using `staff_can_write_transport`
+- This is safe and non-breaking as it only ADDS permissions, doesn't remove any
 
-#### 1.1 Create `useIsDriver` Hook
-A lightweight hook to check if the current user is a registered buggy driver.
+### Step 2: Update usePermissions.ts
+Add `canManageTransportResources` permission that includes MANAGER role.
 
-```
-File: src/hooks/transport/useIsDriver.ts
+### Step 3: Update ResourcesPanel.tsx
+- Import `usePermissions` hook
+- Gate the Add Driver button visibility with `canManageTransportResources`
+- Show a helpful message when user doesn't have permission
 
-Purpose:
-- Query buggy_drivers table for current user
-- Return { isDriver, driverStatus, isLoading }
-- Cache result appropriately
-```
+### Step 4: Update AddDriverDialog.tsx
+- Pass permission state as prop
+- Handle edge case where dialog opens but user lacks permission
 
-#### 1.2 Add DriverModeCard to TodayHub
-A prominent card in the staff dashboard for registered drivers.
+### Step 5: Update DriversSetupStep.tsx
+- Apply same permission gating pattern
+- Ensure setup wizard respects permissions
 
-```
-File: src/components/staff/DriverModeCard.tsx
-
-Content:
-- Icon: Car or steering wheel
-- Title: "Driver Mode Available"
-- Description: Current status (Offline, Online, etc.)
-- CTA Button: "Enter Driver Mode" → navigates to /driver
-- Only renders if isDriver === true
-```
-
-Update `src/components/staff/TodayHub.tsx`:
-- Import and render `<DriverModeCard />` at top of the page
-- Position below the header, above Quick Stats
-
-#### 1.3 Add Driver Mode to Mobile "More" Menu
-Update `src/components/layout/MobileBottomNav.tsx`:
-- Add a conditional item to `moreNavItems` that appears when user isDriver
-- Uses Car icon, links to `/driver`
-
-#### 1.4 Add Driver Mode to Staff Sidebar
-Update `src/components/staff/StaffSidebar.tsx`:
-- Add a "Driver Portal" item in the Transport section
-- Conditionally show based on `isDriver` hook (not just role-based)
+### Step 6: Update TransportPage.tsx
+- Add explicit check for resource management in Resources panel access
+- Show appropriate UI feedback for permission-limited users
 
 ---
 
-## File Changes Summary
+## Files to Modify
 
-| File | Change |
-|------|--------|
-| `src/hooks/transport/useIsDriver.ts` | **Create** - Hook to check driver status |
-| `src/components/staff/DriverModeCard.tsx` | **Create** - Dashboard card for driver access |
-| `src/components/staff/TodayHub.tsx` | **Update** - Add DriverModeCard |
-| `src/components/layout/MobileBottomNav.tsx` | **Update** - Add conditional driver nav item |
-| `src/components/staff/StaffSidebar.tsx` | **Update** - Add Driver Portal link for drivers |
-| `src/hooks/transport/index.ts` | **Update** - Export useIsDriver |
+| File | Changes |
+|------|---------|
+| `src/hooks/usePermissions.ts` | Add `canManageTransportResources` permission |
+| `src/components/transport/dispatch/ResourcesPanel.tsx` | Add permission check for Add Driver button |
+| `src/components/transport/dispatch/AddDriverDialog.tsx` | Add permission awareness |
+| `src/components/transport/setup/DriversSetupStep.tsx` | Add permission check |
+| `src/pages/staff/TransportPage.tsx` | Pass permission state to ResourcesPanel |
 
----
-
-## UI Design
-
-### DriverModeCard (Dashboard)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  🚗  Driver Mode                          Status: ○ Offline │
-│                                                          │
-│  You're registered as a buggy driver. Open the driver   │
-│  portal to go online and receive trip assignments.       │
-│                                                          │
-│                            [ Enter Driver Mode → ]       │
-└─────────────────────────────────────────────────────────┘
-```
-
-- Uses existing Card component with `border-primary/30` for visual emphasis
-- Status indicator matches DriverHomePage colors (Offline = gray, Online = green)
-- Button is full-width on mobile, right-aligned on desktop
-
-### Mobile More Menu Item
-
-```
-┌──────────────────┐
-│  🚗              │
-│  Driver Portal   │
-└──────────────────┘
-```
-
-- Same grid styling as other items
-- Only visible to registered drivers
-
-### Sidebar Navigation Item
-
-Under Transport section (or as separate group for drivers):
-```
-Transport
-├── Dispatch
-└── Driver Portal ← New (only for registered drivers)
-```
+**Database Migration Required**:
+- Add RLS policy on `resort_memberships` for transport staff
 
 ---
 
 ## Technical Details
 
-### useIsDriver Hook
-
+### Updated usePermissions.ts
 ```typescript
-export function useIsDriver(resortId: string | undefined) {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['is-driver', resortId, user?.id],
-    queryFn: async () => {
-      if (!resortId || !user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('buggy_drivers')
-        .select('id, status')
-        .eq('resort_id', resortId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!resortId && !!user?.id,
-    staleTime: 60_000, // Cache for 1 minute
-  });
+// Add to PermissionResult interface
+canManageTransportResources: boolean;
+
+// Add to return object
+canManageTransportResources: superAdmin || 
+  currentResortRole === 'RESORT_ADMIN' || 
+  currentResortRole === 'MANAGER',
+```
+
+### Updated ResourcesPanel.tsx
+```typescript
+interface ResourcesPanelProps {
+  buggies: BuggyRow[];
+  drivers: DriverRow[];
+  isLoading: boolean;
+  resortId?: string;
+  canManageDrivers?: boolean; // New prop
 }
+
+// In the component
+{canManageDrivers && (
+  <Button onClick={() => setShowAddDriver(true)}>
+    <Plus className="h-4 w-4" />
+  </Button>
+)}
 ```
 
-### Conditional Navigation Logic
-
-```typescript
-// In MobileBottomNav
-const { data: driverRecord } = useIsDriver(currentResort?.id);
-
-const driverNavItem: NavItem | null = driverRecord ? {
-  label: 'Driver Portal',
-  href: '/driver',
-  icon: Car,
-  resortRoles: null, // Accessible to anyone registered as driver
-} : null;
-
-// Add to moreNavItems conditionally
-const allMoreItems = [
-  ...visibleMoreItems,
-  ...(driverNavItem ? [driverNavItem] : []),
-];
+### RLS Policy Migration
+```sql
+-- Migration: Add transport staff view policy for resort_memberships
+CREATE POLICY "transport_staff_view_memberships"
+ON public.resort_memberships
+FOR SELECT
+TO authenticated
+USING (
+  public.staff_can_write_transport(auth.uid(), resort_id)
+);
 ```
 
 ---
 
-## Success Criteria
+## Security Considerations
 
-1. Registered drivers see "Driver Mode" card on Dashboard
-2. Mobile "More" menu includes Driver Portal link for drivers
-3. Desktop sidebar shows Driver Portal in Transport section for drivers
-4. Non-drivers do not see any driver-related navigation
-5. Clicking any entry point navigates to `/driver` correctly
+1. **No privilege escalation**: The new RLS policy only allows viewing memberships, not modifying them
+2. **Respects existing role hierarchy**: Uses the already-audited `staff_can_write_transport` function
+3. **Server-side enforcement**: All permissions are enforced via RLS and database functions, not just UI
+4. **UI gating is defense-in-depth**: UI restrictions prevent accidental attempts, but database enforces actual security
 
 ---
 
-## Future Enhancements (Phase 2)
+## Testing Requirements
 
-- **Driver Registration Notification**: Toast notification when admin registers someone as driver
-- **Email Notification**: Optional email to newly registered drivers with instructions
-- **PWA Install Prompt**: Suggest drivers install the app as PWA for better mobile experience
-- **Driver Onboarding Tour**: First-time driver walkthrough in the Driver Portal
+After implementation:
+1. Log in as MANAGER role user
+2. Navigate to /staff/transport
+3. Open Resources panel (or mobile Resources tab)
+4. Click "Add Driver" - dropdown should show eligible staff members
+5. Successfully register a driver
+6. Verify FRONT_OFFICE role CANNOT add drivers (should not see button)
+7. Verify RESORT_ADMIN can still add drivers (existing functionality)
+
+---
+
+## Rollback Plan
+
+If issues arise:
+1. Remove the new RLS policy (single SQL statement)
+2. Revert `usePermissions.ts` changes
+3. Revert component changes
