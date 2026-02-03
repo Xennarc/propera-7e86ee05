@@ -73,7 +73,11 @@ function TransportPageContent() {
     enabled: transportEnabled && canViewTransport,
   });
   
-  // Mutations
+  // Mutations (existing, kept for other actions)
+  const mutations = useTransportMutations(resortId);
+  
+  // New atomic dispatch actions hook
+  const dispatchActions = useTransportDispatchActions(resortId);
   const mutations = useTransportMutations(resortId);
   
   // Setup status
