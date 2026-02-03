@@ -319,7 +319,7 @@ function TransportPageContent() {
                       isLoading={queueLoading}
                       onCreateTrip={handleCreateTrip}
                       onCancelRequest={handleCancelRequest}
-                      isCreatingTrip={mutations.createTripFromRequests.isPending}
+                      isCreatingTrip={dispatchActions.isCreatingTrip}
                     />
                   </div>
                 </div>
