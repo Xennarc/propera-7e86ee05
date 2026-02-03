@@ -75,7 +75,7 @@ export function useTransportDispatchActions(resortId: string | undefined) {
       }
       
       // The RPC returns jsonb, which comes back as an object
-      const result = data as CreateTripResult;
+      const result = data as unknown as CreateTripResult;
       
       if (!result.success) {
         throw { message: 'Trip creation failed unexpectedly' };
