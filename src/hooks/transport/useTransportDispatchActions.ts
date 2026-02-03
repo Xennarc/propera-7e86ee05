@@ -43,7 +43,7 @@ export function useTransportDispatchActions(resortId: string | undefined) {
    */
   const createTripFromRequests = useMutation<
     CreateTripResult,
-    CreateTripError,
+    RpcError,
     { requestIds: string[] }
   >({
     mutationFn: async ({ requestIds }) => {
