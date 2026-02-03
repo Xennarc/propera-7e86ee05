@@ -49,7 +49,7 @@ function TransportPageContent() {
   const resortId = currentResort?.id;
   
   // Access control
-  const { isSuperAdmin, currentResortRole, permissionsLoading } = usePermissions();
+  const { isSuperAdmin, currentResortRole, permissionsLoading, canManageTransportResources } = usePermissions();
   // Transport access: TRANSPORT, MANAGER, or RESORT_ADMIN roles (or super admin)
   const canViewTransport = isSuperAdmin || 
     currentResortRole === 'TRANSPORT' || 
@@ -337,6 +337,7 @@ function TransportPageContent() {
                   drivers={drivers}
                   isLoading={queueLoading}
                   resortId={resortId}
+                  canManageDrivers={canManageTransportResources}
                 />
               )}
               
@@ -399,6 +400,7 @@ function TransportPageContent() {
                       drivers={drivers}
                       isLoading={queueLoading}
                       resortId={resortId}
+                      canManageDrivers={canManageTransportResources}
                     />
                   </ResizablePanel>
                 </>

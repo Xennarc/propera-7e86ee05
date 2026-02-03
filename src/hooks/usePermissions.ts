@@ -25,6 +25,7 @@ interface PermissionResult {
   canManageResorts: boolean;
   canManagePlatformUsers: boolean;
   canManageResources: boolean;
+  canManageTransportResources: boolean;
   
   // Permission-based access (from RBAC)
   hasPermission: (key: string) => boolean;
@@ -147,6 +148,7 @@ export function usePermissions(): PermissionResult {
     canManageResorts: superAdmin,
     canManagePlatformUsers: superAdmin,
     canManageResources: superAdmin || currentResortRole === 'RESORT_ADMIN',
+    canManageTransportResources: superAdmin || currentResortRole === 'RESORT_ADMIN' || currentResortRole === 'MANAGER',
     
     // Permission-based access
     hasPermission,
