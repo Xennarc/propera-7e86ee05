@@ -88,10 +88,14 @@ export default function DriverTripRunnerPage() {
   const { data: stops = [], isLoading: stopsLoading } = useTripStops(tripId);
   const { data: requests = [] } = useTripRequests(tripId);
 
-  // Mutations
-  const startTrip = useStartTripMutation(resortId);
-  const completeTrip = useCompleteTripMutation(resortId);
+  // Mutations - use new lifecycle actions
+  const lifecycleActions = useDriverLifecycleActions(resortId);
   const updateStop = useUpdateStopStatusMutation(resortId, tripId);
+  
+  // Get current lifecycle state from trip
+  const currentLifecycleState = (trip?.lifecycle_state || trip?.status || 'assigned') as TripLifecycleState;
+  const nextState = getNextState(currentLifecycleState);
+  const nextActionLabel = NEXT_ACTION_LABELS[currentLifecycleState];
 
   // State
   const [skipConfirmId, setSkipConfirmId] = useState<string | null>(null);
