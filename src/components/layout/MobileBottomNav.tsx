@@ -1,8 +1,10 @@
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell } from 'lucide-react';
+import { Home, Users, Calendar, UtensilsCrossed, MoreHorizontal, TrendingUp, Crown, Bell, Car } from 'lucide-react';
 import { useNavAccess } from '@/hooks/useNavAccess';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useResort } from '@/contexts/ResortContext';
+import { useIsDriver } from '@/hooks/transport';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import {
@@ -44,6 +46,8 @@ export function MobileBottomNav() {
   const location = useLocation();
   const { canViewNavItem } = useNavAccess();
   const { isKeyboardOpen } = useKeyboardInset();
+  const { currentResort } = useResort();
+  const { data: driverRecord } = useIsDriver(currentResort?.id);
 
   const isActive = (href: string) => {
     return location.pathname === href || location.pathname.startsWith(href + '/');
@@ -55,6 +59,19 @@ export function MobileBottomNav() {
   const visibleMoreItems = moreNavItems.filter(item => 
     canViewNavItem(item.resortRoles, item.tierFeature)
   );
+
+  // Add Driver Portal item if user is a registered driver
+  const driverNavItem: NavItem | null = driverRecord ? {
+    label: 'Driver Portal',
+    href: '/driver',
+    icon: Car,
+    resortRoles: null, // Accessible to anyone registered as driver
+  } : null;
+
+  const allMoreItems = [
+    ...visibleMoreItems,
+    ...(driverNavItem ? [driverNavItem] : []),
+  ];
 
   return (
     <nav 
@@ -116,7 +133,7 @@ export function MobileBottomNav() {
               <SheetTitle className="text-left text-lg">Quick Navigation</SheetTitle>
             </SheetHeader>
             <div className="grid grid-cols-3 gap-3 pb-6">
-              {visibleMoreItems.map((item) => {
+              {allMoreItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
                 return (
