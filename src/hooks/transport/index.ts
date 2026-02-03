@@ -18,3 +18,4 @@ export * from './useTransportSetupMutations';
 export * from './useIsDriver';
 export * from './useTransportDispatchActions';
 export * from './useDriverLifecycleActions';
+export { useCancelBuggyRequest } from './useGuestBuggyRequests';

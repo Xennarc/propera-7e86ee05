@@ -92,6 +92,7 @@ export default function GuestMyRidesPage() {
       await cancelMutation.mutateAsync({
         requestId: cancelDialog.id,
         guestId: guest.guestId,
+        resortId: guest.resortId,
         reason: 'Cancelled by guest',
       });
       setCancelDialog(null);
