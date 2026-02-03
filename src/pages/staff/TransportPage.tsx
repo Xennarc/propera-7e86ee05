@@ -12,6 +12,7 @@ import {
   useBuggyDrivers,
   useTransportMutations,
   useTransportSetupStatus,
+  useTransportDispatchActions,
 } from '@/hooks/transport';
 import { 
   RequestQueuePanel, 
@@ -72,8 +73,11 @@ function TransportPageContent() {
     enabled: transportEnabled && canViewTransport,
   });
   
-  // Mutations
+  // Mutations (existing, kept for other actions)
   const mutations = useTransportMutations(resortId);
+  
+  // New atomic dispatch actions hook
+  const dispatchActions = useTransportDispatchActions(resortId);
   
   // Setup status
   const setupStatus = useTransportSetupStatus(resortId);
@@ -112,17 +116,19 @@ function TransportPageContent() {
   
   const handleConfirmCreateTrip = useCallback(() => {
     if (previewRequests.length > 0) {
-      mutations.createTripFromRequests.mutate(
+      // Use new atomic RPC via dispatch actions hook
+      dispatchActions.createTripFromRequests.mutate(
         { requestIds: previewRequests.map(r => r.id) },
         { 
           onSuccess: () => {
             setShowTripPreview(false);
             setPreviewRequests([]);
           }
+          // On error: requests remain visible in queue (handled by hook)
         }
       );
     }
-  }, [previewRequests, mutations]);
+  }, [previewRequests, dispatchActions]);
   
   const handleCancelRequest = useCallback((requestId: string) => {
     mutations.cancelRequest.mutate({ requestId });
@@ -303,7 +309,7 @@ function TransportPageContent() {
                   <SuggestedPools
                     requests={queueRequests}
                     onCreatePool={handleCreateTrip}
-                    isCreating={mutations.createTripFromRequests.isPending}
+                    isCreating={dispatchActions.isCreatingTrip}
                   />
                   
                   {/* Request Queue */}
@@ -313,7 +319,7 @@ function TransportPageContent() {
                       isLoading={queueLoading}
                       onCreateTrip={handleCreateTrip}
                       onCancelRequest={handleCancelRequest}
-                      isCreatingTrip={mutations.createTripFromRequests.isPending}
+                      isCreatingTrip={dispatchActions.isCreatingTrip}
                     />
                   </div>
                 </div>
@@ -359,7 +365,7 @@ function TransportPageContent() {
                   <SuggestedPools
                     requests={queueRequests}
                     onCreatePool={handleCreateTrip}
-                    isCreating={mutations.createTripFromRequests.isPending}
+                    isCreating={dispatchActions.isCreatingTrip}
                   />
                   
                   {/* Request Queue */}
@@ -369,7 +375,7 @@ function TransportPageContent() {
                       isLoading={queueLoading}
                       onCreateTrip={handleCreateTrip}
                       onCancelRequest={handleCancelRequest}
-                      isCreatingTrip={mutations.createTripFromRequests.isPending}
+                      isCreatingTrip={dispatchActions.isCreatingTrip}
                     />
                   </div>
                 </div>
@@ -449,7 +455,7 @@ function TransportPageContent() {
         onOpenChange={setShowTripPreview}
         requests={previewRequests}
         onConfirm={handleConfirmCreateTrip}
-        isCreating={mutations.createTripFromRequests.isPending}
+        isCreating={dispatchActions.isCreatingTrip}
       />
       
       {/* Setup Wizard */}
