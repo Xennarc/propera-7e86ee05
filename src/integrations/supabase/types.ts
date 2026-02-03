@@ -7675,6 +7675,16 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_transport_cancel_request: {
+        Args: {
+          p_actor_id: string
+          p_actor_type: string
+          p_reason?: string
+          p_request_id: string
+          p_resort_id: string
+        }
+        Returns: Json
+      }
       rpc_transport_create_trip_from_requests: {
         Args: {
           p_created_by_staff_id: string

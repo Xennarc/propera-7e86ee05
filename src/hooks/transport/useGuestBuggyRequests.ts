@@ -131,18 +131,49 @@ export function useCancelBuggyRequest() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ requestId, guestId, reason }: { requestId: string; guestId: string; reason?: string }) => {
-      const { data, error } = await supabase.rpc('cancel_buggy_request', {
-        _request_id: requestId,
-        _reason: reason || 'Cancelled by guest',
+    mutationFn: async ({ 
+      requestId, 
+      guestId, 
+      resortId,
+      reason 
+    }: { 
+      requestId: string; 
+      guestId: string; 
+      resortId: string;
+      reason?: string;
+    }) => {
+      // Use new atomic RPC with reconciliation
+      const { data, error } = await supabase.rpc('rpc_transport_cancel_request', {
+        p_resort_id: resortId,
+        p_request_id: requestId,
+        p_actor_type: 'guest',
+        p_actor_id: guestId,
+        p_reason: reason || 'Cancelled by guest',
       });
       
-      if (error) throw error;
+      if (error) {
+        let message = error.message;
+        
+        if (message.includes('Cannot cancel a completed request')) {
+          message = 'This ride has already been completed.';
+        } else if (message.includes('Could not acquire lock')) {
+          message = 'Please try again in a moment.';
+        }
+        
+        throw new Error(message);
+      }
+      
       return data;
     },
-    onSuccess: (_, { guestId }) => {
+    onSuccess: (result, { guestId }) => {
       queryClient.invalidateQueries({ queryKey: ['guest-buggy-requests', guestId] });
-      toast.success('Ride cancelled');
+      
+      const data = result as { already_cancelled?: boolean };
+      if (data?.already_cancelled) {
+        toast.info('Ride was already cancelled');
+      } else {
+        toast.success('Ride cancelled');
+      }
     },
     onError: (error: Error) => {
       console.error('Failed to cancel ride:', error);
