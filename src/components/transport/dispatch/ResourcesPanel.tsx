@@ -20,6 +20,7 @@ interface ResourcesPanelProps {
   drivers: DriverRow[];
   isLoading: boolean;
   resortId?: string;
+  canManageDrivers?: boolean;
 }
 
 const buggyStatusConfig: Record<string, { label: string; className: string }> = {
@@ -37,7 +38,7 @@ const driverStatusConfig: Record<string, { label: string; className: string }> =
   offline: { label: 'Offline', className: 'bg-muted-foreground' },
 };
 
-export function ResourcesPanel({ buggies, drivers, isLoading, resortId }: ResourcesPanelProps) {
+export function ResourcesPanel({ buggies, drivers, isLoading, resortId, canManageDrivers = true }: ResourcesPanelProps) {
   const [showAddDriver, setShowAddDriver] = useState(false);
   
   const availableBuggies = buggies.filter(b => b.status === 'available');
@@ -92,14 +93,16 @@ export function ResourcesPanel({ buggies, drivers, isLoading, resortId }: Resour
                 Drivers
               </h3>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setShowAddDriver(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                {canManageDrivers && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setShowAddDriver(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
                 <Badge variant="secondary" className="h-5 text-xs">
                   {drivers.length}
                 </Badge>
