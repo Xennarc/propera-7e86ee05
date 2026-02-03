@@ -5,10 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTripStops, useTripRequests } from '@/hooks/transport/useTripDetails';
 import {
   useDriverTrips,
-  useStartTripMutation,
-  useCompleteTripMutation,
   useUpdateStopStatusMutation,
 } from '@/hooks/transport/useDriverSession';
+import {
+  useDriverLifecycleActions,
+  getNextState,
+  NEXT_ACTION_LABELS,
+  LIFECYCLE_STATE_LABELS,
+  type TripLifecycleState,
+} from '@/hooks/transport/useDriverLifecycleActions';
 import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
@@ -83,10 +88,14 @@ export default function DriverTripRunnerPage() {
   const { data: stops = [], isLoading: stopsLoading } = useTripStops(tripId);
   const { data: requests = [] } = useTripRequests(tripId);
 
-  // Mutations
-  const startTrip = useStartTripMutation(resortId);
-  const completeTrip = useCompleteTripMutation(resortId);
+  // Mutations - use new lifecycle actions
+  const lifecycleActions = useDriverLifecycleActions(resortId);
   const updateStop = useUpdateStopStatusMutation(resortId, tripId);
+  
+  // Get current lifecycle state from trip
+  const currentLifecycleState = (trip?.lifecycle_state || trip?.status || 'assigned') as TripLifecycleState;
+  const nextState = getNextState(currentLifecycleState);
+  const nextActionLabel = NEXT_ACTION_LABELS[currentLifecycleState];
 
   // State
   const [skipConfirmId, setSkipConfirmId] = useState<string | null>(null);
@@ -109,14 +118,12 @@ export default function DriverTripRunnerPage() {
     return stops.length > 0 && stops.every(s => s.status === 'completed' || s.status === 'skipped');
   }, [stops]);
 
-  // Handlers
-  const handleStartTrip = useCallback(() => {
-    if (tripId) startTrip.mutate(tripId);
-  }, [tripId, startTrip]);
-
-  const handleCompleteTrip = useCallback(() => {
-    if (tripId) completeTrip.mutate(tripId);
-  }, [tripId, completeTrip]);
+  // Handler to advance trip state
+  const handleAdvanceState = useCallback(() => {
+    if (tripId && nextState) {
+      lifecycleActions.updateTripState.mutate({ tripId, nextState });
+    }
+  }, [tripId, nextState, lifecycleActions]);
 
   const handleArrived = useCallback((stopId: string) => {
     updateStop.mutate({ stopId, newStatus: 'arrived' });
@@ -166,7 +173,7 @@ export default function DriverTripRunnerPage() {
     );
   }
 
-  const isPending = startTrip.isPending || completeTrip.isPending || updateStop.isPending;
+  const isPending = lifecycleActions.isUpdating || updateStop.isPending;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -206,22 +213,22 @@ export default function DriverTripRunnerPage() {
 
       {/* Main content */}
       <div className="flex-1 p-4 space-y-4 pb-32">
-        {/* Start Trip CTA (if assigned) */}
-        {trip?.status === 'assigned' && (
+        {/* Primary Action CTA - shows next lifecycle action */}
+        {currentLifecycleState === 'assigned' && (
           <Card className="border-primary shadow-lg">
             <CardContent className="py-6">
               <Button
                 size="lg"
                 className="w-full h-16 text-lg gap-3"
-                onClick={handleStartTrip}
+                onClick={handleAdvanceState}
                 disabled={isPending}
               >
-                {startTrip.isPending ? (
+                {lifecycleActions.isUpdating ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <Play className="h-6 w-6" />
                 )}
-                Start Trip
+                {nextActionLabel || 'Start Trip'}
               </Button>
               <p className="text-center text-xs text-muted-foreground mt-3">
                 Tap to begin and notify passengers
@@ -229,9 +236,37 @@ export default function DriverTripRunnerPage() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Lifecycle State Actions - for intermediate states */}
+        {currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && nextActionLabel && (
+          <Card className="border-primary/50 shadow-md">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Status</p>
+                  <p className="font-medium">{LIFECYCLE_STATE_LABELS[currentLifecycleState]}</p>
+                </div>
+                <Badge variant="outline">{currentLifecycleState.replace(/_/g, ' ')}</Badge>
+              </div>
+              <Button
+                size="lg"
+                className="w-full h-14 text-base"
+                onClick={handleAdvanceState}
+                disabled={isPending}
+              >
+                {lifecycleActions.isUpdating ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5 mr-2" />
+                )}
+                {nextActionLabel}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Stop (prominent) */}
-        {currentStop && trip?.status !== 'assigned' && (
+        {currentStop && currentLifecycleState !== 'assigned' && (
           <Card className="border-primary/50 shadow-lg bg-primary/5">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
@@ -345,16 +380,16 @@ export default function DriverTripRunnerPage() {
         )}
 
         {/* Complete Trip CTA */}
-        {allStopsDone && trip?.status !== 'completed' && (
+        {allStopsDone && currentLifecycleState !== 'completed' && (
           <Card className="border-emerald-500/50 shadow-lg bg-emerald-500/5">
             <CardContent className="py-6">
               <Button
                 size="lg"
                 className="w-full h-16 text-lg gap-3 bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleCompleteTrip}
+                onClick={handleAdvanceState}
                 disabled={isPending}
               >
-                {completeTrip.isPending ? (
+                {lifecycleActions.isUpdating ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <Flag className="h-6 w-6" />

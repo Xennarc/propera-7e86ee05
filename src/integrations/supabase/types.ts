@@ -7683,6 +7683,15 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_transport_driver_update_trip_state: {
+        Args: {
+          p_driver_user_id: string
+          p_next_state: string
+          p_resort_id: string
+          p_trip_id: string
+        }
+        Returns: Json
+      }
       seed_resort_departments: {
         Args: { p_resort_id: string }
         Returns: undefined
