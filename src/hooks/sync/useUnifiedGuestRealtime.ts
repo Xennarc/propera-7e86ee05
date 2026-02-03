@@ -72,6 +72,13 @@ function getDedupeKey(payload: TablePayload): string {
  * - Domain batching (consolidates invalidations per debounce window)
  * - Toast rate limiting (prevents spam on rapid status changes)
  */
+// Diagnostic state exposed for debug badge
+export interface RealtimeDiagnostics {
+  channelName: string | null;
+  lastEvent: { table: string; timestamp: Date } | null;
+  eventCounts: Record<string, number>;
+}
+
 export function useUnifiedGuestRealtime({
   guestId,
   resortId,
@@ -79,6 +86,10 @@ export function useUnifiedGuestRealtime({
 }: UseUnifiedGuestRealtimeOptions) {
   const queryClient = useQueryClient();
   const channelRef = useRef<RealtimeChannel | null>(null);
+  
+  // Diagnostic tracking refs (for debug badge)
+  const eventCountsRef = useRef<Record<string, number>>({});
+  const lastEventRef = useRef<{ table: string; timestamp: Date } | null>(null);
   
   // Debounce timers per domain
   const debouncersRef = useRef<DebouncedInvalidators>({
@@ -334,7 +345,11 @@ export function useUnifiedGuestRealtime({
         return;
       }
       
-      const table = payload.table;
+      const table = payload.table || 'unknown';
+
+      // Track diagnostics for debug badge
+      eventCountsRef.current[table] = (eventCountsRef.current[table] || 0) + 1;
+      lastEventRef.current = { table, timestamp: new Date() };
 
       if (DEBUG_REALTIME) {
         console.debug('[UnifiedRealtime] Event:', { table, eventType: payload.eventType });
@@ -475,8 +490,15 @@ export function useUnifiedGuestRealtime({
     };
   }, [enabled, guestId, resortId, tableConfigs, handleEvent, clearDebouncers]);
 
+  // Compute channel name (stable even when not subscribed)
+  const channelName = guestId && resortId ? `guest-unified-${resortId}-${guestId}` : null;
+
   return {
     channelRef,
     isActive: enabled && !!guestId && !!resortId,
+    // Diagnostics for debug badge
+    channelName,
+    lastEvent: lastEventRef.current,
+    eventCounts: eventCountsRef.current,
   };
 }

@@ -8,6 +8,13 @@ interface GuestRealtimeContextValue {
   guestId: string | null;
   /** The resort ID for the current session */
   resortId: string | null;
+  // Diagnostics for debug badge
+  /** The channel name for the unified subscription */
+  channelName: string | null;
+  /** The most recent event received */
+  lastEvent: { table: string; timestamp: Date } | null;
+  /** Event counts per table in this session */
+  eventCounts: Record<string, number>;
 }
 
 const GuestRealtimeContext = createContext<GuestRealtimeContextValue | null>(null);
@@ -30,7 +37,7 @@ export function GuestRealtimeProvider({
   children,
 }: GuestRealtimeProviderProps) {
   // Initialize the unified realtime subscription
-  const { isActive } = useUnifiedGuestRealtime({
+  const { isActive, channelName, lastEvent, eventCounts } = useUnifiedGuestRealtime({
     guestId,
     resortId,
     enabled,
@@ -42,8 +49,11 @@ export function GuestRealtimeProvider({
       unifiedActive: isActive,
       guestId: guestId || null,
       resortId: resortId || null,
+      channelName,
+      lastEvent,
+      eventCounts,
     }),
-    [isActive, guestId, resortId]
+    [isActive, guestId, resortId, channelName, lastEvent, eventCounts]
   );
 
   return (
