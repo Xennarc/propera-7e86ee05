@@ -360,6 +360,7 @@ export function useUnifiedGuestRealtime({
           handleNotifications(payload);
           break;
         case 'buggy_requests':
+        case 'buggy_trips': // Phase 8: Handle trip updates for guest's rides
           handleTransport(payload);
           break;
         case 'activity_bookings':
