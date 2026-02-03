@@ -365,7 +365,7 @@ function TransportPageContent() {
                   <SuggestedPools
                     requests={queueRequests}
                     onCreatePool={handleCreateTrip}
-                    isCreating={mutations.createTripFromRequests.isPending}
+                    isCreating={dispatchActions.isCreatingTrip}
                   />
                   
                   {/* Request Queue */}
