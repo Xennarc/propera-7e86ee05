@@ -1123,6 +1123,10 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          assigned_at: string | null
+          attached_trip_id: string | null
+          cancelled_at: string | null
+          completed_at: string | null
           created_at: string
           created_by_staff_user_id: string | null
           dropoff_location: Json | null
@@ -1151,6 +1155,10 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          assigned_at?: string | null
+          attached_trip_id?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           created_by_staff_user_id?: string | null
           dropoff_location?: Json | null
@@ -1179,6 +1187,10 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          assigned_at?: string | null
+          attached_trip_id?: string | null
+          cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           created_by_staff_user_id?: string | null
           dropoff_location?: Json | null
@@ -1204,6 +1216,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "buggy_requests_attached_trip_id_fkey"
+            columns: ["attached_trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "buggy_requests_dropoff_stop_id_fkey"
             columns: ["dropoff_stop_id"]
@@ -1633,11 +1652,15 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           buggy_id: string | null
+          cancelled_at: string | null
           capacity_total: number | null
+          completed_at: string | null
           created_at: string
+          created_by_staff_id: string | null
           driver_user_id: string | null
           end_at: string | null
           id: string
+          lifecycle_state: string | null
           metadata: Json
           notes: string | null
           resort_id: string
@@ -1651,11 +1674,15 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           buggy_id?: string | null
+          cancelled_at?: string | null
           capacity_total?: number | null
+          completed_at?: string | null
           created_at?: string
+          created_by_staff_id?: string | null
           driver_user_id?: string | null
           end_at?: string | null
           id?: string
+          lifecycle_state?: string | null
           metadata?: Json
           notes?: string | null
           resort_id: string
@@ -1669,11 +1696,15 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           buggy_id?: string | null
+          cancelled_at?: string | null
           capacity_total?: number | null
+          completed_at?: string | null
           created_at?: string
+          created_by_staff_id?: string | null
           driver_user_id?: string | null
           end_at?: string | null
           id?: string
+          lifecycle_state?: string | null
           metadata?: Json
           notes?: string | null
           resort_id?: string
@@ -6010,6 +6041,64 @@ export type Database = {
           },
         ]
       }
+      transport_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json | null
+          request_id: string | null
+          resort_id: string
+          trip_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          request_id?: string | null
+          resort_id: string
+          trip_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          request_id?: string | null
+          resort_id?: string
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transport_events_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transport_settings: {
         Row: {
           archive_after_days: number
@@ -7044,6 +7133,10 @@ export type Database = {
         Returns: Json
       }
       guest_can_access_guest: { Args: { _guest_id: string }; Returns: boolean }
+      guest_can_access_transport_event: {
+        Args: { _event_id: string }
+        Returns: boolean
+      }
       guest_can_access_trip: { Args: { _trip_id: string }; Returns: boolean }
       guest_can_submit_feedback: { Args: { p_guest_id: string }; Returns: Json }
       guest_cancel_activity_booking: {
@@ -7478,6 +7571,18 @@ export type Database = {
           _request_id: string
           _resort_id: string
           _to_status?: string
+        }
+        Returns: string
+      }
+      record_transport_event: {
+        Args: {
+          _actor_id: string
+          _actor_type: string
+          _event_type: string
+          _payload?: Json
+          _request_id: string
+          _resort_id: string
+          _trip_id: string
         }
         Returns: string
       }
