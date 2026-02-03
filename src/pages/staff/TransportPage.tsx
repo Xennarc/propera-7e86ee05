@@ -78,7 +78,6 @@ function TransportPageContent() {
   
   // New atomic dispatch actions hook
   const dispatchActions = useTransportDispatchActions(resortId);
-  const mutations = useTransportMutations(resortId);
   
   // Setup status
   const setupStatus = useTransportSetupStatus(resortId);
