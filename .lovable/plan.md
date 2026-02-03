@@ -1,147 +1,112 @@
 
-# Transport Setup Wizard
+# Guest Realtime QA Checklist Debug Badge
 
 ## Overview
-Create a guided onboarding wizard that helps staff configure the Transport module with essential resources before going live. The wizard ensures stops, buggies, and drivers are set up properly, preventing confusion when staff first access the dispatch console.
+Add a lightweight, non-intrusive debug badge component that displays unified realtime diagnostics when `?debugRealtime=1` is present in the URL. This will help QA and superadmins verify the unified subscription is working without diving into browser console logs.
 
-## User Flow
-1. Staff opens Transport page for the first time (or when resources are missing)
-2. A setup banner appears prompting them to complete setup
-3. Clicking "Start Setup" opens a 4-step wizard dialog
-4. After completing all steps, the wizard marks setup as complete and transitions to the dispatch console
+## Current Architecture
+- `useUnifiedGuestRealtime` hook manages a single consolidated channel
+- `GuestRealtimeContext` exposes `unifiedActive`, `guestId`, `resortId`
+- Debug logging is already gated behind `?debugRealtime=1` query param
+- Existing debug panels (GuestDebugConsole, ScopeDebugBanner) use similar patterns
 
-## Wizard Steps
+## Implementation Approach
 
-### Step 1: Stops
-- Title: "Define Pickup & Dropoff Locations"
-- Description: "Add the key locations where guests can request buggy pickups"
-- Features:
-  - Add stops with name and optional zone grouping
-  - Drag-to-reorder stops
-  - Quick-add common locations (Reception, Main Pool, Restaurant, etc.)
-  - Minimum requirement: At least 2 stops to proceed
+### 1. Extend GuestRealtimeContext to expose diagnostics
 
-### Step 2: Buggies
-- Title: "Add Your Fleet"
-- Description: "Register the buggies/carts available for transport"
-- Features:
-  - Add buggy with name, capacity, and accessibility flag
-  - Show capacity visualization (seats icon)
-  - Minimum requirement: At least 1 buggy to proceed
+Update `src/contexts/GuestRealtimeContext.tsx` to include:
+- `channelName`: The name of the active channel
+- `lastEvent`: `{ table: string; timestamp: Date } | null` - Most recent event received
+- `eventCounts`: `Record<string, number>` - Count of events per table in this session
 
-### Step 3: Drivers
-- Title: "Assign Drivers"
-- Description: "Link staff members who will operate the buggies"
-- Features:
-  - Reuse the existing `AddDriverDialog` pattern (staff member picker)
-  - Show registered drivers with role badges
-  - Minimum requirement: At least 1 driver to proceed
+### 2. Extend useUnifiedGuestRealtime hook to track diagnostics
 
-### Step 4: Review & Go Live
-- Title: "Ready to Launch"
-- Summary of configured resources:
-  - X stops across Y zones
-  - X buggies (total capacity: Y seats)
-  - X registered drivers
-- "Complete Setup" button marks wizard as done
-- Success state with confetti animation and "Start Dispatching" CTA
+Update `src/hooks/sync/useUnifiedGuestRealtime.ts` to:
+- Track event counts in a ref: `eventCountsRef.current[table]++`
+- Track last event timestamp and table in a ref
+- Expose these via return value: `{ isActive, channelName, lastEvent, eventCounts }`
 
-## Technical Implementation
+### 3. Create GuestRealtimeDebugBadge component
 
-### 1. New Hook: `useTransportSetupMutations`
-**File:** `src/hooks/transport/useTransportSetupMutations.ts`
+Create `src/components/guest/GuestRealtimeDebugBadge.tsx`:
+- Only renders when URL has `?debugRealtime=1`
+- Displays a small, collapsible badge fixed near top-right (below header)
+- Shows:
+  - Unified enabled: ✓ / ✗
+  - Channel name (truncated)
+  - Last event: table + time (e.g., "notifications @ 14:32:05")
+  - Event counts table (e.g., notifications: 3, buggy_requests: 1)
+- Styled consistently with existing debug panels (semi-transparent, monospace fonts)
+- Includes expand/collapse toggle to minimize screen clutter
 
-Provides mutations for:
-- `addStop`: Insert into `buggy_stops`
-- `updateStop`: Update stop name/zone
-- `deleteStop`: Soft-delete (set `is_active = false`)
-- `reorderStops`: Batch update `sort_order`
-- `addBuggy`: Insert into `buggies`
-- `updateBuggy`: Update buggy details
-- `deleteBuggy`: Soft-delete (set status to 'out_of_service')
+### 4. Add debug badge to Guest Home page
 
-### 2. New Hook: `useTransportSetupStatus`
-**File:** `src/hooks/transport/useTransportSetupStatus.ts`
+Update `src/pages/guest/GuestHome.tsx`:
+- Import and render `<GuestRealtimeDebugBadge />` at top of the component
+- No conditional logic needed - the component self-gates based on query param
 
-Calculates setup completion:
+## File Changes
+
+| File | Action | Description |
+|------|--------|-------------|
+| `src/hooks/sync/useUnifiedGuestRealtime.ts` | Update | Add event tracking refs, expose diagnostics in return |
+| `src/contexts/GuestRealtimeContext.tsx` | Update | Extend context value with diagnostics from hook |
+| `src/components/guest/GuestRealtimeDebugBadge.tsx` | Create | New debug badge component |
+| `src/pages/guest/GuestHome.tsx` | Update | Add debug badge import and render |
+
+## Technical Details
+
+### Event Tracking in Hook
 ```typescript
-interface TransportSetupStatus {
-  stopsCount: number;
-  buggiesCount: number;
-  driversCount: number;
-  isComplete: boolean; // All >= 1
-  isDismissed: boolean; // localStorage flag
+// New refs in useUnifiedGuestRealtime
+const eventCountsRef = useRef<Record<string, number>>({});
+const lastEventRef = useRef<{ table: string; timestamp: Date } | null>(null);
+
+// In handleEvent, after processing:
+eventCountsRef.current[table] = (eventCountsRef.current[table] || 0) + 1;
+lastEventRef.current = { table, timestamp: new Date() };
+
+// Return extended values
+return {
+  isActive: enabled && !!guestId && !!resortId,
+  channelName: `guest-unified-${resortId}-${guestId}`,
+  lastEvent: lastEventRef.current,
+  eventCounts: eventCountsRef.current,
+};
+```
+
+### Context Extension
+```typescript
+interface GuestRealtimeContextValue {
+  unifiedActive: boolean;
+  guestId: string | null;
+  resortId: string | null;
+  // New diagnostics
+  channelName: string | null;
+  lastEvent: { table: string; timestamp: Date } | null;
+  eventCounts: Record<string, number>;
 }
 ```
 
-### 3. Wizard Components
+### Debug Badge UI Pattern
+```
+┌──────────────────────────────────────────┐
+│ 🔄 Realtime Debug                    [−] │
+├──────────────────────────────────────────┤
+│ Unified: ✓ Active                        │
+│ Channel: guest-unified-abc12..def34      │
+│ Last: notifications @ 14:32:05           │
+├──────────────────────────────────────────┤
+│ Events this session:                     │
+│   notifications ······· 3                │
+│   buggy_requests ······ 1                │
+│   activity_bookings ··· 2                │
+└──────────────────────────────────────────┘
+```
 
-**Directory:** `src/components/transport/setup/`
-
-| Component | Purpose |
-|-----------|---------|
-| `TransportSetupWizard.tsx` | Main wizard with step state and navigation |
-| `StopsSetupStep.tsx` | Step 1: Manage stops with inline add/edit/delete |
-| `BuggiesSetupStep.tsx` | Step 2: Manage buggies with inline add/edit |
-| `DriversSetupStep.tsx` | Step 3: Assign drivers (reuse eligible drivers hook) |
-| `ReviewSetupStep.tsx` | Step 4: Summary and completion |
-| `SetupProgressIndicator.tsx` | Shared step indicator component |
-| `QuickAddStops.tsx` | Pre-populated common stop templates |
-| `index.ts` | Exports |
-
-### 4. Setup Banner Integration
-**File:** `src/components/transport/setup/TransportSetupBanner.tsx`
-
-- Displayed above the dispatch console when setup is incomplete
-- Uses existing `SetupBanner` pattern
-- Dismissible but re-appears if resources are deleted back to zero
-- "Start Setup" button opens the wizard dialog
-
-### 5. Update TransportPage
-**File:** `src/pages/staff/TransportPage.tsx`
-
-- Import `TransportSetupBanner` and `TransportSetupWizard`
-- Query setup status using `useTransportSetupStatus`
-- Show banner when `!isComplete && !isDismissed`
-- Include wizard dialog with open/close state
-
-## Files to Create
-
-| File | Description |
-|------|-------------|
-| `src/hooks/transport/useTransportSetupMutations.ts` | CRUD mutations for stops and buggies |
-| `src/hooks/transport/useTransportSetupStatus.ts` | Setup completion check |
-| `src/components/transport/setup/TransportSetupWizard.tsx` | Main wizard component |
-| `src/components/transport/setup/StopsSetupStep.tsx` | Step 1 |
-| `src/components/transport/setup/BuggiesSetupStep.tsx` | Step 2 |
-| `src/components/transport/setup/DriversSetupStep.tsx` | Step 3 |
-| `src/components/transport/setup/ReviewSetupStep.tsx` | Step 4 |
-| `src/components/transport/setup/TransportSetupBanner.tsx` | Trigger banner |
-| `src/components/transport/setup/index.ts` | Exports |
-
-## Files to Edit
-
-| File | Changes |
-|------|---------|
-| `src/pages/staff/TransportPage.tsx` | Add banner + wizard integration |
-| `src/hooks/transport/index.ts` | Export new hooks |
-
-## UI/UX Considerations
-
-- **Mobile-first**: Wizard is a full-height dialog with scrollable steps
-- **Progressive disclosure**: Each step only shows what's needed
-- **Inline editing**: Add/edit items without leaving the step
-- **Validation feedback**: Clear indicators when minimum requirements are met
-- **Empty states**: Friendly guidance, not error messages
-- **Animation**: Smooth step transitions using Framer Motion (matching existing patterns)
-
-## Database Considerations
-No schema changes required. The wizard uses existing tables:
-- `buggy_stops`: Pickup/dropoff locations
-- `buggies`: Fleet inventory
-- `buggy_drivers`: Driver assignments
-
-Existing RLS policies (`staff_insert_buggy_stops`, `staff_insert_buggies`, `staff_insert_buggy_drivers`) already support these operations for authorized staff roles.
-
-## Persistence
-Setup completion is tracked via resource counts, not a dedicated flag. If all resources are deleted, the setup banner returns. This ensures data integrity without adding database columns.
+## Safety Guarantees
+- Component only renders when `?debugRealtime=1` is in URL
+- No production impact when flag is absent
+- Uses refs for tracking to avoid re-render loops
+- Follows existing debug panel patterns (z-index, positioning, styling)
+- Zero changes to production user experience
