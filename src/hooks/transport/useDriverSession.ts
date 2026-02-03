@@ -132,6 +132,7 @@ export function useDriverTrips(resortId: string | undefined) {
       if (!resortId || !userId) return [];
 
       // Get trips assigned to this driver that are not completed/cancelled
+      // Query trips by both legacy status and new lifecycle_state for full coverage
       const { data, error } = await supabase
         .from('buggy_trips')
         .select(`
@@ -160,7 +161,7 @@ export function useDriverTrips(resortId: string | undefined) {
         `)
         .eq('resort_id', resortId)
         .eq('driver_user_id', userId)
-        .in('status', ['assigned', 'en_route', 'active'])
+        .or('status.in.(assigned,en_route,active),lifecycle_state.in.(assigned,enroute_to_pickup,arrived_pickup,enroute_to_dropoff)')
         .order('created_at', { ascending: false });
 
       if (error) {

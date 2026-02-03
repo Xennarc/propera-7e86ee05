@@ -49,8 +49,8 @@ export function useTransportMutations(resortId: string | undefined) {
       requestId: string;
     }) => {
       const { data, error } = await supabase.rpc('add_request_to_trip', {
-        _trip_id: tripId,
-        _request_id: requestId,
+        p_trip_id: tripId,
+        p_request_id: requestId,
       });
       
       if (error) throw error;

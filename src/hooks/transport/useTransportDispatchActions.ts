@@ -17,6 +17,21 @@ interface AssignTripResult {
   assigned_request_count: number;
 }
 
+interface AttachRequestsResult {
+  success: boolean;
+  trip_id: string;
+  attached_count: number;
+  request_ids: string[];
+  validation_errors?: string[];
+  error?: string;
+}
+
+interface CancelTripResult {
+  success: boolean;
+  trip_id: string;
+  error?: string;
+}
+
 interface RpcError {
   message: string;
   code?: string;
@@ -157,10 +172,100 @@ export function useTransportDispatchActions(resortId: string | undefined) {
     },
   });
   
+  /**
+   * Atomic attach requests to existing planning trip.
+   */
+  const attachRequestsToTrip = useMutation<
+    AttachRequestsResult,
+    RpcError,
+    { tripId: string; requestIds: string[] }
+  >({
+    mutationFn: async ({ tripId, requestIds }) => {
+      if (!resortId) {
+        throw { message: 'Resort ID is required' };
+      }
+      
+      if (!requestIds || requestIds.length === 0) {
+        throw { message: 'At least one request must be selected' };
+      }
+      
+      const { data, error } = await supabase.rpc('rpc_transport_attach_requests_to_trip', {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+        p_request_ids: requestIds,
+      });
+      
+      if (error) {
+        throw { message: error.message, code: error.code };
+      }
+      
+      const result = data as unknown as AttachRequestsResult;
+      
+      if (!result.success) {
+        const errorMsg = result.error || 'Failed to attach requests';
+        throw { message: errorMsg };
+      }
+      
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success(`Added ${result.attached_count} request(s) to trip`);
+      invalidateAll();
+    },
+    onError: (error) => {
+      console.error('Attach requests error:', error);
+      toast.error(error.message || 'Failed to add requests to trip');
+    },
+  });
+  
+  /**
+   * Cancel an empty planning trip.
+   */
+  const cancelEmptyTrip = useMutation<
+    CancelTripResult,
+    RpcError,
+    { tripId: string }
+  >({
+    mutationFn: async ({ tripId }) => {
+      if (!resortId) {
+        throw { message: 'Resort ID is required' };
+      }
+      
+      const { data, error } = await supabase.rpc('rpc_transport_cancel_empty_trip', {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+      });
+      
+      if (error) {
+        throw { message: error.message, code: error.code };
+      }
+      
+      const result = data as unknown as CancelTripResult;
+      
+      if (!result.success) {
+        throw { message: result.error || 'Failed to cancel trip' };
+      }
+      
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Empty trip cancelled');
+      invalidateAll();
+    },
+    onError: (error) => {
+      console.error('Cancel trip error:', error);
+      toast.error(error.message || 'Failed to cancel trip');
+    },
+  });
+  
   return {
     createTripFromRequests,
     assignTrip,
+    attachRequestsToTrip,
+    cancelEmptyTrip,
     isCreatingTrip: createTripFromRequests.isPending,
     isAssigningTrip: assignTrip.isPending,
+    isAttachingRequests: attachRequestsToTrip.isPending,
+    isCancellingTrip: cancelEmptyTrip.isPending,
   };
 }
