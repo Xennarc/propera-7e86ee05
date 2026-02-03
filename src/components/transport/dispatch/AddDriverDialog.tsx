@@ -16,9 +16,10 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, UserPlus, Users } from 'lucide-react';
+import { Loader2, UserPlus, Users, AlertCircle } from 'lucide-react';
 import { useEligibleDrivers } from '@/hooks/transport/useEligibleDrivers';
 import { useTransportMutations } from '@/hooks/transport/useTransportMutations';
+import { useBuggyDrivers } from '@/hooks/transport/useBuggyDrivers';
 
 interface AddDriverDialogProps {
   open: boolean;
@@ -41,10 +42,13 @@ const roleLabels: Record<string, string> = {
 export function AddDriverDialog({ open, onOpenChange, resortId }: AddDriverDialogProps) {
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   
-  const { data: eligibleDrivers = [], isLoading: loadingEligible } = useEligibleDrivers(resortId);
+  const { data: eligibleDrivers = [], isLoading: loadingEligible, isError } = useEligibleDrivers(resortId);
+  const { data: existingDrivers = [], isLoading: loadingDrivers } = useBuggyDrivers(resortId);
   const { registerDriver } = useTransportMutations(resortId);
   
   const selectedDriver = eligibleDrivers.find(d => d.user_id === selectedUserId);
+  const hasExistingDrivers = existingDrivers.length > 0;
+  const isLoading = loadingEligible || loadingDrivers;
   
   const handleSubmit = () => {
     if (!selectedUserId || !selectedDriver) return;
@@ -81,18 +85,32 @@ export function AddDriverDialog({ open, onOpenChange, resortId }: AddDriverDialo
         </DialogHeader>
         
         <div className="py-4">
-          {loadingEligible ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-3">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <p className="text-sm font-medium">Unable to load staff members</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Please check your permissions and try again
+              </p>
             </div>
           ) : eligibleDrivers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center mb-3">
                 <Users className="h-6 w-6 text-muted-foreground" />
               </div>
-              <p className="text-sm font-medium">No eligible staff members</p>
+              <p className="text-sm font-medium">
+                {hasExistingDrivers ? 'No eligible staff members' : 'No staff members found'}
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
-                All staff members are already registered as drivers
+                {hasExistingDrivers 
+                  ? 'All staff members are already registered as drivers'
+                  : 'Invite staff to your resort first to register them as drivers'}
               </p>
             </div>
           ) : (
