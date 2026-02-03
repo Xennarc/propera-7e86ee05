@@ -102,8 +102,65 @@ export function useTransportDispatchActions(resortId: string | undefined) {
     },
   });
   
+  /**
+   * Atomic trip assignment with buggy and driver.
+   * Validates availability and assigns atomically.
+   */
+  const assignTrip = useMutation<
+    AssignTripResult,
+    RpcError,
+    { tripId: string; buggyId: string; driverUserId: string }
+  >({
+    mutationFn: async ({ tripId, buggyId, driverUserId }) => {
+      if (!resortId) {
+        throw { message: 'Resort ID is required' };
+      }
+      
+      const { data, error } = await supabase.rpc('rpc_transport_assign_trip', {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+        p_buggy_id: buggyId,
+        p_driver_user_id: driverUserId,
+      });
+      
+      if (error) {
+        let message = error.message;
+        
+        if (message.includes('not available')) {
+          message = 'Buggy is no longer available. Please select another.';
+        } else if (message.includes('not online')) {
+          message = 'Driver is no longer online. Please select another.';
+        } else if (message.includes('Could not acquire lock')) {
+          message = 'Another operation is in progress. Please try again.';
+        } else if (message.includes('at least one attached request')) {
+          message = 'Trip must have at least one request before assigning.';
+        }
+        
+        throw { message, code: error.code };
+      }
+      
+      const result = data as unknown as AssignTripResult;
+      
+      if (!result.success) {
+        throw { message: 'Assignment failed unexpectedly' };
+      }
+      
+      return result;
+    },
+    onSuccess: (result) => {
+      toast.success(`Trip assigned with ${result.assigned_request_count} request(s)`);
+      invalidateAll();
+    },
+    onError: (error) => {
+      console.error('Assign trip error:', error);
+      toast.error(error.message || 'Failed to assign trip');
+    },
+  });
+  
   return {
     createTripFromRequests,
+    assignTrip,
     isCreatingTrip: createTripFromRequests.isPending,
+    isAssigningTrip: assignTrip.isPending,
   };
 }
