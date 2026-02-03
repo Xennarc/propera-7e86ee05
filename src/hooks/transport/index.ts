@@ -17,3 +17,4 @@ export * from './useTransportSetupStatus';
 export * from './useTransportSetupMutations';
 export * from './useIsDriver';
 export * from './useTransportDispatchActions';
+export * from './useDriverLifecycleActions';
