@@ -6661,7 +6661,7 @@ export type Database = {
         Returns: Json
       }
       add_request_to_trip: {
-        Args: { _request_id: string; _trip_id: string }
+        Args: { p_request_id: string; p_trip_id: string }
         Returns: Json
       }
       adjust_loyalty_points: {
@@ -7674,6 +7674,18 @@ export type Database = {
           p_resort_id: string
           p_trip_id: string
         }
+        Returns: Json
+      }
+      rpc_transport_attach_requests_to_trip: {
+        Args: {
+          p_request_ids: string[]
+          p_resort_id: string
+          p_trip_id: string
+        }
+        Returns: Json
+      }
+      rpc_transport_cancel_empty_trip: {
+        Args: { p_resort_id: string; p_trip_id: string }
         Returns: Json
       }
       rpc_transport_cancel_request: {

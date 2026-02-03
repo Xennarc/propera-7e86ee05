@@ -12,7 +12,9 @@ import {
   ChevronUp,
   Plus,
   UserPlus,
-  Settings2
+  Settings2,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,6 +26,8 @@ interface TripCardProps {
   onAddRequest: () => void;
   onViewDetails: () => void;
   onRemoveRequest: (requestId: string) => void;
+  onCancelTrip?: () => void;
+  isCancellingTrip?: boolean;
 }
 
 const statusConfig = {
@@ -39,6 +43,8 @@ export function TripCard({
   onAddRequest,
   onViewDetails,
   onRemoveRequest,
+  onCancelTrip,
+  isCancellingTrip,
 }: TripCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   
@@ -172,6 +178,24 @@ export function TripCard({
               <Settings2 className="h-4 w-4 mr-2" />
               Details
             </Button>
+            {/* Cancel empty trip button */}
+            {needsAssignment && activeRequests.length === 0 && onCancelTrip && (
+              <Button 
+                size="sm" 
+                variant="destructive" 
+                onClick={onCancelTrip}
+                disabled={isCancellingTrip}
+              >
+                {isCancellingTrip ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Cancel Trip
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </motion.div>
       )}

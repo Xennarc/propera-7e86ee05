@@ -146,24 +146,24 @@ function TransportPageContent() {
   
   const handleAddRequestsToTrip = useCallback((requestIds: string[]) => {
     if (addingToTripId && requestIds.length > 0) {
-      // Add each request sequentially (could be improved with batch RPC)
-      const addNext = (index: number) => {
-        if (index >= requestIds.length) {
-          setAddingToTripId(null);
-          return;
+      // Use atomic batch RPC for reliability
+      dispatchActions.attachRequestsToTrip.mutate(
+        { tripId: addingToTripId, requestIds },
+        { 
+          onSuccess: () => setAddingToTripId(null),
+          // On error: dialog stays open, toast shown by hook
         }
-        mutations.addRequestToTrip.mutate(
-          { tripId: addingToTripId, requestId: requestIds[index] },
-          { onSuccess: () => addNext(index + 1) }
-        );
-      };
-      addNext(0);
+      );
     }
-  }, [addingToTripId, mutations]);
+  }, [addingToTripId, dispatchActions]);
   
   const handleRemoveRequest = useCallback((tripId: string, requestId: string) => {
     mutations.removeRequestFromTrip.mutate({ tripId, requestId });
   }, [mutations]);
+  
+  const handleCancelTrip = useCallback((tripId: string) => {
+    dispatchActions.cancelEmptyTrip.mutate({ tripId });
+  }, [dispatchActions]);
   
   const handleReorderStops = useCallback((orderedIds: string[]) => {
     if (detailTripId) {
@@ -334,6 +334,8 @@ function TransportPageContent() {
                   onAddRequestToTrip={setAddingToTripId}
                   onRemoveRequest={handleRemoveRequest}
                   onViewTripDetails={setDetailTripId}
+                  onCancelTrip={handleCancelTrip}
+                  isCancellingTrip={dispatchActions.isCancellingTrip}
                   onRefresh={refetchTrips}
                 />
               )}
@@ -393,6 +395,8 @@ function TransportPageContent() {
                   onAddRequestToTrip={setAddingToTripId}
                   onRemoveRequest={handleRemoveRequest}
                   onViewTripDetails={setDetailTripId}
+                  onCancelTrip={handleCancelTrip}
+                  isCancellingTrip={dispatchActions.isCancellingTrip}
                   onRefresh={refetchTrips}
                 />
               </ResizablePanel>
@@ -438,7 +442,7 @@ function TransportPageContent() {
         tripId={addingToTripId}
         queuedRequests={queueRequests}
         onAdd={handleAddRequestsToTrip}
-        isAdding={mutations.addRequestToTrip.isPending}
+        isAdding={dispatchActions.isAttachingRequests}
       />
       
       <TripDetailSheet
