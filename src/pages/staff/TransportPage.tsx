@@ -429,7 +429,7 @@ function TransportPageContent() {
         buggies={buggies}
         drivers={drivers}
         onAssign={handleAssignTrip}
-        isAssigning={mutations.assignTrip.isPending}
+        isAssigning={dispatchActions.isAssigningTrip}
       />
       
       <AddRequestToTripDialog
