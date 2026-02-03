@@ -167,7 +167,7 @@ export function AssignTripDialog({
                     <SelectItem key={driver.user_id} value={driver.user_id}>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4" />
-                        <span>{driver.full_name || 'Driver'}</span>
+                        <span>{driver.full_name || `Driver (${driver.user_id.slice(0, 8)}...)`}</span>
                       </div>
                     </SelectItem>
                   ))

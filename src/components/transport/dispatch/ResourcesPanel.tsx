@@ -32,7 +32,7 @@ const buggyStatusConfig: Record<string, { label: string; className: string }> = 
 };
 
 const driverStatusConfig: Record<string, { label: string; className: string }> = {
-  available: { label: 'Available', className: 'bg-green-500' },
+  online: { label: 'Online', className: 'bg-green-500' },
   on_trip: { label: 'On Trip', className: 'bg-blue-500' },
   break: { label: 'On Break', className: 'bg-amber-500' },
   offline: { label: 'Offline', className: 'bg-muted-foreground' },
@@ -42,7 +42,7 @@ export function ResourcesPanel({ buggies, drivers, isLoading, resortId, canManag
   const [showAddDriver, setShowAddDriver] = useState(false);
   
   const availableBuggies = buggies.filter(b => b.status === 'available');
-  const availableDrivers = drivers.filter(d => d.status === 'available');
+  const availableDrivers = drivers.filter(d => d.status === 'online');
   
   return (
     <div className="flex flex-col h-full">
@@ -185,7 +185,7 @@ function DriverCard({ driver }: { driver: DriverRow }) {
           </div>
           <div>
             <span className="font-medium text-sm block">
-              {driver.full_name || 'Unknown Driver'}
+              {driver.full_name || `Driver (${driver.user_id.slice(0, 8)}...)`}
             </span>
             {driver.assigned_buggy?.name && (
               <span className="text-xs text-muted-foreground">
