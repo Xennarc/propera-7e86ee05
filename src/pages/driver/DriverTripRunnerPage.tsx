@@ -213,22 +213,22 @@ export default function DriverTripRunnerPage() {
 
       {/* Main content */}
       <div className="flex-1 p-4 space-y-4 pb-32">
-        {/* Start Trip CTA (if assigned) */}
-        {trip?.status === 'assigned' && (
+        {/* Primary Action CTA - shows next lifecycle action */}
+        {currentLifecycleState === 'assigned' && (
           <Card className="border-primary shadow-lg">
             <CardContent className="py-6">
               <Button
                 size="lg"
                 className="w-full h-16 text-lg gap-3"
-                onClick={handleStartTrip}
+                onClick={handleAdvanceState}
                 disabled={isPending}
               >
-                {startTrip.isPending ? (
+                {lifecycleActions.isUpdating ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <Play className="h-6 w-6" />
                 )}
-                Start Trip
+                {nextActionLabel || 'Start Trip'}
               </Button>
               <p className="text-center text-xs text-muted-foreground mt-3">
                 Tap to begin and notify passengers
