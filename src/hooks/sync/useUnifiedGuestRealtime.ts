@@ -396,9 +396,11 @@ export function useUnifiedGuestRealtime({
       { table: 'restaurant_reservations', filter: `guest_id=eq.${guestId}` },
       { table: 'service_requests', filter: `guest_id=eq.${guestId}` },
       { table: 'prearrival_profiles', filter: `guest_id=eq.${guestId}` },
-      // Resort-filtered tables (availability)
+      // Resort-filtered tables (availability and trip updates)
       { table: 'activity_sessions', filter: `resort_id=eq.${resortId}` },
       { table: 'restaurant_time_slots', filter: `resort_id=eq.${resortId}` },
+      // Phase 8: Trip updates for guest's assigned rides
+      { table: 'buggy_trips', filter: `resort_id=eq.${resortId}` },
     ],
     [guestId, resortId]
   );
