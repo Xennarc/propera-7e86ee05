@@ -455,7 +455,7 @@ function TransportPageContent() {
         onOpenChange={setShowTripPreview}
         requests={previewRequests}
         onConfirm={handleConfirmCreateTrip}
-        isCreating={mutations.createTripFromRequests.isPending}
+        isCreating={dispatchActions.isCreatingTrip}
       />
       
       {/* Setup Wizard */}
