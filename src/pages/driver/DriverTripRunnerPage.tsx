@@ -118,14 +118,12 @@ export default function DriverTripRunnerPage() {
     return stops.length > 0 && stops.every(s => s.status === 'completed' || s.status === 'skipped');
   }, [stops]);
 
-  // Handlers
-  const handleStartTrip = useCallback(() => {
-    if (tripId) startTrip.mutate(tripId);
-  }, [tripId, startTrip]);
-
-  const handleCompleteTrip = useCallback(() => {
-    if (tripId) completeTrip.mutate(tripId);
-  }, [tripId, completeTrip]);
+  // Handler to advance trip state
+  const handleAdvanceState = useCallback(() => {
+    if (tripId && nextState) {
+      lifecycleActions.updateTripState.mutate({ tripId, nextState });
+    }
+  }, [tripId, nextState, lifecycleActions]);
 
   const handleArrived = useCallback((stopId: string) => {
     updateStop.mutate({ stopId, newStatus: 'arrived' });
