@@ -86,6 +86,11 @@ export function useDriverRealtimeSync({
         table: 'buggy_trip_requests', 
         filter: tripId ? createFilter('trip_id', tripId) : undefined,
       },
+      // Phase 8: Include transport events for lifecycle updates
+      { 
+        table: 'transport_events', 
+        filter: tripId ? createFilter('trip_id', tripId) : undefined,
+      },
     ],
     onChange: handleChange,
     enabled: enabled && !!driverId,
