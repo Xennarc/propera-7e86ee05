@@ -56,7 +56,7 @@ export function TripCard({
   return (
     <motion.div 
       layout
-      className="rounded-xl border bg-card overflow-hidden"
+      className="group rounded-xl border bg-card overflow-hidden"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
@@ -77,7 +77,7 @@ export function TripCard({
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <Button variant="ghost" size="icon" className="h-11 w-11 min-w-[44px] min-h-[44px] shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
             {isExpanded ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
@@ -186,7 +186,7 @@ function TripRequestRow({ tripRequest, onRemove }: TripRequestRowProps) {
   const state = stateConfig[tripRequest.state as keyof typeof stateConfig] || stateConfig.queued;
   
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg bg-background border">
+    <div className="group flex items-center gap-3 p-2 rounded-lg bg-background border">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-sm font-medium truncate">
@@ -212,7 +212,7 @@ function TripRequestRow({ tripRequest, onRemove }: TripRequestRowProps) {
         <Button 
           size="icon" 
           variant="ghost" 
-          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+          className="h-11 w-11 min-w-[44px] min-h-[44px] text-muted-foreground hover:text-destructive opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
           onClick={onRemove}
         >
           <span className="sr-only">Remove</span>

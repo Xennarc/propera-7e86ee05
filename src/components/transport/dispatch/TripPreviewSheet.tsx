@@ -271,11 +271,11 @@ export function TripPreviewSheet({
           </div>
         </ScrollArea>
         
-        <SheetFooter className="mt-4 pt-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <SheetFooter className="mt-4 pt-4 border-t pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 min-h-[44px]">
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isCreating}>
+          <Button onClick={onConfirm} disabled={isCreating} className="h-11 min-h-[44px]">
             <CheckCircle2 className="h-4 w-4 mr-2" />
             {isCreating ? 'Creating...' : 'Create Trip'}
           </Button>

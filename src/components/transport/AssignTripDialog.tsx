@@ -177,11 +177,11 @@ export function AssignTripDialog({
           </div>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+        <DialogFooter className="pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <Button variant="outline" onClick={() => handleOpenChange(false)} className="h-11 min-h-[44px]">
             Cancel
           </Button>
-          <Button onClick={handleAssign} disabled={!canAssign || isAssigning}>
+          <Button onClick={handleAssign} disabled={!canAssign || isAssigning} className="h-11 min-h-[44px]">
             {isAssigning ? 'Assigning...' : 'Assign & Dispatch'}
           </Button>
         </DialogFooter>

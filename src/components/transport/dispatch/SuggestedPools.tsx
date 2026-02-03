@@ -122,7 +122,7 @@ export function SuggestedPools({ requests, onCreatePool, isCreating }: Suggested
       </div>
       
       <ScrollArea className="w-full">
-        <div className="flex gap-2 pb-1">
+        <div className="flex gap-2 pb-1 scroll-fade-x">
           {suggestions.map((pool) => (
             <PoolCard 
               key={pool.id} 

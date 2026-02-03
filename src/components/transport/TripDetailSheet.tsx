@@ -181,20 +181,20 @@ export function TripDetailSheet({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-6 w-6"
+                        className="h-11 w-11 min-w-[44px] min-h-[44px]"
                         disabled={!canMoveUp || isReordering}
                         onClick={() => moveStop(index, 'up')}
                       >
-                        <ArrowUp className="h-3 w-3" />
+                        <ArrowUp className="h-4 w-4" />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-6 w-6"
+                        className="h-11 w-11 min-w-[44px] min-h-[44px]"
                         disabled={!canMoveDown || isReordering}
                         onClick={() => moveStop(index, 'down')}
                       >
-                        <ArrowDown className="h-3 w-3" />
+                        <ArrowDown className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
