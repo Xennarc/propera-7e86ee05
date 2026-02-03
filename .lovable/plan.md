@@ -1,217 +1,210 @@
 
-# Transport Module UI Gap Analysis & Fixes
+# Driver Portal Access & Discoverability Fix
 
-## Executive Summary
-After thorough review of the Transport module components, I've identified several UI/UX gaps that don't align with Propera's established design standards. These issues primarily affect mobile responsiveness, touch target sizes, action visibility patterns, and consistency with the "Premium Luxury-Minimal" theme.
+## Problem Statement
+The Driver Portal exists at `/driver` but there is no way for registered drivers to discover or navigate to it. Staff members registered as buggy drivers have no visible UI element to enter "driver mode". They would need to manually type `/driver` in the URL, which is not discoverable.
+
+## Current Architecture
+
+### What Works:
+- **Driver Registration**: Admins register staff via `AddDriverDialog` or `DriversSetupStep`
+- **Authorization**: `DriverLayout` correctly checks `buggy_drivers` table for user access
+- **Driver Operations**: Full trip execution (start, stop updates, complete, GPS, presence)
+- **Routes**: `/driver` and `/driver/trip/:tripId` properly configured
+
+### What's Missing:
+1. No navigation link to `/driver` anywhere in the staff portal
+2. Registered drivers receive no indication they have driver access
+3. No contextual "Switch to Driver Mode" affordance
+
+## Solution Design
+
+### 1. Add "Driver Mode" Entry Point in Staff Dashboard
+
+Create a prominent card in the TodayHub that appears ONLY for users registered as buggy drivers. This card:
+- Shows the driver's current status (Offline/Online)
+- Provides a clear "Enter Driver Mode" CTA
+- Is visually distinct to make it easy to find
+
+### 2. Add "Driver Mode" to Mobile Bottom Nav
+
+For registered drivers on mobile, add a contextual quick-action in the "More" menu sheet that links directly to `/driver`.
+
+### 3. Add "Driver Mode" to Staff Sidebar
+
+For registered drivers on desktop, add a navigation item in the sidebar under a "Your Role" or inline in the existing Transport section.
+
+### 4. Optional: Driver Registration Notification
+
+When an admin registers a staff member as a driver, show a toast or send a notification informing them they now have driver access. (Lower priority - can be Phase 2)
 
 ---
 
-## Identified Gaps
+## Technical Implementation
 
-### 1. **Mobile Responsiveness - Dispatch Console**
-**Location**: `TransportPage.tsx`, `RequestQueuePanel.tsx`, `TripsPanel.tsx`
+### Phase 1: Core Access Points
 
-**Issue**: The 3-column resizable layout is desktop-only. On mobile, content is cramped or hidden entirely:
-- Resources panel is `hidden lg:block` with no mobile alternative
-- ResizablePanelGroup doesn't gracefully degrade on small screens
-- No mobile card view for request queue items
+#### 1.1 Create `useIsDriver` Hook
+A lightweight hook to check if the current user is a registered buggy driver.
 
-**Current behavior**: Mobile users see a cramped 2-column layout with no access to resources.
+```
+File: src/hooks/transport/useIsDriver.ts
+
+Purpose:
+- Query buggy_drivers table for current user
+- Return { isDriver, driverStatus, isLoading }
+- Cache result appropriately
+```
+
+#### 1.2 Add DriverModeCard to TodayHub
+A prominent card in the staff dashboard for registered drivers.
+
+```
+File: src/components/staff/DriverModeCard.tsx
+
+Content:
+- Icon: Car or steering wheel
+- Title: "Driver Mode Available"
+- Description: Current status (Offline, Online, etc.)
+- CTA Button: "Enter Driver Mode" → navigates to /driver
+- Only renders if isDriver === true
+```
+
+Update `src/components/staff/TodayHub.tsx`:
+- Import and render `<DriverModeCard />` at top of the page
+- Position below the header, above Quick Stats
+
+#### 1.3 Add Driver Mode to Mobile "More" Menu
+Update `src/components/layout/MobileBottomNav.tsx`:
+- Add a conditional item to `moreNavItems` that appears when user isDriver
+- Uses Car icon, links to `/driver`
+
+#### 1.4 Add Driver Mode to Staff Sidebar
+Update `src/components/staff/StaffSidebar.tsx`:
+- Add a "Driver Portal" item in the Transport section
+- Conditionally show based on `isDriver` hook (not just role-based)
 
 ---
 
-### 2. **Action Button Visibility Pattern**
-**Location**: `TripCard.tsx`, `RequestQueueCard.tsx`, `TripRequestRow`
+## File Changes Summary
 
-**Issue**: Action buttons don't follow the established platform pattern of `opacity-100 sm:opacity-0 sm:group-hover:opacity-100` for table/card actions. This causes:
-- Desktop: Actions always visible (visual clutter)
-- Mobile: Same issue, but touch targets should always be visible
+| File | Change |
+|------|--------|
+| `src/hooks/transport/useIsDriver.ts` | **Create** - Hook to check driver status |
+| `src/components/staff/DriverModeCard.tsx` | **Create** - Dashboard card for driver access |
+| `src/components/staff/TodayHub.tsx` | **Update** - Add DriverModeCard |
+| `src/components/layout/MobileBottomNav.tsx` | **Update** - Add conditional driver nav item |
+| `src/components/staff/StaffSidebar.tsx` | **Update** - Add Driver Portal link for drivers |
+| `src/hooks/transport/index.ts` | **Update** - Export useIsDriver |
 
-**Standard pattern** (from `GlobalUsersPage.tsx`):
-```tsx
-className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+---
+
+## UI Design
+
+### DriverModeCard (Dashboard)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🚗  Driver Mode                          Status: ○ Offline │
+│                                                          │
+│  You're registered as a buggy driver. Open the driver   │
+│  portal to go online and receive trip assignments.       │
+│                                                          │
+│                            [ Enter Driver Mode → ]       │
+└─────────────────────────────────────────────────────────┘
+```
+
+- Uses existing Card component with `border-primary/30` for visual emphasis
+- Status indicator matches DriverHomePage colors (Offline = gray, Online = green)
+- Button is full-width on mobile, right-aligned on desktop
+
+### Mobile More Menu Item
+
+```
+┌──────────────────┐
+│  🚗              │
+│  Driver Portal   │
+└──────────────────┘
+```
+
+- Same grid styling as other items
+- Only visible to registered drivers
+
+### Sidebar Navigation Item
+
+Under Transport section (or as separate group for drivers):
+```
+Transport
+├── Dispatch
+└── Driver Portal ← New (only for registered drivers)
 ```
 
 ---
 
-### 3. **Touch Target Sizes - Driver Portal**
-**Location**: `DriverHomePage.tsx`, `DriverTripRunnerPage.tsx`
+## Technical Details
 
-**Issue**: Some interactive elements don't meet the 44x44px minimum:
-- Stop list items in Trip Runner are `button` elements but lack explicit min-height
-- Expand/collapse buttons are 8x8 (w-8 h-8 = 32px)
-- Back button is using `size="icon"` without explicit sizing guarantee
+### useIsDriver Hook
 
----
+```typescript
+export function useIsDriver(resortId: string | undefined) {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['is-driver', resortId, user?.id],
+    queryFn: async () => {
+      if (!resortId || !user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('buggy_drivers')
+        .select('id, status')
+        .eq('resort_id', resortId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!resortId && !!user?.id,
+    staleTime: 60_000, // Cache for 1 minute
+  });
+}
+```
 
-### 4. **Missing MobileActionBar Usage**
-**Location**: `TripDetailSheet.tsx`, `AssignTripDialog.tsx`
+### Conditional Navigation Logic
 
-**Issue**: The `MobileActionBar` component exists but isn't used in transport sheets/dialogs. Primary actions should be pinned to bottom on mobile for easy thumb access.
+```typescript
+// In MobileBottomNav
+const { data: driverRecord } = useIsDriver(currentResort?.id);
 
----
+const driverNavItem: NavItem | null = driverRecord ? {
+  label: 'Driver Portal',
+  href: '/driver',
+  icon: Car,
+  resortRoles: null, // Accessible to anyone registered as driver
+} : null;
 
-### 5. **Setup Step Action Visibility**
-**Location**: `StopsSetupStep.tsx`, `BuggiesSetupStep.tsx`
-
-**Issue**: Delete/drag actions use `opacity-0 group-hover:opacity-100` without the `opacity-100 sm:opacity-0` prefix, making them invisible on touch devices.
-
----
-
-### 6. **Filter Bar Mobile Layout**
-**Location**: `HistoryFilterBar.tsx`
-
-**Issue**: While it has `sm:flex-row` responsive classes, the filter chips use `h-10 sm:h-9` which is inconsistent. All interactive elements should be 44px on mobile.
-
----
-
-### 7. **Trip Preview Sheet Footer**
-**Location**: `TripPreviewSheet.tsx`
-
-**Issue**: Footer actions are standard buttons without safe-area padding consideration. On notched devices, buttons may overlap with home indicator.
-
----
-
-### 8. **Request Queue Card - Cancel Button**
-**Location**: `RequestQueueCard.tsx`
-
-**Issue**: Cancel button (`h-8 w-8` = 32px) is below the 44px touch target minimum for mobile.
-
----
-
-### 9. **Suggested Pools - Horizontal Scroll**
-**Location**: `SuggestedPools.tsx`
-
-**Issue**: Horizontal scrolling cards lack the `.scroll-fade-x` gradient mask utility that's standard for premium horizontal scrolls in the guest portal.
-
----
-
-### 10. **Empty States Consistency**
-**Location**: Various components
-
-**Issue**: Empty states use varying icon container sizes (h-10, h-16) and inconsistent messaging tone. Should align with `GuestEmptyState` pattern.
-
----
-
-## Proposed Fixes
-
-### Phase 1: Critical Mobile Fixes
-
-| Component | Change | Impact |
-|-----------|--------|--------|
-| `TransportPage.tsx` | Add mobile tab navigation for Queue/Trips/Resources instead of resizable panels | High |
-| `RequestQueueCard.tsx` | Increase cancel button to `h-11 w-11` (44px) | High |
-| `TripCard.tsx` | Add `group` class and use visibility pattern for action buttons | Medium |
-| `DriverTripRunnerPage.tsx` | Ensure all stop buttons have `min-h-[44px]` | High |
-
-### Phase 2: Pattern Alignment
-
-| Component | Change | Impact |
-|-----------|--------|--------|
-| `StopsSetupStep.tsx` | Update delete/grip to `opacity-100 sm:opacity-0 sm:group-hover:opacity-100` | Medium |
-| `BuggiesSetupStep.tsx` | Same visibility pattern fix | Medium |
-| `SuggestedPools.tsx` | Add `scroll-fade-x` mask to horizontal scroll | Low |
-| `HistoryFilterBar.tsx` | Ensure all buttons are `h-11` on mobile (44px) | Medium |
-
-### Phase 3: Sheet/Dialog Improvements
-
-| Component | Change | Impact |
-|-----------|--------|--------|
-| `TripDetailSheet.tsx` | Use `MobileActionBar` for Save/Cancel on mobile | Medium |
-| `AssignTripDialog.tsx` | Add safe-area bottom padding to footer | Low |
-| `TripPreviewSheet.tsx` | Add `pb-safe` utility to footer | Low |
-
-### Phase 4: Dispatch Console Mobile Redesign
-
-Create a mobile-specific layout that:
-1. Uses bottom tabs for Queue / Trips / Resources (similar to guest bottom nav)
-2. Shows full-width cards for requests
-3. Moves "Suggested Pools" to a collapsible accordion
-4. Provides swipe actions on request cards (Cancel, Add to Trip)
-
----
-
-## Technical Implementation Details
-
-### 1. Mobile Dispatch Tabs Component
-```tsx
-// New component: MobileDispatchNav.tsx
-const tabs = [
-  { key: 'queue', label: 'Queue', icon: ClipboardList, badge: queueCount },
-  { key: 'trips', label: 'Trips', icon: Route, badge: tripsCount },
-  { key: 'resources', label: 'Resources', icon: Car },
+// Add to moreNavItems conditionally
+const allMoreItems = [
+  ...visibleMoreItems,
+  ...(driverNavItem ? [driverNavItem] : []),
 ];
-// Renders fixed bottom nav on md:hidden
 ```
-
-### 2. Touch Target Fix Pattern
-```tsx
-// Before
-<Button size="icon" className="h-8 w-8">
-
-// After
-<Button size="icon" className="h-11 w-11 min-w-[44px] min-h-[44px]">
-```
-
-### 3. Action Visibility Pattern
-```tsx
-// Before (always visible)
-<Button variant="ghost" className="h-8 w-8">
-
-// After (mobile-visible, desktop-hover)
-<Button 
-  variant="ghost" 
-  className="h-11 w-11 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
->
-```
-
-### 4. Safe Area Padding
-```tsx
-// For sheet/dialog footers
-<SheetFooter className="pb-[max(1rem,env(safe-area-inset-bottom))]">
-```
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/staff/TransportPage.tsx` | Add mobile tab layout, conditional rendering |
-| `src/components/transport/RequestQueueCard.tsx` | Fix touch targets, add group class |
-| `src/components/transport/RequestQueuePanel.tsx` | Mobile card layout optimization |
-| `src/components/transport/TripCard.tsx` | Action visibility pattern |
-| `src/components/transport/TripsPanel.tsx` | Mobile adjustments |
-| `src/components/transport/TripDetailSheet.tsx` | MobileActionBar integration |
-| `src/components/transport/AssignTripDialog.tsx` | Safe area padding |
-| `src/components/transport/dispatch/TripPreviewSheet.tsx` | Safe area padding |
-| `src/components/transport/dispatch/SuggestedPools.tsx` | Scroll fade mask |
-| `src/components/transport/setup/StopsSetupStep.tsx` | Action visibility pattern |
-| `src/components/transport/setup/BuggiesSetupStep.tsx` | Action visibility pattern |
-| `src/components/transport/history/HistoryFilterBar.tsx` | Touch target sizes |
-| `src/pages/driver/DriverTripRunnerPage.tsx` | Touch target verification |
-
-## New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/transport/dispatch/MobileDispatchNav.tsx` | Mobile bottom navigation for dispatch console |
-
----
-
-## Priority Order
-
-1. **P0 (Critical)**: Touch target sizes, mobile dispatch navigation
-2. **P1 (High)**: Action visibility patterns, safe area padding
-3. **P2 (Medium)**: Scroll fade effects, empty state consistency
-4. **P3 (Low)**: Animation refinements, micro-interactions
 
 ---
 
 ## Success Criteria
 
-- All interactive elements meet 44x44px minimum on mobile
-- Dispatch console is fully functional on mobile viewports
-- Action buttons follow platform-standard visibility pattern
-- Sheets/dialogs respect safe area insets
-- Horizontal scrolls use gradient fade masks
+1. Registered drivers see "Driver Mode" card on Dashboard
+2. Mobile "More" menu includes Driver Portal link for drivers
+3. Desktop sidebar shows Driver Portal in Transport section for drivers
+4. Non-drivers do not see any driver-related navigation
+5. Clicking any entry point navigates to `/driver` correctly
+
+---
+
+## Future Enhancements (Phase 2)
+
+- **Driver Registration Notification**: Toast notification when admin registers someone as driver
+- **Email Notification**: Optional email to newly registered drivers with instructions
+- **PWA Install Prompt**: Suggest drivers install the app as PWA for better mobile experience
+- **Driver Onboarding Tour**: First-time driver walkthrough in the Driver Portal
