@@ -9,7 +9,15 @@ interface CreateTripResult {
   attached_request_count: number;
 }
 
-interface CreateTripError {
+interface AssignTripResult {
+  success: boolean;
+  trip_id: string;
+  buggy_id: string;
+  driver_user_id: string;
+  assigned_request_count: number;
+}
+
+interface RpcError {
   message: string;
   code?: string;
 }
