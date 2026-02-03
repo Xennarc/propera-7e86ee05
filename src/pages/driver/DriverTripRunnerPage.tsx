@@ -352,16 +352,16 @@ export default function DriverTripRunnerPage() {
         )}
 
         {/* Complete Trip CTA */}
-        {allStopsDone && trip?.status !== 'completed' && (
+        {allStopsDone && currentLifecycleState !== 'completed' && (
           <Card className="border-emerald-500/50 shadow-lg bg-emerald-500/5">
             <CardContent className="py-6">
               <Button
                 size="lg"
                 className="w-full h-16 text-lg gap-3 bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleCompleteTrip}
+                onClick={handleAdvanceState}
                 disabled={isPending}
               >
-                {completeTrip.isPending ? (
+                {lifecycleActions.isUpdating ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
                 ) : (
                   <Flag className="h-6 w-6" />
