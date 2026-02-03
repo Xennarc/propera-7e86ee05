@@ -5,10 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTripStops, useTripRequests } from '@/hooks/transport/useTripDetails';
 import {
   useDriverTrips,
-  useStartTripMutation,
-  useCompleteTripMutation,
   useUpdateStopStatusMutation,
 } from '@/hooks/transport/useDriverSession';
+import {
+  useDriverLifecycleActions,
+  getNextState,
+  NEXT_ACTION_LABELS,
+  LIFECYCLE_STATE_LABELS,
+  type TripLifecycleState,
+} from '@/hooks/transport/useDriverLifecycleActions';
 import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
