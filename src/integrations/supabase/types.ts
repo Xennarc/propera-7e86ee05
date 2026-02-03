@@ -6890,6 +6890,14 @@ export type Database = {
           delete_after_days: number
         }[]
       }
+      get_eligible_drivers_for_resort: {
+        Args: { _resort_id: string }
+        Returns: {
+          full_name: string
+          resort_role: Database["public"]["Enums"]["resort_role"]
+          user_id: string
+        }[]
+      }
       get_guest_session: {
         Args: never
         Returns: {

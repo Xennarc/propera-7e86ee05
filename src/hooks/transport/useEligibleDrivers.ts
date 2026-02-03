@@ -13,38 +13,23 @@ export function useEligibleDrivers(resortId: string | undefined) {
     queryFn: async (): Promise<EligibleDriver[]> => {
       if (!resortId) return [];
 
-      // Get all resort staff members
-      const { data: memberships, error: membershipsError } = await supabase
-        .from('resort_memberships')
-        .select(`
-          user_id,
-          resort_role,
-          profiles!inner(id, full_name)
-        `)
-        .eq('resort_id', resortId);
+      const { data, error } = await supabase.rpc('get_eligible_drivers_for_resort', {
+        _resort_id: resortId,
+      });
 
-      if (membershipsError) throw membershipsError;
+      if (error) {
+        // If access denied, silently return empty (user lacks permission)
+        if (error.message.includes('Access denied')) {
+          return [];
+        }
+        throw error;
+      }
 
-      // Get existing drivers for this resort
-      const { data: existingDrivers, error: driversError } = await supabase
-        .from('buggy_drivers')
-        .select('user_id')
-        .eq('resort_id', resortId);
-
-      if (driversError) throw driversError;
-
-      const existingDriverIds = new Set(existingDrivers?.map(d => d.user_id) || []);
-
-      // Filter out users who are already registered as drivers
-      const eligible = (memberships || [])
-        .filter(m => !existingDriverIds.has(m.user_id))
-        .map(m => ({
-          user_id: m.user_id,
-          full_name: (m.profiles as any)?.full_name || 'Unknown',
-          resort_role: m.resort_role,
-        }));
-
-      return eligible;
+      return (data || []).map((d: any) => ({
+        user_id: d.user_id,
+        full_name: d.full_name,
+        resort_role: d.resort_role,
+      }));
     },
     enabled: !!resortId,
   });
