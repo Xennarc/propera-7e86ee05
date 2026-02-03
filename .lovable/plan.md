@@ -1,209 +1,194 @@
 
-# Driver Assignment Fix: Comprehensive Plan
+# Fix: Driver Assignment Empty Dropdown
 
-## Problem Statement
-When accessing the Transport module's Resources panel to assign driver roles, the user selection dropdown shows no staff members to select from. This is a critical functionality gap that prevents proper transport operations.
+## Problem Summary
+When a Resort Admin opens the "Add Driver" dialog, no staff members appear in the dropdown despite there being eligible staff in the resort. The UI incorrectly shows "All staff members are already registered as drivers" when in reality the RLS policies are preventing the data from being fetched.
 
-## Root Cause Analysis
+Additionally, the user mentions "no CTA to enter driver mode" - this is expected behavior since the Driver Mode card only appears for users who are already registered as drivers.
 
-After thorough investigation, I've identified **three interconnected issues**:
+## Root Cause
 
-### Issue 1: RLS Policy Complexity with Nested Joins
 The `useEligibleDrivers` hook queries `resort_memberships` with an INNER JOIN to `profiles`:
+
 ```typescript
-.select(`user_id, resort_role, profiles!inner(id, full_name)`)
+const { data: memberships } = await supabase
+  .from('resort_memberships')
+  .select(`user_id, resort_role, profiles!inner(id, full_name)`)
+  .eq('resort_id', resortId);
 ```
 
-The problem: When RLS is evaluated on the `profiles` table during this join, the policy `Staff can view profiles in same resort` performs its own join back to `resort_memberships`. This creates a complex nested RLS evaluation that may not resolve correctly in all scenarios, especially for users who are not RESORT_ADMIN or SUPER_ADMIN.
+This creates a **circular RLS evaluation problem**:
 
-**Evidence**: The `user_select_own_memberships` policy only allows viewing other memberships if you're SUPER_ADMIN or RESORT_ADMIN:
-```sql
-(user_id = auth.uid()) OR is_super_admin(auth.uid()) OR has_resort_role(auth.uid(), resort_id, ARRAY['RESORT_ADMIN'::resort_role])
-```
+1. `resort_memberships` has RLS policy `transport_staff_view_memberships` that uses `staff_can_write_transport()`
+2. The INNER JOIN to `profiles` triggers the `profiles` RLS policy
+3. The `profiles` policy `Staff can view profiles in same resort` does its own join back to `resort_memberships`:
+   ```sql
+   EXISTS (
+     SELECT 1 FROM resort_memberships my_membership
+     JOIN resort_memberships their_membership ON ...
+   )
+   ```
 
-A MANAGER trying to see all staff memberships would fail this check for rows where `user_id != auth.uid()`.
-
-### Issue 2: Missing UI Access Control
-The Add Driver button in `ResourcesPanel.tsx` has **no permission gating**. It's always visible, but the underlying query returns empty for users without proper RLS permissions.
-
-### Issue 3: Permission Definition Gap
-The `canManageResources` permission in `usePermissions.ts` (line 149) only allows SUPER_ADMIN and RESORT_ADMIN:
-```typescript
-canManageResources: superAdmin || currentResortRole === 'RESORT_ADMIN',
-```
-
-MANAGER role is explicitly excluded, despite the requirement that "Manager or higher" should access this feature.
+This nested RLS evaluation can fail silently, returning empty results.
 
 ---
 
-## Solution Design
+## Solution
 
-### Part 1: Fix RLS Policy for Resort Memberships (Database)
+### Approach: Create a SECURITY DEFINER RPC
 
-Add an RLS policy that allows staff with transport write permissions to view all memberships in their resort:
+Create a PostgreSQL function with `SECURITY DEFINER` that bypasses RLS for fetching eligible drivers. This is the same pattern used successfully in other parts of the app (e.g., `superadmin_list_users_filtered`).
 
-```sql
--- Allow transport staff to view memberships for driver assignment
-CREATE POLICY "Transport staff can view memberships for driver assignment"
-ON public.resort_memberships
-FOR SELECT
-TO authenticated
-USING (
-  public.staff_can_write_transport(auth.uid(), resort_id)
-);
-```
+### Database Changes
 
-This leverages the existing `staff_can_write_transport` function which already allows TRANSPORT, MANAGER, and RESORT_ADMIN roles.
-
-### Part 2: Create Transport Resource Management Permission
-
-Add a new permission specifically for transport resource management:
+Create a new RPC function `get_eligible_drivers_for_resort`:
 
 ```sql
-INSERT INTO permissions (key, label, category) VALUES
-('transport.drivers.manage', 'Manage Buggy Drivers', 'Transport'),
-('transport.buggies.manage', 'Manage Buggies', 'Transport'),
-('transport.stops.manage', 'Manage Transport Stops', 'Transport'),
-('transport.view', 'View Transport Module', 'Transport');
+CREATE OR REPLACE FUNCTION public.get_eligible_drivers_for_resort(
+  _resort_id uuid
+)
+RETURNS TABLE (
+  user_id uuid,
+  full_name text,
+  resort_role resort_role
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Verify caller has transport write access
+  IF NOT public.staff_can_write_transport(auth.uid(), _resort_id) THEN
+    RAISE EXCEPTION 'Access denied: insufficient permissions';
+  END IF;
+
+  -- Return eligible staff (not already drivers)
+  RETURN QUERY
+  SELECT 
+    rm.user_id,
+    COALESCE(p.full_name, 'Unknown') as full_name,
+    rm.resort_role
+  FROM public.resort_memberships rm
+  LEFT JOIN public.profiles p ON p.id = rm.user_id
+  WHERE rm.resort_id = _resort_id
+    AND rm.user_id NOT IN (
+      SELECT bd.user_id 
+      FROM public.buggy_drivers bd 
+      WHERE bd.resort_id = _resort_id
+    )
+  ORDER BY rm.resort_role, p.full_name;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.get_eligible_drivers_for_resort(uuid) TO authenticated;
 ```
 
-### Part 3: Add UI Permission Gating
+### Frontend Changes
 
-Update `ResourcesPanel.tsx` to conditionally show the Add Driver button based on permissions:
+Update `useEligibleDrivers.ts` to use the new RPC:
 
 ```typescript
-// Only show Add Driver button for users who can manage transport resources
-const canManageDrivers = isSuperAdmin || 
-  currentResortRole === 'MANAGER' || 
-  currentResortRole === 'RESORT_ADMIN';
+export function useEligibleDrivers(resortId: string | undefined) {
+  return useQuery({
+    queryKey: ['eligible-drivers', resortId],
+    queryFn: async (): Promise<EligibleDriver[]> => {
+      if (!resortId) return [];
+
+      const { data, error } = await supabase.rpc('get_eligible_drivers_for_resort', {
+        _resort_id: resortId,
+      });
+
+      if (error) throw error;
+      return (data || []).map((d: any) => ({
+        user_id: d.user_id,
+        full_name: d.full_name,
+        resort_role: d.resort_role,
+      }));
+    },
+    enabled: !!resortId,
+  });
+}
 ```
 
-### Part 4: Update usePermissions Hook
+### UI Improvement
 
-Add transport-specific permissions to the `usePermissions` hook:
-
-```typescript
-canManageTransportResources: superAdmin || 
-  currentResortRole === 'RESORT_ADMIN' || 
-  currentResortRole === 'MANAGER',
-```
-
----
-
-## Implementation Steps
-
-### Step 1: Database Migration
-Create RLS policy update to allow transport staff to view resort memberships:
-- Add new SELECT policy on `resort_memberships` using `staff_can_write_transport`
-- This is safe and non-breaking as it only ADDS permissions, doesn't remove any
-
-### Step 2: Update usePermissions.ts
-Add `canManageTransportResources` permission that includes MANAGER role.
-
-### Step 3: Update ResourcesPanel.tsx
-- Import `usePermissions` hook
-- Gate the Add Driver button visibility with `canManageTransportResources`
-- Show a helpful message when user doesn't have permission
-
-### Step 4: Update AddDriverDialog.tsx
-- Pass permission state as prop
-- Handle edge case where dialog opens but user lacks permission
-
-### Step 5: Update DriversSetupStep.tsx
-- Apply same permission gating pattern
-- Ensure setup wizard respects permissions
-
-### Step 6: Update TransportPage.tsx
-- Add explicit check for resource management in Resources panel access
-- Show appropriate UI feedback for permission-limited users
+Update `AddDriverDialog.tsx` to show a more helpful empty state that distinguishes between:
+1. No staff in resort (needs to invite staff first)
+2. All staff already registered as drivers (current message)
+3. RLS/permission error (new: show appropriate message)
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/hooks/usePermissions.ts` | Add `canManageTransportResources` permission |
-| `src/components/transport/dispatch/ResourcesPanel.tsx` | Add permission check for Add Driver button |
-| `src/components/transport/dispatch/AddDriverDialog.tsx` | Add permission awareness |
-| `src/components/transport/setup/DriversSetupStep.tsx` | Add permission check |
-| `src/pages/staff/TransportPage.tsx` | Pass permission state to ResourcesPanel |
-
-**Database Migration Required**:
-- Add RLS policy on `resort_memberships` for transport staff
+| File | Change |
+|------|--------|
+| **Database Migration** | Create `get_eligible_drivers_for_resort` RPC function |
+| `src/hooks/transport/useEligibleDrivers.ts` | Use RPC instead of direct table query |
+| `src/components/transport/dispatch/AddDriverDialog.tsx` | Improve empty state messaging |
 
 ---
 
 ## Technical Details
 
-### Updated usePermissions.ts
-```typescript
-// Add to PermissionResult interface
-canManageTransportResources: boolean;
+### New RPC Function
 
-// Add to return object
-canManageTransportResources: superAdmin || 
-  currentResortRole === 'RESORT_ADMIN' || 
-  currentResortRole === 'MANAGER',
-```
+The `SECURITY DEFINER` function will:
+1. **Authorize** - Check that the caller has `staff_can_write_transport` permission
+2. **Query** - Fetch all resort members with their profile names
+3. **Filter** - Exclude users already in `buggy_drivers` table
+4. **Return** - Typed result set matching frontend interface
 
-### Updated ResourcesPanel.tsx
+### Error Handling
+
+The function raises an exception if the caller lacks permissions. This will surface as an error in the UI, which we can handle gracefully:
+
 ```typescript
-interface ResourcesPanelProps {
-  buggies: BuggyRow[];
-  drivers: DriverRow[];
-  isLoading: boolean;
-  resortId?: string;
-  canManageDrivers?: boolean; // New prop
+if (error) {
+  if (error.message.includes('Access denied')) {
+    return []; // User lacks permission - silently return empty
+  }
+  throw error;
 }
-
-// In the component
-{canManageDrivers && (
-  <Button onClick={() => setShowAddDriver(true)}>
-    <Plus className="h-4 w-4" />
-  </Button>
-)}
-```
-
-### RLS Policy Migration
-```sql
--- Migration: Add transport staff view policy for resort_memberships
-CREATE POLICY "transport_staff_view_memberships"
-ON public.resort_memberships
-FOR SELECT
-TO authenticated
-USING (
-  public.staff_can_write_transport(auth.uid(), resort_id)
-);
 ```
 
 ---
 
-## Security Considerations
+## Regarding "No CTA to enter driver mode"
 
-1. **No privilege escalation**: The new RLS policy only allows viewing memberships, not modifying them
-2. **Respects existing role hierarchy**: Uses the already-audited `staff_can_write_transport` function
-3. **Server-side enforcement**: All permissions are enforced via RLS and database functions, not just UI
-4. **UI gating is defense-in-depth**: UI restrictions prevent accidental attempts, but database enforces actual security
+This is **expected behavior**. The Driver Mode card (`DriverModeCard`) only appears for users who are already registered as drivers:
 
----
+```tsx
+// DriverModeCard.tsx
+if (isLoading || !driverRecord) return null;
+```
 
-## Testing Requirements
+Once a Resort Admin registers themselves (or another user) as a driver:
+1. The user refreshes or navigates to the dashboard
+2. The `useIsDriver` hook will find their record in `buggy_drivers`
+3. The `DriverModeCard` will appear
 
-After implementation:
-1. Log in as MANAGER role user
-2. Navigate to /staff/transport
-3. Open Resources panel (or mobile Resources tab)
-4. Click "Add Driver" - dropdown should show eligible staff members
-5. Successfully register a driver
-6. Verify FRONT_OFFICE role CANNOT add drivers (should not see button)
-7. Verify RESORT_ADMIN can still add drivers (existing functionality)
+**No changes needed** for this component - it's working as designed.
 
 ---
 
-## Rollback Plan
+## Testing Plan
 
-If issues arise:
-1. Remove the new RLS policy (single SQL statement)
-2. Revert `usePermissions.ts` changes
-3. Revert component changes
+1. Log in as RESORT_ADMIN for a resort with multiple staff members
+2. Navigate to Transport → Resources panel
+3. Click "Add Driver" button
+4. Verify dropdown shows eligible staff members
+5. Register a staff member as driver
+6. Confirm they appear in the drivers list
+7. If the driver is the current user, verify DriverModeCard appears on dashboard
+
+---
+
+## Success Criteria
+
+- Dropdown shows eligible staff members (not already drivers)
+- Empty state accurately reflects the reason (no staff vs all registered)
+- Driver registration works successfully
+- DriverModeCard appears for registered drivers
+- Permission checks prevent unauthorized access
