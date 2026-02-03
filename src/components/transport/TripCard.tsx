@@ -53,6 +53,9 @@ export function TripCard({
     tr => tr.state === 'queued' || tr.state === 'picked_up'
   );
   
+  // UI Guardrail: Disable assign if no attached requests
+  const canAssign = needsAssignment && activeRequests.length >= 1;
+  
   return (
     <motion.div 
       layout
