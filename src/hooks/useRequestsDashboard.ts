@@ -388,7 +388,7 @@ export function useRequestsDashboard({ filters = {}, enabled = true }: UseReques
         event_type: 'ASSIGNED',
         actor_type: 'STAFF',
         actor_user_id: userId,
-        metadata: { assigned_to: userId },
+        meta: { assigned_to: userId },
       });
     },
     onSuccess: () => {

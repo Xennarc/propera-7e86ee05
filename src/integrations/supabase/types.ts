@@ -5358,31 +5358,37 @@ export type Database = {
       service_request_events: {
         Row: {
           actor_guest_id: string | null
+          actor_type: string | null
           actor_user_id: string | null
           event_at: string
           event_type: string
           id: string
           meta: Json
+          notes: string | null
           request_id: string
           resort_id: string
         }
         Insert: {
           actor_guest_id?: string | null
+          actor_type?: string | null
           actor_user_id?: string | null
           event_at?: string
           event_type: string
           id?: string
           meta?: Json
+          notes?: string | null
           request_id: string
           resort_id: string
         }
         Update: {
           actor_guest_id?: string | null
+          actor_type?: string | null
           actor_user_id?: string | null
           event_at?: string
           event_type?: string
           id?: string
           meta?: Json
+          notes?: string | null
           request_id?: string
           resort_id?: string
         }
@@ -6653,6 +6659,60 @@ export type Database = {
           type_order: number | null
         }
         Relationships: []
+      }
+      service_request_events_compat: {
+        Row: {
+          actor_guest_id: string | null
+          actor_type: string | null
+          actor_user_id: string | null
+          created_at: string | null
+          event_type: string | null
+          id: string | null
+          metadata: Json | null
+          notes: string | null
+          request_id: string | null
+          resort_id: string | null
+        }
+        Insert: {
+          actor_guest_id?: string | null
+          actor_type?: string | null
+          actor_user_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          request_id?: string | null
+          resort_id?: string | null
+        }
+        Update: {
+          actor_guest_id?: string | null
+          actor_type?: string | null
+          actor_user_id?: string | null
+          created_at?: string | null
+          event_type?: string | null
+          id?: string | null
+          metadata?: Json | null
+          notes?: string | null
+          request_id?: string | null
+          resort_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

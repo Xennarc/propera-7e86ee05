@@ -305,24 +305,25 @@ export function useRequestEvents(requestId: string, enabled = true) {
           actor_type,
           actor_user_id,
           notes,
-          metadata,
-          created_at,
+          meta,
+          event_at,
           actor:profiles!service_request_events_actor_user_id_fkey(full_name)
         `)
         .eq('request_id', requestId)
-        .order('created_at', { ascending: true });
+        .order('event_at', { ascending: true });
 
       if (error) throw error;
 
+      // Map database columns to frontend interface (event_at -> created_at, meta -> metadata)
       return (data || []).map((e: any) => ({
         id: e.id,
         event_type: e.event_type,
-        actor_type: e.actor_type,
+        actor_type: e.actor_type || 'SYSTEM',
         actor_user_id: e.actor_user_id,
         actor_name: e.actor?.full_name || null,
         notes: e.notes,
-        metadata: e.metadata,
-        created_at: e.created_at,
+        metadata: e.meta,
+        created_at: e.event_at,
       })) as RequestEvent[];
     },
     enabled: enabled && !!requestId && !!resortId,
@@ -429,7 +430,7 @@ export function useStaffRequestMutations() {
         event_type: assignTo ? 'ASSIGNED' : 'UNASSIGNED',
         actor_type: 'STAFF',
         actor_user_id: userId,
-        metadata: assignTo ? { assigned_to: assignTo } : null,
+        meta: assignTo ? { assigned_to: assignTo } : null,
       });
     },
     onSuccess: (_, { assignTo }) => {
@@ -518,7 +519,7 @@ export function useStaffRequestMutations() {
         event_type: 'PRIORITY_CHANGED',
         actor_type: 'STAFF',
         actor_user_id: userId,
-        metadata: { priority },
+        meta: { priority },
       });
     },
     onSuccess: () => {
