@@ -91,6 +91,16 @@ export function useTransportRequestsSync({
         keysToInvalidate.push(transportQueryKeys.drivers(resortId));
         break;
 
+      // Phase 8: Transport events trigger full refresh for audit trail updates
+      case 'transport_events':
+        keysToInvalidate.push(transportQueryKeys.queue(resortId));
+        keysToInvalidate.push(transportQueryKeys.trips(resortId));
+        if (payload.new?.trip_id) {
+          keysToInvalidate.push(transportQueryKeys.tripStops(payload.new.trip_id));
+          keysToInvalidate.push(transportQueryKeys.tripRequests(payload.new.trip_id));
+        }
+        break;
+
       default:
         break;
     }
@@ -110,6 +120,8 @@ export function useTransportRequestsSync({
       { table: 'buggy_trip_requests', filter: resortId ? createResortFilter(resortId) : undefined },
       { table: 'buggies', filter: resortId ? createResortFilter(resortId) : undefined },
       { table: 'buggy_drivers', filter: resortId ? createResortFilter(resortId) : undefined },
+      // Phase 8: Include transport events for audit/lifecycle updates
+      { table: 'transport_events', filter: resortId ? createResortFilter(resortId) : undefined },
     ],
     onChange: handleChange,
     enabled: enabled && !!resortId,
