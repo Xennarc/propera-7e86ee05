@@ -124,7 +124,7 @@ export function AddDriverDialog({ open, onOpenChange, resortId }: AddDriverDialo
                   {eligibleDrivers.map((driver) => (
                     <SelectItem key={driver.user_id} value={driver.user_id}>
                       <div className="flex items-center gap-2">
-                        <span>{driver.full_name}</span>
+                        <span>{driver.full_name || `Staff (${driver.user_id.slice(0, 8)}...)`}</span>
                         <Badge variant="secondary" className="text-xs">
                           {roleLabels[driver.resort_role] || driver.resort_role}
                         </Badge>

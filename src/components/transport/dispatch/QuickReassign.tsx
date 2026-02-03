@@ -38,7 +38,7 @@ export function QuickReassign({
   const [selectedDriver, setSelectedDriver] = useState(currentDriverId || '');
   
   const availableBuggies = buggies.filter(b => b.status === 'available' || b.id === currentBuggyId);
-  const availableDrivers = drivers.filter(d => d.status === 'available' || d.user_id === currentDriverId);
+  const availableDrivers = drivers.filter(d => d.status === 'online' || d.user_id === currentDriverId);
   
   const hasChanges = selectedBuggy !== currentBuggyId || selectedDriver !== currentDriverId;
   
@@ -90,7 +90,7 @@ export function QuickReassign({
               <SelectContent>
                 {availableDrivers.map((d) => (
                   <SelectItem key={d.user_id} value={d.user_id}>
-                    {d.full_name || 'Unknown Driver'}
+                    {d.full_name || `Driver (${d.user_id.slice(0, 8)}...)`}
                   </SelectItem>
                 ))}
               </SelectContent>
