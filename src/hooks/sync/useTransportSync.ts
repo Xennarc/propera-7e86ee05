@@ -91,6 +91,16 @@ export function useTransportRequestsSync({
         keysToInvalidate.push(transportQueryKeys.drivers(resortId));
         break;
 
+      // Phase 8: Transport events trigger full refresh for audit trail updates
+      case 'transport_events':
+        keysToInvalidate.push(transportQueryKeys.queue(resortId));
+        keysToInvalidate.push(transportQueryKeys.trips(resortId));
+        if (payload.new?.trip_id) {
+          keysToInvalidate.push(transportQueryKeys.tripStops(payload.new.trip_id));
+          keysToInvalidate.push(transportQueryKeys.tripRequests(payload.new.trip_id));
+        }
+        break;
+
       default:
         break;
     }

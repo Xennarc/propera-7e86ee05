@@ -61,6 +61,17 @@ export function useDriverRealtimeSync({
         }
         break;
 
+      // Phase 8: Transport events trigger trip data refresh
+      case 'transport_events':
+        if (resortId && driverId) {
+          keysToInvalidate.push(['driver-trips', resortId, driverId]);
+        }
+        if (tripId) {
+          keysToInvalidate.push(['trip-stops', tripId]);
+          keysToInvalidate.push(['trip-requests', tripId]);
+        }
+        break;
+
       default:
         break;
     }
