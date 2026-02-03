@@ -6779,6 +6779,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      cleanup_orphan_planning_trips: { Args: never; Returns: undefined }
       complete_prearrival_checkin: {
         Args: {
           p_esignature_name?: string

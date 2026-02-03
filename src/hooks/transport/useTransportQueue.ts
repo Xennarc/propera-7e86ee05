@@ -32,10 +32,10 @@ export interface TransportQueueRequest {
   dropoff_stop?: { id: string; name: string } | null;
 }
 
+// Only show requests that are actionable in dispatch queue
 const QUEUE_STATUSES: BuggyRequestStatus[] = [
   'requested',
   'queued',
-  'assigned_to_trip',
 ];
 
 export function useTransportQueue(resortId: string | undefined) {
@@ -54,6 +54,9 @@ export function useTransportQueue(resortId: string | undefined) {
         `)
         .eq('resort_id', resortId)
         .in('status', QUEUE_STATUSES)
+        // Phase 7: Integrity filters - only unattached, non-cancelled requests
+        .is('cancelled_at', null)
+        .is('attached_trip_id', null)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
