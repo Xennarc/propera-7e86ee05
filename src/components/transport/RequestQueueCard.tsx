@@ -68,7 +68,7 @@ export function RequestQueueCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       className={cn(
-        'rounded-xl border bg-card p-4 transition-all duration-200',
+        'group rounded-xl border bg-card p-4 transition-all duration-200',
         isSelected && 'ring-2 ring-primary border-primary',
         selectionMode && 'cursor-pointer hover:border-primary/50'
       )}
@@ -113,7 +113,7 @@ export function RequestQueueCard({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+            className="h-11 w-11 min-w-[44px] min-h-[44px] text-muted-foreground hover:text-destructive shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
             onClick={(e) => {
               e.stopPropagation();
               onCancel();

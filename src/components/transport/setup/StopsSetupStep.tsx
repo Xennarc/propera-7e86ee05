@@ -196,7 +196,7 @@ function StopCard({
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-card group">
       <div className="flex items-center gap-2 text-muted-foreground">
-        <GripVertical className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab" />
+        <GripVertical className="h-4 w-4 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity cursor-grab" />
         <span className="text-xs font-medium w-5">{index + 1}</span>
       </div>
       
@@ -210,7 +210,7 @@ function StopCard({
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+        className="h-11 w-11 min-w-[44px] min-h-[44px] opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
         onClick={onDelete}
         disabled={isDeleting}
       >

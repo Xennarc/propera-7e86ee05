@@ -78,7 +78,7 @@ export function HistoryFilterBar({
             <Button
               variant="outline"
               className={cn(
-                'justify-start text-left font-normal h-10 sm:h-9 w-full sm:w-auto',
+                'justify-start text-left font-normal h-11 min-h-[44px] sm:h-9 w-full sm:w-auto',
                 !filters.dateRange && 'text-muted-foreground'
               )}
             >
@@ -114,14 +114,14 @@ export function HistoryFilterBar({
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
-                className="pl-9 h-10 sm:h-9"
+                className="pl-9 h-11 min-h-[44px] sm:h-9"
               />
             </div>
             <Button 
               size="sm" 
               variant="secondary"
               onClick={handleSearchSubmit}
-              className="h-10 sm:h-9"
+              className="h-11 min-h-[44px] sm:h-9"
             >
               Search
             </Button>
@@ -134,7 +134,7 @@ export function HistoryFilterBar({
             value={filters.status || 'all'}
             onValueChange={(v) => updateFilter('status', v === 'all' ? undefined : v)}
           >
-            <SelectTrigger className="w-full sm:w-36 h-10 sm:h-9">
+            <SelectTrigger className="w-full sm:w-36 h-11 min-h-[44px] sm:h-9">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -151,7 +151,7 @@ export function HistoryFilterBar({
           <Button
             variant={filters.isVip ? 'default' : 'outline'}
             size="sm"
-            className="h-10 sm:h-9 gap-1.5"
+            className="h-11 min-h-[44px] sm:h-9 gap-1.5"
             onClick={() => updateFilter('isVip', filters.isVip ? undefined : true)}
           >
             <Star className={cn('h-3.5 w-3.5', filters.isVip && 'fill-current')} />
@@ -165,7 +165,7 @@ export function HistoryFilterBar({
             value={filters.zoneId || 'all'}
             onValueChange={(v) => updateFilter('zoneId', v === 'all' ? undefined : v)}
           >
-            <SelectTrigger className="w-full sm:w-32 h-10 sm:h-9">
+            <SelectTrigger className="w-full sm:w-32 h-11 min-h-[44px] sm:h-9">
               <SelectValue placeholder="Zone" />
             </SelectTrigger>
             <SelectContent>
@@ -185,7 +185,7 @@ export function HistoryFilterBar({
             value={filters.driverId || 'all'}
             onValueChange={(v) => updateFilter('driverId', v === 'all' ? undefined : v)}
           >
-            <SelectTrigger className="w-full sm:w-40 h-10 sm:h-9">
+            <SelectTrigger className="w-full sm:w-40 h-11 min-h-[44px] sm:h-9">
               <SelectValue placeholder="Driver" />
             </SelectTrigger>
             <SelectContent>
@@ -205,7 +205,7 @@ export function HistoryFilterBar({
             value={filters.buggyId || 'all'}
             onValueChange={(v) => updateFilter('buggyId', v === 'all' ? undefined : v)}
           >
-            <SelectTrigger className="w-full sm:w-36 h-10 sm:h-9">
+            <SelectTrigger className="w-full sm:w-36 h-11 min-h-[44px] sm:h-9">
               <SelectValue placeholder="Buggy" />
             </SelectTrigger>
             <SelectContent>

@@ -25,6 +25,8 @@ import {
   SuggestedPools, 
   ResourcesPanel, 
   TripPreviewSheet,
+  MobileDispatchNav,
+  type MobileDispatchTab,
 } from '@/components/transport/dispatch';
 import { TransportSetupBanner, TransportSetupWizard } from '@/components/transport/setup';
 import { FeatureGate } from '@/components/FeatureGate';
@@ -37,6 +39,7 @@ import {
   ResizableHandle 
 } from '@/components/ui/resizable';
 import { AlertTriangle, Car, RefreshCw, Settings, History, LayoutDashboard, PanelRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
 import type { TransportQueueRequest } from '@/hooks/transport/useTransportQueue';
@@ -83,6 +86,10 @@ function TransportPageContent() {
   const [activeTab, setActiveTab] = useState<'dispatch' | 'history'>('dispatch');
   const [showResourcesPanel, setShowResourcesPanel] = useState(true);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  
+  // Mobile dispatch navigation
+  const isMobile = useIsMobile();
+  const [mobileDispatchTab, setMobileDispatchTab] = useState<MobileDispatchTab>('queue');
   
   // Trip preview state
   const [previewRequests, setPreviewRequests] = useState<TransportQueueRequest[]>([]);
@@ -287,61 +294,117 @@ function TransportPageContent() {
         </div>
         
         <TabsContent value="dispatch" className="flex-1 mt-0 overflow-hidden">
-          {/* 3-Column Dispatch Console */}
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            {/* Left: Request Queue */}
-            <ResizablePanel defaultSize={35} minSize={25} className="min-h-0">
-              <div className="h-full flex flex-col overflow-hidden">
-                {/* Suggested Pools */}
-                <SuggestedPools
-                  requests={queueRequests}
-                  onCreatePool={handleCreateTrip}
-                  isCreating={mutations.createTripFromRequests.isPending}
-                />
-                
-                {/* Request Queue */}
-                <div className="flex-1 overflow-hidden">
-                  <RequestQueuePanel
+          {/* Mobile layout */}
+          {isMobile ? (
+            <div className="h-full flex flex-col pb-20">
+              {mobileDispatchTab === 'queue' && (
+                <div className="h-full flex flex-col overflow-hidden">
+                  {/* Suggested Pools */}
+                  <SuggestedPools
                     requests={queueRequests}
-                    isLoading={queueLoading}
-                    onCreateTrip={handleCreateTrip}
-                    onCancelRequest={handleCancelRequest}
-                    isCreatingTrip={mutations.createTripFromRequests.isPending}
+                    onCreatePool={handleCreateTrip}
+                    isCreating={mutations.createTripFromRequests.isPending}
                   />
+                  
+                  {/* Request Queue */}
+                  <div className="flex-1 overflow-hidden">
+                    <RequestQueuePanel
+                      requests={queueRequests}
+                      isLoading={queueLoading}
+                      onCreateTrip={handleCreateTrip}
+                      onCancelRequest={handleCancelRequest}
+                      isCreatingTrip={mutations.createTripFromRequests.isPending}
+                    />
+                  </div>
                 </div>
-              </div>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle />
-            
-            {/* Center: Trip Planner */}
-            <ResizablePanel defaultSize={40} minSize={30} className="min-h-0">
-              <TripsPanel
-                trips={trips}
-                isLoading={tripsLoading}
-                onAssignTrip={setAssigningTripId}
-                onAddRequestToTrip={setAddingToTripId}
-                onRemoveRequest={handleRemoveRequest}
-                onViewTripDetails={setDetailTripId}
-                onRefresh={refetchTrips}
+              )}
+              
+              {mobileDispatchTab === 'trips' && (
+                <TripsPanel
+                  trips={trips}
+                  isLoading={tripsLoading}
+                  onAssignTrip={setAssigningTripId}
+                  onAddRequestToTrip={setAddingToTripId}
+                  onRemoveRequest={handleRemoveRequest}
+                  onViewTripDetails={setDetailTripId}
+                  onRefresh={refetchTrips}
+                />
+              )}
+              
+              {mobileDispatchTab === 'resources' && (
+                <ResourcesPanel
+                  buggies={buggies}
+                  drivers={drivers}
+                  isLoading={queueLoading}
+                  resortId={resortId}
+                />
+              )}
+              
+              {/* Mobile bottom navigation */}
+              <MobileDispatchNav
+                activeTab={mobileDispatchTab}
+                onTabChange={setMobileDispatchTab}
+                queueCount={queueRequests.length}
+                tripsCount={trips.length}
               />
-            </ResizablePanel>
-            
-            {/* Right: Resources Panel (collapsible) */}
-            {showResourcesPanel && (
-              <>
-                <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={25} minSize={20} className="min-h-0 hidden lg:block">
-                  <ResourcesPanel
-                    buggies={buggies}
-                    drivers={drivers}
-                    isLoading={queueLoading}
-                    resortId={resortId}
+            </div>
+          ) : (
+            /* Desktop 3-Column Dispatch Console */
+            <ResizablePanelGroup direction="horizontal" className="h-full">
+              {/* Left: Request Queue */}
+              <ResizablePanel defaultSize={35} minSize={25} className="min-h-0">
+                <div className="h-full flex flex-col overflow-hidden">
+                  {/* Suggested Pools */}
+                  <SuggestedPools
+                    requests={queueRequests}
+                    onCreatePool={handleCreateTrip}
+                    isCreating={mutations.createTripFromRequests.isPending}
                   />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
+                  
+                  {/* Request Queue */}
+                  <div className="flex-1 overflow-hidden">
+                    <RequestQueuePanel
+                      requests={queueRequests}
+                      isLoading={queueLoading}
+                      onCreateTrip={handleCreateTrip}
+                      onCancelRequest={handleCancelRequest}
+                      isCreatingTrip={mutations.createTripFromRequests.isPending}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle withHandle />
+              
+              {/* Center: Trip Planner */}
+              <ResizablePanel defaultSize={40} minSize={30} className="min-h-0">
+                <TripsPanel
+                  trips={trips}
+                  isLoading={tripsLoading}
+                  onAssignTrip={setAssigningTripId}
+                  onAddRequestToTrip={setAddingToTripId}
+                  onRemoveRequest={handleRemoveRequest}
+                  onViewTripDetails={setDetailTripId}
+                  onRefresh={refetchTrips}
+                />
+              </ResizablePanel>
+              
+              {/* Right: Resources Panel (collapsible) */}
+              {showResourcesPanel && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={25} minSize={20} className="min-h-0">
+                    <ResourcesPanel
+                      buggies={buggies}
+                      drivers={drivers}
+                      isLoading={queueLoading}
+                      resortId={resortId}
+                    />
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          )}
         </TabsContent>
         
         <TabsContent value="history" className="flex-1 mt-0 overflow-hidden">
