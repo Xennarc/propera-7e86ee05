@@ -15,3 +15,4 @@ export * from './useTransportMetrics';
 export * from './useEligibleDrivers';
 export * from './useTransportSetupStatus';
 export * from './useTransportSetupMutations';
+export * from './useIsDriver';

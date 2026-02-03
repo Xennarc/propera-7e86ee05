@@ -5,6 +5,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { useNavAccess } from '@/hooks/useNavAccess';
 import { useResortSettings } from '@/hooks/useResortSettings';
 import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
+import { useIsDriver } from '@/hooks/transport';
 import { ResortRole } from '@/types/database';
 import { TierFeature } from '@/lib/tier-features';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,7 @@ import {
   Shield,
   Palette,
   Car,
+  CircleUser,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
@@ -60,6 +62,8 @@ interface NavItem {
   badge?: string;
   /** Feature flags required for this item to be visible */
   requiredFlags?: string[];
+  /** If true, visibility is controlled by custom logic (e.g., isDriver) */
+  customVisibility?: boolean;
 }
 
 interface NavGroup {
@@ -70,6 +74,8 @@ interface NavGroup {
   defaultOpen?: boolean;
   /** Feature flags required for the entire group to be visible */
   requiredFlags?: string[];
+  /** If true, visibility is controlled by custom logic */
+  customVisibility?: boolean;
 }
 
 interface StaffSidebarProps {
@@ -83,12 +89,14 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   const { resorts, currentResort, setCurrentResort } = useResort();
   const { canViewNavItem, currentRole } = useNavAccess();
   const flagContext = useFeatureFlagAccessSafe();
+  const { data: driverRecord } = useIsDriver(currentResort?.id);
   
   // Module feature flags (legacy settings-based)
   const { data: settings } = useResortSettings(currentResort?.id);
   const transportEnabled = settings?.transport_enabled ?? false;
 
   const isAdmin = isSuperAdmin() || currentRole === 'RESORT_ADMIN';
+  const isDriver = !!driverRecord;
 
   // Feature flag check helper
   const checkFeatureFlags = (requiredFlags?: string[]): boolean => {
@@ -163,6 +171,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       requiredFlags: ['enable_transport'],
       items: [
         { title: 'Dispatch', url: '/staff/transport', icon: Car, roles: ['RESORT_ADMIN', 'MANAGER', 'TRANSPORT'], requiredFlags: ['enable_transport'] },
+        { title: 'Driver Portal', url: '/driver', icon: CircleUser, customVisibility: true },
       ],
     },
     {
@@ -208,6 +217,20 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     ],
   };
 
+  // Check if an item should be visible
+  const isItemVisible = (item: NavItem) => {
+    // Custom visibility items (e.g., Driver Portal) have their own logic
+    if (item.customVisibility) {
+      // Driver Portal is visible only if user is a registered driver
+      if (item.url === '/driver') {
+        return isDriver;
+      }
+      return false;
+    }
+    // Standard role/tier/flag checks
+    return canViewNavItem(item.roles, item.tierFeature) && checkFeatureFlags(item.requiredFlags);
+  };
+
   // Check if group has any visible items
   // Checks: role/tier access, feature flags, and legacy module settings
   const groupHasVisibleItems = (group: NavGroup) => {
@@ -219,10 +242,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     if (group.id === 'transport' && !transportEnabled) {
       return false;
     }
-    // Check if any items pass role/tier/flag checks
-    return group.items.some(item => 
-      canViewNavItem(item.roles, item.tierFeature) && checkFeatureFlags(item.requiredFlags)
-    );
+    // Check if any items pass visibility checks
+    return group.items.some(item => isItemVisible(item));
   };
 
   // Check if current path is in group
@@ -348,9 +369,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
 
                 <CollapsibleContent className="mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/30 space-y-0.5 animate-accordion-down data-[state=closed]:animate-accordion-up">
                   {group.items.map((item) => {
-                    // Check role/tier access AND feature flags
-                    if (!canViewNavItem(item.roles, item.tierFeature)) return null;
-                    if (!checkFeatureFlags(item.requiredFlags)) return null;
+                    // Check item visibility using unified logic
+                    if (!isItemVisible(item)) return null;
 
                     return (
                       <NavLink

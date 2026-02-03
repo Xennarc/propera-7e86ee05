@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { SmartFAB } from '@/components/staff/dashboard';
+import { DriverModeCard } from '@/components/staff/DriverModeCard';
 import {
   Calendar,
   Users,
@@ -197,6 +198,9 @@ export function TodayHub({ className }: TodayHubProps) {
 
   return (
     <div className={cn('space-y-6', className)}>
+      {/* Driver Mode Card - Only shown to registered drivers */}
+      <DriverModeCard />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
