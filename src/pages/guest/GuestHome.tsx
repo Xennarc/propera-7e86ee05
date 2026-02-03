@@ -41,6 +41,7 @@ import { useActiveStay } from '@/hooks/useActiveStay';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 import { useResortBranding } from '@/hooks/useResortBranding';
+import { GuestRealtimeDebugBadge } from '@/components/guest/GuestRealtimeDebugBadge';
 
 // Define interface at module level (not inside component)
 interface BookingItem {
@@ -247,6 +248,9 @@ export default function GuestHome() {
 
   return (
     <>
+      {/* Debug Badge - only visible with ?debugRealtime=1 */}
+      <GuestRealtimeDebugBadge />
+
       {/* Onboarding Tour */}
       {showOnboarding && (
         <GuestOnboardingTour
