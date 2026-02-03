@@ -117,17 +117,19 @@ function TransportPageContent() {
   
   const handleConfirmCreateTrip = useCallback(() => {
     if (previewRequests.length > 0) {
-      mutations.createTripFromRequests.mutate(
+      // Use new atomic RPC via dispatch actions hook
+      dispatchActions.createTripFromRequests.mutate(
         { requestIds: previewRequests.map(r => r.id) },
         { 
           onSuccess: () => {
             setShowTripPreview(false);
             setPreviewRequests([]);
           }
+          // On error: requests remain visible in queue (handled by hook)
         }
       );
     }
-  }, [previewRequests, mutations]);
+  }, [previewRequests, dispatchActions]);
   
   const handleCancelRequest = useCallback((requestId: string) => {
     mutations.cancelRequest.mutate({ requestId });
