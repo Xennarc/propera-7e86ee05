@@ -157,7 +157,13 @@ export function TripCard({
           {/* Actions */}
           <div className="p-4 border-t bg-muted/30 flex gap-2">
             {needsAssignment && (
-              <Button size="sm" onClick={onAssign} className="flex-1">
+              <Button 
+                size="sm" 
+                onClick={onAssign} 
+                className="flex-1"
+                disabled={!canAssign}
+                title={!canAssign ? 'Add at least one request to assign' : undefined}
+              >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Assign Buggy & Driver
               </Button>
