@@ -374,12 +374,11 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       }
 
       const payload = {
-        room_number: null,
         is_asap: params.isAsap,
         requested_for_at: params.requestedForAt || null,
         guest_notes: params.guestNotes || null,
         items: params.items.map((item) => ({
-          catalog_id: item.catalogId,
+          catalogId: item.catalogId,
           quantity: item.quantity,
         })),
       };
@@ -391,7 +390,27 @@ export function useServiceRequestMutations(guestId: string, resortId: string) {
       });
 
       if (error) throw error;
-      return data as { submission_id: string; request_ids: string[]; split_by_department: boolean };
+      
+      // Check RPC response for business logic errors
+      const result = data as { 
+        success: boolean; 
+        error?: string; 
+        message?: string; 
+        submissionId?: string; 
+        requestIds?: string[]; 
+        departments?: string[];
+        itemCount?: number;
+      };
+      
+      if (!result.success) {
+        throw new Error(result.message || result.error || 'Failed to submit request');
+      }
+      
+      return {
+        submission_id: result.submissionId || '',
+        request_ids: result.requestIds || [],
+        split_by_department: (result.departments?.length || 0) > 1,
+      };
     },
     onSuccess: (data) => {
       const itemCount = data.request_ids?.length || 1;

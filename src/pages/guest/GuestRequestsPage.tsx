@@ -154,17 +154,23 @@ function GuestRequestsPageContent() {
   }, []);
 
   const handleSubmitBundle = async (params: BundleSubmitParams) => {
-    await createBundle({
-      items: params.items.map((i) => ({ catalogId: i.catalogId, quantity: i.quantity })),
-      isAsap: params.isAsap,
-      requestedForAt: params.requestedForAt,
-      guestNotes: params.guestNotes || notes.trim() || undefined,
-    });
-    
-    // Reset state
-    setSelectedItems([]);
-    setNotes('');
-    setBundleSheetOpen(false);
+    try {
+      await createBundle({
+        items: params.items.map((i) => ({ catalogId: i.catalogId, quantity: i.quantity })),
+        isAsap: params.isAsap,
+        requestedForAt: params.requestedForAt,
+        guestNotes: params.guestNotes || notes.trim() || undefined,
+      });
+      
+      // Only reset and close on success
+      setSelectedItems([]);
+      setNotes('');
+      setBundleSheetOpen(false);
+    } catch (error) {
+      // Error toast is shown by mutation's onError
+      // Keep sheet open so user can retry - don't close or reset state
+      console.error('Failed to submit request bundle:', error);
+    }
   };
 
   const handleOpenReview = () => {
