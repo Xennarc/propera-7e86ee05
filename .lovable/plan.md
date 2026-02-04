@@ -1,71 +1,79 @@
 
 
-# Plan: Update Request Feature Blocking to ±1 Day Window
+# Fix Plan: Remove Invalid `room_number` Column Reference
 
-## Current Behavior
-- Requests are blocked until 12 hours before check-in day
-- No post-departure blocking exists
+## Problem Summary
 
-## New Behavior
-- Block requests until 1 day before arrival (24 hours before check-in day starts)
-- Block requests 1 day after departure (24 hours after check-out day ends)
+The `create_service_request_bundle` RPC function is failing with:
+```
+column "room_number" of relation "service_requests" does not exist
+```
+
+## Root Cause
+
+The migration added to fix the table name issue (`20260204153458`) incorrectly attempts to insert `room_number` (a TEXT value from the `guests` table) into a column that doesn't exist in `service_requests`.
+
+| Table | Column | Type | Exists? |
+|-------|--------|------|---------|
+| `guests` | `room_number` | TEXT | Yes |
+| `service_requests` | `room_number` | - | **No** |
+| `service_requests` | `room_id` | UUID | Yes |
+
+The RPC is selecting `room_number` from `guests` and trying to insert it into `service_requests.room_number`, but that column doesn't exist.
 
 ---
 
-## Changes Required
+## Solution
 
-### 1. Update `useIsPrearrivalGuest` Hook
-**File**: `src/hooks/usePrearrivalData.ts`
+Fix the RPC by removing the `room_number` column from the INSERT statement. The `room_id` column exists but requires a UUID reference to a rooms table - since we don't have a direct room lookup available, we should simply omit this field (it's nullable).
 
-Rename and expand the hook to `useGuestStayWindow` (or keep existing name but extend return values):
+### Database Migration
 
-```typescript
-export function useGuestStayWindow(): {
-  isBeforeStay: boolean;      // More than 1 day before arrival
-  isAfterStay: boolean;       // More than 1 day after departure
-  isRequestsBlocked: boolean; // Either before or after
-  daysUntilArrival: number;
-  daysSinceDeparture: number;
-}
+Create a new migration to fix the RPC:
+
+```sql
+-- Fix: Remove room_number from INSERT (column doesn't exist)
+-- The service_requests table has room_id (UUID FK) not room_number (TEXT)
+
+CREATE OR REPLACE FUNCTION public.create_service_request_bundle(...)
+...
+      INSERT INTO public.service_requests (
+        resort_id,
+        guest_id,
+        -- room_number,  -- REMOVED: column doesn't exist
+        department_key,
+        catalog_id,
+        title,
+        is_asap,
+        requested_for_at,
+        notes,           -- Use 'notes' not 'guest_notes'
+        status,
+        quantity,        -- ADD: required column with default
+        priority,        -- ADD: required column with default
+        submission_id
+      ) VALUES (
+        p_resort_id,
+        p_guest_id,
+        -- v_room_number, -- REMOVED
+        v_dept_key,
+        v_catalog_id,
+        v_catalog_item.title,
+        v_is_asap,
+        v_requested_for_at,
+        v_guest_notes,   -- Map to notes column
+        'NEW',
+        v_quantity,      -- Use item quantity
+        COALESCE(v_catalog_item.default_priority, 'NORMAL'),
+        v_submission_id
+      )
+...
 ```
 
-**Logic changes:**
-- Change threshold from 12 hours to 24 hours (1 day) before check-in
-- Add new calculation for days since check-out
-- Add `isAfterStay` when current date > check-out date + 1 day
-
-### 2. Create Post-Departure Blocked State Component
-**File**: `src/components/guest/PostDepartureRequestsBlockedState.tsx` (new)
-
-Similar to `PrearrivalRequestsBlockedState` but with different messaging:
-- Title: "Your Stay Has Ended"
-- Message: "Service requests are no longer available after checkout."
-- Show checkout date instead of check-in countdown
-- Provide link to book future stays or contact the resort
-
-### 3. Update `GuestRequestsPage` Logic
-**File**: `src/pages/guest/GuestRequestsPage.tsx`
-
-Add post-departure check:
-
-```typescript
-const { isBeforeStay, isAfterStay, daysUntilArrival, daysSinceDeparture } = useGuestStayWindow();
-
-// Show blocked state for pre-arrival guests (>1 day before)
-if (isBeforeStay) {
-  return <PrearrivalRequestsBlockedState ... />;
-}
-
-// Show blocked state for post-departure guests (>1 day after)
-if (isAfterStay) {
-  return <PostDepartureRequestsBlockedState ... />;
-}
-```
-
-### 4. Update `PrearrivalRequestsBlockedState` Component
-**File**: `src/components/guest/PrearrivalRequestsBlockedState.tsx`
-
-Minor text updates to reflect the new 1-day-before timing if needed in the countdown display.
+Key changes:
+1. Remove `room_number` from INSERT columns and values
+2. Change `guest_notes` column to `notes` (correct column name)
+3. Add `quantity` column (required, NOT NULL)
+4. Add `priority` column (required, NOT NULL - use catalog item's default or 'NORMAL')
 
 ---
 
@@ -73,47 +81,15 @@ Minor text updates to reflect the new 1-day-before timing if needed in the count
 
 | File | Changes |
 |------|---------|
-| `src/hooks/usePrearrivalData.ts` | Extend hook to calculate post-departure status, change threshold to 24 hours |
-| `src/components/guest/PostDepartureRequestsBlockedState.tsx` | New component for post-checkout blocked state |
-| `src/components/guest/PrearrivalRequestsBlockedState.tsx` | Update messaging if needed |
-| `src/pages/guest/GuestRequestsPage.tsx` | Add post-departure blocking check |
+| New migration | Fix `create_service_request_bundle` RPC |
 
 ---
 
-## Technical Details
+## Verification
 
-### Timing Logic (Resort Timezone Aware)
-
-```typescript
-// Pre-arrival: block if more than 24 hours until check-in day
-const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
-const isBeforeStay = hoursUntilArrival > 24;
-
-// Post-departure: block if more than 24 hours since check-out day ended
-const checkOutEnd = endOfDay(parseISO(guest.checkOutDate));
-const hoursSinceDeparture = differenceInHours(nowLocal, checkOutEnd);
-const isAfterStay = hoursSinceDeparture > 24;
-
-// Combined flag for blocking
-const isRequestsBlocked = isBeforeStay || isAfterStay;
-```
-
-### Example Timeline
-
-| Scenario | Check-in | Check-out | Today | Requests Available? |
-|----------|----------|-----------|-------|---------------------|
-| 2 days before | Jan 15 | Jan 20 | Jan 13 | No (blocked) |
-| 1 day before | Jan 15 | Jan 20 | Jan 14 | Yes (within window) |
-| During stay | Jan 15 | Jan 20 | Jan 17 | Yes |
-| Checkout day | Jan 15 | Jan 20 | Jan 20 | Yes |
-| 1 day after | Jan 15 | Jan 20 | Jan 21 | Yes (grace period) |
-| 2 days after | Jan 15 | Jan 20 | Jan 22 | No (blocked) |
-
----
-
-## Backward Compatibility
-
-- Existing `isPrearrival` return value preserved for other features that may use it
-- New return values added alongside existing ones
-- No breaking changes to component props
+After the fix, test:
+1. Guest Portal → `/guest/requests` → Select an item → Submit
+2. Verify success toast appears
+3. Check "My Requests" → Active should show the new request
+4. Check Staff Dashboard → "New" lane should show the request
 
