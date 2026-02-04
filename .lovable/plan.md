@@ -1,139 +1,71 @@
 
-# Fix Plan: Missing Guest Requests (Housekeeping)
 
-## Root Cause Analysis
+# Plan: Update Request Feature Blocking to ±1 Day Window
 
-I've identified **TWO critical bugs** preventing guest requests from working:
+## Current Behavior
+- Requests are blocked until 12 hours before check-in day
+- No post-departure blocking exists
 
-### Bug 1: Wrong Table Name in RPC (Primary Issue)
-The `create_service_request_bundle` RPC references a non-existent table:
-
-```sql
--- Line 95 of migration 20260128103451
-SELECT * INTO v_catalog_item
-FROM public.service_request_catalog  -- ❌ TABLE DOES NOT EXIST
-WHERE id = v_catalog_id AND resort_id = p_resort_id AND is_active = true;
-```
-
-**Actual table name:** `public.request_catalog`
-
-This causes the RPC to silently fail (caught by EXCEPTION handler) and return:
-```json
-{"success": false, "error": "INTERNAL_ERROR", "message": "relation \"service_request_catalog\" does not exist"}
-```
-
-### Bug 2: Status Value Mismatch (Secondary Issue)
-The RPC inserts requests with lowercase `status = 'pending'`, but:
-- Existing data uses uppercase: `NEW`, `ACKNOWLEDGED`, `COMPLETED`, `CANCELLED`
-- Staff dashboard filters by `status = 'NEW'` (uppercase)
-- Guest "My Requests" filters by `['NEW', 'ACKNOWLEDGED', ...]` (uppercase)
-
-Even if the insert succeeded, the request would be invisible in both portals.
-
-### Bug 3: Missing `submission_id` in Guest RPC (Minor Issue)
-The `guest_get_service_requests` RPC doesn't return `submission_id`, but the frontend expects it for grouping multi-item requests. This is handled gracefully but limits functionality.
+## New Behavior
+- Block requests until 1 day before arrival (24 hours before check-in day starts)
+- Block requests 1 day after departure (24 hours after check-out day ends)
 
 ---
 
-## Impact Summary
+## Changes Required
 
-| Symptom | Root Cause |
-|---------|------------|
-| Sheet closes, nothing appears | RPC fails silently due to wrong table name |
-| No request in "My Requests" | Insert never happens (or wrong status) |
-| No request in Staff Dashboard | Insert never happens (or wrong status filter) |
-| No error toast shown | Frontend doesn't check RPC `success` field |
+### 1. Update `useIsPrearrivalGuest` Hook
+**File**: `src/hooks/usePrearrivalData.ts`
 
----
-
-## Fix Plan
-
-### Phase 1: Database Migration
-
-Create a migration to fix the RPC with correct table name and status:
-
-```sql
--- Fix create_service_request_bundle: wrong table name + wrong status value
-CREATE OR REPLACE FUNCTION public.create_service_request_bundle(
-  p_guest_id uuid,
-  p_resort_id uuid,
-  payload jsonb
-)
-...
-  -- Line 95: Fix table name
-  SELECT * INTO v_catalog_item
-  FROM public.request_catalog  -- ✅ CORRECT TABLE
-  WHERE id = v_catalog_id AND resort_id = p_resort_id AND is_active = true;
-  
-  -- Line 134: Fix status value
-  INSERT INTO public.service_requests (
-    ...
-    status,
-    ...
-  ) VALUES (
-    ...
-    'NEW',  -- ✅ UPPERCASE to match existing data
-    ...
-  )
-...
-```
-
-### Phase 2: Add `submission_id` to Guest RPC
-
-Update `guest_get_service_requests` to return `submission_id`:
-
-```sql
-CREATE OR REPLACE FUNCTION public.guest_get_service_requests(...)
-RETURNS TABLE (
-  ...
-  submission_id UUID  -- Add this column
-)
-...
-SELECT
-  ...
-  sr.submission_id
-FROM public.service_requests sr
-...
-```
-
-### Phase 3: Improve Frontend Error Handling
-
-Update `useServiceRequests.ts` bundleMutation to check RPC response:
+Rename and expand the hook to `useGuestStayWindow` (or keep existing name but extend return values):
 
 ```typescript
-// Current code (doesn't check success field)
-const { data, error } = await supabase.rpc('create_service_request_bundle', {...});
-if (error) throw error;
-return data;
-
-// Fixed code
-const { data, error } = await supabase.rpc('create_service_request_bundle', {...});
-if (error) throw error;
-
-// Check RPC response for business logic errors
-const result = data as { success: boolean; error?: string; message?: string; ... };
-if (!result.success) {
-  throw new Error(result.message || result.error || 'Failed to submit request');
+export function useGuestStayWindow(): {
+  isBeforeStay: boolean;      // More than 1 day before arrival
+  isAfterStay: boolean;       // More than 1 day after departure
+  isRequestsBlocked: boolean; // Either before or after
+  daysUntilArrival: number;
+  daysSinceDeparture: number;
 }
-return result;
 ```
 
-Update `GuestRequestsPage.tsx` to handle errors properly:
+**Logic changes:**
+- Change threshold from 12 hours to 24 hours (1 day) before check-in
+- Add new calculation for days since check-out
+- Add `isAfterStay` when current date > check-out date + 1 day
+
+### 2. Create Post-Departure Blocked State Component
+**File**: `src/components/guest/PostDepartureRequestsBlockedState.tsx` (new)
+
+Similar to `PrearrivalRequestsBlockedState` but with different messaging:
+- Title: "Your Stay Has Ended"
+- Message: "Service requests are no longer available after checkout."
+- Show checkout date instead of check-in countdown
+- Provide link to book future stays or contact the resort
+
+### 3. Update `GuestRequestsPage` Logic
+**File**: `src/pages/guest/GuestRequestsPage.tsx`
+
+Add post-departure check:
 
 ```typescript
-const handleSubmitBundle = async (params: BundleSubmitParams) => {
-  try {
-    await createBundle({...});
-    // Only reset and close on success
-    setSelectedItems([]);
-    setNotes('');
-    setBundleSheetOpen(false);
-  } catch (error) {
-    // Error toast is shown by mutation's onError
-    // Keep sheet open so user can retry
-  }
-};
+const { isBeforeStay, isAfterStay, daysUntilArrival, daysSinceDeparture } = useGuestStayWindow();
+
+// Show blocked state for pre-arrival guests (>1 day before)
+if (isBeforeStay) {
+  return <PrearrivalRequestsBlockedState ... />;
+}
+
+// Show blocked state for post-departure guests (>1 day after)
+if (isAfterStay) {
+  return <PostDepartureRequestsBlockedState ... />;
+}
 ```
+
+### 4. Update `PrearrivalRequestsBlockedState` Component
+**File**: `src/components/guest/PrearrivalRequestsBlockedState.tsx`
+
+Minor text updates to reflect the new 1-day-before timing if needed in the countdown display.
 
 ---
 
@@ -141,41 +73,47 @@ const handleSubmitBundle = async (params: BundleSubmitParams) => {
 
 | File | Changes |
 |------|---------|
-| New migration | Fix `create_service_request_bundle` table name + status |
-| New migration | Add `submission_id` to `guest_get_service_requests` |
-| `src/hooks/useServiceRequests.ts` | Check RPC `success` field in bundleMutation |
-| `src/pages/guest/GuestRequestsPage.tsx` | Wrap submit in try/catch, don't close on error |
-
----
-
-## Verification Steps
-
-After fixes, test:
-
-1. **Guest Portal** → `/guest/requests` → Select "Housekeeping" → Submit
-2. Verify success toast appears
-3. Navigate to "My Requests" → Active should show "1"
-4. **Staff Portal** → Requests Dashboard → New lane should show the request
-5. On failure, verify error toast appears and sheet stays open
+| `src/hooks/usePrearrivalData.ts` | Extend hook to calculate post-departure status, change threshold to 24 hours |
+| `src/components/guest/PostDepartureRequestsBlockedState.tsx` | New component for post-checkout blocked state |
+| `src/components/guest/PrearrivalRequestsBlockedState.tsx` | Update messaging if needed |
+| `src/pages/guest/GuestRequestsPage.tsx` | Add post-departure blocking check |
 
 ---
 
 ## Technical Details
 
-### Current RPC Flow (Broken)
-```
-Guest submits → RPC starts → 
-SELECT FROM service_request_catalog → ❌ TABLE NOT FOUND → 
-EXCEPTION caught → Returns {success: false, error: "..."} → 
-Frontend ignores result → Sheet closes → No request created
+### Timing Logic (Resort Timezone Aware)
+
+```typescript
+// Pre-arrival: block if more than 24 hours until check-in day
+const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
+const isBeforeStay = hoursUntilArrival > 24;
+
+// Post-departure: block if more than 24 hours since check-out day ended
+const checkOutEnd = endOfDay(parseISO(guest.checkOutDate));
+const hoursSinceDeparture = differenceInHours(nowLocal, checkOutEnd);
+const isAfterStay = hoursSinceDeparture > 24;
+
+// Combined flag for blocking
+const isRequestsBlocked = isBeforeStay || isAfterStay;
 ```
 
-### Fixed RPC Flow
-```
-Guest submits → RPC starts → 
-SELECT FROM request_catalog → ✅ Found → 
-INSERT with status='NEW' → ✅ Success → 
-Returns {success: true, submissionId: "..."} → 
-Frontend checks success → Shows toast → Closes sheet → 
-Realtime triggers refresh → Request visible in both portals
-```
+### Example Timeline
+
+| Scenario | Check-in | Check-out | Today | Requests Available? |
+|----------|----------|-----------|-------|---------------------|
+| 2 days before | Jan 15 | Jan 20 | Jan 13 | No (blocked) |
+| 1 day before | Jan 15 | Jan 20 | Jan 14 | Yes (within window) |
+| During stay | Jan 15 | Jan 20 | Jan 17 | Yes |
+| Checkout day | Jan 15 | Jan 20 | Jan 20 | Yes |
+| 1 day after | Jan 15 | Jan 20 | Jan 21 | Yes (grace period) |
+| 2 days after | Jan 15 | Jan 20 | Jan 22 | No (blocked) |
+
+---
+
+## Backward Compatibility
+
+- Existing `isPrearrival` return value preserved for other features that may use it
+- New return values added alongside existing ones
+- No breaking changes to component props
+
