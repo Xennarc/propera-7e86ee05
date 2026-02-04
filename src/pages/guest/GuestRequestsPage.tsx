@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
-import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
+import { useGuestStayWindow } from '@/hooks/usePrearrivalData';
 import { useRequestCatalog, useServiceRequestMutations, useGuestServiceRequests, CatalogItem } from '@/hooks/useServiceRequests';
 import { useRequestSettings } from '@/hooks/useRequestSettings';
 import { FeatureGate, useFeatureEnabled } from '@/components/FeatureGate';
@@ -13,6 +13,7 @@ import { RequestsStickyBar } from '@/components/guest/requests/RequestsStickyBar
 import { RequestsEmptyState, RequestsLoadingSkeleton } from '@/components/guest/requests/RequestsEmptyState';
 import { RequestBundleSheet, BundleSubmitParams } from '@/components/guest/requests/RequestBundleSheet';
 import { PrearrivalRequestsBlockedState } from '@/components/guest/PrearrivalRequestsBlockedState';
+import { PostDepartureRequestsBlockedState } from '@/components/guest/PostDepartureRequestsBlockedState';
 import { SimpleRequestFlow } from '@/components/guest/requests/SimpleRequestFlow';
 import { SelectedItem } from '@/components/guest/requests/MultiSelectItemGrid';
 import {
@@ -29,7 +30,7 @@ import { cn } from '@/lib/utils';
 
 function GuestRequestsPageContent() {
   const { guest } = useGuestAuth();
-  const { isPrearrival, daysUntilArrival } = useIsPrearrivalGuest();
+  const { isBeforeStay, isAfterStay, daysUntilArrival, daysSinceDeparture } = useGuestStayWindow();
   
   // Multi-select state
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -75,12 +76,22 @@ function GuestRequestsPageContent() {
 
   if (!guest) return null;
 
-  // Show blocked state for pre-arrival guests
-  if (isPrearrival) {
+  // Show blocked state for pre-arrival guests (>1 day before check-in)
+  if (isBeforeStay) {
     return (
       <PrearrivalRequestsBlockedState 
         checkInDate={guest.checkInDate} 
         daysUntilArrival={daysUntilArrival} 
+      />
+    );
+  }
+
+  // Show blocked state for post-departure guests (>1 day after check-out)
+  if (isAfterStay) {
+    return (
+      <PostDepartureRequestsBlockedState 
+        checkOutDate={guest.checkOutDate} 
+        daysSinceDeparture={daysSinceDeparture} 
       />
     );
   }
