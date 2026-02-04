@@ -1,79 +1,78 @@
 
-
-# Fix Plan: Remove Invalid `room_number` Column Reference
+# Fix Plan: Insert Submission Record Before Service Requests
 
 ## Problem Summary
 
-The `create_service_request_bundle` RPC function is failing with:
+The `create_service_request_bundle` RPC is failing with:
 ```
-column "room_number" of relation "service_requests" does not exist
+insert or update on table "service_requests" violates foreign key constraint "service_requests_submission_id_fkey"
 ```
 
 ## Root Cause
 
-The migration added to fix the table name issue (`20260204153458`) incorrectly attempts to insert `room_number` (a TEXT value from the `guests` table) into a column that doesn't exist in `service_requests`.
+| Table | Column | References |
+|-------|--------|------------|
+| `service_requests` | `submission_id` | → `service_request_submissions.id` |
 
-| Table | Column | Type | Exists? |
-|-------|--------|------|---------|
-| `guests` | `room_number` | TEXT | Yes |
-| `service_requests` | `room_number` | - | **No** |
-| `service_requests` | `room_id` | UUID | Yes |
+The RPC generates a UUID for `submission_id` but inserts it directly into `service_requests` without first creating a corresponding row in `service_request_submissions`. This violates the foreign key constraint.
 
-The RPC is selecting `room_number` from `guests` and trying to insert it into `service_requests.room_number`, but that column doesn't exist.
+### `service_request_submissions` Table Structure
+```
+| Column            | Type        | Nullable | Default           |
+|-------------------|-------------|----------|-------------------|
+| id                | uuid        | NO       | gen_random_uuid() |
+| resort_id         | uuid        | NO       |                   |
+| guest_id          | uuid        | NO       |                   |
+| room_number       | text        | YES      |                   |
+| is_asap           | boolean     | NO       | true              |
+| requested_for_at  | timestamptz | YES      |                   |
+| guest_notes       | text        | YES      |                   |
+| created_at        | timestamptz | NO       | now()             |
+```
 
 ---
 
 ## Solution
 
-Fix the RPC by removing the `room_number` column from the INSERT statement. The `room_id` column exists but requires a UUID reference to a rooms table - since we don't have a direct room lookup available, we should simply omit this field (it's nullable).
+Fix the RPC to insert into `service_request_submissions` first, then use the returned ID for the `submission_id` foreign key in `service_requests`.
 
 ### Database Migration
 
-Create a new migration to fix the RPC:
-
 ```sql
--- Fix: Remove room_number from INSERT (column doesn't exist)
--- The service_requests table has room_id (UUID FK) not room_number (TEXT)
-
 CREATE OR REPLACE FUNCTION public.create_service_request_bundle(...)
 ...
-      INSERT INTO public.service_requests (
-        resort_id,
-        guest_id,
-        -- room_number,  -- REMOVED: column doesn't exist
-        department_key,
-        catalog_id,
-        title,
-        is_asap,
-        requested_for_at,
-        notes,           -- Use 'notes' not 'guest_notes'
-        status,
-        quantity,        -- ADD: required column with default
-        priority,        -- ADD: required column with default
-        submission_id
-      ) VALUES (
-        p_resort_id,
-        p_guest_id,
-        -- v_room_number, -- REMOVED
-        v_dept_key,
-        v_catalog_id,
-        v_catalog_item.title,
-        v_is_asap,
-        v_requested_for_at,
-        v_guest_notes,   -- Map to notes column
-        'NEW',
-        v_quantity,      -- Use item quantity
-        COALESCE(v_catalog_item.default_priority, 'NORMAL'),
-        v_submission_id
-      )
+  -- NEW: Insert submission record FIRST
+  INSERT INTO public.service_request_submissions (
+    id,
+    resort_id,
+    guest_id,
+    is_asap,
+    requested_for_at,
+    guest_notes
+  ) VALUES (
+    v_submission_id,  -- Use pre-generated UUID
+    p_resort_id,
+    p_guest_id,
+    v_is_asap,
+    v_requested_for_at,
+    v_guest_notes
+  );
+
+  -- THEN process items and insert service_requests with valid FK
+  FOR v_item IN SELECT * FROM jsonb_array_elements(v_items)
+  LOOP
+    ...
+    INSERT INTO public.service_requests (
+      ...
+      submission_id  -- Now references valid row
+    ) VALUES (
+      ...
+      v_submission_id
+    );
+    ...
+  END LOOP;
 ...
 ```
-
-Key changes:
-1. Remove `room_number` from INSERT columns and values
-2. Change `guest_notes` column to `notes` (correct column name)
-3. Add `quantity` column (required, NOT NULL)
-4. Add `priority` column (required, NOT NULL - use catalog item's default or 'NORMAL')
 
 ---
 
@@ -81,7 +80,7 @@ Key changes:
 
 | File | Changes |
 |------|---------|
-| New migration | Fix `create_service_request_bundle` RPC |
+| New migration | Add `INSERT INTO service_request_submissions` before inserting requests |
 
 ---
 
@@ -92,4 +91,3 @@ After the fix, test:
 2. Verify success toast appears
 3. Check "My Requests" → Active should show the new request
 4. Check Staff Dashboard → "New" lane should show the request
-
