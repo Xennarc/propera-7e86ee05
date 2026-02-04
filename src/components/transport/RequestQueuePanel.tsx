@@ -29,6 +29,8 @@ interface RequestQueuePanelProps {
   onCreateTrip: (requestIds: string[]) => void;
   onCancelRequest: (requestId: string) => void;
   isCreatingTrip: boolean;
+  /** ID of request currently being cancelled (for loading state) */
+  cancellingRequestId?: string | null;
 }
 
 type FilterType = 'all' | 'on_demand' | 'scheduled' | 'vip' | 'accessible';
@@ -39,6 +41,7 @@ export function RequestQueuePanel({
   onCreateTrip,
   onCancelRequest,
   isCreatingTrip,
+  cancellingRequestId,
 }: RequestQueuePanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -267,6 +270,7 @@ export function RequestQueuePanel({
                   onSelect={(selected) => toggleSelect(request.id, selected)}
                   onCancel={() => onCancelRequest(request.id)}
                   selectionMode={selectionMode}
+                  isCancelling={cancellingRequestId === request.id}
                 />
               ))}
             </AnimatePresence>

@@ -1,10 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { showTransportErrorToast, showTransportSuccessToast } from '@/utils/transportErrorUtils';
 import type { BuggyTripType } from '@/types/database';
 
 export function useTransportMutations(resortId: string | undefined) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['transport-queue', resortId] });
@@ -158,21 +161,33 @@ export function useTransportMutations(resortId: string | undefined) {
       requestId: string;
       reason?: string;
     }) => {
-      const { data, error } = await supabase.rpc('cancel_buggy_request', {
-        _request_id: requestId,
-        _reason: reason,
+      if (!resortId) {
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
+      }
+      
+      // Use the newer rpc_transport_cancel_request RPC which handles
+      // trip detachment and uses correct enum values
+      const { data, error } = await supabase.rpc('rpc_transport_cancel_request', {
+        p_resort_id: resortId,
+        p_request_id: requestId,
+        p_actor_type: 'staff',
+        p_actor_id: user?.id ?? null,
+        p_reason: reason,
       });
       
-      if (error) throw error;
+      if (error) {
+        throw { message: error.message, code: error.code };
+      }
+      
       return data;
     },
     onSuccess: () => {
-      toast.success('Request cancelled');
+      showTransportSuccessToast('Request cancelled', 'Removed from queue');
       invalidateAll();
     },
     onError: (error: any) => {
       console.error('Cancel request error:', error);
-      toast.error(error.message || 'Failed to cancel request');
+      showTransportErrorToast('Cancel Request', error, { resortId });
     },
   });
   
