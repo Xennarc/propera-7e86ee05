@@ -98,6 +98,10 @@ function TransportPageContent() {
   // Trip preview state
   const [previewRequests, setPreviewRequests] = useState<TransportQueueRequest[]>([]);
   const [showTripPreview, setShowTripPreview] = useState(false);
+  const [tripCreationError, setTripCreationError] = useState<string | null>(null);
+  
+  // Track which request is being cancelled (for loading state)
+  const [cancellingRequestId, setCancellingRequestId] = useState<string | null>(null);
   
   // Get trip for dialogs
   const assigningTrip = trips.find(t => t.id === assigningTripId) || null;
@@ -116,6 +120,9 @@ function TransportPageContent() {
   
   const handleConfirmCreateTrip = useCallback(() => {
     if (previewRequests.length > 0) {
+      // Clear any previous error
+      setTripCreationError(null);
+      
       // Use new atomic RPC via dispatch actions hook
       dispatchActions.createTripFromRequests.mutate(
         { requestIds: previewRequests.map(r => r.id) },
@@ -123,15 +130,27 @@ function TransportPageContent() {
           onSuccess: () => {
             setShowTripPreview(false);
             setPreviewRequests([]);
-          }
-          // On error: requests remain visible in queue (handled by hook)
+            setTripCreationError(null);
+          },
+          onError: (error) => {
+            // Keep sheet open and show error inline
+            setTripCreationError(error.message || 'Failed to create trip');
+          },
         }
       );
     }
   }, [previewRequests, dispatchActions]);
   
   const handleCancelRequest = useCallback((requestId: string) => {
-    mutations.cancelRequest.mutate({ requestId });
+    setCancellingRequestId(requestId);
+    mutations.cancelRequest.mutate(
+      { requestId },
+      {
+        onSettled: () => {
+          setCancellingRequestId(null);
+        },
+      }
+    );
   }, [mutations]);
   
   const handleAssignTrip = useCallback((buggyId: string, driverUserId: string) => {
@@ -321,6 +340,7 @@ function TransportPageContent() {
                       onCreateTrip={handleCreateTrip}
                       onCancelRequest={handleCancelRequest}
                       isCreatingTrip={dispatchActions.isCreatingTrip}
+                      cancellingRequestId={cancellingRequestId}
                     />
                   </div>
                 </div>
@@ -379,6 +399,7 @@ function TransportPageContent() {
                       onCreateTrip={handleCreateTrip}
                       onCancelRequest={handleCancelRequest}
                       isCreatingTrip={dispatchActions.isCreatingTrip}
+                      cancellingRequestId={cancellingRequestId}
                     />
                   </div>
                 </div>
@@ -461,6 +482,8 @@ function TransportPageContent() {
         requests={previewRequests}
         onConfirm={handleConfirmCreateTrip}
         isCreating={dispatchActions.isCreatingTrip}
+        error={tripCreationError}
+        onClearError={() => setTripCreationError(null)}
       />
       
       {/* Setup Wizard */}

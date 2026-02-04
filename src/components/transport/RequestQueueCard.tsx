@@ -3,13 +3,25 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   MapPin, 
   Users, 
   Clock, 
   Accessibility, 
   Star,
-  X 
+  X,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow, differenceInMinutes } from 'date-fns';
@@ -21,6 +33,8 @@ interface RequestQueueCardProps {
   onSelect: (selected: boolean) => void;
   onCancel: () => void;
   selectionMode: boolean;
+  /** Whether a cancel operation is in progress */
+  isCancelling?: boolean;
 }
 
 const priorityConfig = {
@@ -47,7 +61,9 @@ export function RequestQueueCard({
   onSelect,
   onCancel,
   selectionMode,
+  isCancelling = false,
 }: RequestQueueCardProps) {
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const priority = priorityConfig[request.priority as keyof typeof priorityConfig] || priorityConfig.normal;
   const status = statusConfig[request.status as keyof typeof statusConfig] || statusConfig.requested;
   const type = typeConfig[request.request_type as keyof typeof typeConfig] || typeConfig.on_demand;
@@ -110,17 +126,43 @@ export function RequestQueueCard({
         </div>
         
         {!selectionMode && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-11 w-11 min-w-[44px] min-h-[44px] text-muted-foreground hover:text-destructive shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancel();
-            }}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-11 w-11 min-w-[44px] min-h-[44px] text-muted-foreground hover:text-destructive shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+                disabled={isCancelling}
+              >
+                {isCancelling ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="h-4 w-4" />
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Cancel request?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove the request from the queue. If it's attached to a trip, it will be detached.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep Request</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    onCancel();
+                    setShowCancelDialog(false);
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Cancel Request
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
       

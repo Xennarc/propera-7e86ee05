@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { showTransportErrorToast, showTransportSuccessToast } from '@/utils/transportErrorUtils';
 
 interface CreateTripResult {
   success: boolean;
@@ -63,11 +63,11 @@ export function useTransportDispatchActions(resortId: string | undefined) {
   >({
     mutationFn: async ({ requestIds }) => {
       if (!resortId) {
-        throw new Error('Resort ID is required');
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
       }
       
       if (!requestIds || requestIds.length === 0) {
-        throw new Error('At least one request must be selected');
+        throw { message: 'At least one request must be selected', code: 'NO_REQUESTS' };
       }
       
       const staffUserId = user?.id || null;
@@ -79,40 +79,31 @@ export function useTransportDispatchActions(resortId: string | undefined) {
       });
       
       if (error) {
-        // Parse Postgres error message for user-friendly display
-        let message = error.message;
-        
-        // Extract validation failure details if present
-        if (message.includes('Validation failed')) {
-          const match = message.match(/Validation failed for (\d+) request\(s\)/);
-          if (match) {
-            message = `Cannot create trip: ${match[1]} request(s) failed validation. They may be cancelled or already assigned.`;
-          }
-        } else if (message.includes('Could not acquire lock')) {
-          message = 'Another operation is in progress. Please try again.';
-        } else if (message.includes('not found')) {
-          message = 'Some selected requests were not found. Please refresh and try again.';
-        }
-        
-        throw { message, code: error.code };
+        throw { message: error.message, code: error.code };
       }
       
       // The RPC returns jsonb, which comes back as an object
       const result = data as unknown as CreateTripResult;
       
-      if (!result.success) {
-        throw { message: 'Trip creation failed unexpectedly' };
+      if (!result || !result.success || !result.trip_id) {
+        throw { message: 'Trip creation failed unexpectedly', code: 'UNEXPECTED_FAILURE' };
       }
       
       return result;
     },
     onSuccess: (result) => {
-      toast.success(`Trip created with ${result.attached_request_count} request(s)`);
+      showTransportSuccessToast(
+        'Trip created',
+        `${result.attached_request_count} request(s) added to trip`
+      );
       invalidateAll();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('Create trip error:', error);
-      toast.error(error.message || 'Failed to create trip');
+      showTransportErrorToast('Create Trip', error, {
+        resortId,
+        requestIds: variables.requestIds,
+      });
       // Requests remain visible in queue since we didn't modify them
     },
   });
@@ -128,7 +119,7 @@ export function useTransportDispatchActions(resortId: string | undefined) {
   >({
     mutationFn: async ({ tripId, buggyId, driverUserId }) => {
       if (!resortId) {
-        throw { message: 'Resort ID is required' };
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
       }
       
       const { data, error } = await supabase.rpc('rpc_transport_assign_trip', {
@@ -139,36 +130,32 @@ export function useTransportDispatchActions(resortId: string | undefined) {
       });
       
       if (error) {
-        let message = error.message;
-        
-        if (message.includes('not available')) {
-          message = 'Buggy is no longer available. Please select another.';
-        } else if (message.includes('not online')) {
-          message = 'Driver is no longer online. Please select another.';
-        } else if (message.includes('Could not acquire lock')) {
-          message = 'Another operation is in progress. Please try again.';
-        } else if (message.includes('at least one attached request')) {
-          message = 'Trip must have at least one request before assigning.';
-        }
-        
-        throw { message, code: error.code };
+        throw { message: error.message, code: error.code };
       }
       
       const result = data as unknown as AssignTripResult;
       
-      if (!result.success) {
-        throw { message: 'Assignment failed unexpectedly' };
+      if (!result || !result.success) {
+        throw { message: 'Assignment failed unexpectedly', code: 'UNEXPECTED_FAILURE' };
       }
       
       return result;
     },
     onSuccess: (result) => {
-      toast.success(`Trip assigned with ${result.assigned_request_count} request(s)`);
+      showTransportSuccessToast(
+        'Trip assigned',
+        `${result.assigned_request_count} request(s) ready for pickup`
+      );
       invalidateAll();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('Assign trip error:', error);
-      toast.error(error.message || 'Failed to assign trip');
+      showTransportErrorToast('Assign Trip', error, {
+        resortId,
+        tripId: variables.tripId,
+        buggyId: variables.buggyId,
+        driverUserId: variables.driverUserId,
+      });
     },
   });
   
@@ -182,11 +169,11 @@ export function useTransportDispatchActions(resortId: string | undefined) {
   >({
     mutationFn: async ({ tripId, requestIds }) => {
       if (!resortId) {
-        throw { message: 'Resort ID is required' };
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
       }
       
       if (!requestIds || requestIds.length === 0) {
-        throw { message: 'At least one request must be selected' };
+        throw { message: 'At least one request must be selected', code: 'NO_REQUESTS' };
       }
       
       const { data, error } = await supabase.rpc('rpc_transport_attach_requests_to_trip', {
@@ -201,20 +188,27 @@ export function useTransportDispatchActions(resortId: string | undefined) {
       
       const result = data as unknown as AttachRequestsResult;
       
-      if (!result.success) {
-        const errorMsg = result.error || 'Failed to attach requests';
-        throw { message: errorMsg };
+      if (!result || !result.success) {
+        const errorMsg = result?.error || 'Failed to attach requests';
+        throw { message: errorMsg, code: 'ATTACH_FAILED' };
       }
       
       return result;
     },
     onSuccess: (result) => {
-      toast.success(`Added ${result.attached_count} request(s) to trip`);
+      showTransportSuccessToast(
+        'Requests added',
+        `${result.attached_count} request(s) added to trip`
+      );
       invalidateAll();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('Attach requests error:', error);
-      toast.error(error.message || 'Failed to add requests to trip');
+      showTransportErrorToast('Add Requests to Trip', error, {
+        resortId,
+        tripId: variables.tripId,
+        requestIds: variables.requestIds,
+      });
     },
   });
   
@@ -228,7 +222,7 @@ export function useTransportDispatchActions(resortId: string | undefined) {
   >({
     mutationFn: async ({ tripId }) => {
       if (!resortId) {
-        throw { message: 'Resort ID is required' };
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
       }
       
       const { data, error } = await supabase.rpc('rpc_transport_cancel_empty_trip', {
@@ -242,19 +236,22 @@ export function useTransportDispatchActions(resortId: string | undefined) {
       
       const result = data as unknown as CancelTripResult;
       
-      if (!result.success) {
-        throw { message: result.error || 'Failed to cancel trip' };
+      if (!result || !result.success) {
+        throw { message: result?.error || 'Failed to cancel trip', code: 'CANCEL_FAILED' };
       }
       
       return result;
     },
     onSuccess: () => {
-      toast.success('Empty trip cancelled');
+      showTransportSuccessToast('Trip cancelled', 'Empty trip has been removed');
       invalidateAll();
     },
-    onError: (error) => {
+    onError: (error, variables) => {
       console.error('Cancel trip error:', error);
-      toast.error(error.message || 'Failed to cancel trip');
+      showTransportErrorToast('Cancel Trip', error, {
+        resortId,
+        tripId: variables.tripId,
+      });
     },
   });
   

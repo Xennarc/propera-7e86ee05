@@ -31,6 +31,10 @@ interface TripPreviewSheetProps {
   onConfirm: () => void;
   isCreating: boolean;
   defaultCapacity?: number;
+  /** Error message to display inline (keeps sheet open on error) */
+  error?: string | null;
+  /** Callback to clear the error when user retries */
+  onClearError?: () => void;
 }
 
 interface PreviewStop {
@@ -107,6 +111,8 @@ export function TripPreviewSheet({
   onConfirm,
   isCreating,
   defaultCapacity = 6,
+  error,
+  onClearError,
 }: TripPreviewSheetProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   
@@ -131,6 +137,12 @@ export function TripPreviewSheet({
     setIsOptimizing(true);
     // Simulated optimization - in real app would call optimization algorithm
     setTimeout(() => setIsOptimizing(false), 500);
+  };
+  
+  const handleConfirmClick = () => {
+    // Clear any previous error when retrying
+    onClearError?.();
+    onConfirm();
   };
   
   return (
@@ -271,13 +283,27 @@ export function TripPreviewSheet({
           </div>
         </ScrollArea>
         
+        {/* Error banner - shown when creation fails */}
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <SheetFooter className="mt-4 pt-4 border-t pb-[max(1rem,env(safe-area-inset-bottom))]">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="h-11 min-h-[44px]">
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={isCreating} className="h-11 min-h-[44px]">
+          <Button 
+            onClick={handleConfirmClick} 
+            disabled={isCreating} 
+            className="h-11 min-h-[44px]"
+          >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            {isCreating ? 'Creating...' : 'Create Trip'}
+            {isCreating ? 'Creating...' : error ? 'Try Again' : 'Create Trip'}
           </Button>
         </SheetFooter>
       </SheetContent>
