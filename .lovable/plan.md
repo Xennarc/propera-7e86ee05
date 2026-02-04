@@ -1,58 +1,160 @@
 
-# Fix Plan: Transport Dispatch → Assignment → Driver Completion (End-to-End)
-
-## Status: ✅ COMPLETE
-
-Migration applied successfully on 2026-02-04.
+# Plan: Fix Transport Dispatch Operations
 
 ## Problem Summary
 
-Live testing revealed multiple database constraint and enum violations preventing the transport lifecycle from working:
+Testing revealed these issues:
+1. **Trip creation failure**: "Creating..." then nothing happens, no trip appears
+2. **Request cancellation error**: "invalid input value for enum" toast
+3. **Resources button**: Works on desktop (toggles panel), works on mobile (tab navigation)
+4. **No failure feedback**: Operations fail silently without clear error messaging
 
-1. **Actor Type Constraint Violation** (buggy_trip_events): RPCs insert `'STAFF'` (uppercase), but the check constraint only allows lowercase: `['guest', 'staff', 'driver', 'system']`
-2. **Buggy Status Enum Mismatch**: `rpc_transport_assign_trip` sets `buggies.status = 'in_use'`, but the enum only has: `['available', 'en_route', 'out_of_service', 'charging']`
+## Root Cause Analysis
 
----
-
-## Changes Applied
-
-### Database Migration
-
-1. **Added `'in_use'` to `buggy_status` enum** - Allows `rpc_transport_assign_trip` to set buggy status correctly
-
-2. **Recreated `add_request_to_trip`** - Changed `actor_type = 'STAFF'` → `'staff'`
-
-3. **Recreated `rpc_transport_attach_requests_to_trip`** - Changed `actor_type = 'STAFF'` → `'staff'`
-
-4. **Recreated `rpc_transport_cancel_empty_trip`** - Changed `actor_type = 'STAFF'` → `'staff'`
+| Issue | Root Cause |
+|-------|------------|
+| Trip creation silent failure | TripPreviewSheet doesn't keep sheet open on error; error toasts may not show full details |
+| Cancel enum error | Using old `cancel_buggy_request` RPC instead of newer `rpc_transport_cancel_request` with proper trip reconciliation |
+| Resources button | Actually works correctly - no fix needed |
+| Silent failures | Error toasts lack debugging context; no "Copy details" action |
 
 ---
 
-## Frontend - No Changes Required
+## Phase 1: Fix Trip Creation Flow
 
-The frontend hooks were already correctly implemented:
-- `useTransportDispatchActions.ts` - Already calls the correct RPCs
-- `useDriverLifecycleActions.ts` - Already uses `rpc_transport_driver_update_trip_state`
+### 1A. Improve TripPreviewSheet Error Handling
+**File**: `src/components/transport/dispatch/TripPreviewSheet.tsx`
+
+Changes:
+- Add an `error` state to show inline error message in the sheet
+- Pass `onError` callback to keep sheet open on failure
+- Show "Try again" instead of "Creating..." after error
+- Add error banner with details and "Copy" button
+
+### 1B. Enhance useTransportDispatchActions Error Toasts
+**File**: `src/hooks/transport/useTransportDispatchActions.ts`
+
+Changes:
+- Add a helper function `showTransportErrorToast(actionName, error, context)` in a new utility file
+- Include expandable technical details in toasts
+- Add "Copy error details" action button to toasts
+- Improve error message parsing for common RPC failures
+
+### 1C. Create Error Toast Utility
+**File**: `src/utils/transportErrorUtils.ts` (new file)
+
+```typescript
+// Standardized error toast with debugging context
+export function showTransportErrorToast(
+  action: string,
+  error: { message: string; code?: string },
+  context?: { resortId?: string; requestIds?: string[]; tripId?: string }
+) {
+  // Format user-friendly message + technical expandable details
+  // Add "Copy details" action for debugging
+}
+```
 
 ---
 
-## Expected Outcomes (Now Working)
+## Phase 2: Fix Request Cancellation
 
-| Operation | RPC | Expected Result |
-|-----------|-----|-----------------|
-| Create trip from requests | `rpc_transport_create_trip_from_requests` | ✅ Trip created |
-| Attach requests to trip | `rpc_transport_attach_requests_to_trip` | ✅ No constraint violation |
-| Cancel empty planning trip | `rpc_transport_cancel_empty_trip` | ✅ No constraint violation |
-| Assign buggy & driver | `rpc_transport_assign_trip` | ✅ Buggy status set to 'in_use' |
-| Driver advances trip state | `rpc_transport_driver_update_trip_state` | ✅ State transitions work |
+### 2A. Switch to New RPC
+**File**: `src/hooks/transport/useTransportMutations.ts`
+
+Current code calls `cancel_buggy_request` which has enum issues. Update to call `rpc_transport_cancel_request` instead:
+
+```typescript
+// Before
+const { data, error } = await supabase.rpc('cancel_buggy_request', {
+  _request_id: requestId,
+  _reason: reason,
+});
+
+// After
+const { data, error } = await supabase.rpc('rpc_transport_cancel_request', {
+  p_resort_id: resortId,  // Now required
+  p_request_id: requestId,
+  p_actor_type: 'staff',
+  p_actor_id: user?.id ?? null,
+  p_reason: reason,
+});
+```
+
+### 2B. Add Confirmation Dialog
+**File**: `src/components/transport/RequestQueueCard.tsx`
+
+Changes:
+- Add `AlertDialog` for cancel confirmation
+- Show message: "Cancel request? This will remove it from the queue. If attached to a trip, it will be detached."
+- Disable X button while cancellation in progress
+- Pass through `isCancelling` loading state
+
+### 2C. Update RequestQueuePanel Props
+**File**: `src/components/transport/RequestQueuePanel.tsx`
+
+Changes:
+- Add `isCancellingRequest` prop to disable cancel buttons while in progress
+- Pass cancelling state to RequestQueueCard
+
+### 2D. Update TransportPage
+**File**: `src/pages/staff/TransportPage.tsx`
+
+Changes:
+- Pass `isCancelling` state from mutations to RequestQueuePanel
 
 ---
 
-## Verification
+## Phase 3: Standardize Error Feedback
 
-Test the full lifecycle:
-1. Guest creates request → Shows "Finding driver..."
-2. Dispatch sees request → Can attach to planning trip
-3. Assign buggy & driver → Trip moves to "assigned"
-4. Driver portal shows trip → Can progress through states
-5. Complete trip → Guest sees "Completed"
+### 3A. Update All Dispatch Action Hooks
+**File**: `src/hooks/transport/useTransportDispatchActions.ts`
+
+For each mutation (`createTripFromRequests`, `assignTrip`, `attachRequestsToTrip`, `cancelEmptyTrip`):
+- Use the new `showTransportErrorToast` utility
+- Include relevant context (trip IDs, request IDs, resort ID)
+- Ensure non-thrown Supabase errors are caught (`data.error` check)
+
+### 3B. Update useTransportMutations
+**File**: `src/hooks/transport/useTransportMutations.ts`
+
+For `cancelRequest` mutation:
+- Switch to `rpc_transport_cancel_request`
+- Use `showTransportErrorToast` with context
+- Add loading state export
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/utils/transportErrorUtils.ts` | **New file** - error toast utility |
+| `src/hooks/transport/useTransportDispatchActions.ts` | Enhanced error handling with utility |
+| `src/hooks/transport/useTransportMutations.ts` | Switch cancel RPC + enhanced errors |
+| `src/components/transport/dispatch/TripPreviewSheet.tsx` | Keep open on error, show inline error |
+| `src/components/transport/RequestQueueCard.tsx` | Add cancel confirmation dialog |
+| `src/components/transport/RequestQueuePanel.tsx` | Add isCancelling prop |
+| `src/pages/staff/TransportPage.tsx` | Pass isCancelling to panel |
+
+---
+
+## Expected Outcomes
+
+After implementation:
+
+| Test Case | Expected Result |
+|-----------|-----------------|
+| Create Trip | Success: sheet closes, trip appears. Failure: sheet stays open, error shown with retry button |
+| Cancel Request | Confirmation dialog appears, success toast on complete, error toast with details on failure |
+| Any operation failure | Toast includes action name, friendly message, and "Copy details" button |
+| Resources button | No change needed - already works correctly |
+
+---
+
+## Technical Notes
+
+- All changes are strictly additive (no deletions/renames)
+- New `rpc_transport_cancel_request` RPC already exists and handles enum values correctly
+- Existing TypeScript types remain compatible
+- No database migrations required - RPCs already exist
