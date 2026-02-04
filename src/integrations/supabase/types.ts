@@ -7980,7 +7980,12 @@ export type Database = {
         | "failed"
         | "no_show"
       buggy_request_type: "on_demand" | "scheduled" | "fixed_route"
-      buggy_status: "available" | "en_route" | "out_of_service" | "charging"
+      buggy_status:
+        | "available"
+        | "en_route"
+        | "out_of_service"
+        | "charging"
+        | "in_use"
       buggy_trip_request_state:
         | "queued"
         | "picked_up"
@@ -8232,7 +8237,13 @@ export const Constants = {
         "no_show",
       ],
       buggy_request_type: ["on_demand", "scheduled", "fixed_route"],
-      buggy_status: ["available", "en_route", "out_of_service", "charging"],
+      buggy_status: [
+        "available",
+        "en_route",
+        "out_of_service",
+        "charging",
+        "in_use",
+      ],
       buggy_trip_request_state: [
         "queued",
         "picked_up",
