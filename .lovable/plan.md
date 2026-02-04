@@ -1,83 +1,75 @@
 
-## What’s happening
-The RPC `create_service_request_bundle` is still failing, but the UI now only shows the generic error string `Failed to create service request bundle`.
+# Fix: Add Missing `resort_id` to Service Request Items
 
-That generic string comes from the *exception handler* inside the latest SQL function (it hardcodes the message and discards the real database error). So even though the real failure is still occurring (likely RLS/permissions or a remaining constraint mismatch), we can’t see the actual cause from the frontend.
+## Problem
 
-## Goal
-1) Make the RPC return the *real* underlying database error (SQLERRM + SQLSTATE) so we can fix it precisely.  
-2) Ensure the RPC reliably bypasses row-level security during its internal inserts (common cause when calling from guest/anon contexts), by explicitly disabling row security within the SECURITY DEFINER function.
+The enhanced error reporting revealed the actual issue:
+```
+null value in column "resort_id" of relation "service_request_items" violates not-null constraint
+```
 
----
+The current RPC inserts into `service_request_items` but omits the required `resort_id` column.
 
-## Changes we will make
+## Root Cause
 
-### A) Database migration: improve `create_service_request_bundle` error visibility + ensure RLS doesn’t block it
-Create a new migration that does **CREATE OR REPLACE FUNCTION public.create_service_request_bundle(...)** and:
+In the latest migration, the INSERT statement for `service_request_items` is:
+```sql
+INSERT INTO public.service_request_items (
+  request_id,
+  catalog_id,
+  title,
+  quantity
+) VALUES (...)
+```
 
-1. Keeps the “insert submission first” behavior (parent row before child rows).
-2. Adds function-level settings:
-   - `SECURITY DEFINER`
-   - `SET search_path = public`
-   - **`SET row_security = off`** (critical: prevents RLS from blocking inserts inside the function even when called by guest sessions)
-3. Updates the exception handler to return:
-   - `success: false`
-   - `error: SQLSTATE`
-   - `message: SQLERRM`
-   - (optional) `context: 'create_service_request_bundle'`
+But the table requires `resort_id` (NOT NULL, no default).
 
-This will immediately tell us whether the real cause is:
-- RLS policy violation on `service_request_submissions`, `service_requests`, or `service_request_items`
-- missing/renamed column
-- NOT NULL constraint failure
-- enum/value mismatch
-- FK to `request_catalog` / `service_requests` / etc.
+## Solution
 
-### B) (Optional but recommended) Guardrail: don’t leave orphan submissions
-Right now the function inserts into `service_request_submissions` and then loops items. If all items are skipped (invalid/inactive), you can end up with a submission but no requests.
+Update the RPC to include `resort_id` in the `service_request_items` INSERT:
 
-We’ll add a check after the loop:
-- If `array_length(v_request_ids, 1)` is null/0:
-  - delete the inserted submission row
-  - return `{ success:false, error:'NO_VALID_ITEMS', message:'No valid items found for this request.' }`
-
-This prevents confusing “empty submissions”.
-
-### C) Frontend: no change required (for now)
-Your frontend already surfaces `result.message` when `success:false`. Once the RPC returns SQLERRM, the UI toast/log will show the real cause automatically.
-
-(If you’d like, we can later polish the message shown to guests, but first we need the real error.)
+```sql
+INSERT INTO public.service_request_items (
+  resort_id,      -- ADD THIS
+  request_id,
+  catalog_id,
+  title,
+  quantity
+) VALUES (
+  p_resort_id,    -- ADD THIS
+  v_request_id,
+  v_catalog_id,
+  v_catalog_item.title,
+  v_quantity
+);
+```
 
 ---
 
-## Files / systems affected
-- **Database migration (new)**: update `public.create_service_request_bundle(uuid, uuid, jsonb)`.
+## Technical Details
 
-No React changes required for this diagnostic + fix-hardening step.
+### Database Migration
 
----
+Create a new migration to fix `create_service_request_bundle`:
 
-## How we’ll verify
-1. In the guest portal, submit a multi-item bundle again.
-2. If it fails:
-   - the toast / console error should now show the *real* error message (ex: “new row violates row-level security policy for table …”, “null value in column … violates not-null constraint”, etc.)
-3. Based on that real message, we’ll apply the *minimal* targeted fix (policy tweak, column mapping, defaults, etc.).
-4. If it succeeds:
-   - confirm the new request appears in Guest “My Requests”
-   - confirm staff dashboard shows it in “New”
+**Changes:**
+1. Add `resort_id` to the `INSERT INTO service_request_items` column list
+2. Add `p_resort_id` to the corresponding VALUES
 
----
+The rest of the function (submission insert, service_requests insert, error handling, RLS bypass) remains unchanged.
 
-## Why this is the most credit-efficient next step
-Right now we’re debugging blind because the function intentionally hides the real error. Returning SQLERRM + SQLSTATE and disabling row security inside the SECURITY DEFINER function will either:
-- fix the issue outright (if it’s RLS), or
-- instantly reveal the exact remaining schema/constraint problem so we can fix it in one follow-up.
+### Files to Modify
+
+| File | Changes |
+|------|---------|
+| New migration | Fix `service_request_items` INSERT to include `resort_id` |
 
 ---
 
-## Notes for the next step after this
-Once we see the true error, the most likely follow-up fixes are:
-- Add/adjust RLS policies for guest inserts (if we decide not to rely on `row_security=off`), or
-- Provide missing required columns/defaults in the inserts, or
-- Align payload keys / column names with the real schema.
+## Verification
 
+After the fix:
+1. Guest Portal → `/guest/requests` → Select an item → Submit
+2. Verify success toast appears
+3. Check "My Requests" → Active should show the new request
+4. Check Staff Dashboard → "New" lane should show the request
