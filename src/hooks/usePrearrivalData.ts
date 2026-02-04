@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { toStringArray } from '@/lib/safe-array';
 import { nowInTimezone } from '@/lib/timezone-utils';
-import { startOfDay, differenceInDays, differenceInHours, parseISO } from 'date-fns';
+import { startOfDay, endOfDay, differenceInDays, differenceInHours, parseISO } from 'date-fns';
 
 export interface PrearrivalProfile {
   id: string;
@@ -218,4 +218,80 @@ export function useIsPrearrivalGuest(): { isPrearrival: boolean; daysUntilArriva
       return { isPrearrival: false, daysUntilArrival: 0, hoursUntilArrival: 0 };
     }
   }, [guest?.checkInDate, guest?.resortTimezone, guest?.guestId]);
+}
+
+/**
+ * Hook to determine if guest requests should be blocked based on stay window.
+ * Requests are available from 1 day before arrival until 1 day after departure.
+ */
+export function useGuestStayWindow(): {
+  isBeforeStay: boolean;
+  isAfterStay: boolean;
+  isRequestsBlocked: boolean;
+  daysUntilArrival: number;
+  daysSinceDeparture: number;
+} {
+  const { guest } = useGuestAuth();
+  
+  return useMemo(() => {
+    if (!guest) {
+      return {
+        isBeforeStay: false,
+        isAfterStay: false,
+        isRequestsBlocked: false,
+        daysUntilArrival: 0,
+        daysSinceDeparture: 0,
+      };
+    }
+
+    try {
+      // Get current time in the resort's timezone (not browser timezone)
+      const resortTimezone = guest.resortTimezone || 'UTC';
+      const nowLocal = nowInTimezone(resortTimezone);
+      const todayStart = startOfDay(nowLocal);
+      
+      // Parse check-in date as start of day (stored as YYYY-MM-DD)
+      const checkInDate = startOfDay(parseISO(guest.checkInDate));
+      
+      // Parse check-out date as end of day
+      const checkOutDate = endOfDay(parseISO(guest.checkOutDate));
+
+      // Calculate hours until check-in day starts
+      const hoursUntilArrival = differenceInHours(checkInDate, nowLocal);
+      
+      // Calculate hours since check-out day ended
+      const hoursSinceDeparture = differenceInHours(nowLocal, checkOutDate);
+      
+      // Calculate days for UI display purposes
+      const daysUntilArrival = differenceInDays(checkInDate, todayStart);
+      const daysSinceDeparture = differenceInDays(todayStart, startOfDay(parseISO(guest.checkOutDate)));
+
+      // Block if more than 24 hours until check-in day starts
+      const isBeforeStay = hoursUntilArrival > 24;
+      
+      // Block if more than 24 hours since check-out day ended
+      const isAfterStay = hoursSinceDeparture > 24;
+      
+      // Combined flag
+      const isRequestsBlocked = isBeforeStay || isAfterStay;
+
+      return {
+        isBeforeStay,
+        isAfterStay,
+        isRequestsBlocked,
+        daysUntilArrival: Math.max(0, daysUntilArrival),
+        daysSinceDeparture: Math.max(0, daysSinceDeparture),
+      };
+    } catch (error) {
+      console.error('Error calculating guest stay window:', error);
+      // Fail safe: allow requests if date parsing fails
+      return {
+        isBeforeStay: false,
+        isAfterStay: false,
+        isRequestsBlocked: false,
+        daysUntilArrival: 0,
+        daysSinceDeparture: 0,
+      };
+    }
+  }, [guest?.checkInDate, guest?.checkOutDate, guest?.resortTimezone, guest?.guestId]);
 }
