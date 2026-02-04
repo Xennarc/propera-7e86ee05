@@ -1,127 +1,139 @@
 
-# Plan: Fix Transport Dispatch Operations
-
-## Problem Summary
-
-Testing revealed these issues:
-1. **Trip creation failure**: "Creating..." then nothing happens, no trip appears
-2. **Request cancellation error**: "invalid input value for enum" toast
-3. **Resources button**: Works on desktop (toggles panel), works on mobile (tab navigation)
-4. **No failure feedback**: Operations fail silently without clear error messaging
+# Fix Plan: Missing Guest Requests (Housekeeping)
 
 ## Root Cause Analysis
 
-| Issue | Root Cause |
-|-------|------------|
-| Trip creation silent failure | TripPreviewSheet doesn't keep sheet open on error; error toasts may not show full details |
-| Cancel enum error | Using old `cancel_buggy_request` RPC instead of newer `rpc_transport_cancel_request` with proper trip reconciliation |
-| Resources button | Actually works correctly - no fix needed |
-| Silent failures | Error toasts lack debugging context; no "Copy details" action |
+I've identified **TWO critical bugs** preventing guest requests from working:
+
+### Bug 1: Wrong Table Name in RPC (Primary Issue)
+The `create_service_request_bundle` RPC references a non-existent table:
+
+```sql
+-- Line 95 of migration 20260128103451
+SELECT * INTO v_catalog_item
+FROM public.service_request_catalog  -- ❌ TABLE DOES NOT EXIST
+WHERE id = v_catalog_id AND resort_id = p_resort_id AND is_active = true;
+```
+
+**Actual table name:** `public.request_catalog`
+
+This causes the RPC to silently fail (caught by EXCEPTION handler) and return:
+```json
+{"success": false, "error": "INTERNAL_ERROR", "message": "relation \"service_request_catalog\" does not exist"}
+```
+
+### Bug 2: Status Value Mismatch (Secondary Issue)
+The RPC inserts requests with lowercase `status = 'pending'`, but:
+- Existing data uses uppercase: `NEW`, `ACKNOWLEDGED`, `COMPLETED`, `CANCELLED`
+- Staff dashboard filters by `status = 'NEW'` (uppercase)
+- Guest "My Requests" filters by `['NEW', 'ACKNOWLEDGED', ...]` (uppercase)
+
+Even if the insert succeeded, the request would be invisible in both portals.
+
+### Bug 3: Missing `submission_id` in Guest RPC (Minor Issue)
+The `guest_get_service_requests` RPC doesn't return `submission_id`, but the frontend expects it for grouping multi-item requests. This is handled gracefully but limits functionality.
 
 ---
 
-## Phase 1: Fix Trip Creation Flow
+## Impact Summary
 
-### 1A. Improve TripPreviewSheet Error Handling
-**File**: `src/components/transport/dispatch/TripPreviewSheet.tsx`
+| Symptom | Root Cause |
+|---------|------------|
+| Sheet closes, nothing appears | RPC fails silently due to wrong table name |
+| No request in "My Requests" | Insert never happens (or wrong status) |
+| No request in Staff Dashboard | Insert never happens (or wrong status filter) |
+| No error toast shown | Frontend doesn't check RPC `success` field |
 
-Changes:
-- Add an `error` state to show inline error message in the sheet
-- Pass `onError` callback to keep sheet open on failure
-- Show "Try again" instead of "Creating..." after error
-- Add error banner with details and "Copy" button
+---
 
-### 1B. Enhance useTransportDispatchActions Error Toasts
-**File**: `src/hooks/transport/useTransportDispatchActions.ts`
+## Fix Plan
 
-Changes:
-- Add a helper function `showTransportErrorToast(actionName, error, context)` in a new utility file
-- Include expandable technical details in toasts
-- Add "Copy error details" action button to toasts
-- Improve error message parsing for common RPC failures
+### Phase 1: Database Migration
 
-### 1C. Create Error Toast Utility
-**File**: `src/utils/transportErrorUtils.ts` (new file)
+Create a migration to fix the RPC with correct table name and status:
+
+```sql
+-- Fix create_service_request_bundle: wrong table name + wrong status value
+CREATE OR REPLACE FUNCTION public.create_service_request_bundle(
+  p_guest_id uuid,
+  p_resort_id uuid,
+  payload jsonb
+)
+...
+  -- Line 95: Fix table name
+  SELECT * INTO v_catalog_item
+  FROM public.request_catalog  -- ✅ CORRECT TABLE
+  WHERE id = v_catalog_id AND resort_id = p_resort_id AND is_active = true;
+  
+  -- Line 134: Fix status value
+  INSERT INTO public.service_requests (
+    ...
+    status,
+    ...
+  ) VALUES (
+    ...
+    'NEW',  -- ✅ UPPERCASE to match existing data
+    ...
+  )
+...
+```
+
+### Phase 2: Add `submission_id` to Guest RPC
+
+Update `guest_get_service_requests` to return `submission_id`:
+
+```sql
+CREATE OR REPLACE FUNCTION public.guest_get_service_requests(...)
+RETURNS TABLE (
+  ...
+  submission_id UUID  -- Add this column
+)
+...
+SELECT
+  ...
+  sr.submission_id
+FROM public.service_requests sr
+...
+```
+
+### Phase 3: Improve Frontend Error Handling
+
+Update `useServiceRequests.ts` bundleMutation to check RPC response:
 
 ```typescript
-// Standardized error toast with debugging context
-export function showTransportErrorToast(
-  action: string,
-  error: { message: string; code?: string },
-  context?: { resortId?: string; requestIds?: string[]; tripId?: string }
-) {
-  // Format user-friendly message + technical expandable details
-  // Add "Copy details" action for debugging
+// Current code (doesn't check success field)
+const { data, error } = await supabase.rpc('create_service_request_bundle', {...});
+if (error) throw error;
+return data;
+
+// Fixed code
+const { data, error } = await supabase.rpc('create_service_request_bundle', {...});
+if (error) throw error;
+
+// Check RPC response for business logic errors
+const result = data as { success: boolean; error?: string; message?: string; ... };
+if (!result.success) {
+  throw new Error(result.message || result.error || 'Failed to submit request');
 }
+return result;
 ```
 
----
-
-## Phase 2: Fix Request Cancellation
-
-### 2A. Switch to New RPC
-**File**: `src/hooks/transport/useTransportMutations.ts`
-
-Current code calls `cancel_buggy_request` which has enum issues. Update to call `rpc_transport_cancel_request` instead:
+Update `GuestRequestsPage.tsx` to handle errors properly:
 
 ```typescript
-// Before
-const { data, error } = await supabase.rpc('cancel_buggy_request', {
-  _request_id: requestId,
-  _reason: reason,
-});
-
-// After
-const { data, error } = await supabase.rpc('rpc_transport_cancel_request', {
-  p_resort_id: resortId,  // Now required
-  p_request_id: requestId,
-  p_actor_type: 'staff',
-  p_actor_id: user?.id ?? null,
-  p_reason: reason,
-});
+const handleSubmitBundle = async (params: BundleSubmitParams) => {
+  try {
+    await createBundle({...});
+    // Only reset and close on success
+    setSelectedItems([]);
+    setNotes('');
+    setBundleSheetOpen(false);
+  } catch (error) {
+    // Error toast is shown by mutation's onError
+    // Keep sheet open so user can retry
+  }
+};
 ```
-
-### 2B. Add Confirmation Dialog
-**File**: `src/components/transport/RequestQueueCard.tsx`
-
-Changes:
-- Add `AlertDialog` for cancel confirmation
-- Show message: "Cancel request? This will remove it from the queue. If attached to a trip, it will be detached."
-- Disable X button while cancellation in progress
-- Pass through `isCancelling` loading state
-
-### 2C. Update RequestQueuePanel Props
-**File**: `src/components/transport/RequestQueuePanel.tsx`
-
-Changes:
-- Add `isCancellingRequest` prop to disable cancel buttons while in progress
-- Pass cancelling state to RequestQueueCard
-
-### 2D. Update TransportPage
-**File**: `src/pages/staff/TransportPage.tsx`
-
-Changes:
-- Pass `isCancelling` state from mutations to RequestQueuePanel
-
----
-
-## Phase 3: Standardize Error Feedback
-
-### 3A. Update All Dispatch Action Hooks
-**File**: `src/hooks/transport/useTransportDispatchActions.ts`
-
-For each mutation (`createTripFromRequests`, `assignTrip`, `attachRequestsToTrip`, `cancelEmptyTrip`):
-- Use the new `showTransportErrorToast` utility
-- Include relevant context (trip IDs, request IDs, resort ID)
-- Ensure non-thrown Supabase errors are caught (`data.error` check)
-
-### 3B. Update useTransportMutations
-**File**: `src/hooks/transport/useTransportMutations.ts`
-
-For `cancelRequest` mutation:
-- Switch to `rpc_transport_cancel_request`
-- Use `showTransportErrorToast` with context
-- Add loading state export
 
 ---
 
@@ -129,32 +141,41 @@ For `cancelRequest` mutation:
 
 | File | Changes |
 |------|---------|
-| `src/utils/transportErrorUtils.ts` | **New file** - error toast utility |
-| `src/hooks/transport/useTransportDispatchActions.ts` | Enhanced error handling with utility |
-| `src/hooks/transport/useTransportMutations.ts` | Switch cancel RPC + enhanced errors |
-| `src/components/transport/dispatch/TripPreviewSheet.tsx` | Keep open on error, show inline error |
-| `src/components/transport/RequestQueueCard.tsx` | Add cancel confirmation dialog |
-| `src/components/transport/RequestQueuePanel.tsx` | Add isCancelling prop |
-| `src/pages/staff/TransportPage.tsx` | Pass isCancelling to panel |
+| New migration | Fix `create_service_request_bundle` table name + status |
+| New migration | Add `submission_id` to `guest_get_service_requests` |
+| `src/hooks/useServiceRequests.ts` | Check RPC `success` field in bundleMutation |
+| `src/pages/guest/GuestRequestsPage.tsx` | Wrap submit in try/catch, don't close on error |
 
 ---
 
-## Expected Outcomes
+## Verification Steps
 
-After implementation:
+After fixes, test:
 
-| Test Case | Expected Result |
-|-----------|-----------------|
-| Create Trip | Success: sheet closes, trip appears. Failure: sheet stays open, error shown with retry button |
-| Cancel Request | Confirmation dialog appears, success toast on complete, error toast with details on failure |
-| Any operation failure | Toast includes action name, friendly message, and "Copy details" button |
-| Resources button | No change needed - already works correctly |
+1. **Guest Portal** → `/guest/requests` → Select "Housekeeping" → Submit
+2. Verify success toast appears
+3. Navigate to "My Requests" → Active should show "1"
+4. **Staff Portal** → Requests Dashboard → New lane should show the request
+5. On failure, verify error toast appears and sheet stays open
 
 ---
 
-## Technical Notes
+## Technical Details
 
-- All changes are strictly additive (no deletions/renames)
-- New `rpc_transport_cancel_request` RPC already exists and handles enum values correctly
-- Existing TypeScript types remain compatible
-- No database migrations required - RPCs already exist
+### Current RPC Flow (Broken)
+```
+Guest submits → RPC starts → 
+SELECT FROM service_request_catalog → ❌ TABLE NOT FOUND → 
+EXCEPTION caught → Returns {success: false, error: "..."} → 
+Frontend ignores result → Sheet closes → No request created
+```
+
+### Fixed RPC Flow
+```
+Guest submits → RPC starts → 
+SELECT FROM request_catalog → ✅ Found → 
+INSERT with status='NEW' → ✅ Success → 
+Returns {success: true, submissionId: "..."} → 
+Frontend checks success → Shows toast → Closes sheet → 
+Realtime triggers refresh → Request visible in both portals
+```
