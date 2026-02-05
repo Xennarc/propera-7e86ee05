@@ -22,8 +22,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, ClipboardList, Loader2, Sparkles, Coffee, PartyPopper } from 'lucide-react';
+ import { Plus, ClipboardList, Loader2, Sparkles, Coffee, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
+ import { isActiveStatus, type RequestStatus } from '@/lib/requests/statusDisplay';
 
 type FilterType = 'active' | 'completed' | 'all';
 
@@ -52,7 +53,7 @@ function getRandomMessage(messages: string[]): string {
 interface RequestGroup {
   type: 'single' | 'bundle';
   submissionId: string | null;
-  requests: ServiceRequest[];
+   requests: (ServiceRequest & { status: RequestStatus })[];
   sortDate: string; // For sorting
 }
 
@@ -116,16 +117,12 @@ export default function GuestMyRequestsPage() {
     guest?.resortId || ''
   );
 
-  if (!guest) return null;
-
   // Filter requests - exclude optimistic entries for stable counts
   const realRequests = requests.filter((r) => !r.id.startsWith('optimistic-'));
-  const activeStatuses = ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS'];
-  const completedStatuses = ['COMPLETED', 'CANCELLED'];
-  
+    
   const filteredRequests = requests.filter((r) => {
-    if (filter === 'active') return activeStatuses.includes(r.status);
-    if (filter === 'completed') return completedStatuses.includes(r.status);
+     if (filter === 'active') return isActiveStatus(r.status as RequestStatus);
+     if (filter === 'completed') return !isActiveStatus(r.status as RequestStatus);
     return true;
   });
   
@@ -134,10 +131,13 @@ export default function GuestMyRequestsPage() {
     groupRequestsBySubmission(filteredRequests),
     [filteredRequests]
   );
-  
-  const activeCount = realRequests.filter((r) => activeStatuses.includes(r.status)).length;
-  const completedCount = realRequests.filter((r) => completedStatuses.includes(r.status)).length;
+    
+   const activeCount = realRequests.filter((r) => isActiveStatus(r.status as RequestStatus)).length;
+   const completedCount = realRequests.filter((r) => !isActiveStatus(r.status as RequestStatus)).length;
 
+   // Early return after hooks
+   if (!guest) return null;
+ 
   const handleCancel = async () => {
     if (!cancelDialog) return;
     try {
@@ -264,7 +264,9 @@ export default function GuestMyRequestsPage() {
             description={getEmptyContent().description}
             actionLabel="Make a Request"
             actionHref="/guest/requests"
-          />
+           secondaryActionLabel={filter === 'active' && completedCount > 0 ? undefined : "Browse Services"}
+           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : "/guest/requests"}
+         />
         </motion.div>
       )}
 
@@ -324,8 +326,8 @@ export default function GuestMyRequestsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel this request?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel your request for "<span className="font-medium">{cancelDialog?.title}</span>"?
-              This action cannot be undone.
+             Are you sure you want to cancel your request for "<span className="font-medium">{cancelDialog?.title}</span>"? 
+             This cannot be undone once staff starts work.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

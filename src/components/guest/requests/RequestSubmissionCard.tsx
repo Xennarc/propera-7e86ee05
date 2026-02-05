@@ -1,28 +1,35 @@
-import { memo, useState } from 'react';
-import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { RequestStatusPill } from './RequestStatusPill';
-import { categoryConfigs } from './RequestCategoryGrid';
-import { ServiceRequestWithItems } from '@/hooks/useServiceRequests';
-import { 
-  Clock, 
-  Calendar, 
-  ChevronDown, 
-  ChevronUp,
-  Package,
-  Building2,
-  X,
-} from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+ import { memo, useState, useMemo } from 'react';
+ import { format, formatDistanceToNow, parseISO } from 'date-fns';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { Card, CardContent } from '@/components/ui/card';
+ import { Badge } from '@/components/ui/badge';
+ import { Button } from '@/components/ui/button';
+ import { cn } from '@/lib/utils';
+ import { RequestStatusPill } from './RequestStatusPill';
+ import { categoryConfigs } from './RequestCategoryGrid';
+ import { ServiceRequestWithItems } from '@/hooks/useServiceRequests';
+ import { 
+   Clock, 
+   Calendar, 
+   ChevronDown, 
+   ChevronUp,
+   Package,
+   Building2,
+   X,
+   MessageSquare,
+ } from 'lucide-react';
+ import {
+   Tooltip,
+   TooltipContent,
+   TooltipProvider,
+   TooltipTrigger,
+ } from '@/components/ui/tooltip';
+ import {
+   getAggregatedSubmissionStatus,
+   deriveRequestTitle,
+   formatDepartments,
+   getTotalItemCount,
+ } from '@/lib/requests/statusDisplay';
 
 interface RequestSubmissionCardProps {
   requests: ServiceRequestWithItems[];
@@ -41,20 +48,22 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
 }: RequestSubmissionCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Use first request for shared metadata
   const firstRequest = requests[0];
-  if (!firstRequest) return null;
-
-  const createdAt = parseISO(firstRequest.created_at);
-  const totalItems = requests.reduce((sum, r) => sum + (r.items?.length || 1), 0);
-  
-  // Get overall status (worst case wins)
-  const statusPriority = ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-  const overallStatus = requests.reduce((worst, r) => {
-    const worstIdx = statusPriority.indexOf(worst);
-    const currentIdx = statusPriority.indexOf(r.status);
-    return currentIdx < worstIdx ? r.status : worst;
-  }, 'COMPLETED' as typeof firstRequest.status);
+ 
+   // Derive display values using shared helpers - must be before early return
+   const aggregatedStatus = useMemo(
+     () => getAggregatedSubmissionStatus(requests),
+     [requests]
+   );
+   const displayTitle = useMemo(() => deriveRequestTitle(requests), [requests]);
+   const departmentLabel = useMemo(() => formatDepartments(requests), [requests]);
+   const totalItems = useMemo(() => getTotalItemCount(requests), [requests]);
+ 
+   // Early return after hooks
+   if (!firstRequest) return null;
+ 
+   const createdAt = parseISO(firstRequest.created_at);
+   const isCancelled = aggregatedStatus.status === 'CANCELLED';
 
   // Check if any request can be cancelled
   const cancellableRequest = requests.find((r) => r.status === 'NEW');
@@ -80,30 +89,54 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
     >
       <Card className={cn(
         'overflow-hidden transition-all duration-300',
-        overallStatus === 'CANCELLED' && 'opacity-60',
-        overallStatus === 'COMPLETED' && 'bg-muted/30 border-emerald-500/20'
+       aggregatedStatus.status === 'CANCELLED' && 'opacity-60',
+       aggregatedStatus.status === 'COMPLETED' && 'bg-muted/30 border-emerald-500/20'
       )}>
         <CardContent className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary to-primary/80 shadow-sm flex-shrink-0">
-                <Package className="h-5 w-5 text-primary-foreground" />
+             <div className={cn(
+               'w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0',
+               isCancelled 
+                 ? 'bg-muted' 
+                 : 'bg-gradient-to-br from-primary to-primary/80'
+             )}>
+               <Package className={cn(
+                 'h-5 w-5',
+                 isCancelled ? 'text-muted-foreground' : 'text-primary-foreground'
+               )} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-semibold text-sm text-foreground">
-                  {totalItems} item{totalItems !== 1 ? 's' : ''} requested
+               <h3 className={cn(
+                 'font-semibold text-sm',
+                 isCancelled ? 'text-muted-foreground line-through' : 'text-foreground'
+               )}>
+                 {displayTitle}
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap mt-0.5">
                   <Badge variant="secondary" className="text-[10px] gap-1">
                     <Building2 className="h-3 w-3" />
-                    {requests.length} department{requests.length !== 1 ? 's' : ''}
+                   {departmentLabel}
                   </Badge>
+                 {totalItems > 1 && (
+                   <Badge variant="outline" className="text-[10px] gap-1">
+                     <Package className="h-3 w-3" />
+                     {totalItems} items
+                   </Badge>
+                 )}
+                 {firstRequest.notes && (
+                   <Badge variant="outline" className="text-[10px] gap-1 text-muted-foreground">
+                     <MessageSquare className="h-3 w-3" />
+                     Notes
+                   </Badge>
+                 )}
                 </div>
               </div>
             </div>
             <RequestStatusPill 
-              status={overallStatus}
+             status={aggregatedStatus.status}
+             customLabel={aggregatedStatus.hasPartialCancellation ? 'Partial' : undefined}
               size="sm"
               createdAt={firstRequest.created_at}
               slaMinutes={slaMinutes}
