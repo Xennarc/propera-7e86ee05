@@ -175,6 +175,9 @@ export default function DriverHomePage() {
         </Card>
       )}
 
+      {/* Stats Section */}
+      <DriverStatsSection />
+
       {/* Current Trip */}
       {tripsLoading ? (
         <Card>
