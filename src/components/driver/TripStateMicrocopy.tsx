@@ -21,9 +21,7 @@ export function TripStateMicrocopy({ state, stopKind, className }: TripStateMicr
       case 'arrived_pickup':
         return 'Confirm pickup once all guests are aboard, then continue.';
       case 'enroute_to_dropoff':
-        return 'Tap "Arrived" when you reach the dropoff location.';
-      case 'arrived_dropoff':
-        return 'Complete the stop once guests have exited.';
+        return 'Complete the trip when guests have exited.';
       case 'completed':
         return 'Trip complete! Great job.';
       default:

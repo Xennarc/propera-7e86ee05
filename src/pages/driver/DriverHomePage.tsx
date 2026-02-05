@@ -195,6 +195,12 @@ export default function DriverHomePage() {
                 {currentTrip.status === 'assigned' ? 'Ready to Start' : currentTrip.status}
               </Badge>
             </div>
+            {/* Quick Info Chips - NEW */}
+            <TripQuickInfoChips 
+              tripRequests={currentTripRequests} 
+              trip={currentTrip}
+              className="mt-2"
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Trip Preview Card - NEW */}
