@@ -1,6 +1,7 @@
 import { BarChart3, Smartphone, RefreshCw, Check, ArrowRight } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { AnalyticsMiniCard } from '@/components/illustrations/AnalyticsMiniCard';
 
 const cards = [
   {
@@ -80,13 +81,21 @@ export function WhyProperaCards() {
           ref={ref}
           className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
         >
-          <div className="text-center mb-12 lg:mb-16 stagger-1">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Designed for real resort days.
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Every feature built to make operations smoother and guests happier.
-            </p>
+          {/* Header with Analytics illustration integrated */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12 lg:mb-16 stagger-1">
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Designed for real resort days.
+              </h2>
+              <p className="text-muted-foreground max-w-xl">
+                Every feature built to make operations smoother and guests happier.
+              </p>
+            </div>
+            
+            {/* Analytics illustration - integrated with header */}
+            <div className="flex justify-center lg:justify-end stagger-2">
+              <AnalyticsMiniCard className="scale-90 lg:scale-100" />
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">

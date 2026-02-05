@@ -7,9 +7,12 @@ import { HomeHero } from '@/components/landing/HomeHero';
 import { WhyProperaCards } from '@/components/landing/WhyProperaCards';
 import { HomeFinalCTA } from '@/components/landing/HomeFinalCTA';
 
-// Lazy load below-fold sections
+// Lazy load all below-fold sections (including framer-motion heavy ones)
 const PlatformModules = lazy(() => import('@/components/landing/PlatformModules'));
 const HowItWorks = lazy(() => import('@/components/landing/HowItWorks'));
+const GlobalReady = lazy(() => import('@/components/landing/GlobalReady'));
+const PricingTeaser = lazy(() => import('@/components/landing/PricingTeaser').then(m => ({ default: m.PricingTeaser })));
+const TrustStrip = lazy(() => import('@/components/landing/TrustStrip').then(m => ({ default: m.TrustStrip })));
 
 // Simple loading fallback
 const SectionFallback = () => (
@@ -58,7 +61,16 @@ export default function LandingPage() {
       <Suspense fallback={<SectionFallback />}>
         <HowItWorks />
       </Suspense>
-
+      <Suspense fallback={<SectionFallback />}>
+        <GlobalReady />
+      </Suspense>
+      <Suspense fallback={<SectionFallback />}>
+        <PricingTeaser />
+      </Suspense>
+      <Suspense fallback={<SectionFallback />}>
+        <TrustStrip />
+      </Suspense>
+      
       <HomeFinalCTA />
     </MarketingLayout>
   );
