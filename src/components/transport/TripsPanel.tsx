@@ -18,7 +18,9 @@ interface TripsPanelProps {
   onRemoveRequest: (tripId: string, requestId: string) => void;
   onViewTripDetails: (tripId: string) => void;
   onCancelTrip?: (tripId: string) => void;
+  onCompleteTrip?: (tripId: string) => void;
   isCancellingTrip?: boolean;
+  isCompletingTrip?: boolean;
   onRefresh: () => void;
 }
 
