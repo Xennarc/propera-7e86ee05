@@ -36,32 +36,32 @@ const PLAN_CONFIG: Record<string, {
     icon: Smartphone, 
     gradient: 'from-muted/50 to-muted/20',
     accent: 'muted-foreground',
-    tagline: 'Core guest + staff operations — everything you need to go digital.',
-    recommendedFor: 'Single resort getting started.',
+    tagline: 'A refined foundation for modern guest service.',
+    recommendedFor: 'Boutique resorts, soft launches, and focused teams.',
     ctaHelper: 'A perfect starting point. Upgrade anytime.',
   },
   professional: { 
     icon: Monitor, 
     gradient: 'from-primary/15 to-primary/5',
     accent: 'primary',
-    tagline: 'Operations suite + transport — run every department from one place.',
-    recommendedFor: 'Resorts running daily ops at scale.',
+    tagline: 'The full Propera experience — balanced, complete, and effortless.',
+    recommendedFor: 'Day-to-day operations across departments.',
     ctaHelper: 'The plan most resorts choose to run everything smoothly.',
   },
   enterprise: { 
     icon: BarChart3, 
     gradient: 'from-violet-500/15 to-violet-500/5',
     accent: 'violet-500',
-    tagline: 'Advanced analytics + AI insights — built for performance optimization.',
-    recommendedFor: 'Premium resorts optimizing performance.',
-    ctaHelper: 'For groups that want data-driven consistency across properties.',
+    tagline: 'Built for scale — with the finish of a luxury product.',
+    recommendedFor: 'High-volume resorts and multi-property groups.',
+    ctaHelper: 'For groups that want consistency across properties.',
   },
 };
 
 const PRO_HIGHLIGHTS = [
-  'Transport dispatch + Driver Portal',
-  'Guest Requests with SLA tracking',
-  'Pre-arrival wizard + multi-language',
+  'One place for experiences and dining',
+  'Clear roles for every team',
+  'Insights that improve every day',
 ];
 
 export function PricingPlanGrid({ plans }: PricingPlanGridProps) {

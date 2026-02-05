@@ -5,17 +5,17 @@ const TRUST_CARDS = [
   {
     icon: Target,
     title: 'Operational clarity',
-    description: 'Activities, dining, requests, and transport — all managed from role-specific dashboards with live capacity tracking.',
+    description: 'Bookings, capacity, and schedules — presented with calm precision.',
   },
   {
     icon: Smartphone,
     title: 'Guest-first experience',
-    description: 'QR login, thumb-first booking, real-time notifications, and multi-language support — no app download required.',
+    description: 'Mobile-first flows that feel effortless for guests.',
   },
   {
     icon: RefreshCw,
-    title: 'Realtime sync',
-    description: 'Staff, guest, and driver portals stay aligned through realtime channels — changes propagate instantly across all views.',
+    title: 'Reliable consistency',
+    description: 'Staff and guest views stay aligned, so everyone trusts what they see.',
   },
 ];
 

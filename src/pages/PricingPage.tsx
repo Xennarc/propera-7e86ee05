@@ -22,32 +22,20 @@ const ONBOARDING = {
 
 const FAQS = [
   {
-    question: 'Is pricing per resort or per user?',
-    answer: 'Per resort. Every plan includes unlimited staff users — your team can grow without extra cost.',
+    question: 'Do you charge per staff user?',
+    answer: "No. Unlimited staff on every plan — your team can grow without extra cost.",
   },
   {
-    question: 'Can I turn modules on or off?',
-    answer: 'Yes. Feature flags let you enable or disable modules (Transport, Requests, Loyalty, etc.) per resort, independent of your tier.',
+    question: 'What is a "guest stay"?',
+    answer: 'One reservation counted once per month. It keeps pricing fair as occupancy changes.',
   },
   {
-    question: 'How do tiers and feature flags work together?',
-    answer: 'Your subscription tier sets the baseline of available features. Feature flags allow fine-grained control within that tier, and add-ons can unlock specific capabilities outside your tier.',
+    question: 'Can guests book from their phones?',
+    answer: 'Yes. Propera is mobile-first and designed for real resort conditions.',
   },
   {
-    question: 'Do guests need to download an app?',
-    answer: 'No. Propera is a mobile-first web app — guests access everything from their browser via QR code or room-based login. No app store required.',
-  },
-  {
-    question: "What's included in onboarding?",
-    answer: 'Resort setup, branding configuration, activity and dining catalog setup, staff training, and a full test run before launch.',
-  },
-  {
-    question: 'Can we start with Essential and upgrade later?',
-    answer: 'Absolutely. Many resorts start with Essential, then upgrade to Professional or Elite as operations grow. All data carries forward.',
-  },
-  {
-    question: 'Do you support custom resort branding?',
-    answer: 'Yes. On Professional and Elite, you can customize colors, logos, typography, and the guest login experience to match your resort identity.',
+    question: 'Can we start with one resort and expand?',
+    answer: 'Absolutely. Many groups start with one property, then roll out after seeing results.',
   },
 ];
 

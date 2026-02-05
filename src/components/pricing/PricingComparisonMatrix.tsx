@@ -2,24 +2,13 @@ import { Check, Minus } from 'lucide-react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 
 const COMPARISON_ROWS = [
-  // Platform Foundation — all tiers
-  { label: 'Guest Portal + room login', essential: true, professional: true, elite: true },
-  { label: 'Activity booking + live availability', essential: true, professional: true, elite: true },
-  { label: 'Dining reservations + time slots', essential: true, professional: true, elite: true },
-  { label: 'Staff Console + guest records', essential: true, professional: true, elite: true },
-  { label: 'Basic reports + notifications', essential: true, professional: true, elite: true },
-  // Professional additions
-  { label: 'Guest Requests inbox (SLA lanes)', essential: false, professional: true, elite: true },
-  { label: 'Transport dispatch + Driver Portal', essential: false, professional: true, elite: true },
-  { label: 'Pre-arrival wizard + booking links', essential: false, professional: true, elite: true },
-  { label: 'Multi-language + resort branding', essential: false, professional: true, elite: true },
-  { label: 'Advanced scheduling + closures', essential: false, professional: true, elite: true },
-  { label: 'Module reports + CSV export', essential: false, professional: true, elite: true },
-  { label: 'Staff management + RBAC', essential: false, professional: true, elite: true },
-  // Elite additions
-  { label: 'Loyalty program (points, tiers)', essential: false, professional: false, elite: true },
-  { label: 'AI insights + trend analysis', essential: false, professional: false, elite: true },
-  { label: 'Sales performance + health checks', essential: false, professional: false, elite: true },
+  { label: 'Guest Portal', essential: true, professional: true, elite: true },
+  { label: 'Staff Console', essential: true, professional: true, elite: true },
+  { label: 'Experiences & Activities', essential: true, professional: true, elite: true },
+  { label: 'Dining', essential: false, professional: true, elite: true },
+  { label: 'Analytics', essential: false, professional: true, elite: true },
+  { label: 'White-label options', essential: false, professional: false, elite: true },
+  { label: 'Priority support', essential: false, professional: false, elite: true },
 ];
 
 export function PricingComparisonMatrix() {

@@ -19,10 +19,10 @@ interface PricingAddonsSectionProps {
 }
 
 const ADDON_CONFIG: Record<string, { icon: typeof Package; vibe: string }> = {
-  'Loyalty Program Suite': { icon: Sparkles, vibe: 'Unlocks points, tiers, rewards, and member management. Works with any plan.' },
-  'Analytics Plus': { icon: BarChart2, vibe: 'Unlocks AI insights, trend analysis, and sales performance reports.' },
-  'Premium Support': { icon: Headphones, vibe: 'Priority channels, faster response times, and extended coverage.' },
-  'Managed Content': { icon: FileEdit, vibe: 'We maintain your activity catalog, seasonal updates, and guest-facing content.' },
+  'Loyalty Program Suite': { icon: Sparkles, vibe: 'Build lasting guest relationships.' },
+  'Analytics Plus': { icon: BarChart2, vibe: 'Deeper visibility for data-driven teams.' },
+  'Premium Support': { icon: Headphones, vibe: 'Faster answers when you need them.' },
+  'Managed Content': { icon: FileEdit, vibe: 'A finishing touch for teams that want more polish.' },
 };
 
 const ONBOARDING_STEPS = ['Resort setup', 'Catalog & branding', 'Training & launch check'];
