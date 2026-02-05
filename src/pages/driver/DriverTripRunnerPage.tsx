@@ -465,7 +465,7 @@ export default function DriverTripRunnerPage() {
           <CardContent className="space-y-2">
             {stops.map((stop, index) => {
               const Icon = getStopIcon(stop.stop_kind as StopKind, stop.status as StopStatus);
-              const isExpanded = expandedStopId === stop.id;
+              const isExpanded = allStopsExpanded || expandedStopId === stop.id;
               const isCurrent = currentStop?.id === stop.id;
               
               return (
