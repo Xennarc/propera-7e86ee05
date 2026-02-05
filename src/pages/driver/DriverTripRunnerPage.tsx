@@ -105,8 +105,8 @@ export default function DriverTripRunnerPage() {
   const lifecycleActions = useDriverLifecycleActions(resortId);
   const updateStop = useUpdateStopStatusMutation(resortId, tripId);
   
-  // Get current lifecycle state from trip
-  const currentLifecycleState = (trip?.lifecycle_state || trip?.status || 'assigned') as TripLifecycleState;
+  // Get current lifecycle state from trip - normalize legacy values
+  const currentLifecycleState = normalizeLifecycleState(trip?.lifecycle_state, trip?.status || 'assigned');
   const nextState = getNextState(currentLifecycleState);
   const nextActionLabel = NEXT_ACTION_LABELS[currentLifecycleState];
 
