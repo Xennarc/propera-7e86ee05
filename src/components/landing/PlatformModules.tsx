@@ -125,37 +125,12 @@ const ModuleCard = memo(function ModuleCard({
   );
 });
 
-// Floating UI fragments - static
-function FloatingFragments() {
-  const fragments = [
-    { icon: Calendar, label: 'Today: 8 sessions', position: 'top-20 -left-4' },
-    { icon: Users, label: '24 guests', position: 'top-1/3 -right-8' },
-    { icon: Bell, label: '3 new requests', position: 'bottom-1/4 -left-6' },
-  ];
-
-  return (
-    <>
-      {fragments.map((fragment) => (
-        <div
-          key={fragment.label}
-          className={`absolute ${fragment.position} hidden xl:flex items-center gap-2 px-3 py-2 rounded-lg bg-card/90 backdrop-blur-sm border border-border/40 shadow-lg z-10`}
-        >
-          <fragment.icon className="h-3.5 w-3.5 text-primary" />
-          <span className="text-[10px] font-medium text-foreground">{fragment.label}</span>
-        </div>
-      ))}
-    </>
-  );
-}
-
 export function PlatformModules() {
   const { ref, revealed } = useScrollReveal();
 
   return (
     <section id="platform-overview" className="py-16 md:py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4 z-10">
-        <FloatingFragments />
-        
         <div
           ref={ref}
           className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
@@ -165,22 +140,14 @@ export function PlatformModules() {
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Pick what you need today. Grow into more later.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-12 max-w-6xl mx-auto">
-            {/* Module cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-              {modules.map((module, index) => (
-                <ModuleCard 
-                  key={module.title} 
-                  module={module} 
-                  staggerIndex={Math.min(index + 2, 7)}
-                />
-              ))}
-            </div>
-
-            {/* Notification Stream Showcase - Desktop only (no mobile duplicate) */}
-            <div className="hidden lg:flex items-start justify-center pt-4 stagger-8">
-              <NotificationStreamShowcase />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 max-w-6xl mx-auto">
+            {modules.map((module, index) => (
+              <ModuleCard 
+                key={module.title} 
+                module={module} 
+                staggerIndex={Math.min(index + 2, 7)}
+              />
+            ))}
           </div>
         </div>
       </div>
