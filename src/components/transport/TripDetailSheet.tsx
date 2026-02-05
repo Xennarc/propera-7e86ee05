@@ -109,6 +109,11 @@ export function TripDetailSheet({
   
   if (!trip) return null;
   
+  // Status-based visibility rules
+  const canComplete = ['assigned', 'en_route', 'active'].includes(trip.status);
+  const canCancel = ['planning', 'assigned', 'en_route'].includes(trip.status);
+  const isLoading = isCompletingTrip || isCancellingTrip;
+  
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
