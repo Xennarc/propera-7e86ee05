@@ -1,72 +1,66 @@
 
-# Fix: Cannot Cast buggy_request_status to buggy_trip_request_state
+
+# Fix: Race Condition in Trip Creation Trigger
 
 ## Problem
 
-A new error now appears when cancelling:
+When creating a trip from requests, the error occurs:
 ```
-cannot cast type buggy_request_status to buggy_trip_request_state
-Code: 42846
-```
-
-**Root Cause**: The trigger function uses direct enum-to-enum casting:
-```sql
-SET state = NEW.status::buggy_trip_request_state
+Request cannot be marked as assigned_to_trip without an active trip link
+Code: P0001
 ```
 
-PostgreSQL doesn't allow direct casting between different enum types, even when the value exists in both. We must cast through `text` first.
+**Root Cause**: The `rpc_transport_create_trip_from_requests` function does operations in this order:
 
-## Enum Comparison
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  1. UPDATE buggy_requests SET status = 'assigned_to_trip'   │
+│                          ↓                                  │
+│     TRIGGER FIRES: validate_request_status_transition       │
+│     → Checks: EXISTS(buggy_trip_requests WHERE state='queued')
+│     → FAILS: Trip link doesn't exist yet!                   │
+│                          ↓                                  │
+│  2. INSERT INTO buggy_trip_requests (never reached)         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-| buggy_request_status | buggy_trip_request_state |
-|---------------------|-------------------------|
-| requested | - |
-| queued | queued |
-| assigned_to_trip | - |
-| driver_en_route | - |
-| arrived | - |
-| picked_up | picked_up |
-| completed | → dropped_off (mapped) |
-| cancelled | cancelled |
-| failed | → cancelled (mapped) |
-| no_show | no_show |
-
-Note: `completed` and `failed` don't exist in `buggy_trip_request_state`, so we need explicit mapping.
+The trigger validates that a trip link exists **before** the RPC inserts it.
 
 ---
 
 ## Solution
 
-Update `sync_trip_request_on_request_update` to:
-1. Cast through `text` first: `(NEW.status::text)::buggy_trip_request_state`
-2. Map incompatible values explicitly (`completed` → `dropped_off`, `failed` → `cancelled`)
+Swap the order of operations in `rpc_transport_create_trip_from_requests`:
+
+1. **First** insert into `buggy_trip_requests` (create the trip link)
+2. **Then** update `buggy_requests.status` to `assigned_to_trip`
+
+This ensures the trip link exists when the trigger validates.
+
+---
+
+## Updated RPC Logic
 
 ```sql
-CREATE OR REPLACE FUNCTION public.sync_trip_request_on_request_update()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path TO 'public'
-AS $function$
-DECLARE
-  v_new_state buggy_trip_request_state;
-BEGIN
-  -- When request reaches a terminal state, update corresponding trip_request
-  IF NEW.status IN ('cancelled', 'completed', 'failed', 'no_show') THEN
-    -- Map request status to trip_request state (different enums!)
-    v_new_state := CASE NEW.status
-      WHEN 'completed' THEN 'dropped_off'::buggy_trip_request_state
-      WHEN 'failed' THEN 'cancelled'::buggy_trip_request_state
-      ELSE (NEW.status::text)::buggy_trip_request_state
-    END;
-    
-    UPDATE buggy_trip_requests 
-    SET state = v_new_state, updated_at = now()
-    WHERE request_id = NEW.id AND state = 'queued';
-  END IF;
-  
-  RETURN NEW;
-END;
-$function$;
+-- Inside the FOREACH loop, swap order:
+
+-- 1. FIRST: Create junction table entry (trip link)
+INSERT INTO buggy_trip_requests (
+  resort_id, trip_id, request_id, party_size, state, created_at, updated_at
+)
+SELECT p_resort_id, v_trip_id, v_request_id, br.party_size, 'queued', now(), now()
+FROM buggy_requests br
+WHERE br.id = v_request_id
+ON CONFLICT DO NOTHING;
+
+-- 2. THEN: Update the request status (trigger can now find the trip link)
+UPDATE buggy_requests
+SET 
+  attached_trip_id = v_trip_id,
+  assigned_at = NULL,
+  status = 'assigned_to_trip',
+  updated_at = now()
+WHERE id = v_request_id;
 ```
 
 ---
@@ -75,13 +69,16 @@ $function$;
 
 | File | Action | Description |
 |------|--------|-------------|
-| New migration | CREATE | Fix enum casting with explicit mapping |
+| New migration | CREATE | Fix operation order in `rpc_transport_create_trip_from_requests` |
 
 ---
 
 ## Verification
 
 After migration:
-1. Guest Portal → My Rides → Cancel an active request
-2. Should succeed without error
-3. Request shows as Cancelled in both guest and staff views
+1. Staff Dashboard → Transport → Dispatch Queue
+2. Select 1-2 pending requests
+3. Click "Create Trip"
+4. Trip should be created successfully without errors
+5. Requests should show as "Assigned to Trip" status
+
