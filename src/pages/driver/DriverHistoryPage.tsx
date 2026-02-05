@@ -45,7 +45,22 @@ export default function DriverHistoryPage() {
 
   const { data: trips = [], isLoading } = useDriverTripHistory(resortId, user?.id, dateRange);
 
-  const groupedTrips = useMemo(() => groupTripsByDate(trips), [trips]);
+  // Filter trips by search query
+  const filteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return trips;
+    const q = searchQuery.toLowerCase();
+    return trips.filter((trip) => {
+      const searchableText = [
+        trip.first_stop_name,
+        trip.last_stop_name,
+        trip.buggy_name,
+        trip.status,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchableText.includes(q);
+    });
+  }, [trips, searchQuery]);
+
+  const groupedTrips = useMemo(() => groupTripsByDate(filteredTrips), [filteredTrips]);
 
   const handleSelectTrip = (trip: DriverTripHistoryRow) => {
     setSelectedTrip(trip);
