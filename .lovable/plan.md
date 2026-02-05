@@ -1,157 +1,253 @@
 
-# Staff Trip Complete/Cancel Actions
+# Driver Portal Trip Display Comprehensive Fix
 
-## Overview
-Add the ability for dispatch staff to manually complete or cancel trips from the dispatch console. This enables operational flexibility when drivers can't update trip status themselves.
+## Problem Summary
 
-## Current State Analysis
-- **Cancel Empty Trip**: `rpc_transport_cancel_empty_trip` exists but only works for empty planning trips
-- **Driver Complete**: `rpc_transport_driver_update_trip_state` exists but requires driver auth
-- **Gap**: No staff-initiated complete/cancel for active trips
+The screenshot shows a driver with an assigned trip displaying:
+- Status: "en_route" 
+- NEXT STOP: "—" (empty)
+- PAX: 0
+- DIST: "—"
+- ETA: "—"
+- Only a generic "Continue Trip >" button with no actionable context
 
-## Implementation
+**Root Causes Identified:**
 
-### Phase 1: Database RPC (New)
-Create `rpc_transport_staff_update_trip_status` to allow staff to complete or cancel trips:
+### Flaw 1: Trip Stops Not Being Created
+The `rpc_transport_create_trip_from_requests` RPC creates trips but does NOT generate `buggy_trip_stops` entries. Database query confirmed the active trip has 0 stops despite having 1 attached request.
 
+The `rpc_transport_attach_requests_to_trip` RPC correctly creates stops, but they use different code paths.
+
+### Flaw 2: Stop Coordinates Missing
+All `buggy_stops` in the database have `lat: null, lng: null`. Without coordinates, ETA/distance calculations return "—".
+
+### Flaw 3: DriverHomePage Missing Fallback Display
+When `tripStops` is empty, the preview shows dashes. No fallback to derive info from `tripRequests` (which has pickup/dropoff names).
+
+### Flaw 4: Action Button Not Contextual
+The "Continue Trip >" button is static and doesn't indicate what action the driver should take based on current `lifecycle_state`.
+
+### Flaw 5: No Direct Route to Trip Runner
+From Home, the "Continue Trip" should navigate to the Trip Runner where the driver can take specific actions, but the information shown before clicking is useless.
+
+---
+
+## Comprehensive Fix Plan
+
+### Phase 1: Fix Database - Trip Creation RPC
+Update `rpc_transport_create_trip_from_requests` to generate trip stops when attaching requests (matching the behavior of `rpc_transport_attach_requests_to_trip`).
+
+**Database Migration:**
+```sql
+CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(...)
+-- Add stop creation logic for each request:
+-- 1. Insert pickup stop with sequence, stop_id, title from request
+-- 2. Insert dropoff stop with sequence, stop_id, title from request
+```
+
+### Phase 2: Frontend Fallback - Derive Trip Info from Requests
+When `tripStops` is empty, fallback to extracting pickup/dropoff info from `tripRequests`.
+
+**File: `src/components/driver/TripPreviewCard.tsx`**
+- Add fallback logic: if no stops, derive "next stop" from first request's `pickup_name`
+- Show passenger count from requests even when stops missing
+- Display pickup → dropoff flow
+
+**File: `src/pages/driver/DriverHomePage.tsx`**
+- Enhance the Current Trip card to show request-derived info when stops unavailable
+- Add pickup/dropoff location text from request data
+
+### Phase 3: Contextual Action Button
+Replace generic "Continue Trip >" with state-specific CTAs.
+
+**Changes in `DriverHomePage.tsx`:**
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│  rpc_transport_staff_update_trip_status                     │
-├─────────────────────────────────────────────────────────────┤
-│  Inputs:                                                    │
-│    - p_resort_id: uuid                                      │
-│    - p_trip_id: uuid                                        │
-│    - p_action: 'complete' | 'cancel'                        │
-│    - p_staff_user_id: uuid                                  │
-│    - p_reason: text (optional)                              │
-├─────────────────────────────────────────────────────────────┤
-│  Logic:                                                     │
-│    1. Lock trip row FOR UPDATE                              │
-│    2. Validate trip belongs to resort                       │
-│    3. Validate current status allows action:                │
-│       - complete: status in (assigned, en_route, active)    │
-│       - cancel: status in (planning, assigned, en_route)    │
-│    4. For COMPLETE:                                         │
-│       - Set status = 'completed', lifecycle_state = done    │
-│       - Set end_at = now()                                  │
-│       - Update all trip_requests state → 'dropped_off'      │
-│       - Update all requests status → 'completed'            │
-│    5. For CANCEL:                                           │
-│       - Set status = 'cancelled', cancelled_at = now()      │
-│       - Update trip_requests state → 'cancelled'            │
-│       - Return requests to queue (status → 'queued')        │
-│    6. Log transport_event                                   │
-├─────────────────────────────────────────────────────────────┤
-│  Returns: { success, trip_id, action, affected_requests }   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ lifecycle_state   │   Button Label      │
+├─────────────────────────────────────────┤
+│ assigned          │ Start Trip          │
+│ enroute_to_pickup │ View Trip (Heading) │
+│ arrived_pickup    │ View Trip (Waiting) │
+│ enroute_to_dropoff│ View Trip (Active)  │
+└─────────────────────────────────────────┘
 ```
 
-### Phase 2: Frontend Hook Updates
+The button always navigates to Trip Runner, but the label provides context.
 
-**File: `src/hooks/transport/useTransportDispatchActions.ts`**
+### Phase 4: Enhance Trip Preview Information Density
+Add derived fields to show meaningful info even with incomplete data.
 
-Add two new mutations:
+**File: `src/components/driver/TripPreviewCard.tsx`**
+- Add `pickupLocation` display from request
+- Add `dropoffLocation` display from request  
+- Show "X passengers waiting" summary
+- Add status indicator badge
 
-1. `staffCompleteTrip` - Calls RPC with action='complete'
-2. `staffCancelTrip` - Calls RPC with action='cancel'
+**File: `src/lib/driverTrip.ts`**
+- Add `deriveTripInfoFromRequests()` helper function
+- Returns: pickupNames[], dropoffNames[], totalPassengers, hasScheduled
 
-Both include:
-- Proper error handling with user-friendly messages
-- Cache invalidation for all transport queries
-- Success/error toasts via existing utilities
+### Phase 5: Improve Trip Card on Home Page
 
-### Phase 3: UI Components
+**Update Current Trip Card structure:**
+```text
+┌─────────────────────────────────────────────────────┐
+│ Current Trip                     [enroute_to_pickup]│
+├─────────────────────────────────────────────────────┤
+│ 📍 PICKUP: Main Pool                                │
+│ 🏁 DROPOFF: Water Sports                            │
+├─────────────────────────────────────────────────────┤
+│    👥 3      📏 —       ⏱️ —                        │
+│    PAX      DIST      ETA                          │
+├─────────────────────────────────────────────────────┤
+│ Guest: Vifau Waheed • Room 654                      │
+├─────────────────────────────────────────────────────┤
+│ [ 🚗 Head to Pickup → ]                             │
+│ "Tap when you start driving"                        │
+└─────────────────────────────────────────────────────┘
+```
 
-**File: `src/components/transport/dispatch/TripActions.tsx`** (Update)
+---
 
-Expand the dropdown menu to include:
-- "Mark Complete" - visible for assigned/en_route/active trips
-- "Cancel Trip" - visible for planning/assigned/en_route trips (with confirmation dialog)
+## Technical Implementation Details
 
-**File: `src/components/transport/TripCard.tsx`** (Update)
-
-Add action callbacks:
-- `onComplete?: (tripId: string) => void`
-- Update `onCancelTrip` to work for non-empty trips too
-
-Display "Mark Complete" button in action area for active trips
-
-**File: `src/components/transport/TripDetailSheet.tsx`** (Update)
-
-Add footer actions section with:
-- "Mark Complete" button (green/success variant)
-- "Cancel Trip" button (destructive variant)
-- Confirmation dialogs for both actions
-
-### Phase 4: Integrate into Dispatch Pages
-
-**Files to update:**
-- `src/components/transport/TripsPanel.tsx` - Pass new handlers to TripCard
-- Parent dispatch page components - Wire up the mutations
-
-## Technical Details
-
-### Mutation Structure
-```typescript
-const staffCompleteTrip = useMutation({
-  mutationFn: async ({ tripId, reason }) => {
-    const { data, error } = await supabase.rpc(
-      'rpc_transport_staff_update_trip_status',
-      {
-        p_resort_id: resortId,
-        p_trip_id: tripId,
-        p_action: 'complete',
-        p_staff_user_id: user?.id,
-        p_reason: reason,
-      }
+### Database Migration
+```sql
+-- Fix rpc_transport_create_trip_from_requests to create stops
+CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(
+  p_resort_id uuid,
+  p_request_ids uuid[],
+  p_created_by_staff_id uuid DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_trip_id uuid;
+  v_request record;
+  v_attached_count integer := 0;
+  v_stop_sequence integer := 0;
+BEGIN
+  -- Create trip (existing logic)
+  INSERT INTO buggy_trips (...) VALUES (...) RETURNING id INTO v_trip_id;
+  
+  -- For each request, create junction + stops
+  FOR v_request IN 
+    SELECT * FROM buggy_requests WHERE id = ANY(p_request_ids)
+  LOOP
+    -- Create junction entry (existing)
+    INSERT INTO buggy_trip_requests (...);
+    
+    -- Update request status (existing)
+    UPDATE buggy_requests SET attached_trip_id = v_trip_id, ...;
+    
+    -- NEW: Create pickup stop
+    v_stop_sequence := v_stop_sequence + 1;
+    INSERT INTO buggy_trip_stops (
+      trip_id, resort_id, stop_id, stop_kind, title, sequence, status
+    ) VALUES (
+      v_trip_id, p_resort_id, v_request.pickup_stop_id, 'pickup',
+      COALESCE((SELECT name FROM buggy_stops WHERE id = v_request.pickup_stop_id), 
+               v_request.pickup_text, 'Pickup'),
+      v_stop_sequence, 'pending'
     );
-    if (error) throw error;
-    return data;
-  },
-  onSuccess: () => {
-    showTransportSuccessToast('Trip completed', 'Marked as done by staff');
-    invalidateAll();
-  },
-});
+    
+    -- NEW: Create dropoff stop
+    v_stop_sequence := v_stop_sequence + 1;
+    INSERT INTO buggy_trip_stops (
+      trip_id, resort_id, stop_id, stop_kind, title, sequence, status
+    ) VALUES (
+      v_trip_id, p_resort_id, v_request.dropoff_stop_id, 'dropoff',
+      COALESCE((SELECT name FROM buggy_stops WHERE id = v_request.dropoff_stop_id),
+               v_request.dropoff_text, 'Dropoff'),
+      v_stop_sequence, 'pending'
+    );
+    
+    v_attached_count := v_attached_count + 1;
+  END LOOP;
+  
+  RETURN jsonb_build_object('success', true, 'trip_id', v_trip_id, ...);
+END;
+$$;
 ```
 
-### Updated TripActions Props
+### Frontend Helper Function
 ```typescript
-interface TripActionsProps {
-  tripId: string;
-  tripStatus: string;
-  requestCount: number;
-  onSplit?: (tripId: string) => void;
-  onMerge?: (tripId: string) => void;
-  onDuplicate?: (tripId: string) => void;
-  onCancel?: (tripId: string) => void;
-  onComplete?: (tripId: string) => void;  // NEW
-  disabled?: boolean;
-  isCompleting?: boolean;  // NEW
-  isCancelling?: boolean;  // NEW
+// src/lib/driverTrip.ts
+export function deriveTripInfoFromRequests(
+  tripRequests: TripRequestWithDetails[] | undefined | null
+): {
+  pickupNames: string[];
+  dropoffNames: string[];
+  totalPassengers: number;
+  firstGuest: { name: string | null; room: string | null } | null;
+} {
+  if (!tripRequests?.length) {
+    return { pickupNames: [], dropoffNames: [], totalPassengers: 0, firstGuest: null };
+  }
+  
+  const pickupNames = tripRequests
+    .map(r => r.pickup_name || r.pickup_text)
+    .filter(Boolean) as string[];
+  const dropoffNames = tripRequests
+    .map(r => r.dropoff_name || r.dropoff_text)
+    .filter(Boolean) as string[];
+  const totalPassengers = tripRequests.reduce((sum, r) => sum + (r.party_size || 0), 0);
+  const firstReq = tripRequests[0];
+  
+  return {
+    pickupNames: [...new Set(pickupNames)],
+    dropoffNames: [...new Set(dropoffNames)],
+    totalPassengers,
+    firstGuest: firstReq ? { name: firstReq.guest_name, room: firstReq.room_number } : null,
+  };
 }
 ```
 
-### Status Visibility Rules
-| Action | Visible When Status Is |
-|--------|------------------------|
-| Complete | assigned, en_route, active |
-| Cancel | planning, assigned, en_route |
+### Updated TripPreviewCard
+```typescript
+// TripPreviewCard.tsx - with fallback logic
+const derivedInfo = useMemo(() => {
+  if (tripStops?.length) return null; // Use stops if available
+  return deriveTripInfoFromRequests(tripRequests);
+}, [tripStops, tripRequests]);
 
-## Files to Create
-1. Database migration for `rpc_transport_staff_update_trip_status`
+// In render:
+{derivedInfo ? (
+  // Show request-derived pickup/dropoff
+  <div>
+    <p>📍 Pickup: {derivedInfo.pickupNames.join(', ') || '—'}</p>
+    <p>🏁 Dropoff: {derivedInfo.dropoffNames.join(', ') || '—'}</p>
+  </div>
+) : (
+  // Show stop-based info (existing)
+)}
+```
+
+---
 
 ## Files to Modify
-1. `src/hooks/transport/useTransportDispatchActions.ts` - Add mutations
-2. `src/components/transport/dispatch/TripActions.tsx` - Add menu items
-3. `src/components/transport/TripCard.tsx` - Add action buttons/handlers
-4. `src/components/transport/TripDetailSheet.tsx` - Add footer actions
-5. `src/components/transport/TripsPanel.tsx` - Wire up handlers
+
+### Database
+1. **New migration**: Fix `rpc_transport_create_trip_from_requests` to create stops
+
+### Frontend
+1. **`src/lib/driverTrip.ts`** - Add `deriveTripInfoFromRequests` helper
+2. **`src/components/driver/TripPreviewCard.tsx`** - Add fallback logic for missing stops
+3. **`src/pages/driver/DriverHomePage.tsx`** - Enhance Current Trip card with:
+   - Contextual action button labels
+   - Request-derived info display
+   - Guest info row
+   - Microcopy guidance
+
+---
 
 ## Acceptance Criteria
-- Staff can mark trips as complete from dispatch console
-- Staff can cancel trips (returns requests to queue)
-- Confirmation dialogs prevent accidental actions
-- Real-time sync updates other clients
-- Proper toast feedback for success/error states
-- Actions respect trip status (disabled when not applicable)
+- [ ] Trip creation RPC generates stops for all attached requests
+- [ ] Driver Home shows pickup/dropoff names even when stops missing
+- [ ] Passenger count displays correctly (3 in this case)
+- [ ] Action button shows contextual label based on lifecycle_state
+- [ ] Guest info (name, room) visible on Current Trip card
+- [ ] Microcopy guides driver on next action
+- [ ] Existing Trip Runner page continues working (no breaking changes)
