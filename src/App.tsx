@@ -276,10 +276,11 @@ const App = () => (
                 {/* Staff invitation acceptance (public) */}
                 <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
                 
-                {/* Driver Portal routes */}
+{/* Driver Portal routes */}
                 <Route path="/driver" element={<DriverLayout />}>
                   <Route index element={<DriverHomePage />} />
                   <Route path="trip/:tripId" element={<DriverTripRunnerPage />} />
+                  <Route path="history" element={<DriverHistoryPage />} />
                 </Route>
                 
                 {/* Demo auto-login routes */}
