@@ -16,7 +16,8 @@ interface RequestsStickyBarProps {
 export const RequestsStickyBar = memo(function RequestsStickyBar({
   selectedCount,
   totalQuantity,
-  onSubmit,
+  onDirectSubmit,
+  onReview,
   isSubmitting = false,
   disabled = false,
 }: RequestsStickyBarProps) {
