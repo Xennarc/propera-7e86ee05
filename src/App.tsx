@@ -87,6 +87,7 @@ const DemoAutoLoginPage = lazy(() => import("./pages/staff/DemoAutoLoginPage"));
 const DriverLayout = lazy(() => import("./components/driver/DriverLayout").then(m => ({ default: m.DriverLayout })));
 const DriverHomePage = lazy(() => import("./pages/driver/DriverHomePage"));
 const DriverTripRunnerPage = lazy(() => import("./pages/driver/DriverTripRunnerPage"));
+const DriverHistoryPage = lazy(() => import("./pages/driver/DriverHistoryPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
