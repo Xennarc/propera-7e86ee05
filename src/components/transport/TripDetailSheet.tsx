@@ -71,8 +71,14 @@ export function TripDetailSheet({
   stops,
   onReorderStops,
   isReordering,
+  onCompleteTrip,
+  onCancelTrip,
+  isCompletingTrip,
+  isCancellingTrip,
 }: TripDetailSheetProps) {
   const [localStops, setLocalStops] = useState<TripStopWithDetails[]>([]);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   
   // Sync local stops when sheet opens or stops change
   useMemo(() => {
