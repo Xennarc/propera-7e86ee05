@@ -117,8 +117,6 @@ export default function GuestMyRequestsPage() {
     guest?.resortId || ''
   );
 
-  if (!guest) return null;
-
   // Filter requests - exclude optimistic entries for stable counts
   const realRequests = requests.filter((r) => !r.id.startsWith('optimistic-'));
     
@@ -137,6 +135,9 @@ export default function GuestMyRequestsPage() {
    const activeCount = realRequests.filter((r) => isActiveStatus(r.status as RequestStatus)).length;
    const completedCount = realRequests.filter((r) => !isActiveStatus(r.status as RequestStatus)).length;
 
+   // Early return after hooks
+   if (!guest) return null;
+ 
   const handleCancel = async () => {
     if (!cancelDialog) return;
     try {
