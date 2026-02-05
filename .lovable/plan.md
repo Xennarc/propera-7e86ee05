@@ -1,213 +1,117 @@
 
-# Fix: Driver Portal Trip State Transition Enum Errors
+# Driver Portal Trip Completion Enhancement
 
-## Root Cause Analysis
+## Overview
+Enhance the driver's trip completion experience with proper confirmation, navigation, and celebration UI. Ensure the staff portal properly reflects completed trips with live sync visibility.
 
-Two critical enum mismatches are breaking the Driver Portal:
+## Changes
 
-### Issue 1: Invalid `buggy_trip_request_state` Value
-The deployed `rpc_transport_driver_update_trip_state` function uses:
-```sql
-SET state = 'in_progress'::buggy_trip_request_state
-```
+### 1. Trip Completion Success Screen
+**File:** `src/components/driver/TripCompletedScreen.tsx` (new)
 
-But the **valid** `buggy_trip_request_state` enum values are:
-- `queued`
-- `picked_up` (should be used instead of `in_progress`)
-- `dropped_off`
-- `cancelled`
-- `no_show`
+A celebratory overlay/screen shown after completing a trip:
+- Success animation (checkmark with confetti-style pulse)
+- Trip summary stats (stops completed, passengers transported, duration)
+- "View Summary" button → navigates to history detail
+- "Back to Home" primary CTA → auto-triggers after 5s delay
+- Auto-redirect to `/driver` after 5 seconds
 
-### Issue 2: Lifecycle State Mismatch
-The frontend defines these lifecycle states in `useDriverLifecycleActions.ts`:
-```typescript
-type TripLifecycleState = 
-  | 'assigned'
-  | 'enroute_to_pickup'
-  | 'arrived_pickup'      // Frontend sends this
-  | 'enroute_to_dropoff'
-  | 'completed';
-```
+### 2. Update Trip Runner Page
+**File:** `src/pages/driver/DriverTripRunnerPage.tsx`
 
-But the deployed RPC validates against different values:
-```sql
-WHEN 'enroute_to_pickup' THEN
-  v_valid_transition := p_next_state IN ('at_pickup', 'completed');  -- Expects 'at_pickup'
-WHEN 'at_pickup' THEN
-  v_valid_transition := p_next_state IN ('enroute_to_dropoff', 'completed');
-```
+Modifications:
+- Detect when `currentLifecycleState === 'completed'`
+- Display `TripCompletedScreen` instead of normal trip runner content
+- Pass trip stats (duration, passenger count, stops count) to completion screen
+- Add `useEffect` to navigate home after completion with optional delay
 
-This mismatch means:
-- Frontend sends `arrived_pickup`
-- RPC expects `at_pickup`
-- Result: "Invalid state transition" error
+### 3. Enhance Lifecycle Actions Hook
+**File:** `src/hooks/transport/useDriverLifecycleActions.ts`
+
+Add callback support for completion:
+- Return a `lastCompletedTrip` state to track the just-completed trip
+- Clear this state when navigating away
+- Provide trip summary data for the completion screen
+
+### 4. Staff Portal Completion Visibility
+**File:** `src/components/transport/TripsPanel.tsx`
+
+Improvements:
+- Add "Completed" tab alongside "Planning" and "Active"
+- Show recently completed trips (last 24h) with timestamp
+- Completed trips show with distinct styling (muted, checkmark badge)
+- Toast notification when a trip is marked completed (via realtime)
+
+### 5. Realtime Toast for Staff
+**File:** `src/hooks/sync/useTransportSync.ts`
+
+Add completion detection:
+- When `buggy_trips` UPDATE event shows `status = 'completed'`
+- Trigger toast: "Trip completed by {driver_name}"
+- Include trip summary (X passengers, X stops)
 
 ---
 
-## Solution
+## Technical Details
 
-Create a corrected migration that:
-
-1. **Fix `buggy_trip_request_state`**: Use `picked_up` instead of `in_progress`
-2. **Align lifecycle states with frontend**: Accept `arrived_pickup` instead of `at_pickup`
-3. **Use correct `buggy_trip_status` values**: `en_route` and `active` (verified valid)
-
-### Enum Reference (from database)
-
+### TripCompletedScreen Component
 ```text
-buggy_trip_status:       {planning, assigned, en_route, active, completed, cancelled}
-buggy_request_status:    {requested, queued, assigned_to_trip, driver_en_route, arrived, picked_up, completed, cancelled, failed, no_show}
-buggy_trip_request_state: {queued, picked_up, dropped_off, cancelled, no_show}
+┌──────────────────────────────────────┐
+│                                      │
+│            ✓ (animated)              │
+│                                      │
+│       Trip Completed!                │
+│                                      │
+│   ┌─────────┬─────────┬─────────┐   │
+│   │ 4 stops │ 6 guests│ 23 min  │   │
+│   └─────────┴─────────┴─────────┘   │
+│                                      │
+│      [  Back to Home  ]              │
+│                                      │
+│     Redirecting in 5s...             │
+└──────────────────────────────────────┘
 ```
 
----
-
-## Database Migration
-
-```sql
-CREATE OR REPLACE FUNCTION public.rpc_transport_driver_update_trip_state(
-  p_resort_id uuid,
-  p_trip_id uuid,
-  p_driver_user_id uuid,
-  p_next_state text
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_trip RECORD;
-  v_current_state text;
-  v_valid_transition boolean := false;
-BEGIN
-  -- 1) Lock and validate trip
-  SELECT * INTO v_trip
-  FROM buggy_trips
-  WHERE id = p_trip_id AND resort_id = p_resort_id
-  FOR UPDATE NOWAIT;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Trip not found or does not belong to this resort';
-  END IF;
-  
-  -- 2) Verify driver ownership
-  IF v_trip.driver_user_id IS DISTINCT FROM p_driver_user_id THEN
-    RAISE EXCEPTION 'Trip is not assigned to this driver';
-  END IF;
-  
-  -- 3) Get current lifecycle state (fallback to status if null)
-  v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
-  
-  -- 4) Validate state transition (aligned with frontend TripLifecycleState)
-  CASE v_current_state
-    WHEN 'assigned' THEN
-      v_valid_transition := p_next_state = 'enroute_to_pickup';
-    WHEN 'enroute_to_pickup' THEN
-      v_valid_transition := p_next_state IN ('arrived_pickup', 'completed');
-    WHEN 'arrived_pickup' THEN
-      v_valid_transition := p_next_state IN ('enroute_to_dropoff', 'completed');
-    WHEN 'enroute_to_dropoff' THEN
-      v_valid_transition := p_next_state = 'completed';
-    ELSE
-      v_valid_transition := false;
-  END CASE;
-  
-  IF NOT v_valid_transition THEN
-    RAISE EXCEPTION 'Invalid state transition from % to %', v_current_state, p_next_state;
-  END IF;
-  
-  -- 5) Update trip state with CORRECT enum values
-  UPDATE buggy_trips
-  SET 
-    lifecycle_state = p_next_state,
-    status = CASE 
-      WHEN p_next_state = 'enroute_to_pickup' THEN 'en_route'::buggy_trip_status
-      WHEN p_next_state IN ('arrived_pickup', 'enroute_to_dropoff') THEN 'active'::buggy_trip_status
-      WHEN p_next_state = 'completed' THEN 'completed'::buggy_trip_status
-      ELSE status
-    END,
-    start_at = CASE 
-      WHEN p_next_state = 'enroute_to_pickup' AND start_at IS NULL THEN now()
-      ELSE start_at
-    END,
-    completed_at = CASE 
-      WHEN p_next_state = 'completed' THEN now()
-      ELSE completed_at
-    END,
-    updated_at = now()
-  WHERE id = p_trip_id;
-  
-  -- 6) Update trip requests with CORRECT enum values (picked_up, NOT in_progress)
-  IF p_next_state IN ('enroute_to_pickup', 'arrived_pickup', 'enroute_to_dropoff') THEN
-    UPDATE buggy_trip_requests
-    SET state = 'picked_up'::buggy_trip_request_state, updated_at = now()
-    WHERE trip_id = p_trip_id AND state = 'queued';
-      
-    UPDATE buggy_requests
-    SET status = 'picked_up'::buggy_request_status, updated_at = now()
-    WHERE id IN (SELECT request_id FROM buggy_trip_requests WHERE trip_id = p_trip_id)
-      AND status IN ('assigned_to_trip', 'driver_en_route', 'arrived');
-  END IF;
-  
-  IF p_next_state = 'completed' THEN
-    UPDATE buggy_trip_requests
-    SET state = 'dropped_off'::buggy_trip_request_state, updated_at = now()
-    WHERE trip_id = p_trip_id AND state IN ('queued', 'picked_up');
-      
-    UPDATE buggy_requests
-    SET status = 'completed'::buggy_request_status, completed_at = now(), updated_at = now()
-    WHERE id IN (SELECT request_id FROM buggy_trip_requests WHERE trip_id = p_trip_id)
-      AND status NOT IN ('completed', 'cancelled', 'failed', 'no_show');
-  END IF;
-  
-  -- 7) Log event
-  INSERT INTO buggy_trip_events (trip_id, resort_id, event_type, from_status, to_status, actor_type, actor_user_id, payload)
-  VALUES (p_trip_id, p_resort_id, 'state_change', v_current_state, p_next_state, 'driver', p_driver_user_id,
-    jsonb_build_object('previous_state', v_current_state, 'new_state', p_next_state));
-  
-  RETURN jsonb_build_object(
-    'success', true,
-    'trip_id', p_trip_id,
-    'previous_state', v_current_state,
-    'current_state', p_next_state
+### State Detection in Trip Runner
+```typescript
+// Detect completed state
+if (currentLifecycleState === 'completed') {
+  return (
+    <TripCompletedScreen
+      trip={trip}
+      stopsCount={stops.length}
+      passengersCount={requests.reduce((s, r) => s + r.party_size, 0)}
+      duration={/* calculate from start_at/end_at */}
+      onGoHome={() => navigate('/driver')}
+    />
   );
-EXCEPTION
-  WHEN lock_not_available THEN
-    RAISE EXCEPTION 'Could not acquire lock. Another operation is in progress.';
-END;
-$$;
+}
+```
+
+### Staff Portal Tabs Update
+```typescript
+const completedTrips = trips.filter(t => 
+  t.status === 'completed' && 
+  differenceInHours(new Date(), new Date(t.completed_at)) < 24
+);
 ```
 
 ---
 
-## Summary of Fixes
-
-| Component | Before (Wrong) | After (Fixed) |
-|-----------|----------------|---------------|
-| `buggy_trip_request_state` | `'in_progress'` | `'picked_up'` |
-| Lifecycle state validation | `'at_pickup'`, `'at_dropoff'` | `'arrived_pickup'`, `'enroute_to_dropoff'` |
-| `buggy_trip_status` | `'active'` only | `'en_route'` for pickup, `'active'` for others |
-| Request status update | `'assigned'` only | `'assigned_to_trip'`, `'driver_en_route'`, `'arrived'` |
-
----
+## Files to Create
+1. `src/components/driver/TripCompletedScreen.tsx`
 
 ## Files to Modify
+1. `src/pages/driver/DriverTripRunnerPage.tsx`
+2. `src/hooks/transport/useDriverLifecycleActions.ts`
+3. `src/components/transport/TripsPanel.tsx`
+4. `src/hooks/sync/useTransportSync.ts`
+5. `src/hooks/transport/useTransportTrips.ts` (add completed trips query)
 
-| File | Action | Description |
-|------|--------|-------------|
-| New migration | CREATE | Corrected RPC with proper enum values and aligned lifecycle states |
-
----
-
-## Verification Steps
-
-After migration:
-1. Go to Driver Portal `/driver`
-2. Open an assigned trip
-3. Tap "Start Trip" → Should transition to "En Route to Pickup"
-4. Tap "Arrived at Pickup" → Should transition to "Arrived at Pickup"
-5. Tap "Passengers Picked Up" → Should transition to "En Route to Dropoff"
-6. Tap "Complete Trip" → Trip completes successfully
-
-No enum errors should occur at any step.
+## Acceptance Criteria
+- Driver sees celebratory completion screen after trip ends
+- Driver auto-navigates to home after 5 seconds
+- Staff sees completed trips in new "Completed" tab
+- Staff receives toast notification when driver completes a trip
+- All changes sync in real-time between portals
+- Mobile-first, dark-mode compatible UI
