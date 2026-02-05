@@ -2,12 +2,13 @@ import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingBag, ArrowRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, Zap, Loader2, Settings2 } from 'lucide-react';
 
 interface RequestsStickyBarProps {
   selectedCount: number;
   totalQuantity: number;
-  onSubmit: () => void;
+  onDirectSubmit: () => void;
+  onReview: () => void;
   isSubmitting?: boolean;
   disabled?: boolean;
 }
@@ -15,7 +16,8 @@ interface RequestsStickyBarProps {
 export const RequestsStickyBar = memo(function RequestsStickyBar({
   selectedCount,
   totalQuantity,
-  onSubmit,
+  onDirectSubmit,
+  onReview,
   isSubmitting = false,
   disabled = false,
 }: RequestsStickyBarProps) {
@@ -76,29 +78,44 @@ export const RequestsStickyBar = memo(function RequestsStickyBar({
               </div>
             </div>
 
-            {/* Right: Submit button */}
-            <Button
-              onClick={onSubmit}
-              disabled={disabled || isSubmitting || !hasSelection}
-              size="default"
-              className={cn(
-                'gap-2 font-semibold min-h-[44px] px-5',
-                'shadow-md shadow-primary/20',
-                'active:scale-95 transition-transform duration-100'
-              )}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="sr-only sm:not-sr-only">Sending...</span>
-                </>
-              ) : (
-                <>
-                  <span>Send request</span>
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
+            {/* Right: Action buttons */}
+            <div className="flex items-center gap-2">
+              {/* Review button - secondary action */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onReview}
+                disabled={isSubmitting}
+                className="text-muted-foreground hover:text-foreground min-h-[44px] px-3"
+              >
+                <Settings2 className="h-4 w-4 mr-1.5" />
+                Review
+              </Button>
+              
+              {/* Send now button - primary action */}
+              <Button
+                onClick={onDirectSubmit}
+                disabled={disabled || isSubmitting || !hasSelection}
+                size="default"
+                className={cn(
+                  'gap-2 font-semibold min-h-[44px] px-5',
+                  'shadow-md shadow-primary/20',
+                  'active:scale-95 transition-transform duration-100'
+                )}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="sr-only sm:not-sr-only">Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4" />
+                    <span>Send now</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </motion.div>
       )}

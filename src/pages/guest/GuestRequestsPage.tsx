@@ -164,6 +164,28 @@ function GuestRequestsPageContent() {
     setSelectedItems((prev) => prev.filter((i) => i.catalogId !== catalogId));
   }, []);
 
+  // Direct submit handler - submits immediately with ASAP timing
+  const handleDirectSubmit = async () => {
+    if (selectedItems.length === 0) return;
+    
+    try {
+      await createBundle({
+        items: selectedItems.map((i) => ({ catalogId: i.catalogId, quantity: i.quantity })),
+        isAsap: true,
+        guestNotes: notes.trim() || undefined,
+      });
+      
+      setSelectedItems([]);
+      setNotes('');
+      // Toast with action shown by mutation onSuccess
+    } catch (error) {
+      // Error toast is shown by mutation's onError
+      // Keep items selected so user can retry
+      console.error('Failed to submit request:', error);
+    }
+  };
+
+  // Review sheet submit handler - for scheduled or adjusted requests
   const handleSubmitBundle = async (params: BundleSubmitParams) => {
     try {
       await createBundle({
@@ -246,7 +268,8 @@ function GuestRequestsPageContent() {
       <RequestsStickyBar
         selectedCount={selectedItems.length}
         totalQuantity={totalSelectedCount}
-        onSubmit={handleOpenReview}
+        onDirectSubmit={handleDirectSubmit}
+        onReview={handleOpenReview}
         isSubmitting={isCreatingBundle}
         disabled={selectedItems.length === 0}
       />
