@@ -21,6 +21,9 @@ import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
 import { DriverInstructionsPanel } from '@/components/driver/DriverInstructionsPanel';
 import { PassengerNotesIndicator } from '@/components/driver/PassengerNotesIndicator';
+import { DriverMobileActionBar, DriverMobileActionBarSpacer } from '@/components/driver/DriverMobileActionBar';
+import { DriverStatusBanner } from '@/components/driver/DriverStatusBanner';
+import { TripStateMicrocopy } from '@/components/driver/TripStateMicrocopy';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +57,7 @@ import {
   Navigation,
   Route,
   Clock,
+  ChevronsUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -106,6 +110,7 @@ export default function DriverTripRunnerPage() {
   // State
   const [skipConfirmId, setSkipConfirmId] = useState<string | null>(null);
   const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
+  const [allStopsExpanded, setAllStopsExpanded] = useState(false);
 
   // Find current stop (first pending)
   const currentStop = useMemo(() => {
@@ -229,7 +234,10 @@ export default function DriverTripRunnerPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-4 space-y-4 pb-32">
+      <div className="flex-1 p-4 space-y-4">
+        {/* Status Banners (Offline/GPS) */}
+        <DriverStatusBanner isOnline={isOnline} hasGPS={!!driverLocation} />
+        
         {/* Primary Action CTA - shows next lifecycle action */}
         {currentLifecycleState === 'assigned' && (
           <Card className="border-primary shadow-lg">
@@ -247,9 +255,7 @@ export default function DriverTripRunnerPage() {
                 )}
                 {nextActionLabel || 'Start Trip'}
               </Button>
-              <p className="text-center text-xs text-muted-foreground mt-3">
-                Tap to begin and notify passengers
-              </p>
+              <TripStateMicrocopy state={currentLifecycleState} />
             </CardContent>
           </Card>
         )}
@@ -278,6 +284,7 @@ export default function DriverTripRunnerPage() {
                 )}
                 {nextActionLabel}
               </Button>
+              <TripStateMicrocopy state={currentLifecycleState} stopKind={currentStop?.stop_kind as any} />
             </CardContent>
           </Card>
         )}
@@ -439,12 +446,26 @@ export default function DriverTripRunnerPage() {
         {/* All Stops List */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">All Stops</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">All Stops</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  setAllStopsExpanded(!allStopsExpanded);
+                  setExpandedStopId(allStopsExpanded ? null : stops[0]?.id || null);
+                }}
+              >
+                <ChevronsUpDown className="h-3.5 w-3.5" />
+                {allStopsExpanded ? 'Collapse All' : 'Expand All'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {stops.map((stop, index) => {
               const Icon = getStopIcon(stop.stop_kind as StopKind, stop.status as StopStatus);
-              const isExpanded = expandedStopId === stop.id;
+              const isExpanded = allStopsExpanded || expandedStopId === stop.id;
               const isCurrent = currentStop?.id === stop.id;
               
               return (
@@ -569,7 +590,46 @@ export default function DriverTripRunnerPage() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Spacer for mobile action bar */}
+        <DriverMobileActionBarSpacer />
       </div>
+
+      {/* Mobile Sticky Action Bar */}
+      {currentStop && currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && (
+        <DriverMobileActionBar className="md:hidden">
+          {currentStop.status === 'pending' ? (
+            <>
+              <Button
+                size="lg"
+                className="flex-1 h-12"
+                onClick={() => handleArrived(currentStop.id)}
+                disabled={isPending}
+              >
+                {updateStop.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5 mr-2" />}
+                Arrived
+              </Button>
+              <StopNavigationLink
+                stopName={currentStop.stop_name || currentStop.title || 'Stop'}
+                zone={(currentStop as any).zone}
+                location={(currentStop as any).location}
+                variant="button"
+                className="shrink-0"
+              />
+            </>
+          ) : (
+            <Button
+              size="lg"
+              className="flex-1 h-12"
+              onClick={() => handleCompleteStop(currentStop.id)}
+              disabled={isPending}
+            >
+              {updateStop.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
+              Complete Stop
+            </Button>
+          )}
+        </DriverMobileActionBar>
+      )}
 
       {/* Skip confirmation dialog */}
       <AlertDialog open={!!skipConfirmId} onOpenChange={(open) => !open && setSkipConfirmId(null)}>

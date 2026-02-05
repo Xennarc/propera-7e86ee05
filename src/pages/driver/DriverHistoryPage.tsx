@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import {
   ChevronLeft,
   Calendar,
@@ -26,6 +27,7 @@ import {
   XCircle,
   ArrowRight,
   Inbox,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInMinutes } from 'date-fns';
@@ -39,10 +41,26 @@ export default function DriverHistoryPage() {
   const [dateRange, setDateRange] = useState<HistoryDateRange>('7d');
   const [selectedTrip, setSelectedTrip] = useState<DriverTripHistoryRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: trips = [], isLoading } = useDriverTripHistory(resortId, user?.id, dateRange);
 
-  const groupedTrips = useMemo(() => groupTripsByDate(trips), [trips]);
+  // Filter trips by search query
+  const filteredTrips = useMemo(() => {
+    if (!searchQuery.trim()) return trips;
+    const q = searchQuery.toLowerCase();
+    return trips.filter((trip) => {
+      const searchableText = [
+        trip.first_stop_name,
+        trip.last_stop_name,
+        trip.buggy_name,
+        trip.status,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return searchableText.includes(q);
+    });
+  }, [trips, searchQuery]);
+
+  const groupedTrips = useMemo(() => groupTripsByDate(filteredTrips), [filteredTrips]);
 
   const handleSelectTrip = (trip: DriverTripHistoryRow) => {
     setSelectedTrip(trip);
@@ -68,34 +86,36 @@ export default function DriverHistoryPage() {
         </div>
       </div>
 
-      {/* Date Range Toggle */}
-      <div className="px-4 py-3 border-b bg-muted/30">
+      {/* Date Range Toggle + Search */}
+      <div className="px-4 py-3 border-b bg-muted/30 space-y-3">
         <div className="flex items-center gap-2 max-w-lg mx-auto">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
-            <button
-              onClick={() => setDateRange('7d')}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                dateRange === '7d'
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Last 7 days
-            </button>
-            <button
-              onClick={() => setDateRange('30d')}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                dateRange === '30d'
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Last 30 days
-            </button>
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex gap-1 bg-muted rounded-lg p-1 overflow-x-auto">
+            {(['7d', '30d', 'all'] as HistoryDateRange[]).map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  dateRange === range
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : 'All time'}
+              </button>
+            ))}
           </div>
+        </div>
+        {/* Search Input */}
+        <div className="relative max-w-lg mx-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search stops, buggy..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10"
+          />
         </div>
       </div>
 
@@ -112,15 +132,21 @@ export default function DriverHistoryPage() {
                 </div>
               ))}
             </div>
-          ) : trips.length === 0 ? (
+          ) : filteredTrips.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-16 text-center">
                 <Inbox className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg">No trips found</h3>
+                <h3 className="font-semibold text-lg">
+                  {searchQuery ? 'No matches found' : 'No trips found'}
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {dateRange === '7d'
+                  {searchQuery
+                    ? 'Try a different search term.'
+                    : dateRange === '7d'
                     ? 'No completed trips in the last 7 days. Try expanding to 30 days.'
-                    : 'No completed trips in the last 30 days.'}
+                    : dateRange === '30d'
+                    ? 'No completed trips in the last 30 days. Try "All time".'
+                    : 'No completed trips yet.'}
                 </p>
               </CardContent>
             </Card>

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 
-export type HistoryDateRange = '7d' | '30d';
+export type HistoryDateRange = '7d' | '30d' | 'all';
 
 export interface DriverTripHistoryRow {
   id: string;
@@ -39,11 +39,7 @@ export function useDriverTripHistory(
     queryFn: async (): Promise<DriverTripHistoryRow[]> => {
       if (!resortId || !userId) return [];
 
-      const days = dateRange === '30d' ? 30 : 7;
-      const fromDate = startOfDay(subDays(new Date(), days));
-      const toDate = endOfDay(new Date());
-
-      const { data, error } = await supabase
+      let query = supabase
         .from('buggy_trips')
         .select(`
           id,
@@ -64,11 +60,21 @@ export function useDriverTripHistory(
         `)
         .eq('resort_id', resortId)
         .eq('driver_user_id', userId)
-        .in('status', ['completed', 'cancelled'])
-        .gte('created_at', fromDate.toISOString())
-        .lte('created_at', toDate.toISOString())
+        .in('status', ['completed', 'cancelled']);
+
+      // Apply date filter only for 7d/30d
+      if (dateRange !== 'all') {
+        const days = dateRange === '30d' ? 30 : 7;
+        const fromDate = startOfDay(subDays(new Date(), days));
+        const toDate = endOfDay(new Date());
+        query = query
+          .gte('created_at', fromDate.toISOString())
+          .lte('created_at', toDate.toISOString());
+      }
+
+      const { data, error } = await query
         .order('completed_at', { ascending: false, nullsFirst: false })
-        .limit(100);
+        .limit(dateRange === 'all' ? 500 : 100);
 
       if (error) throw error;
 

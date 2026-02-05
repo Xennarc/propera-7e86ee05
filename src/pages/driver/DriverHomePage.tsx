@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TripPreviewCard, TripPreviewCardSkeleton } from '@/components/driver/TripPreviewCard';
 import { DriverStatsSection } from '@/components/driver/DriverStatsSection';
+import { TripQuickInfoChips } from '@/components/driver/TripQuickInfoChips';
 import { 
   Car, 
   Coffee, 
@@ -194,6 +195,12 @@ export default function DriverHomePage() {
                 {currentTrip.status === 'assigned' ? 'Ready to Start' : currentTrip.status}
               </Badge>
             </div>
+            {/* Quick Info Chips - NEW */}
+            <TripQuickInfoChips 
+              tripRequests={currentTripRequests} 
+              trip={currentTrip}
+              className="mt-2"
+            />
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Trip Preview Card - NEW */}
