@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { TripActions } from './dispatch/TripActions';
 import { 
   Car, 
   User, 
@@ -14,7 +15,8 @@ import {
   UserPlus,
   Settings2,
   Trash2,
-  Loader2
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
