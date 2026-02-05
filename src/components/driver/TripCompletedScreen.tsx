@@ -61,13 +61,13 @@ export function TripCompletedScreen({
         <div className="relative">
           {/* Pulse rings */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="absolute h-32 w-32 rounded-full bg-emerald-500/20 animate-ping" />
-            <div className="absolute h-24 w-24 rounded-full bg-emerald-500/30 animate-pulse" />
+            <div className="absolute h-32 w-32 rounded-full bg-success/20 animate-ping" />
+            <div className="absolute h-24 w-24 rounded-full bg-success/30 animate-pulse" />
           </div>
           
           {/* Checkmark icon */}
-          <div className="relative h-24 w-24 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-            <CheckCircle2 className="h-14 w-14 text-white" />
+          <div className="relative h-24 w-24 rounded-full bg-success flex items-center justify-center shadow-lg">
+            <CheckCircle2 className="h-14 w-14 text-success-foreground" />
           </div>
         </div>
       </div>
