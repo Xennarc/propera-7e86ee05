@@ -53,6 +53,37 @@ export function getNextState(current: TripLifecycleState): TripLifecycleState | 
 }
 
 /**
+ * Normalize database lifecycle_state / status values to canonical TripLifecycleState.
+ * Handles legacy values like 'en_route' and 'active' from the buggy_trip_status enum.
+ */
+export function normalizeLifecycleState(
+  lifecycleState: string | null | undefined,
+  tripStatus: string
+): TripLifecycleState {
+  const state = (lifecycleState || tripStatus || '').toLowerCase();
+  switch (state) {
+    case 'assigned':
+      return 'assigned';
+    case 'enroute_to_pickup':
+      return 'enroute_to_pickup';
+    case 'en_route':
+      return 'enroute_to_pickup'; // legacy mapping
+    case 'arrived_pickup':
+      return 'arrived_pickup';
+    case 'active':
+      return 'enroute_to_dropoff'; // legacy mapping
+    case 'enroute_to_dropoff':
+      return 'enroute_to_dropoff';
+    case 'completed':
+      return 'completed';
+    case 'planning':
+      return 'assigned'; // planning = not yet started
+    default:
+      return 'assigned';
+  }
+}
+
+/**
  * Hook for driver trip lifecycle state transitions.
  * Uses the new atomic RPC with state machine validation.
  */

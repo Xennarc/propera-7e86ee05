@@ -10,13 +10,14 @@ import {
 import {
   useDriverLifecycleActions,
   getNextState,
+  normalizeLifecycleState,
   NEXT_ACTION_LABELS,
   LIFECYCLE_STATE_LABELS,
   type TripLifecycleState,
 } from '@/hooks/transport/useDriverLifecycleActions';
 import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import { useDriverETAAndDistance } from '@/hooks/driver/useDriverETAAndDistance';
-import { getNextStop } from '@/lib/driverTrip';
+import { getNextStop, deriveTripInfoFromRequests } from '@/lib/driverTrip';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
 import { DriverInstructionsPanel } from '@/components/driver/DriverInstructionsPanel';
@@ -104,8 +105,8 @@ export default function DriverTripRunnerPage() {
   const lifecycleActions = useDriverLifecycleActions(resortId);
   const updateStop = useUpdateStopStatusMutation(resortId, tripId);
   
-  // Get current lifecycle state from trip
-  const currentLifecycleState = (trip?.lifecycle_state || trip?.status || 'assigned') as TripLifecycleState;
+  // Get current lifecycle state from trip - normalize legacy values
+  const currentLifecycleState = normalizeLifecycleState(trip?.lifecycle_state, trip?.status || 'assigned');
   const nextState = getNextState(currentLifecycleState);
   const nextActionLabel = NEXT_ACTION_LABELS[currentLifecycleState];
 
@@ -118,6 +119,12 @@ export default function DriverTripRunnerPage() {
   const currentStop = useMemo(() => {
     return stops.find(s => s.status === 'pending') || null;
   }, [stops]);
+
+  // Fallback: derive trip info from requests when stops are missing
+  const derivedInfo = useMemo(() => {
+    if (stops.length > 0) return null;
+    return deriveTripInfoFromRequests(requests);
+  }, [stops, requests]);
 
   // Get next stop for ETA calculation (using helper)
   const nextStopForETA = useMemo(() => getNextStop(stops), [stops]);
@@ -238,7 +245,7 @@ export default function DriverTripRunnerPage() {
           <div className="flex-1 min-w-0">
             <h1 className="font-semibold truncate">Trip Runner</h1>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{stops.length} stops</span>
+              <span>{stops.length > 0 ? `${stops.length} stops` : `${requests.length} request${requests.length !== 1 ? 's' : ''}`}</span>
               <span>•</span>
               <span>{requests.reduce((sum, r) => sum + r.party_size, 0)} passengers</span>
             </div>
@@ -314,8 +321,64 @@ export default function DriverTripRunnerPage() {
           </Card>
         )}
 
-        {/* Special Instructions Panel - NEW */}
+        {/* Special Instructions Panel */}
         <DriverInstructionsPanel tripRequests={requests} />
+
+        {/* Request-Based Fallback: when stops are missing but requests exist */}
+        {stops.length === 0 && derivedInfo && (derivedInfo.pickupNames.length > 0 || derivedInfo.dropoffNames.length > 0) && (
+          <Card className="border-primary/50 shadow-lg bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Trip Information</CardTitle>
+              <CardDescription>
+                Derived from passenger requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Pickup */}
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Navigation className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Pickup</p>
+                  <p className="font-medium">{derivedInfo.pickupNames.join(', ') || '—'}</p>
+                </div>
+              </div>
+
+              {/* Dropoff */}
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Dropoff</p>
+                  <p className="font-medium">{derivedInfo.dropoffNames.join(', ') || '—'}</p>
+                </div>
+              </div>
+
+              {/* Guest info */}
+              {derivedInfo.firstGuest && derivedInfo.firstGuest.name && (
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-card border">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{derivedInfo.firstGuest.name}</p>
+                    {derivedInfo.firstGuest.room && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Home className="h-3 w-3" />
+                        Room {derivedInfo.firstGuest.room}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="ml-auto">
+                    {derivedInfo.totalPassengers} pax
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Stop (prominent) */}
         {currentStop && currentLifecycleState !== 'assigned' && (

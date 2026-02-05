@@ -1,15 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { useDriverSession } from '@/hooks/transport/useDriverSession';
 import { useBuggyLocation, useDriverPresence } from '@/hooks/transport/useBuggyLocation';
 import { useTransportSettings } from '@/hooks/transport/useTransportSettings';
+import { initErrorCapture } from '@/lib/debug-error-capture';
+import { initQueryTracker } from '@/lib/debug-query-tracker';
+import { DriverDebugConsole, useDriverDebugMode } from '@/components/driver/DriverDebugConsole';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShieldX, WifiOff, Wifi, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface DriverLocation {
   lat: number;
@@ -20,6 +24,18 @@ export function DriverLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const resortId = currentResort?.id;
+  const queryClient = useQueryClient();
+  const isDebugMode = useDriverDebugMode();
+
+  // Initialize error capture and query tracker for debug console
+  useEffect(() => {
+    const cleanupErrors = initErrorCapture();
+    const cleanupQueries = initQueryTracker(queryClient);
+    return () => {
+      cleanupErrors();
+      cleanupQueries();
+    };
+  }, [queryClient]);
 
   // Driver session check
   const { data: driverSession, isLoading: sessionLoading, error: sessionError } = useDriverSession(resortId);
@@ -170,6 +186,9 @@ export function DriverLayout() {
       <main className="flex-1 pt-8">
         <Outlet context={{ driverSession, settings, isOnline, driverLocation }} />
       </main>
+
+      {/* Debug Console - accessible via ?debug=1 */}
+      {isDebugMode && driverSession && <DriverDebugConsole />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
+import { normalizeLifecycleState } from '@/hooks/transport/useDriverLifecycleActions';
 import { 
   useDriverSession, 
   useDriverStatusMutation,
@@ -229,7 +230,7 @@ export default function DriverHomePage() {
 
             {/* Trip State Microcopy */}
             <TripStateMicrocopy 
-              state={(currentTrip.lifecycle_state || currentTrip.status) as any}
+              state={normalizeLifecycleState(currentTrip.lifecycle_state, currentTrip.status)}
             />
           </CardContent>
         </Card>
