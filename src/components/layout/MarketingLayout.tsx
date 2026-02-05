@@ -182,7 +182,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 © {new Date().getFullYear()} Propera. All rights reserved.
               </p>
               <div className="flex items-center gap-8 text-sm text-muted-foreground">
-                <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
+                <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
                 <a href="#" className="hover:text-foreground transition-colors">Terms</a>
               </div>
             </div>
