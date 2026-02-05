@@ -138,7 +138,7 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
                       )}
                     </div>
                     {stop.status === 'completed' && (
-                      <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                     )}
                   </div>
                 ))}

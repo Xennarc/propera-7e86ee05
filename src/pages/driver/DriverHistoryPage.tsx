@@ -190,7 +190,7 @@ function TripHistoryItem({
         <Badge variant={isCompleted ? 'outline' : 'destructive'} className="gap-1">
           {isCompleted ? (
             <>
-              <CheckCircle2 className="h-3 w-3 text-green-500" />
+              <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
               Completed
             </>
           ) : (
