@@ -445,7 +445,7 @@ export default function DriverTripRunnerPage() {
         )}
 
         {/* Complete Trip CTA */}
-        {allStopsDone && currentLifecycleState !== 'completed' && (
+        {allStopsDone && (
           <Card className="border-emerald-500/50 shadow-lg bg-emerald-500/5">
             <CardContent className="py-6">
               <Button
