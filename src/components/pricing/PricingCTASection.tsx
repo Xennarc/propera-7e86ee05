@@ -7,7 +7,7 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 const REASSURANCE_CHIPS = [
   'Unlimited staff included',
   'Multi-resort ready',
-  'Elegant by design',
+  'Feature flags per resort',
 ];
 
 export function PricingCTASection() {
