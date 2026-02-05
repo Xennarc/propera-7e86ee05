@@ -108,101 +108,102 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
               </div>
             </div>
 
-          {/* Stops List */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Stops
-            </h3>
-            {stopsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 rounded-lg" />
-                ))}
-              </div>
-            ) : stops.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No stops recorded</p>
-            ) : (
-              <div className="space-y-2">
-                {stops.map((stop, index) => (
-                  <div
-                    key={stop.id}
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg border bg-card',
-                      stop.status === 'completed' && 'border-emerald-500/30 dark:border-emerald-400/30 bg-emerald-500/5'
-                    )}
-                  >
-                    <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {stop.stop_name || stop.title || 'Unknown stop'}
-                      </p>
-                      {stop.stop_zone && (
-                        <p className="text-xs text-muted-foreground">{stop.stop_zone}</p>
+            {/* Stops List - Section 2 */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5" />
+                Stops ({trip.stop_count})
+              </h3>
+              {stopsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 rounded-lg" />
+                  ))}
+                </div>
+              ) : stops.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No stops recorded</p>
+              ) : (
+                <div className="space-y-2">
+                  {stops.map((stop, index) => (
+                    <div
+                      key={stop.id}
+                      className={cn(
+                        'flex items-center gap-3 p-3 rounded-lg border bg-card transition-colors',
+                        stop.status === 'completed' && 'border-emerald-500/30 bg-emerald-500/5'
+                      )}
+                    >
+                      <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs font-medium">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {stop.stop_name || stop.title || 'Unknown stop'}
+                        </p>
+                        {stop.stop_zone && (
+                          <p className="text-xs text-muted-foreground">{stop.stop_zone}</p>
+                        )}
+                      </div>
+                      {stop.status === 'completed' && (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       )}
                     </div>
-                    {stop.status === 'completed' && (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <Separator className="my-4" />
+            <Separator />
 
-          {/* Passengers List */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Passengers
-            </h3>
-            {requestsLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 2 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 rounded-lg" />
-                ))}
-              </div>
-            ) : requests.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No passengers recorded</p>
-            ) : (
-              <div className="space-y-2">
-                {requests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="p-3 rounded-lg border bg-card"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm">
-                          {req.guest_name || 'Guest'}
-                          {req.room_number && (
-                            <span className="text-muted-foreground ml-1">
-                              · Room {req.room_number}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {req.pickup_name} → {req.dropoff_name}
-                        </p>
+            {/* Passengers List - Section 3 */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
+                <Users className="h-3.5 w-3.5" />
+                Passengers ({requests.length})
+              </h3>
+              {requestsLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 rounded-lg" />
+                  ))}
+                </div>
+              ) : requests.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No passengers recorded</p>
+              ) : (
+                <div className="space-y-2">
+                  {requests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-3 rounded-lg border bg-card"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm">
+                            {req.guest_name || 'Guest'}
+                            {req.room_number && (
+                              <span className="text-muted-foreground ml-1">
+                                · Room {req.room_number}
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {req.pickup_name} → {req.dropoff_name}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="shrink-0">
+                          {req.party_size} pax
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="shrink-0">
-                        {req.party_size} pax
-                      </Badge>
+                      {req.notes && (
+                        <div className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                          <FileText className="h-3 w-3 mt-0.5 shrink-0" />
+                          <span className="line-clamp-2">{req.notes}</span>
+                        </div>
+                      )}
                     </div>
-                    {req.notes && (
-                      <div className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded p-2">
-                        <FileText className="h-3 w-3 mt-0.5 shrink-0" />
-                        <span className="line-clamp-2">{req.notes}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </ScrollArea>
       </DrawerContent>
