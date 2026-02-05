@@ -321,8 +321,64 @@ export default function DriverTripRunnerPage() {
           </Card>
         )}
 
-        {/* Special Instructions Panel - NEW */}
+        {/* Special Instructions Panel */}
         <DriverInstructionsPanel tripRequests={requests} />
+
+        {/* Request-Based Fallback: when stops are missing but requests exist */}
+        {stops.length === 0 && derivedInfo && (derivedInfo.pickupNames.length > 0 || derivedInfo.dropoffNames.length > 0) && (
+          <Card className="border-primary/50 shadow-lg bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Trip Information</CardTitle>
+              <CardDescription>
+                Derived from passenger requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Pickup */}
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Navigation className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Pickup</p>
+                  <p className="font-medium">{derivedInfo.pickupNames.join(', ') || '—'}</p>
+                </div>
+              </div>
+
+              {/* Dropoff */}
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Dropoff</p>
+                  <p className="font-medium">{derivedInfo.dropoffNames.join(', ') || '—'}</p>
+                </div>
+              </div>
+
+              {/* Guest info */}
+              {derivedInfo.firstGuest && derivedInfo.firstGuest.name && (
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-card border">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">{derivedInfo.firstGuest.name}</p>
+                    {derivedInfo.firstGuest.room && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                        <Home className="h-3 w-3" />
+                        Room {derivedInfo.firstGuest.room}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="ml-auto">
+                    {derivedInfo.totalPassengers} pax
+                  </Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Stop (prominent) */}
         {currentStop && currentLifecycleState !== 'assigned' && (
