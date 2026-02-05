@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MapPin, Navigation, Users, Clock, Route } from 'lucide-react';
+import { MapPin, Navigation, Users, Clock, Route, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDriverETAAndDistance, type DriverLocation } from '@/hooks/driver/useDriverETAAndDistance';
-import { getNextStop, countRemainingStops } from '@/lib/driverTrip';
+import { getNextStop, countRemainingStops, deriveTripInfoFromRequests } from '@/lib/driverTrip';
 import type { TripStopWithDetails, TripRequestWithDetails } from '@/hooks/transport/useTripDetails';
 
 export interface TripPreviewCardProps {
@@ -25,6 +25,8 @@ export interface TripPreviewCardProps {
  * Displays a preview of trip details including next stop, final stop,
  * passenger count, and ETA/distance to next stop.
  * Used exclusively in the Driver Portal.
+ * 
+ * Now includes fallback logic to derive info from tripRequests when stops are missing.
  */
 export function TripPreviewCard({
   trip,
@@ -42,11 +44,22 @@ export function TripPreviewCard({
     return tripStops[tripStops.length - 1];
   }, [tripStops]);
 
-  // Calculate passenger count
+  // Fallback: derive trip info from requests when stops are missing
+  const derivedInfo = useMemo(() => {
+    if (tripStops && tripStops.length > 0) return null;
+    return deriveTripInfoFromRequests(tripRequests);
+  }, [tripStops, tripRequests]);
+
+  // Calculate passenger count - prefer stops data, fallback to derived
   const passengerCount = useMemo(() => {
-    if (!tripRequests || tripRequests.length === 0) return 0;
-    return tripRequests.reduce((sum, req) => sum + (req.party_size || 0), 0);
-  }, [tripRequests]);
+    if (tripRequests && tripRequests.length > 0) {
+      return tripRequests.reduce((sum, req) => sum + (req.party_size || 0), 0);
+    }
+    if (derivedInfo) {
+      return derivedInfo.totalPassengers;
+    }
+    return 0;
+  }, [tripRequests, derivedInfo]);
 
   // Count remaining stops
   const remainingStops = useMemo(() => countRemainingStops(tripStops), [tripStops]);
@@ -82,36 +95,103 @@ export function TripPreviewCard({
     );
   }
 
+  // Check if we have stops or need fallback
+  const hasStops = tripStops && tripStops.length > 0;
+  const hasDerivedInfo = derivedInfo && (derivedInfo.pickupNames.length > 0 || derivedInfo.dropoffNames.length > 0);
+
   return (
     <Card className={cn("border-border/50 bg-card/80", className)}>
       <CardContent className={cn("space-y-3", compact ? "py-3 px-4" : "py-4")}>
-        {/* Next Stop */}
-        <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Navigation className="h-4 w-4 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">Next Stop</p>
-            <p className="font-medium truncate">
-              {nextStop?.stop_name || nextStop?.title || '—'}
-            </p>
-            {nextStop?.stop_zone && (
-              <p className="text-xs text-muted-foreground">{nextStop.stop_zone}</p>
-            )}
-          </div>
-        </div>
+        {/* Stops-based display (when stops are available) */}
+        {hasStops ? (
+          <>
+            {/* Next Stop */}
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Navigation className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Next Stop</p>
+                <p className="font-medium truncate">
+                  {nextStop?.stop_name || nextStop?.title || '—'}
+                </p>
+                {nextStop?.stop_zone && (
+                  <p className="text-xs text-muted-foreground">{nextStop.stop_zone}</p>
+                )}
+              </div>
+            </div>
 
-        {/* Final Stop (if different from next) */}
-        {finalStop && finalStop.id !== nextStop?.id && (
+            {/* Final Stop (if different from next) */}
+            {finalStop && finalStop.id !== nextStop?.id && (
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Final Stop</p>
+                  <p className="font-medium truncate text-muted-foreground">
+                    {finalStop.stop_name || finalStop.title || '—'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : hasDerivedInfo ? (
+          /* Fallback: Request-derived display */
+          <>
+            {/* Pickup Location */}
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Navigation className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Pickup</p>
+                <p className="font-medium truncate">
+                  {derivedInfo.pickupNames.join(', ') || '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Dropoff Location */}
+            <div className="flex items-start gap-3">
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Dropoff</p>
+                <p className="font-medium truncate text-muted-foreground">
+                  {derivedInfo.dropoffNames.join(', ') || '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* Guest Info */}
+            {derivedInfo.firstGuest && derivedInfo.firstGuest.name && (
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Guest</p>
+                  <p className="font-medium truncate">
+                    {derivedInfo.firstGuest.name}
+                    {derivedInfo.firstGuest.room && (
+                      <span className="text-muted-foreground"> • Room {derivedInfo.firstGuest.room}</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          /* No data available */
           <div className="flex items-start gap-3">
             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <Navigation className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">Final Stop</p>
-              <p className="font-medium truncate text-muted-foreground">
-                {finalStop.stop_name || finalStop.title || '—'}
-              </p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Trip Info</p>
+              <p className="font-medium text-muted-foreground">Loading trip details...</p>
             </div>
           </div>
         )}
