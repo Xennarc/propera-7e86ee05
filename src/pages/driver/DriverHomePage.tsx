@@ -221,24 +221,16 @@ export default function DriverHomePage() {
               />
             )}
 
-            {/* Action button - UNCHANGED */}
-            <Button
-              size="lg"
-              className="w-full h-14 text-lg gap-2"
+            {/* Contextual Action Button */}
+            <ContextualTripButton 
+              trip={currentTrip}
               onClick={() => navigate(`/driver/trip/${currentTrip.id}`)}
-            >
-              {currentTrip.status === 'assigned' ? (
-                <>
-                  <Play className="h-5 w-5" />
-                  Start Trip
-                </>
-              ) : (
-                <>
-                  Continue Trip
-                  <ChevronRight className="h-5 w-5" />
-                </>
-              )}
-            </Button>
+            />
+
+            {/* Trip State Microcopy */}
+            <TripStateMicrocopy 
+              state={(currentTrip.lifecycle_state || currentTrip.status) as any}
+            />
           </CardContent>
         </Card>
       ) : (
