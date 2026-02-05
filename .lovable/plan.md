@@ -1,164 +1,116 @@
 
 
-# Simplify Guest Request Submission (Remove Double Prompt)
+# Fix: Invalid Enum Value 'active' in Transport Triggers
 
 ## Problem
-The current request submission flow requires **two prompts** to send a request:
-1. **Sticky bar**: "Send request" button → Opens review sheet
-2. **Review sheet**: "Submit Request" button → Actually submits
 
-This feels redundant and slows down the guest experience. Most users select items and want to submit immediately.
+When cancelling a buggy request, the error occurs:
+```
+invalid input value for enum buggy_trip_request_state: "active"
+```
+
+**Root Cause**: Two database triggers reference `'active'` as a state value, but the `buggy_trip_request_state` enum only contains:
+- `queued`
+- `picked_up`
+- `dropped_off`
+- `cancelled`
+- `no_show`
+
+## Affected Triggers
+
+### 1. `sync_trip_request_on_request_update`
+```sql
+UPDATE buggy_trip_requests 
+SET state = NEW.status::buggy_trip_request_state, updated_at = now()
+WHERE request_id = NEW.id AND state = 'active';  -- ❌ BROKEN
+```
+
+### 2. `validate_request_status_transition`
+```sql
+IF NOT EXISTS (
+  SELECT 1 FROM buggy_trip_requests 
+  WHERE request_id = NEW.id AND state = 'active'  -- ❌ BROKEN
+) THEN
+```
+
+## Solution
+
+Replace `'active'` with `'queued'` - which represents an active/pending request in the trip:
+
+| Old Value | New Value | Rationale |
+|-----------|-----------|-----------|
+| `'active'` | `'queued'` | `queued` means the request is attached to a trip but not yet picked up |
 
 ---
 
-## Solution: Streamlined Single-Prompt Flow
+## Database Migration
 
-**New behavior**: The sticky bar "Send request" button submits directly (ASAP by default). The review sheet becomes optional - accessible via a secondary "Review" action for users who want to adjust quantities, add notes, or schedule.
+A single migration to update both trigger functions:
 
-| Current Flow | New Flow |
-|--------------|----------|
-| Select items → Click "Send" → Sheet opens → Click "Submit" | Select items → Click "Send" → **Submits immediately** |
-| 2 taps to submit | 1 tap to submit |
-| Review sheet is mandatory | Review sheet is optional (via "Review" link) |
-
----
-
-## UI Changes
-
-### 1. Update Sticky Bar (`RequestsStickyBar.tsx`)
-
-**Before:**
-```
-[Shopping bag icon] 2 items selected    [Send request →]
-                    1 unique item
-```
-
-**After:**
-```
-[Shopping bag icon] 2 items selected    [Review]  [Send now ⚡]
-                    1 unique item
-```
-
-- **"Send now"** button: Submits immediately with ASAP timing (primary action)
-- **"Review"** link: Opens the bundle sheet for users who want to edit quantities, add notes, or schedule (secondary action)
-
-### 2. Update `GuestRequestsPage.tsx`
-
-Add a new handler for direct submission:
-- `handleDirectSubmit()`: Calls `createBundle()` with selected items, `isAsap: true`, and any notes from the inline notes card
-- Success shows toast with "View My Requests" action
-- Error keeps items selected so user can retry
-
-Keep `handleOpenReview()` for the optional review flow.
-
-### 3. Simplify Notes Input
-
-The `RequestNotesCard` already exists on the catalog page. Notes entered there will be passed to direct submission, so users can add notes without opening the sheet.
-
----
-
-## Technical Details
-
-### File: `src/components/guest/requests/RequestsStickyBar.tsx`
-
-**Changes:**
-1. Add new prop: `onDirectSubmit: () => void`
-2. Rename `onSubmit` to `onReview` for clarity
-3. Add two buttons:
-   - Secondary "Review" button (outline variant) → calls `onReview`
-   - Primary "Send now" button → calls `onDirectSubmit`
-4. Show loading state on "Send now" when `isSubmitting`
-
-```tsx
-interface RequestsStickyBarProps {
-  selectedCount: number;
-  totalQuantity: number;
-  onDirectSubmit: () => void;  // New: immediate submission
-  onReview: () => void;        // Opens review sheet
-  isSubmitting?: boolean;
-  disabled?: boolean;
-}
-```
-
-**New UI layout:**
-```tsx
-<div className="flex items-center gap-2">
-  <Button variant="ghost" size="sm" onClick={onReview}>
-    Review
-  </Button>
-  <Button onClick={onDirectSubmit} disabled={isSubmitting}>
-    {isSubmitting ? <Loader2 /> : <Zap />}
-    Send now
-  </Button>
-</div>
-```
-
-### File: `src/pages/guest/GuestRequestsPage.tsx`
-
-**Changes:**
-1. Add `handleDirectSubmit` handler:
-```tsx
-const handleDirectSubmit = async () => {
-  if (selectedItems.length === 0) return;
+```sql
+-- Fix trigger 1: sync_trip_request_on_request_update
+CREATE OR REPLACE FUNCTION public.sync_trip_request_on_request_update()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- When request is cancelled or completed, update corresponding trip_request
+  IF NEW.status IN ('cancelled', 'completed', 'failed', 'no_show') THEN
+    UPDATE buggy_trip_requests 
+    SET state = NEW.status::buggy_trip_request_state, updated_at = now()
+    WHERE request_id = NEW.id AND state = 'queued';  -- ✅ FIXED
+  END IF;
   
-  try {
-    await createBundle({
-      items: selectedItems.map(i => ({ catalogId: i.catalogId, quantity: i.quantity })),
-      isAsap: true,
-      guestNotes: notes.trim() || undefined,
-    });
-    
-    setSelectedItems([]);
-    setNotes('');
-    // Toast with action shown by mutation onSuccess
-  } catch (error) {
-    console.error('Failed to submit request:', error);
-  }
-};
+  RETURN NEW;
+END;
+$function$;
+
+-- Fix trigger 2: validate_request_status_transition
+CREATE OR REPLACE FUNCTION public.validate_request_status_transition()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $function$
+BEGIN
+  -- Prevent direct transition to 'assigned_to_trip' without going through RPC
+  IF NEW.status = 'assigned_to_trip' AND OLD.status IN ('requested', 'queued') THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM buggy_trip_requests 
+      WHERE request_id = NEW.id AND state = 'queued'  -- ✅ FIXED
+    ) THEN
+      RAISE EXCEPTION 'Request cannot be marked as assigned_to_trip without an active trip link';
+    END IF;
+  END IF;
+  
+  -- Prevent going backwards from later states to earlier states (except via cancel)
+  IF OLD.status IN ('driver_en_route', 'arrived', 'picked_up') 
+     AND NEW.status IN ('requested', 'queued', 'assigned_to_trip')
+     AND NEW.status != 'cancelled' THEN
+    RAISE EXCEPTION 'Cannot revert request status from % to %', OLD.status, NEW.status;
+  END IF;
+  
+  RETURN NEW;
+END;
+$function$;
 ```
-
-2. Update `RequestsStickyBar` props:
-```tsx
-<RequestsStickyBar
-  selectedCount={selectedItems.length}
-  totalQuantity={totalSelectedCount}
-  onDirectSubmit={handleDirectSubmit}
-  onReview={handleOpenReview}
-  isSubmitting={isCreatingBundle}
-  disabled={selectedItems.length === 0}
-/>
-```
-
----
-
-## User Experience Summary
-
-| User Goal | New Flow |
-|-----------|----------|
-| Quick ASAP request | Select items → "Send now" (1 tap) |
-| Add notes | Type in notes card → "Send now" (1 tap) |
-| Adjust quantities | Select items → "Review" → Adjust → "Submit" (2 taps) |
-| Schedule for later | Select items → "Review" → Pick time → "Submit" (2 taps) |
-
-**Result**: The 80% use case (quick ASAP requests) becomes a single tap. The 20% use case (scheduled/adjusted requests) remains available via "Review".
 
 ---
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/components/guest/requests/RequestsStickyBar.tsx` | Add dual-button layout, new `onDirectSubmit` prop |
-| `src/pages/guest/GuestRequestsPage.tsx` | Add `handleDirectSubmit`, update sticky bar props |
+| File | Action | Description |
+|------|--------|-------------|
+| New migration | CREATE | Fix both trigger functions to use `'queued'` instead of `'active'` |
 
 ---
 
 ## Verification
 
-After implementation:
-1. Select 1-2 items → Click "Send now" → Request submits immediately (no sheet)
-2. Toast shows "Request sent to [Department]" with "View My Requests" action
-3. Click "Review" → Sheet opens as before for quantity/time adjustments
-4. Notes entered on catalog page are included in direct submission
-5. Sheet still works for full edit flow when accessed via "Review"
+After the migration:
+1. Go to Guest Portal → My Rides
+2. Find an active request (status: Submitted/Queued)
+3. Click "Cancel" → Confirm
+4. Request should cancel successfully without errors
+5. Staff Dashboard should reflect the cancelled state
 
