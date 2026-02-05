@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
- import { Plus, ClipboardList, Loader2, Sparkles, Coffee, PartyPopper, ArrowRight } from 'lucide-react';
+ import { Plus, ClipboardList, Loader2, Sparkles, Coffee, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
  import { isActiveStatus, type RequestStatus } from '@/lib/requests/statusDisplay';
 
