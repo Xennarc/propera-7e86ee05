@@ -163,6 +163,7 @@ const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPa
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const BookDemoPage = lazy(() => import("./pages/BookDemoPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -192,6 +193,7 @@ const App = () => (
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/book-demo" element={<BookDemoPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 
                 {/* Public resort marketing pages */}
                 <Route path="/resorts/:code" element={<ResortMarketingPage />} />
