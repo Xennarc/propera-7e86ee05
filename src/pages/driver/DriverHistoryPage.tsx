@@ -41,6 +41,7 @@ export default function DriverHistoryPage() {
   const [dateRange, setDateRange] = useState<HistoryDateRange>('7d');
   const [selectedTrip, setSelectedTrip] = useState<DriverTripHistoryRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: trips = [], isLoading } = useDriverTripHistory(resortId, user?.id, dateRange);
 
