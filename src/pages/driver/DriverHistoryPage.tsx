@@ -86,34 +86,36 @@ export default function DriverHistoryPage() {
         </div>
       </div>
 
-      {/* Date Range Toggle */}
-      <div className="px-4 py-3 border-b bg-muted/30">
+      {/* Date Range Toggle + Search */}
+      <div className="px-4 py-3 border-b bg-muted/30 space-y-3">
         <div className="flex items-center gap-2 max-w-lg mx-auto">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
-            <button
-              onClick={() => setDateRange('7d')}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                dateRange === '7d'
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Last 7 days
-            </button>
-            <button
-              onClick={() => setDateRange('30d')}
-              className={cn(
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
-                dateRange === '30d'
-                  ? 'bg-background shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              Last 30 days
-            </button>
+          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex gap-1 bg-muted rounded-lg p-1 overflow-x-auto">
+            {(['7d', '30d', 'all'] as HistoryDateRange[]).map((range) => (
+              <button
+                key={range}
+                onClick={() => setDateRange(range)}
+                className={cn(
+                  'px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+                  dateRange === range
+                    ? 'bg-background shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : 'All time'}
+              </button>
+            ))}
           </div>
+        </div>
+        {/* Search Input */}
+        <div className="relative max-w-lg mx-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search stops, buggy..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-10"
+          />
         </div>
       </div>
 
