@@ -1,10 +1,6 @@
-import { Settings, Smartphone, Users, Play, Waves, Sun, Sparkles, CheckCircle2, Clock, Circle } from 'lucide-react';
+import { Settings, Smartphone, Users, Play } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { cn } from '@/lib/utils';
-
-import { DeviceMockup } from '@/components/illustrations/DeviceMockup';
-import { StaffTasksShowcase } from '@/components/illustrations/StaffTasksShowcase';
 
 const steps = [
   {
