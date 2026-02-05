@@ -27,7 +27,9 @@ interface TripCardProps {
   onViewDetails: () => void;
   onRemoveRequest: (requestId: string) => void;
   onCancelTrip?: () => void;
+  onCompleteTrip?: () => void;
   isCancellingTrip?: boolean;
+  isCompletingTrip?: boolean;
 }
 
 const statusConfig = {
