@@ -2,10 +2,10 @@ import {
   Smartphone, 
   Activity, 
   UtensilsCrossed, 
-  Sparkles, 
-  Plane, 
   MessageSquare, 
-  BarChart3,
+  Car,
+  Navigation,
+  Award,
   Calendar,
   Users,
   Bell
