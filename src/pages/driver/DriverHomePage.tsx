@@ -1,4 +1,4 @@
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { 
   useDriverSession, 
@@ -23,6 +23,7 @@ import {
   Loader2,
   AlertCircle,
   Play,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -104,11 +105,18 @@ export default function DriverHomePage() {
   return (
     <div className="p-4 pb-8 space-y-6 max-w-lg mx-auto">
       {/* Header */}
-      <div className="text-center pt-4">
-        <h1 className="text-2xl font-bold">Driver Portal</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {currentResort?.name || 'Resort'}
-        </p>
+      <div className="flex items-center justify-between pt-4">
+        <div>
+          <h1 className="text-2xl font-bold">Driver Portal</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {currentResort?.name || 'Resort'}
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" asChild>
+          <Link to="/driver/history">
+            <History className="h-5 w-5" />
+          </Link>
+        </Button>
       </div>
 
       {/* Status Toggle */}
