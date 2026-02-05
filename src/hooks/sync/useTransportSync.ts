@@ -4,6 +4,7 @@ import { useRealtimeSubscription, createResortFilter, createFilter } from './use
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { queryKeys } from '@/lib/query-keys';
 import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+import { toast } from 'sonner';
 
 // Debug flag for development
 const DEBUG_REALTIME_DEPRECATION = false;
@@ -14,6 +15,7 @@ const DEBUG_REALTIME_DEPRECATION = false;
 export const transportQueryKeys = {
   queue: (resortId: string) => ['transport-queue', resortId],
   trips: (resortId: string) => ['transport-trips', resortId],
+  completedTrips: (resortId: string) => ['transport-completed-trips', resortId],
   tripStops: (tripId: string) => ['trip-stops', tripId],
   tripRequests: (tripId: string) => ['trip-requests', tripId],
   buggies: (resortId: string) => ['buggies', resortId],
