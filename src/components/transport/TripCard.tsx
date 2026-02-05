@@ -37,6 +37,7 @@ const statusConfig = {
   assigned: { label: 'Assigned', className: 'bg-purple-500/20 text-purple-600' },
   en_route: { label: 'En Route', className: 'bg-amber-500/20 text-amber-600' },
   active: { label: 'Active', className: 'bg-green-500/20 text-green-600' },
+  completed: { label: 'Completed', className: 'bg-muted text-muted-foreground' },
 };
 
 export function TripCard({
