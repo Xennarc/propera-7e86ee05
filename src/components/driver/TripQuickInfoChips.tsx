@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface TripQuickInfoChipsProps {
   tripRequests?: TripRequestWithDetails[] | null;
-  trip?: { scheduled_for?: string | null } | null;
+  trip?: any; // Using any to accept various trip shapes
   className?: string;
 }
 
