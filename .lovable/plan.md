@@ -1,31 +1,33 @@
 
-# Fix: Driver Portal "COALESCE types cannot be matched" Error
+# Fix: Invalid Enum Value 'in_progress' in Driver Trip State Update
 
 ## Problem
 
-When a driver tries to start a trip, the following error appears:
+When a driver tries to progress a trip (e.g., start trip), the error occurs:
 ```
-COALESCE types text and buggy_trip_status cannot be matched
+Invalid input value for enum buggy_trip_status: "in_progress"
 ```
 
-**Root Cause**: In `rpc_transport_driver_update_trip_state`, line 38 uses:
+**Root Cause**: The `rpc_transport_driver_update_trip_state` function (updated in the last migration) uses:
 ```sql
-v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status);
+WHEN p_next_state = 'enroute_to_pickup' THEN 'in_progress'::buggy_trip_status
 ```
 
-- `lifecycle_state` is type `text`
-- `status` is an enum type `buggy_trip_status`
-
-PostgreSQL cannot COALESCE across incompatible types without an explicit cast.
+The `buggy_trip_status` enum does not contain `'in_progress'`. The valid values are:
+- `planning`
+- `assigned`
+- `active` ← This is what should be used instead
+- `completed`
+- `cancelled`
 
 ---
 
 ## Solution
 
-Cast the enum to text before COALESCE:
+Update the status assignment to use `'active'` instead of `'in_progress'`:
 
 ```sql
-v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
+WHEN p_next_state = 'enroute_to_pickup' THEN 'active'::buggy_trip_status
 ```
 
 ---
@@ -33,47 +35,14 @@ v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
 ## Database Migration
 
 ```sql
--- Fix: Cast status enum to text for COALESCE compatibility
-CREATE OR REPLACE FUNCTION public.rpc_transport_driver_update_trip_state(
-  p_resort_id uuid,
-  p_trip_id uuid,
-  p_driver_user_id uuid,
-  p_next_state text
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_trip RECORD;
-  v_current_state text;
-  v_valid_transition boolean := false;
-  v_request_count int;
-BEGIN
-  -- 1) Lock and validate trip
-  SELECT * INTO v_trip
-  FROM buggy_trips
-  WHERE id = p_trip_id
-    AND resort_id = p_resort_id
-  FOR UPDATE NOWAIT;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Trip not found or does not belong to this resort';
-  END IF;
-  
-  -- 2) Verify driver ownership
-  IF v_trip.driver_user_id IS DISTINCT FROM p_driver_user_id THEN
-    RAISE EXCEPTION 'Trip is not assigned to this driver';
-  END IF;
-  
-  -- 3) Get current lifecycle state (fallback to status if null)
-  -- FIX: Cast enum to text for COALESCE compatibility
-  v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
-  
-  -- ... rest of function unchanged
-END;
-$$;
+-- Fix: Replace 'in_progress' with valid enum value 'active'
+CREATE OR REPLACE FUNCTION public.rpc_transport_driver_update_trip_state(...)
+  -- In the status update CASE:
+  status = CASE 
+    WHEN p_next_state = 'enroute_to_pickup' THEN 'active'::buggy_trip_status  -- FIXED
+    WHEN p_next_state = 'completed' THEN 'completed'::buggy_trip_status
+    ELSE status
+  END,
 ```
 
 ---
@@ -82,20 +51,14 @@ $$;
 
 | File | Action | Description |
 |------|--------|-------------|
-| New migration | CREATE | Fix COALESCE type mismatch by casting enum to text |
+| New migration | CREATE | Fix trip status from `'in_progress'` to `'active'` |
 
 ---
 
 ## Verification
 
 After migration:
-1. Go to Driver Portal (/driver)
-2. Locate an assigned trip
-3. Tap "Start Trip"
-4. Trip should transition to "En Route to Pickup" without errors
-
----
-
-## Note on Feature Request
-
-You also mentioned improving the Driver Portal to show stops in a buggy request. After fixing this bug, we can enhance the stop display in a follow-up iteration if needed.
+1. Go to Driver Portal → /driver/trip/{tripId}
+2. Tap "Start Trip"
+3. Trip should transition without errors
+4. Status should update to "active"
