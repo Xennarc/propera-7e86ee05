@@ -64,10 +64,21 @@ export function useTransportRequestsSync({
 
       case 'buggy_trips':
         keysToInvalidate.push(transportQueryKeys.trips(resortId));
+        // Also invalidate completed trips when a trip status changes
+        keysToInvalidate.push(transportQueryKeys.completedTrips(resortId));
         // Invalidate specific trip stops if we have trip ID
         if (payload.new?.id) {
           keysToInvalidate.push(transportQueryKeys.tripStops(payload.new.id));
           keysToInvalidate.push(transportQueryKeys.tripRequests(payload.new.id));
+        }
+        
+        // Show toast when trip is completed by driver
+        if (payload.eventType === 'UPDATE' && 
+            payload.new?.status === 'completed' && 
+            payload.old?.status !== 'completed') {
+          toast.success('Trip completed!', {
+            description: 'A trip has been completed by the driver.',
+          });
         }
         break;
 

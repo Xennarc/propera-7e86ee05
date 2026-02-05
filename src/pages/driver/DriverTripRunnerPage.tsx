@@ -142,6 +142,16 @@ export default function DriverTripRunnerPage() {
     return stops.length > 0 && stops.every(s => s.status === 'completed' || s.status === 'skipped');
   }, [stops]);
 
+  // Calculate trip duration for completion screen
+  const tripDurationMinutes = useMemo(() => {
+    if (!trip?.start_at || !trip?.end_at) return undefined;
+    try {
+      return differenceInMinutes(new Date(trip.end_at), new Date(trip.start_at));
+    } catch {
+      return undefined;
+    }
+  }, [trip?.start_at, trip?.end_at]);
+
   // Handler to advance trip state
   const handleAdvanceState = useCallback(() => {
     if (tripId && nextState) {
@@ -194,6 +204,19 @@ export default function DriverTripRunnerPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  // Show completion screen when trip is completed
+  if (currentLifecycleState === 'completed' || trip?.status === 'completed') {
+    return (
+      <TripCompletedScreen
+        tripId={tripId || ''}
+        stopsCount={stops.length}
+        passengersCount={requests.reduce((sum, r) => sum + r.party_size, 0)}
+        durationMinutes={tripDurationMinutes}
+        onGoHome={() => navigate('/driver')}
+      />
     );
   }
 
