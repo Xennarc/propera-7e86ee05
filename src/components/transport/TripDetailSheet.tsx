@@ -45,6 +45,10 @@ interface TripDetailSheetProps {
   stops: TripStopWithDetails[];
   onReorderStops: (orderedIds: string[]) => void;
   isReordering: boolean;
+  onCompleteTrip?: (tripId: string) => void;
+  onCancelTrip?: (tripId: string) => void;
+  isCompletingTrip?: boolean;
+  isCancellingTrip?: boolean;
 }
 
 const stopKindConfig = {
