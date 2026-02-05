@@ -186,6 +186,9 @@ export function DriverLayout() {
       <main className="flex-1 pt-8">
         <Outlet context={{ driverSession, settings, isOnline, driverLocation }} />
       </main>
+
+      {/* Debug Console - accessible via ?debug=1 */}
+      {isDebugMode && driverSession && <DriverDebugConsole />}
     </div>
   );
 }
