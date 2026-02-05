@@ -181,28 +181,42 @@ export function TripCard({
                 Assign Buggy & Driver
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={onViewDetails}>
-              <Settings2 className="h-4 w-4 mr-2" />
-              Details
-            </Button>
-            {/* Cancel empty trip button */}
-            {needsAssignment && activeRequests.length === 0 && onCancelTrip && (
+            
+            {/* Mark Complete button for active trips */}
+            {canComplete && onCompleteTrip && (
               <Button 
                 size="sm" 
-                variant="destructive" 
-                onClick={onCancelTrip}
-                disabled={isCancellingTrip}
+                variant="outline"
+                className="border-green-500/30 text-green-600 hover:bg-green-500/10"
+                onClick={onCompleteTrip}
+                disabled={isCompletingTrip}
               >
-                {isCancellingTrip ? (
+                {isCompletingTrip ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Cancel Trip
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete
                   </>
                 )}
               </Button>
             )}
+            
+            <Button size="sm" variant="outline" onClick={onViewDetails}>
+              <Settings2 className="h-4 w-4 mr-2" />
+              Details
+            </Button>
+            
+            {/* Trip Actions dropdown menu */}
+            <TripActions
+              tripId={trip.id}
+              tripStatus={trip.status}
+              requestCount={activeRequests.length}
+              onCancel={onCancelTrip}
+              onComplete={onCompleteTrip}
+              isCompleting={isCompletingTrip}
+              isCancelling={isCancellingTrip}
+            />
           </div>
         </motion.div>
       )}
