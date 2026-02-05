@@ -15,8 +15,12 @@ import {
   type TripLifecycleState,
 } from '@/hooks/transport/useDriverLifecycleActions';
 import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
+import { useDriverETAAndDistance } from '@/hooks/driver/useDriverETAAndDistance';
+import { getNextStop } from '@/lib/driverTrip';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
+import { DriverInstructionsPanel } from '@/components/driver/DriverInstructionsPanel';
+import { PassengerNotesIndicator } from '@/components/driver/PassengerNotesIndicator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +52,8 @@ import {
   Star,
   Home,
   Navigation,
+  Route,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -72,7 +78,7 @@ export default function DriverTripRunnerPage() {
   const { user } = useAuth();
   const resortId = currentResort?.id;
   
-  const { driverSession, isOnline } = useOutletContext<DriverOutletContext>();
+  const { driverSession, isOnline, driverLocation } = useOutletContext<DriverOutletContext>();
 
   // Realtime sync for faster updates
   useDriverRealtimeSync({
@@ -105,6 +111,17 @@ export default function DriverTripRunnerPage() {
   const currentStop = useMemo(() => {
     return stops.find(s => s.status === 'pending') || null;
   }, [stops]);
+
+  // Get next stop for ETA calculation (using helper)
+  const nextStopForETA = useMemo(() => getNextStop(stops), [stops]);
+  const nextStopLocation = nextStopForETA?.stopLatLng ?? null;
+
+  // Calculate ETA and distance
+  const { distanceLabel, etaLabel } = useDriverETAAndDistance({
+    tripId,
+    driverLocation,
+    nextStopLocation,
+  });
 
   // Calculate progress
   const progress = useMemo(() => {
@@ -265,6 +282,9 @@ export default function DriverTripRunnerPage() {
           </Card>
         )}
 
+        {/* Special Instructions Panel - NEW */}
+        <DriverInstructionsPanel tripRequests={requests} />
+
         {/* Current Stop (prominent) */}
         {currentStop && currentLifecycleState !== 'assigned' && (
           <Card className="border-primary/50 shadow-lg bg-primary/5">
@@ -296,6 +316,19 @@ export default function DriverTripRunnerPage() {
                     </Badge>
                   )}
                 </div>
+                
+                {/* ETA + Distance Row - NEW */}
+                <div className="flex items-center gap-4 mt-3 text-sm">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Route className="h-4 w-4" />
+                    <span>{distanceLabel}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{etaLabel}</span>
+                  </div>
+                </div>
+
                 {/* Navigation link */}
                 <div className="mt-3">
                   <StopNavigationLink
@@ -526,6 +559,8 @@ export default function DriverTripRunnerPage() {
                       )}
                     </div>
                   </div>
+                  {/* Notes indicator - NEW */}
+                  <PassengerNotesIndicator request={req} />
                   <Badge variant={req.state === 'picked_up' ? 'default' : 'outline'} className="shrink-0">
                     {req.state}
                   </Badge>
