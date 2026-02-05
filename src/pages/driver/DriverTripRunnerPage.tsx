@@ -590,7 +590,46 @@ export default function DriverTripRunnerPage() {
             </CardContent>
           </Card>
         )}
+        
+        {/* Spacer for mobile action bar */}
+        <DriverMobileActionBarSpacer />
       </div>
+
+      {/* Mobile Sticky Action Bar */}
+      {currentStop && currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && (
+        <DriverMobileActionBar className="md:hidden">
+          {currentStop.status === 'pending' ? (
+            <>
+              <Button
+                size="lg"
+                className="flex-1 h-12"
+                onClick={() => handleArrived(currentStop.id)}
+                disabled={isPending}
+              >
+                {updateStop.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <MapPin className="h-5 w-5 mr-2" />}
+                Arrived
+              </Button>
+              <StopNavigationLink
+                stopName={currentStop.stop_name || currentStop.title || 'Stop'}
+                zone={(currentStop as any).zone}
+                location={(currentStop as any).location}
+                variant="button"
+                className="shrink-0"
+              />
+            </>
+          ) : (
+            <Button
+              size="lg"
+              className="flex-1 h-12"
+              onClick={() => handleCompleteStop(currentStop.id)}
+              disabled={isPending}
+            >
+              {updateStop.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
+              Complete Stop
+            </Button>
+          )}
+        </DriverMobileActionBar>
+      )}
 
       {/* Skip confirmation dialog */}
       <AlertDialog open={!!skipConfirmId} onOpenChange={(open) => !open && setSkipConfirmId(null)}>
