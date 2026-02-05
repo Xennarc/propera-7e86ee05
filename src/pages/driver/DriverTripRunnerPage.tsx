@@ -286,7 +286,7 @@ export default function DriverTripRunnerPage() {
         )}
         
         {/* Lifecycle State Actions - for intermediate states */}
-        {currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && nextActionLabel && (
+        {currentLifecycleState !== 'assigned' && nextActionLabel && (
           <Card className="border-primary/50 shadow-md">
             <CardContent className="py-4">
               <div className="flex items-center justify-between mb-3">
