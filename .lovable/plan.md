@@ -1,93 +1,67 @@
 
-
-# Fix: Invalid Enum Value 'active' in Transport Triggers
+# Fix: Cannot Cast buggy_request_status to buggy_trip_request_state
 
 ## Problem
 
-When cancelling a buggy request, the error occurs:
+A new error now appears when cancelling:
 ```
-invalid input value for enum buggy_trip_request_state: "active"
+cannot cast type buggy_request_status to buggy_trip_request_state
+Code: 42846
 ```
 
-**Root Cause**: Two database triggers reference `'active'` as a state value, but the `buggy_trip_request_state` enum only contains:
-- `queued`
-- `picked_up`
-- `dropped_off`
-- `cancelled`
-- `no_show`
-
-## Affected Triggers
-
-### 1. `sync_trip_request_on_request_update`
+**Root Cause**: The trigger function uses direct enum-to-enum casting:
 ```sql
-UPDATE buggy_trip_requests 
-SET state = NEW.status::buggy_trip_request_state, updated_at = now()
-WHERE request_id = NEW.id AND state = 'active';  -- ❌ BROKEN
+SET state = NEW.status::buggy_trip_request_state
 ```
 
-### 2. `validate_request_status_transition`
-```sql
-IF NOT EXISTS (
-  SELECT 1 FROM buggy_trip_requests 
-  WHERE request_id = NEW.id AND state = 'active'  -- ❌ BROKEN
-) THEN
-```
+PostgreSQL doesn't allow direct casting between different enum types, even when the value exists in both. We must cast through `text` first.
 
-## Solution
+## Enum Comparison
 
-Replace `'active'` with `'queued'` - which represents an active/pending request in the trip:
+| buggy_request_status | buggy_trip_request_state |
+|---------------------|-------------------------|
+| requested | - |
+| queued | queued |
+| assigned_to_trip | - |
+| driver_en_route | - |
+| arrived | - |
+| picked_up | picked_up |
+| completed | → dropped_off (mapped) |
+| cancelled | cancelled |
+| failed | → cancelled (mapped) |
+| no_show | no_show |
 
-| Old Value | New Value | Rationale |
-|-----------|-----------|-----------|
-| `'active'` | `'queued'` | `queued` means the request is attached to a trip but not yet picked up |
+Note: `completed` and `failed` don't exist in `buggy_trip_request_state`, so we need explicit mapping.
 
 ---
 
-## Database Migration
+## Solution
 
-A single migration to update both trigger functions:
+Update `sync_trip_request_on_request_update` to:
+1. Cast through `text` first: `(NEW.status::text)::buggy_trip_request_state`
+2. Map incompatible values explicitly (`completed` → `dropped_off`, `failed` → `cancelled`)
 
 ```sql
--- Fix trigger 1: sync_trip_request_on_request_update
 CREATE OR REPLACE FUNCTION public.sync_trip_request_on_request_update()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path TO 'public'
 AS $function$
+DECLARE
+  v_new_state buggy_trip_request_state;
 BEGIN
-  -- When request is cancelled or completed, update corresponding trip_request
+  -- When request reaches a terminal state, update corresponding trip_request
   IF NEW.status IN ('cancelled', 'completed', 'failed', 'no_show') THEN
+    -- Map request status to trip_request state (different enums!)
+    v_new_state := CASE NEW.status
+      WHEN 'completed' THEN 'dropped_off'::buggy_trip_request_state
+      WHEN 'failed' THEN 'cancelled'::buggy_trip_request_state
+      ELSE (NEW.status::text)::buggy_trip_request_state
+    END;
+    
     UPDATE buggy_trip_requests 
-    SET state = NEW.status::buggy_trip_request_state, updated_at = now()
-    WHERE request_id = NEW.id AND state = 'queued';  -- ✅ FIXED
-  END IF;
-  
-  RETURN NEW;
-END;
-$function$;
-
--- Fix trigger 2: validate_request_status_transition
-CREATE OR REPLACE FUNCTION public.validate_request_status_transition()
-RETURNS trigger
-LANGUAGE plpgsql
-SET search_path TO 'public'
-AS $function$
-BEGIN
-  -- Prevent direct transition to 'assigned_to_trip' without going through RPC
-  IF NEW.status = 'assigned_to_trip' AND OLD.status IN ('requested', 'queued') THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM buggy_trip_requests 
-      WHERE request_id = NEW.id AND state = 'queued'  -- ✅ FIXED
-    ) THEN
-      RAISE EXCEPTION 'Request cannot be marked as assigned_to_trip without an active trip link';
-    END IF;
-  END IF;
-  
-  -- Prevent going backwards from later states to earlier states (except via cancel)
-  IF OLD.status IN ('driver_en_route', 'arrived', 'picked_up') 
-     AND NEW.status IN ('requested', 'queued', 'assigned_to_trip')
-     AND NEW.status != 'cancelled' THEN
-    RAISE EXCEPTION 'Cannot revert request status from % to %', OLD.status, NEW.status;
+    SET state = v_new_state, updated_at = now()
+    WHERE request_id = NEW.id AND state = 'queued';
   END IF;
   
   RETURN NEW;
@@ -101,16 +75,13 @@ $function$;
 
 | File | Action | Description |
 |------|--------|-------------|
-| New migration | CREATE | Fix both trigger functions to use `'queued'` instead of `'active'` |
+| New migration | CREATE | Fix enum casting with explicit mapping |
 
 ---
 
 ## Verification
 
-After the migration:
-1. Go to Guest Portal → My Rides
-2. Find an active request (status: Submitted/Queued)
-3. Click "Cancel" → Confirm
-4. Request should cancel successfully without errors
-5. Staff Dashboard should reflect the cancelled state
-
+After migration:
+1. Guest Portal → My Rides → Cancel an active request
+2. Should succeed without error
+3. Request shows as Cancelled in both guest and staff views
