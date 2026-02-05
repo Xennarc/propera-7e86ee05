@@ -45,12 +45,12 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh]">
-        <DrawerHeader className="text-left">
-          <div className="flex items-center gap-2">
+      <DrawerContent className="max-h-[90vh]">
+        <DrawerHeader className="text-left border-b pb-4">
+          <div className="flex items-center gap-2 mb-2">
             {isCompleted ? (
-              <Badge variant="outline" className="gap-1">
-                <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
+              <Badge variant="outline" className="gap-1 border-emerald-500/50 text-emerald-700 dark:text-emerald-400 bg-emerald-500/5">
+                <CheckCircle2 className="h-3 w-3" />
                 Completed
               </Badge>
             ) : (
@@ -66,7 +66,7 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
               </Badge>
             )}
           </div>
-          <DrawerTitle className="mt-2">
+          <DrawerTitle className="text-lg">
             {trip.first_stop_name && trip.last_stop_name ? (
               <span className="flex items-center gap-2 flex-wrap">
                 {trip.first_stop_name}
@@ -82,25 +82,31 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
           </DrawerDescription>
         </DrawerHeader>
 
-        <ScrollArea className="flex-1 px-5 pb-6">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
-              <MapPin className="h-4 w-4 text-muted-foreground mb-1" />
-              <span className="text-lg font-semibold">{trip.stop_count}</span>
-              <span className="text-xs text-muted-foreground">Stops</span>
+        <ScrollArea className="flex-1 max-h-[calc(90vh-160px)]">
+          <div className="px-5 py-4 space-y-6">
+            {/* Summary Stats - Section 1 */}
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                Summary
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
+                  <MapPin className="h-4 w-4 text-muted-foreground mb-1" />
+                  <span className="text-lg font-semibold">{trip.stop_count}</span>
+                  <span className="text-xs text-muted-foreground">Stops</span>
+                </div>
+                <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
+                  <Users className="h-4 w-4 text-muted-foreground mb-1" />
+                  <span className="text-lg font-semibold">{trip.capacity_total ?? trip.request_count}</span>
+                  <span className="text-xs text-muted-foreground">Passengers</span>
+                </div>
+                <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
+                  <Clock className="h-4 w-4 text-muted-foreground mb-1" />
+                  <span className="text-lg font-semibold">{duration ?? '—'}</span>
+                  <span className="text-xs text-muted-foreground">Minutes</span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
-              <Users className="h-4 w-4 text-muted-foreground mb-1" />
-              <span className="text-lg font-semibold">{trip.capacity_total ?? trip.request_count}</span>
-              <span className="text-xs text-muted-foreground">Passengers</span>
-            </div>
-            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50">
-              <Clock className="h-4 w-4 text-muted-foreground mb-1" />
-              <span className="text-lg font-semibold">{duration ?? '—'}</span>
-              <span className="text-xs text-muted-foreground">Minutes</span>
-            </div>
-          </div>
 
           {/* Stops List */}
           <div className="mb-6">
