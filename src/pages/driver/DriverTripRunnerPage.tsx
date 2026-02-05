@@ -446,7 +446,21 @@ export default function DriverTripRunnerPage() {
         {/* All Stops List */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">All Stops</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">All Stops</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => {
+                  setAllStopsExpanded(!allStopsExpanded);
+                  setExpandedStopId(allStopsExpanded ? null : stops[0]?.id || null);
+                }}
+              >
+                <ChevronsUpDown className="h-3.5 w-3.5" />
+                {allStopsExpanded ? 'Collapse All' : 'Expand All'}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {stops.map((stop, index) => {
