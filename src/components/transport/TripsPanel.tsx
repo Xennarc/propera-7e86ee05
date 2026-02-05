@@ -26,6 +26,7 @@ type TripTab = 'planning' | 'active' | 'completed';
 
 export function TripsPanel({
   trips,
+  completedTrips = [],
   isLoading,
   onAssignTrip,
   onAddRequestToTrip,
@@ -43,7 +44,17 @@ export function TripsPanel({
     t.status === 'assigned' || t.status === 'en_route' || t.status === 'active'
   );
   
-  const displayTrips = activeTab === 'planning' ? planningTrips : activeTrips;
+  // Filter completed trips to show only last 24 hours
+  const recentCompletedTrips = completedTrips.filter(t => {
+    if (!t.end_at) return false;
+    return differenceInHours(new Date(), new Date(t.end_at)) < 24;
+  });
+  
+  const displayTrips = activeTab === 'planning' 
+    ? planningTrips 
+    : activeTab === 'active' 
+      ? activeTrips 
+      : recentCompletedTrips;
   
   return (
     <div className="flex flex-col h-full">
