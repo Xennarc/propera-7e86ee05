@@ -1,40 +1,31 @@
 
-
-# Fix: Invalid Enum Value 'pending' in Trip Creation Validation
+# Fix: Driver Portal "COALESCE types cannot be matched" Error
 
 ## Problem
 
-When creating a trip, the error occurs:
+When a driver tries to start a trip, the following error appears:
 ```
-invalid input value for enum buggy_request_status: "pending"
-Code: 22P02
+COALESCE types text and buggy_trip_status cannot be matched
 ```
 
-**Root Cause**: The `rpc_transport_create_trip_from_requests` function (just updated in the last migration) validates requests using:
+**Root Cause**: In `rpc_transport_driver_update_trip_state`, line 38 uses:
 ```sql
-AND br.status IN ('requested', 'pending')  -- 'pending' is INVALID
+v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status);
 ```
 
-The `buggy_request_status` enum does not contain `'pending'`. The valid values are:
-- `requested`
-- `queued` ← This is what should be used instead of 'pending'
-- `assigned_to_trip`
-- `driver_en_route`
-- `arrived`
-- `picked_up`
-- `completed`
-- `cancelled`
-- `failed`
-- `no_show`
+- `lifecycle_state` is type `text`
+- `status` is an enum type `buggy_trip_status`
+
+PostgreSQL cannot COALESCE across incompatible types without an explicit cast.
 
 ---
 
 ## Solution
 
-Update the validation check to use `'queued'` instead of `'pending'`:
+Cast the enum to text before COALESCE:
 
 ```sql
-AND br.status IN ('requested', 'queued')  -- FIXED: 'queued' instead of 'pending'
+v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
 ```
 
 ---
@@ -42,10 +33,47 @@ AND br.status IN ('requested', 'queued')  -- FIXED: 'queued' instead of 'pending
 ## Database Migration
 
 ```sql
--- Fix: Replace 'pending' with valid enum value 'queued'
-CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(...)
-  -- In the validation check:
-  AND br.status IN ('requested', 'queued')  -- ✅ Both are valid enum values
+-- Fix: Cast status enum to text for COALESCE compatibility
+CREATE OR REPLACE FUNCTION public.rpc_transport_driver_update_trip_state(
+  p_resort_id uuid,
+  p_trip_id uuid,
+  p_driver_user_id uuid,
+  p_next_state text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_trip RECORD;
+  v_current_state text;
+  v_valid_transition boolean := false;
+  v_request_count int;
+BEGIN
+  -- 1) Lock and validate trip
+  SELECT * INTO v_trip
+  FROM buggy_trips
+  WHERE id = p_trip_id
+    AND resort_id = p_resort_id
+  FOR UPDATE NOWAIT;
+  
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Trip not found or does not belong to this resort';
+  END IF;
+  
+  -- 2) Verify driver ownership
+  IF v_trip.driver_user_id IS DISTINCT FROM p_driver_user_id THEN
+    RAISE EXCEPTION 'Trip is not assigned to this driver';
+  END IF;
+  
+  -- 3) Get current lifecycle state (fallback to status if null)
+  -- FIX: Cast enum to text for COALESCE compatibility
+  v_current_state := COALESCE(v_trip.lifecycle_state, v_trip.status::text);
+  
+  -- ... rest of function unchanged
+END;
+$$;
 ```
 
 ---
@@ -54,15 +82,20 @@ CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(...)
 
 | File | Action | Description |
 |------|--------|-------------|
-| New migration | CREATE | Fix status validation from `'pending'` to `'queued'` |
+| New migration | CREATE | Fix COALESCE type mismatch by casting enum to text |
 
 ---
 
 ## Verification
 
 After migration:
-1. Staff Dashboard → Transport → Dispatch Queue
-2. Select 1+ pending requests (status = 'requested' or 'queued')
-3. Click "Create Trip"
-4. Trip should be created successfully
+1. Go to Driver Portal (/driver)
+2. Locate an assigned trip
+3. Tap "Start Trip"
+4. Trip should transition to "En Route to Pickup" without errors
 
+---
+
+## Note on Feature Request
+
+You also mentioned improving the Driver Portal to show stops in a buggy request. After fixing this bug, we can enhance the stop display in a follow-up iteration if needed.
