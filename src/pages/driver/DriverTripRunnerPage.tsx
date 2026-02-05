@@ -10,13 +10,14 @@ import {
 import {
   useDriverLifecycleActions,
   getNextState,
+  normalizeLifecycleState,
   NEXT_ACTION_LABELS,
   LIFECYCLE_STATE_LABELS,
   type TripLifecycleState,
 } from '@/hooks/transport/useDriverLifecycleActions';
 import { useDriverRealtimeSync } from '@/hooks/sync/useDriverRealtimeSync';
 import { useDriverETAAndDistance } from '@/hooks/driver/useDriverETAAndDistance';
-import { getNextStop } from '@/lib/driverTrip';
+import { getNextStop, deriveTripInfoFromRequests } from '@/lib/driverTrip';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { StopNavigationLink } from '@/components/driver/StopNavigationLink';
 import { DriverInstructionsPanel } from '@/components/driver/DriverInstructionsPanel';
