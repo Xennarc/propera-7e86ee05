@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Inbox, RefreshCw } from 'lucide-react';
+import { Plus, Inbox, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { TripCard } from './TripCard';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
+import { differenceInHours } from 'date-fns';
 
 interface TripsPanelProps {
   trips: TransportTrip[];
+  completedTrips?: TransportTrip[];
   isLoading: boolean;
   onAssignTrip: (tripId: string) => void;
   onAddRequestToTrip: (tripId: string) => void;
@@ -20,10 +22,11 @@ interface TripsPanelProps {
   onRefresh: () => void;
 }
 
-type TripTab = 'planning' | 'active';
+type TripTab = 'planning' | 'active' | 'completed';
 
 export function TripsPanel({
   trips,
+  completedTrips = [],
   isLoading,
   onAssignTrip,
   onAddRequestToTrip,
@@ -41,7 +44,17 @@ export function TripsPanel({
     t.status === 'assigned' || t.status === 'en_route' || t.status === 'active'
   );
   
-  const displayTrips = activeTab === 'planning' ? planningTrips : activeTrips;
+  // Filter completed trips to show only last 24 hours
+  const recentCompletedTrips = completedTrips.filter(t => {
+    if (!t.end_at) return false;
+    return differenceInHours(new Date(), new Date(t.end_at)) < 24;
+  });
+  
+  const displayTrips = activeTab === 'planning' 
+    ? planningTrips 
+    : activeTab === 'active' 
+      ? activeTrips 
+      : recentCompletedTrips;
   
   return (
     <div className="flex flex-col h-full">
@@ -61,20 +74,29 @@ export function TripsPanel({
         
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TripTab)}>
-          <TabsList className="w-full">
-            <TabsTrigger value="planning" className="flex-1">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="planning" className="text-xs px-2">
               Planning
               {planningTrips.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
                   {planningTrips.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="active" className="flex-1">
+            <TabsTrigger value="active" className="text-xs px-2">
               Active
               {activeTrips.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
                   {activeTrips.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs px-2">
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              Done
+              {recentCompletedTrips.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
+                  {recentCompletedTrips.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -92,13 +114,21 @@ export function TripsPanel({
           ) : displayTrips.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
-                <Inbox className="h-8 w-8 text-muted-foreground" />
+                {activeTab === 'completed' ? (
+                  <CheckCircle2 className="h-8 w-8 text-muted-foreground" />
+                ) : (
+                  <Inbox className="h-8 w-8 text-muted-foreground" />
+                )}
               </div>
-              <h3 className="text-lg font-semibold">No trips</h3>
+              <h3 className="text-lg font-semibold">
+                {activeTab === 'completed' ? 'No recent trips' : 'No trips'}
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {activeTab === 'planning'
                   ? 'Select requests to create a new trip'
-                  : 'No trips currently in progress'}
+                  : activeTab === 'active'
+                    ? 'No trips currently in progress'
+                    : 'Completed trips will appear here (last 24h)'}
               </p>
             </div>
           ) : (

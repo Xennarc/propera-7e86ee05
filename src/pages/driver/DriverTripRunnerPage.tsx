@@ -24,6 +24,7 @@ import { PassengerNotesIndicator } from '@/components/driver/PassengerNotesIndic
 import { DriverMobileActionBar, DriverMobileActionBarSpacer } from '@/components/driver/DriverMobileActionBar';
 import { DriverStatusBanner } from '@/components/driver/DriverStatusBanner';
 import { TripStateMicrocopy } from '@/components/driver/TripStateMicrocopy';
+import { TripCompletedScreen } from '@/components/driver/TripCompletedScreen';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInMinutes } from 'date-fns';
 
 type StopStatus = 'pending' | 'arrived' | 'completed' | 'skipped';
 type StopKind = 'pickup' | 'dropoff' | 'waypoint';
@@ -140,6 +142,16 @@ export default function DriverTripRunnerPage() {
     return stops.length > 0 && stops.every(s => s.status === 'completed' || s.status === 'skipped');
   }, [stops]);
 
+  // Calculate trip duration for completion screen
+  const tripDurationMinutes = useMemo(() => {
+    if (!trip?.start_at || !trip?.end_at) return undefined;
+    try {
+      return differenceInMinutes(new Date(trip.end_at), new Date(trip.start_at));
+    } catch {
+      return undefined;
+    }
+  }, [trip?.start_at, trip?.end_at]);
+
   // Handler to advance trip state
   const handleAdvanceState = useCallback(() => {
     if (tripId && nextState) {
@@ -192,6 +204,19 @@ export default function DriverTripRunnerPage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  // Show completion screen when trip is completed
+  if (currentLifecycleState === 'completed' || trip?.status === 'completed') {
+    return (
+      <TripCompletedScreen
+        tripId={tripId || ''}
+        stopsCount={stops.length}
+        passengersCount={requests.reduce((sum, r) => sum + r.party_size, 0)}
+        durationMinutes={tripDurationMinutes}
+        onGoHome={() => navigate('/driver')}
+      />
     );
   }
 
@@ -261,7 +286,7 @@ export default function DriverTripRunnerPage() {
         )}
         
         {/* Lifecycle State Actions - for intermediate states */}
-        {currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && nextActionLabel && (
+        {currentLifecycleState !== 'assigned' && nextActionLabel && (
           <Card className="border-primary/50 shadow-md">
             <CardContent className="py-4">
               <div className="flex items-center justify-between mb-3">
@@ -420,7 +445,7 @@ export default function DriverTripRunnerPage() {
         )}
 
         {/* Complete Trip CTA */}
-        {allStopsDone && currentLifecycleState !== 'completed' && (
+        {allStopsDone && (
           <Card className="border-emerald-500/50 shadow-lg bg-emerald-500/5">
             <CardContent className="py-6">
               <Button
@@ -596,7 +621,7 @@ export default function DriverTripRunnerPage() {
       </div>
 
       {/* Mobile Sticky Action Bar */}
-      {currentStop && currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && (
+      {currentStop && currentLifecycleState !== 'assigned' && (
         <DriverMobileActionBar className="md:hidden">
           {currentStop.status === 'pending' ? (
             <>

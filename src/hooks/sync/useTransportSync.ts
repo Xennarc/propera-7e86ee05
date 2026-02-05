@@ -4,6 +4,7 @@ import { useRealtimeSubscription, createResortFilter, createFilter } from './use
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { queryKeys } from '@/lib/query-keys';
 import { useGuestRealtimeContext } from '@/contexts/GuestRealtimeContext';
+import { toast } from 'sonner';
 
 // Debug flag for development
 const DEBUG_REALTIME_DEPRECATION = false;
@@ -14,6 +15,7 @@ const DEBUG_REALTIME_DEPRECATION = false;
 export const transportQueryKeys = {
   queue: (resortId: string) => ['transport-queue', resortId],
   trips: (resortId: string) => ['transport-trips', resortId],
+  completedTrips: (resortId: string) => ['transport-completed-trips', resortId],
   tripStops: (tripId: string) => ['trip-stops', tripId],
   tripRequests: (tripId: string) => ['trip-requests', tripId],
   buggies: (resortId: string) => ['buggies', resortId],
@@ -62,10 +64,21 @@ export function useTransportRequestsSync({
 
       case 'buggy_trips':
         keysToInvalidate.push(transportQueryKeys.trips(resortId));
+        // Also invalidate completed trips when a trip status changes
+        keysToInvalidate.push(transportQueryKeys.completedTrips(resortId));
         // Invalidate specific trip stops if we have trip ID
         if (payload.new?.id) {
           keysToInvalidate.push(transportQueryKeys.tripStops(payload.new.id));
           keysToInvalidate.push(transportQueryKeys.tripRequests(payload.new.id));
+        }
+        
+        // Show toast when trip is completed by driver
+        if (payload.eventType === 'UPDATE' && 
+            payload.new?.status === 'completed' && 
+            payload.old?.status !== 'completed') {
+          toast.success('Trip completed!', {
+            description: 'A trip has been completed by the driver.',
+          });
         }
         break;
 
