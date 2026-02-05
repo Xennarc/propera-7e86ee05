@@ -48,13 +48,9 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
 }: RequestSubmissionCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  // Use first request for shared metadata
   const firstRequest = requests[0];
-  if (!firstRequest) return null;
-
-  const createdAt = parseISO(firstRequest.created_at);
  
-   // Derive display values using shared helpers
+   // Derive display values using shared helpers - must be before early return
    const aggregatedStatus = useMemo(
      () => getAggregatedSubmissionStatus(requests),
      [requests]
@@ -63,6 +59,10 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
    const departmentLabel = useMemo(() => formatDepartments(requests), [requests]);
    const totalItems = useMemo(() => getTotalItemCount(requests), [requests]);
  
+   // Early return after hooks
+   if (!firstRequest) return null;
+ 
+   const createdAt = parseISO(firstRequest.created_at);
    const isCancelled = aggregatedStatus.status === 'CANCELLED';
 
   // Check if any request can be cancelled
@@ -89,8 +89,8 @@ export const RequestSubmissionCard = memo(function RequestSubmissionCard({
     >
       <Card className={cn(
         'overflow-hidden transition-all duration-300',
-        overallStatus === 'CANCELLED' && 'opacity-60',
-        overallStatus === 'COMPLETED' && 'bg-muted/30 border-emerald-500/20'
+       aggregatedStatus.status === 'CANCELLED' && 'opacity-60',
+       aggregatedStatus.status === 'COMPLETED' && 'bg-muted/30 border-emerald-500/20'
       )}>
         <CardContent className="p-4">
           {/* Header */}
