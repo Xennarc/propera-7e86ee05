@@ -23,6 +23,7 @@ import {
   Loader2,
   AlertCircle,
   Play,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
