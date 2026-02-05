@@ -145,7 +145,9 @@ export function TripsPanel({
                 onRemoveRequest={(reqId) => onRemoveRequest(trip.id, reqId)}
                 onViewDetails={() => onViewTripDetails(trip.id)}
                 onCancelTrip={onCancelTrip ? () => onCancelTrip(trip.id) : undefined}
+                onCompleteTrip={onCompleteTrip ? () => onCompleteTrip(trip.id) : undefined}
                 isCancellingTrip={isCancellingTrip}
+                isCompletingTrip={isCompletingTrip}
               />
             ))
           )}

@@ -69,6 +69,9 @@ export function TripCard({
   // UI Guardrail: Disable assign if no attached requests
   const canAssign = needsAssignment && activeRequests.length >= 1;
   
+  // Can complete: visible for assigned, en_route, active trips
+  const canComplete = ['assigned', 'en_route', 'active'].includes(trip.status);
+  
   return (
     <motion.div 
       layout
