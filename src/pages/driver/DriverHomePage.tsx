@@ -6,10 +6,12 @@ import {
   useDriverTrips,
   DriverStatus,
 } from '@/hooks/transport/useDriverSession';
+import { useTripStops, useTripRequests } from '@/hooks/transport/useTripDetails';
 import type { DriverOutletContext } from '@/components/driver/DriverLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TripPreviewCard, TripPreviewCardSkeleton } from '@/components/driver/TripPreviewCard';
 import { 
   Car, 
   Coffee, 
@@ -36,7 +38,7 @@ export default function DriverHomePage() {
   const { currentResort } = useResort();
   const resortId = currentResort?.id;
   
-  const { driverSession, settings, isOnline } = useOutletContext<DriverOutletContext>();
+  const { driverSession, settings, isOnline, driverLocation } = useOutletContext<DriverOutletContext>();
   const statusMutation = useDriverStatusMutation(resortId);
   const { data: trips = [], isLoading: tripsLoading } = useDriverTrips(resortId);
 
@@ -45,6 +47,10 @@ export default function DriverHomePage() {
   
   // Current/active trip (first one)
   const currentTrip = trips[0];
+
+  // Fetch trip details for current trip (for preview card)
+  const { data: currentTripStops, isLoading: stopsLoading } = useTripStops(currentTrip?.id);
+  const { data: currentTripRequests, isLoading: requestsLoading } = useTripRequests(currentTrip?.id);
 
   const handleStatusChange = (newStatus: DriverStatus) => {
     if (newStatus === currentStatus || statusMutation.isPending) return;
@@ -178,21 +184,21 @@ export default function DriverHomePage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Trip summary */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{currentTrip.trip_stops?.length || 0} stops</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>
-                  {currentTrip.trip_requests?.reduce((sum: number, tr: any) => sum + tr.party_size, 0) || 0} passengers
-                </span>
-              </div>
-            </div>
+            {/* Trip Preview Card - NEW */}
+            {stopsLoading || requestsLoading ? (
+              <TripPreviewCardSkeleton compact />
+            ) : (
+              <TripPreviewCard
+                trip={currentTrip}
+                tripStops={currentTripStops}
+                tripRequests={currentTripRequests}
+                driverLocation={driverLocation}
+                compact
+                className="border-0 bg-muted/30 shadow-none"
+              />
+            )}
 
-            {/* Action button */}
+            {/* Action button - UNCHANGED */}
             <Button
               size="lg"
               className="w-full h-14 text-lg gap-2"
@@ -227,30 +233,20 @@ export default function DriverHomePage() {
         </Card>
       )}
 
-      {/* Additional trips if any */}
+      {/* Additional trips if any - with preview cards */}
       {trips.length > 1 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Queued Trips</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {trips.slice(1).map((trip: any) => (
-              <button
-                key={trip.id}
-                onClick={() => navigate(`/driver/trip/${trip.id}`)}
-                className="w-full flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-sm">{trip.trip_stops?.length || 0} stops</p>
-                    <p className="text-xs text-muted-foreground">{trip.status}</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <QueuedTripItem 
+                key={trip.id} 
+                trip={trip} 
+                driverLocation={driverLocation}
+                onNavigate={() => navigate(`/driver/trip/${trip.id}`)}
+              />
             ))}
           </CardContent>
         </Card>
@@ -268,5 +264,56 @@ export default function DriverHomePage() {
         </Card>
       )}
     </div>
+  );
+}
+
+/**
+ * Queued trip item with preview - fetches its own trip details
+ */
+function QueuedTripItem({ 
+  trip, 
+  driverLocation,
+  onNavigate 
+}: { 
+  trip: any; 
+  driverLocation: { lat: number; lng: number } | null;
+  onNavigate: () => void;
+}) {
+  const { data: tripStops, isLoading: stopsLoading } = useTripStops(trip.id);
+  const { data: tripRequests, isLoading: requestsLoading } = useTripRequests(trip.id);
+
+  return (
+    <button
+      onClick={onNavigate}
+      className="w-full text-left rounded-lg border bg-card hover:bg-accent transition-colors overflow-hidden"
+    >
+      <div className="flex items-center justify-between p-3 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="font-medium text-sm">{trip.trip_stops?.length || tripStops?.length || 0} stops</p>
+            <p className="text-xs text-muted-foreground">{trip.status}</p>
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </div>
+      {/* Compact preview */}
+      {stopsLoading || requestsLoading ? (
+        <div className="p-3">
+          <TripPreviewCardSkeleton compact />
+        </div>
+      ) : (
+        <TripPreviewCard
+          trip={trip}
+          tripStops={tripStops}
+          tripRequests={tripRequests}
+          driverLocation={driverLocation}
+          compact
+          className="border-0 shadow-none rounded-none"
+        />
+      )}
+    </button>
   );
 }

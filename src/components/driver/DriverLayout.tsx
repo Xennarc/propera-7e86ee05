@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
@@ -11,6 +11,11 @@ import { Button } from '@/components/ui/button';
 import { ShieldX, WifiOff, Wifi, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+export interface DriverLocation {
+  lat: number;
+  lng: number;
+}
+
 export function DriverLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
@@ -21,6 +26,9 @@ export function DriverLayout() {
 
   // Transport settings
   const { data: settings } = useTransportSettings(resortId);
+
+  // Driver location state (exposed to child pages)
+  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
 
   // GPS tracking
   const { updateLocation } = useBuggyLocation({
@@ -53,19 +61,28 @@ export function DriverLayout() {
     };
   }, []);
 
-  // GPS tracking effect
+  // GPS tracking effect - now also updates local state for child pages
   useEffect(() => {
-    if (!driverSession?.assigned_buggy_id || driverSession?.status === 'offline') return;
+    if (!driverSession?.assigned_buggy_id || driverSession?.status === 'offline') {
+      // Clear location when offline or no buggy
+      setDriverLocation(null);
+      return;
+    }
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        updateLocation({
+        const newLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-        });
+        };
+        // Update server
+        updateLocation(newLocation);
+        // Update local state for child pages
+        setDriverLocation(newLocation);
       },
       (error) => {
         console.warn('Geolocation error:', error);
+        // Keep last known location on error, don't clear
       },
       {
         enableHighAccuracy: true,
@@ -151,7 +168,7 @@ export function DriverLayout() {
 
       {/* Main content with top padding for connectivity bar */}
       <main className="flex-1 pt-8">
-        <Outlet context={{ driverSession, settings, isOnline }} />
+        <Outlet context={{ driverSession, settings, isOnline, driverLocation }} />
       </main>
     </div>
   );
@@ -162,4 +179,5 @@ export interface DriverOutletContext {
   driverSession: ReturnType<typeof useDriverSession>['data'];
   settings: ReturnType<typeof useTransportSettings>['data'];
   isOnline: boolean;
+  driverLocation: DriverLocation | null;
 }
