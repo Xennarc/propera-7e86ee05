@@ -18,7 +18,9 @@ interface TripsPanelProps {
   onRemoveRequest: (tripId: string, requestId: string) => void;
   onViewTripDetails: (tripId: string) => void;
   onCancelTrip?: (tripId: string) => void;
+  onCompleteTrip?: (tripId: string) => void;
   isCancellingTrip?: boolean;
+  isCompletingTrip?: boolean;
   onRefresh: () => void;
 }
 
@@ -33,7 +35,9 @@ export function TripsPanel({
   onRemoveRequest,
   onViewTripDetails,
   onCancelTrip,
+  onCompleteTrip,
   isCancellingTrip,
+  isCompletingTrip,
   onRefresh,
 }: TripsPanelProps) {
   const [activeTab, setActiveTab] = useState<TripTab>('planning');
@@ -141,7 +145,9 @@ export function TripsPanel({
                 onRemoveRequest={(reqId) => onRemoveRequest(trip.id, reqId)}
                 onViewDetails={() => onViewTripDetails(trip.id)}
                 onCancelTrip={onCancelTrip ? () => onCancelTrip(trip.id) : undefined}
+                onCompleteTrip={onCompleteTrip ? () => onCompleteTrip(trip.id) : undefined}
                 isCancellingTrip={isCancellingTrip}
+                isCompletingTrip={isCompletingTrip}
               />
             ))
           )}

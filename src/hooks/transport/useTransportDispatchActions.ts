@@ -32,6 +32,14 @@ interface CancelTripResult {
   error?: string;
 }
 
+interface StaffUpdateTripResult {
+  success: boolean;
+  trip_id: string;
+  action: 'complete' | 'cancel';
+  affected_requests: number;
+  error?: string;
+}
+
 interface RpcError {
   message: string;
   code?: string;
@@ -255,14 +263,116 @@ export function useTransportDispatchActions(resortId: string | undefined) {
     },
   });
   
+  /**
+   * Staff-initiated trip completion.
+   */
+  const staffCompleteTrip = useMutation<
+    StaffUpdateTripResult,
+    RpcError,
+    { tripId: string; reason?: string }
+  >({
+    mutationFn: async ({ tripId, reason }) => {
+      if (!resortId) {
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
+      }
+      
+      const { data, error } = await supabase.rpc('rpc_transport_staff_update_trip_status', {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+        p_action: 'complete',
+        p_staff_user_id: user?.id || null,
+        p_reason: reason || null,
+      });
+      
+      if (error) {
+        throw { message: error.message, code: error.code };
+      }
+      
+      const result = data as unknown as StaffUpdateTripResult;
+      
+      if (!result || !result.success) {
+        throw { message: result?.error || 'Failed to complete trip', code: 'COMPLETE_FAILED' };
+      }
+      
+      return result;
+    },
+    onSuccess: (result) => {
+      showTransportSuccessToast(
+        'Trip completed',
+        `${result.affected_requests} request(s) marked as done`
+      );
+      invalidateAll();
+    },
+    onError: (error, variables) => {
+      console.error('Staff complete trip error:', error);
+      showTransportErrorToast('Complete Trip', error, {
+        resortId,
+        tripId: variables.tripId,
+      });
+    },
+  });
+  
+  /**
+   * Staff-initiated trip cancellation (returns requests to queue).
+   */
+  const staffCancelTrip = useMutation<
+    StaffUpdateTripResult,
+    RpcError,
+    { tripId: string; reason?: string }
+  >({
+    mutationFn: async ({ tripId, reason }) => {
+      if (!resortId) {
+        throw { message: 'Resort ID is required', code: 'MISSING_RESORT' };
+      }
+      
+      const { data, error } = await supabase.rpc('rpc_transport_staff_update_trip_status', {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+        p_action: 'cancel',
+        p_staff_user_id: user?.id || null,
+        p_reason: reason || null,
+      });
+      
+      if (error) {
+        throw { message: error.message, code: error.code };
+      }
+      
+      const result = data as unknown as StaffUpdateTripResult;
+      
+      if (!result || !result.success) {
+        throw { message: result?.error || 'Failed to cancel trip', code: 'CANCEL_FAILED' };
+      }
+      
+      return result;
+    },
+    onSuccess: (result) => {
+      showTransportSuccessToast(
+        'Trip cancelled',
+        `${result.affected_requests} request(s) returned to queue`
+      );
+      invalidateAll();
+    },
+    onError: (error, variables) => {
+      console.error('Staff cancel trip error:', error);
+      showTransportErrorToast('Cancel Trip', error, {
+        resortId,
+        tripId: variables.tripId,
+      });
+    },
+  });
+
   return {
     createTripFromRequests,
     assignTrip,
     attachRequestsToTrip,
     cancelEmptyTrip,
+    staffCompleteTrip,
+    staffCancelTrip,
     isCreatingTrip: createTripFromRequests.isPending,
     isAssigningTrip: assignTrip.isPending,
     isAttachingRequests: attachRequestsToTrip.isPending,
     isCancellingTrip: cancelEmptyTrip.isPending,
+    isCompletingTrip: staffCompleteTrip.isPending,
+    isStaffCancellingTrip: staffCancelTrip.isPending,
   };
 }

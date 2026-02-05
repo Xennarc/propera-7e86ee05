@@ -23,6 +23,8 @@ import {
   Merge, 
   Copy,
   Trash2,
+  CheckCircle2,
+  Loader2,
 } from 'lucide-react';
 
 interface TripActionsProps {
@@ -33,7 +35,10 @@ interface TripActionsProps {
   onMerge?: (tripId: string) => void;
   onDuplicate?: (tripId: string) => void;
   onCancel?: (tripId: string) => void;
+  onComplete?: (tripId: string) => void;
   disabled?: boolean;
+  isCompleting?: boolean;
+  isCancelling?: boolean;
 }
 
 export function TripActions({
@@ -44,13 +49,25 @@ export function TripActions({
   onMerge,
   onDuplicate,
   onCancel,
+  onComplete,
   disabled,
+  isCompleting,
+  isCancelling,
 }: TripActionsProps) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   
   const isPlanningOnly = tripStatus === 'planning';
   const canSplit = isPlanningOnly && requestCount > 1;
   const canMerge = isPlanningOnly;
+  
+  // Complete: visible for assigned, en_route, active trips
+  const canComplete = ['assigned', 'en_route', 'active'].includes(tripStatus);
+  
+  // Cancel: visible for planning, assigned, en_route trips
+  const canCancel = ['planning', 'assigned', 'en_route'].includes(tripStatus);
+  
+  const isLoading = isCompleting || isCancelling;
   
   return (
     <>
@@ -60,12 +77,23 @@ export function TripActions({
             variant="ghost" 
             size="icon" 
             className="h-7 w-7"
-            disabled={disabled}
+            disabled={disabled || isLoading}
           >
-            <MoreVertical className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MoreVertical className="h-4 w-4" />
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
+          {canComplete && onComplete && (
+            <DropdownMenuItem onClick={() => setShowCompleteDialog(true)}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Mark Complete
+            </DropdownMenuItem>
+          )}
+          
           {canSplit && onSplit && (
             <DropdownMenuItem onClick={() => onSplit(tripId)}>
               <Scissors className="h-4 w-4 mr-2" />
@@ -87,9 +115,11 @@ export function TripActions({
             </DropdownMenuItem>
           )}
           
-          {(canSplit || canMerge || onDuplicate) && onCancel && <DropdownMenuSeparator />}
+          {(canComplete || canSplit || canMerge || onDuplicate) && canCancel && onCancel && (
+            <DropdownMenuSeparator />
+          )}
           
-          {isPlanningOnly && onCancel && (
+          {canCancel && onCancel && (
             <DropdownMenuItem 
               onClick={() => setShowCancelDialog(true)}
               className="text-destructive focus:text-destructive"
@@ -101,6 +131,31 @@ export function TripActions({
         </DropdownMenuContent>
       </DropdownMenu>
       
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Trip as Complete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark all {requestCount} request(s) as completed. The trip will move to the completed history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => {
+                onComplete?.(tripId);
+                setShowCompleteDialog(false);
+              }}
+            >
+              Mark Complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Cancel Confirmation Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

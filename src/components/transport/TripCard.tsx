@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { TripActions } from './dispatch/TripActions';
 import { 
   Car, 
   User, 
@@ -14,7 +15,8 @@ import {
   UserPlus,
   Settings2,
   Trash2,
-  Loader2
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -27,7 +29,9 @@ interface TripCardProps {
   onViewDetails: () => void;
   onRemoveRequest: (requestId: string) => void;
   onCancelTrip?: () => void;
+  onCompleteTrip?: () => void;
   isCancellingTrip?: boolean;
+  isCompletingTrip?: boolean;
 }
 
 const statusConfig = {
@@ -35,6 +39,7 @@ const statusConfig = {
   assigned: { label: 'Assigned', className: 'bg-purple-500/20 text-purple-600' },
   en_route: { label: 'En Route', className: 'bg-amber-500/20 text-amber-600' },
   active: { label: 'Active', className: 'bg-green-500/20 text-green-600' },
+  completed: { label: 'Completed', className: 'bg-muted text-muted-foreground' },
 };
 
 export function TripCard({
@@ -44,7 +49,9 @@ export function TripCard({
   onViewDetails,
   onRemoveRequest,
   onCancelTrip,
+  onCompleteTrip,
   isCancellingTrip,
+  isCompletingTrip,
 }: TripCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   
@@ -61,6 +68,9 @@ export function TripCard({
   
   // UI Guardrail: Disable assign if no attached requests
   const canAssign = needsAssignment && activeRequests.length >= 1;
+  
+  // Can complete: visible for assigned, en_route, active trips
+  const canComplete = ['assigned', 'en_route', 'active'].includes(trip.status);
   
   return (
     <motion.div 
@@ -174,28 +184,42 @@ export function TripCard({
                 Assign Buggy & Driver
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={onViewDetails}>
-              <Settings2 className="h-4 w-4 mr-2" />
-              Details
-            </Button>
-            {/* Cancel empty trip button */}
-            {needsAssignment && activeRequests.length === 0 && onCancelTrip && (
+            
+            {/* Mark Complete button for active trips */}
+            {canComplete && onCompleteTrip && (
               <Button 
                 size="sm" 
-                variant="destructive" 
-                onClick={onCancelTrip}
-                disabled={isCancellingTrip}
+                variant="outline"
+                className="border-green-500/30 text-green-600 hover:bg-green-500/10"
+                onClick={onCompleteTrip}
+                disabled={isCompletingTrip}
               >
-                {isCancellingTrip ? (
+                {isCompletingTrip ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Cancel Trip
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete
                   </>
                 )}
               </Button>
             )}
+            
+            <Button size="sm" variant="outline" onClick={onViewDetails}>
+              <Settings2 className="h-4 w-4 mr-2" />
+              Details
+            </Button>
+            
+            {/* Trip Actions dropdown menu */}
+            <TripActions
+              tripId={trip.id}
+              tripStatus={trip.status}
+              requestCount={activeRequests.length}
+              onCancel={onCancelTrip}
+              onComplete={onCompleteTrip}
+              isCompleting={isCompletingTrip}
+              isCancelling={isCancellingTrip}
+            />
           </div>
         </motion.div>
       )}
