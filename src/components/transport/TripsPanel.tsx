@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Inbox, RefreshCw } from 'lucide-react';
+import { Plus, Inbox, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { TripCard } from './TripCard';
 import type { TransportTrip } from '@/hooks/transport/useTransportTrips';
+import { differenceInHours } from 'date-fns';
 
 interface TripsPanelProps {
   trips: TransportTrip[];
+  completedTrips?: TransportTrip[];
   isLoading: boolean;
   onAssignTrip: (tripId: string) => void;
   onAddRequestToTrip: (tripId: string) => void;
@@ -20,7 +22,7 @@ interface TripsPanelProps {
   onRefresh: () => void;
 }
 
-type TripTab = 'planning' | 'active';
+type TripTab = 'planning' | 'active' | 'completed';
 
 export function TripsPanel({
   trips,
