@@ -46,7 +46,9 @@ export function TripCard({
   onViewDetails,
   onRemoveRequest,
   onCancelTrip,
+  onCompleteTrip,
   isCancellingTrip,
+  isCompletingTrip,
 }: TripCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   
