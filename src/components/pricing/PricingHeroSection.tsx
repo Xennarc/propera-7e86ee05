@@ -10,7 +10,7 @@ const VALUE_CHIPS = [
   'Unlimited staff',
   'Multi-resort ready',
   'Real-time sync',
-  'White-label capable',
+  'Feature flag control',
 ];
 
 // Preview content
@@ -81,7 +81,7 @@ export function PricingHeroSection() {
             </h1>
             
             <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-6 md:mb-8">
-              Propera brings guests, teams, and schedules into one elegant system — so every day runs smoothly.
+              Three tiers — Essential, Professional, Elite — each built on real resort operations, not feature bloat.
             </p>
 
             {/* CTAs */}
@@ -103,7 +103,7 @@ export function PricingHeroSection() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              See how it looks with your resort's branding.
+              Per resort, unlimited staff. See it with your branding.
             </p>
 
             {/* Value chips - static */}

@@ -7,7 +7,7 @@ import { useScrollReveal } from '@/hooks/useScrollReveal';
 const REASSURANCE_CHIPS = [
   'Unlimited staff included',
   'Multi-resort ready',
-  'Elegant by design',
+  'Feature flags per resort',
 ];
 
 export function PricingCTASection() {
@@ -30,7 +30,7 @@ export function PricingCTASection() {
               Ready to see Propera with your resort?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 leading-relaxed stagger-2">
-              A calmer operation. A better guest journey. A system your team enjoys using.
+              Guest Portal, Staff Console, Transport, Analytics — one platform your team and guests will actually use.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 stagger-3">
