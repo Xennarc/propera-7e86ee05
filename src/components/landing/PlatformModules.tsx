@@ -2,10 +2,10 @@ import {
   Smartphone, 
   Activity, 
   UtensilsCrossed, 
-  Sparkles, 
-  Plane, 
   MessageSquare, 
-  BarChart3,
+  Car,
+  Navigation,
+  Award,
   Calendar,
   Users,
   Bell
@@ -18,54 +18,54 @@ const modules = [
   { 
     icon: Smartphone, 
     title: 'Guest Portal', 
-    description: 'Mobile-first booking and itinerary', 
+    description: 'Room-based login, personalized dashboard, and one place for every booking and request — built for thumb-first use.', 
     category: 'Guest', 
     spotlight: true,
-    preview: ['Browse activities', 'Book instantly', 'View schedule']
+    preview: ['Pre-arrival wizard', 'My Bookings hub', 'In-app notifications']
   },
   { 
     icon: Activity, 
     title: 'Activities & Experiences', 
-    description: 'Sessions, capacity, and waitlists', 
+    description: 'Browse by category, pick a session with live availability, and book instantly — with policy-aware cutoffs.', 
     category: 'Ops', 
     spotlight: true,
-    preview: ['Manage sessions', 'Track capacity', 'Handle waitlists']
+    preview: ['Session availability', 'Capacity & waitlists', 'Safety & "Good to know"']
   },
   { 
     icon: UtensilsCrossed, 
-    title: 'Dining & Reservations', 
-    description: 'Table management and special requests', 
+    title: 'Dining Reservations', 
+    description: 'Restaurant discovery with time-slot capacity, reservation management, and guest-friendly cancellation rules.', 
     category: 'Ops',
-    preview: ['Table layout', 'Time slots', 'Dietary notes']
-  },
-  { 
-    icon: Sparkles, 
-    title: 'Spa & Wellness', 
-    description: 'Treatment bookings and availability', 
-    category: 'Ops',
-    preview: ['Therapist assign', 'Room booking', 'Packages']
-  },
-  { 
-    icon: Plane, 
-    title: 'Pre-arrival & Check-in', 
-    description: 'Guest preferences before arrival', 
-    category: 'Guest',
-    preview: ['Preferences form', 'Arrival details', 'Special requests']
+    preview: ['Slot scheduling', 'Closure days', 'Cancellation cutoffs']
   },
   { 
     icon: MessageSquare, 
-    title: 'Requests & Messaging', 
-    description: 'Guest communication in one place', 
+    title: 'Guest Requests', 
+    description: 'Catalog-based service requests with multi-item bundling and real-time status from "New" to "Completed".', 
     category: 'Guest',
-    preview: ['In-app chat', 'Request tracking', 'Notifications']
+    preview: ['SLA lanes', 'Timeline events', 'Department views']
   },
   { 
-    icon: BarChart3, 
-    title: 'Analytics', 
-    description: 'Clear insights that improve every day', 
-    category: 'Analytics', 
+    icon: Car, 
+    title: 'Transport Dispatch', 
+    description: 'Pool requests into trips, assign drivers and buggies, manage stops, and keep clean ride history.', 
+    category: 'Ops', 
     spotlight: true,
-    preview: ['Booking trends', 'Revenue reports', 'Guest insights']
+    preview: ['Trip pooling', 'Driver assignment', 'Setup wizard']
+  },
+  { 
+    icon: Navigation, 
+    title: 'Driver Portal', 
+    description: 'Driver status, assigned vehicle, live trip runner state machine, and a debug console for field diagnostics.', 
+    category: 'Ops',
+    preview: ['GPS/offline banner', 'Trip history', 'Action microcopy']
+  },
+  { 
+    icon: Award, 
+    title: 'Loyalty & Feedback', 
+    description: 'Points, tiers, benefits, and transaction history — plus structured stay feedback for continuous improvement.', 
+    category: 'Analytics',
+    preview: ['Tier progress', 'Rewards rules', 'NPS-style prompts']
   },
 ];
 
