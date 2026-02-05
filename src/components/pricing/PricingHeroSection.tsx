@@ -103,7 +103,7 @@ export function PricingHeroSection() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              See how it looks with your resort's branding.
+              Per resort, unlimited staff. See it with your branding.
             </p>
 
             {/* Value chips - static */}
