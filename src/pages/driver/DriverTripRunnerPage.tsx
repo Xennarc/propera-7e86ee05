@@ -58,9 +58,6 @@ import {
   Route,
   Clock,
   ChevronsUpDown,
-  Navigation,
-  Route,
-  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
