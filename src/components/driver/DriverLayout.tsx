@@ -24,6 +24,18 @@ export function DriverLayout() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const resortId = currentResort?.id;
+  const queryClient = useQueryClient();
+  const isDebugMode = useDriverDebugMode();
+
+  // Initialize error capture and query tracker for debug console
+  useEffect(() => {
+    const cleanupErrors = initErrorCapture();
+    const cleanupQueries = initQueryTracker(queryClient);
+    return () => {
+      cleanupErrors();
+      cleanupQueries();
+    };
+  }, [queryClient]);
 
   // Driver session check
   const { data: driverSession, isLoading: sessionLoading, error: sessionError } = useDriverSession(resortId);
