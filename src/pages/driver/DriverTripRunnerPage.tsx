@@ -24,6 +24,7 @@ import { PassengerNotesIndicator } from '@/components/driver/PassengerNotesIndic
 import { DriverMobileActionBar, DriverMobileActionBarSpacer } from '@/components/driver/DriverMobileActionBar';
 import { DriverStatusBanner } from '@/components/driver/DriverStatusBanner';
 import { TripStateMicrocopy } from '@/components/driver/TripStateMicrocopy';
+import { TripCompletedScreen } from '@/components/driver/TripCompletedScreen';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +61,7 @@ import {
   ChevronsUpDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { differenceInMinutes } from 'date-fns';
 
 type StopStatus = 'pending' | 'arrived' | 'completed' | 'skipped';
 type StopKind = 'pickup' | 'dropoff' | 'waypoint';
