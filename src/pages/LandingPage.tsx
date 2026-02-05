@@ -58,16 +58,7 @@ export default function LandingPage() {
       <Suspense fallback={<SectionFallback />}>
         <HowItWorks />
       </Suspense>
-      <Suspense fallback={<SectionFallback />}>
-        <GlobalReady />
-      </Suspense>
-      <Suspense fallback={<SectionFallback />}>
-        <PricingTeaser />
-      </Suspense>
-      <Suspense fallback={<SectionFallback />}>
-        <TrustStrip />
-      </Suspense>
-      
+
       <HomeFinalCTA />
     </MarketingLayout>
   );
