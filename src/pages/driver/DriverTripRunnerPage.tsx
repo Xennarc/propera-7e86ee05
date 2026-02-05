@@ -245,7 +245,7 @@ export default function DriverTripRunnerPage() {
           <div className="flex-1 min-w-0">
             <h1 className="font-semibold truncate">Trip Runner</h1>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{stops.length} stops</span>
+              <span>{stops.length > 0 ? `${stops.length} stops` : `${requests.length} request${requests.length !== 1 ? 's' : ''}`}</span>
               <span>•</span>
               <span>{requests.reduce((sum, r) => sum + r.party_size, 0)} passengers</span>
             </div>
