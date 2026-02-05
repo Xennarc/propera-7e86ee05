@@ -621,7 +621,7 @@ export default function DriverTripRunnerPage() {
       </div>
 
       {/* Mobile Sticky Action Bar */}
-      {currentStop && currentLifecycleState !== 'assigned' && currentLifecycleState !== 'completed' && (
+      {currentStop && currentLifecycleState !== 'assigned' && (
         <DriverMobileActionBar className="md:hidden">
           {currentStop.status === 'pending' ? (
             <>
