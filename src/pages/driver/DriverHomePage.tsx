@@ -230,7 +230,7 @@ export default function DriverHomePage() {
 
             {/* Trip State Microcopy */}
             <TripStateMicrocopy 
-              state={(currentTrip.lifecycle_state || currentTrip.status) as any}
+              state={normalizeLifecycleState(currentTrip.lifecycle_state, currentTrip.status)}
             />
           </CardContent>
         </Card>
