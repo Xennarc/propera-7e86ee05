@@ -1,117 +1,157 @@
 
-# Driver Portal Trip Completion Enhancement
+# Staff Trip Complete/Cancel Actions
 
 ## Overview
-Enhance the driver's trip completion experience with proper confirmation, navigation, and celebration UI. Ensure the staff portal properly reflects completed trips with live sync visibility.
+Add the ability for dispatch staff to manually complete or cancel trips from the dispatch console. This enables operational flexibility when drivers can't update trip status themselves.
 
-## Changes
+## Current State Analysis
+- **Cancel Empty Trip**: `rpc_transport_cancel_empty_trip` exists but only works for empty planning trips
+- **Driver Complete**: `rpc_transport_driver_update_trip_state` exists but requires driver auth
+- **Gap**: No staff-initiated complete/cancel for active trips
 
-### 1. Trip Completion Success Screen
-**File:** `src/components/driver/TripCompletedScreen.tsx` (new)
+## Implementation
 
-A celebratory overlay/screen shown after completing a trip:
-- Success animation (checkmark with confetti-style pulse)
-- Trip summary stats (stops completed, passengers transported, duration)
-- "View Summary" button → navigates to history detail
-- "Back to Home" primary CTA → auto-triggers after 5s delay
-- Auto-redirect to `/driver` after 5 seconds
+### Phase 1: Database RPC (New)
+Create `rpc_transport_staff_update_trip_status` to allow staff to complete or cancel trips:
 
-### 2. Update Trip Runner Page
-**File:** `src/pages/driver/DriverTripRunnerPage.tsx`
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  rpc_transport_staff_update_trip_status                     │
+├─────────────────────────────────────────────────────────────┤
+│  Inputs:                                                    │
+│    - p_resort_id: uuid                                      │
+│    - p_trip_id: uuid                                        │
+│    - p_action: 'complete' | 'cancel'                        │
+│    - p_staff_user_id: uuid                                  │
+│    - p_reason: text (optional)                              │
+├─────────────────────────────────────────────────────────────┤
+│  Logic:                                                     │
+│    1. Lock trip row FOR UPDATE                              │
+│    2. Validate trip belongs to resort                       │
+│    3. Validate current status allows action:                │
+│       - complete: status in (assigned, en_route, active)    │
+│       - cancel: status in (planning, assigned, en_route)    │
+│    4. For COMPLETE:                                         │
+│       - Set status = 'completed', lifecycle_state = done    │
+│       - Set end_at = now()                                  │
+│       - Update all trip_requests state → 'dropped_off'      │
+│       - Update all requests status → 'completed'            │
+│    5. For CANCEL:                                           │
+│       - Set status = 'cancelled', cancelled_at = now()      │
+│       - Update trip_requests state → 'cancelled'            │
+│       - Return requests to queue (status → 'queued')        │
+│    6. Log transport_event                                   │
+├─────────────────────────────────────────────────────────────┤
+│  Returns: { success, trip_id, action, affected_requests }   │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Modifications:
-- Detect when `currentLifecycleState === 'completed'`
-- Display `TripCompletedScreen` instead of normal trip runner content
-- Pass trip stats (duration, passenger count, stops count) to completion screen
-- Add `useEffect` to navigate home after completion with optional delay
+### Phase 2: Frontend Hook Updates
 
-### 3. Enhance Lifecycle Actions Hook
-**File:** `src/hooks/transport/useDriverLifecycleActions.ts`
+**File: `src/hooks/transport/useTransportDispatchActions.ts`**
 
-Add callback support for completion:
-- Return a `lastCompletedTrip` state to track the just-completed trip
-- Clear this state when navigating away
-- Provide trip summary data for the completion screen
+Add two new mutations:
 
-### 4. Staff Portal Completion Visibility
-**File:** `src/components/transport/TripsPanel.tsx`
+1. `staffCompleteTrip` - Calls RPC with action='complete'
+2. `staffCancelTrip` - Calls RPC with action='cancel'
 
-Improvements:
-- Add "Completed" tab alongside "Planning" and "Active"
-- Show recently completed trips (last 24h) with timestamp
-- Completed trips show with distinct styling (muted, checkmark badge)
-- Toast notification when a trip is marked completed (via realtime)
+Both include:
+- Proper error handling with user-friendly messages
+- Cache invalidation for all transport queries
+- Success/error toasts via existing utilities
 
-### 5. Realtime Toast for Staff
-**File:** `src/hooks/sync/useTransportSync.ts`
+### Phase 3: UI Components
 
-Add completion detection:
-- When `buggy_trips` UPDATE event shows `status = 'completed'`
-- Trigger toast: "Trip completed by {driver_name}"
-- Include trip summary (X passengers, X stops)
+**File: `src/components/transport/dispatch/TripActions.tsx`** (Update)
 
----
+Expand the dropdown menu to include:
+- "Mark Complete" - visible for assigned/en_route/active trips
+- "Cancel Trip" - visible for planning/assigned/en_route trips (with confirmation dialog)
+
+**File: `src/components/transport/TripCard.tsx`** (Update)
+
+Add action callbacks:
+- `onComplete?: (tripId: string) => void`
+- Update `onCancelTrip` to work for non-empty trips too
+
+Display "Mark Complete" button in action area for active trips
+
+**File: `src/components/transport/TripDetailSheet.tsx`** (Update)
+
+Add footer actions section with:
+- "Mark Complete" button (green/success variant)
+- "Cancel Trip" button (destructive variant)
+- Confirmation dialogs for both actions
+
+### Phase 4: Integrate into Dispatch Pages
+
+**Files to update:**
+- `src/components/transport/TripsPanel.tsx` - Pass new handlers to TripCard
+- Parent dispatch page components - Wire up the mutations
 
 ## Technical Details
 
-### TripCompletedScreen Component
-```text
-┌──────────────────────────────────────┐
-│                                      │
-│            ✓ (animated)              │
-│                                      │
-│       Trip Completed!                │
-│                                      │
-│   ┌─────────┬─────────┬─────────┐   │
-│   │ 4 stops │ 6 guests│ 23 min  │   │
-│   └─────────┴─────────┴─────────┘   │
-│                                      │
-│      [  Back to Home  ]              │
-│                                      │
-│     Redirecting in 5s...             │
-└──────────────────────────────────────┘
+### Mutation Structure
+```typescript
+const staffCompleteTrip = useMutation({
+  mutationFn: async ({ tripId, reason }) => {
+    const { data, error } = await supabase.rpc(
+      'rpc_transport_staff_update_trip_status',
+      {
+        p_resort_id: resortId,
+        p_trip_id: tripId,
+        p_action: 'complete',
+        p_staff_user_id: user?.id,
+        p_reason: reason,
+      }
+    );
+    if (error) throw error;
+    return data;
+  },
+  onSuccess: () => {
+    showTransportSuccessToast('Trip completed', 'Marked as done by staff');
+    invalidateAll();
+  },
+});
 ```
 
-### State Detection in Trip Runner
+### Updated TripActions Props
 ```typescript
-// Detect completed state
-if (currentLifecycleState === 'completed') {
-  return (
-    <TripCompletedScreen
-      trip={trip}
-      stopsCount={stops.length}
-      passengersCount={requests.reduce((s, r) => s + r.party_size, 0)}
-      duration={/* calculate from start_at/end_at */}
-      onGoHome={() => navigate('/driver')}
-    />
-  );
+interface TripActionsProps {
+  tripId: string;
+  tripStatus: string;
+  requestCount: number;
+  onSplit?: (tripId: string) => void;
+  onMerge?: (tripId: string) => void;
+  onDuplicate?: (tripId: string) => void;
+  onCancel?: (tripId: string) => void;
+  onComplete?: (tripId: string) => void;  // NEW
+  disabled?: boolean;
+  isCompleting?: boolean;  // NEW
+  isCancelling?: boolean;  // NEW
 }
 ```
 
-### Staff Portal Tabs Update
-```typescript
-const completedTrips = trips.filter(t => 
-  t.status === 'completed' && 
-  differenceInHours(new Date(), new Date(t.completed_at)) < 24
-);
-```
-
----
+### Status Visibility Rules
+| Action | Visible When Status Is |
+|--------|------------------------|
+| Complete | assigned, en_route, active |
+| Cancel | planning, assigned, en_route |
 
 ## Files to Create
-1. `src/components/driver/TripCompletedScreen.tsx`
+1. Database migration for `rpc_transport_staff_update_trip_status`
 
 ## Files to Modify
-1. `src/pages/driver/DriverTripRunnerPage.tsx`
-2. `src/hooks/transport/useDriverLifecycleActions.ts`
-3. `src/components/transport/TripsPanel.tsx`
-4. `src/hooks/sync/useTransportSync.ts`
-5. `src/hooks/transport/useTransportTrips.ts` (add completed trips query)
+1. `src/hooks/transport/useTransportDispatchActions.ts` - Add mutations
+2. `src/components/transport/dispatch/TripActions.tsx` - Add menu items
+3. `src/components/transport/TripCard.tsx` - Add action buttons/handlers
+4. `src/components/transport/TripDetailSheet.tsx` - Add footer actions
+5. `src/components/transport/TripsPanel.tsx` - Wire up handlers
 
 ## Acceptance Criteria
-- Driver sees celebratory completion screen after trip ends
-- Driver auto-navigates to home after 5 seconds
-- Staff sees completed trips in new "Completed" tab
-- Staff receives toast notification when driver completes a trip
-- All changes sync in real-time between portals
-- Mobile-first, dark-mode compatible UI
+- Staff can mark trips as complete from dispatch console
+- Staff can cancel trips (returns requests to queue)
+- Confirmation dialogs prevent accidental actions
+- Real-time sync updates other clients
+- Proper toast feedback for success/error states
+- Actions respect trip status (disabled when not applicable)
