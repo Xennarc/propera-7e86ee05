@@ -1,34 +1,34 @@
  import { memo, useState, useMemo } from 'react';
  import { format, formatDistanceToNow, parseISO } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { RequestStatusPill } from './RequestStatusPill';
-import { categoryConfigs } from './RequestCategoryGrid';
-import { ServiceRequestWithItems } from '@/hooks/useServiceRequests';
-import { 
-  Clock, 
-  Calendar, 
-  ChevronDown, 
-  ChevronUp,
-  Package,
-  Building2,
-  X,
- import { MessageSquare } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { Card, CardContent } from '@/components/ui/card';
+ import { Badge } from '@/components/ui/badge';
+ import { Button } from '@/components/ui/button';
+ import { cn } from '@/lib/utils';
+ import { RequestStatusPill } from './RequestStatusPill';
+ import { categoryConfigs } from './RequestCategoryGrid';
+ import { ServiceRequestWithItems } from '@/hooks/useServiceRequests';
+ import { 
+   Clock, 
+   Calendar, 
+   ChevronDown, 
+   ChevronUp,
+   Package,
+   Building2,
+   X,
+   MessageSquare,
+ } from 'lucide-react';
+ import {
+   Tooltip,
+   TooltipContent,
+   TooltipProvider,
+   TooltipTrigger,
+ } from '@/components/ui/tooltip';
  import {
    getAggregatedSubmissionStatus,
    deriveRequestTitle,
    formatDepartments,
    getTotalItemCount,
-   getDisplayStatus,
  } from '@/lib/requests/statusDisplay';
 
 interface RequestSubmissionCardProps {

@@ -263,17 +263,9 @@ export default function GuestMyRequestsPage() {
             description={getEmptyContent().description}
             actionLabel="Make a Request"
             actionHref="/guest/requests"
-           secondaryAction={
-             filter === 'active' && completedCount > 0 ? undefined : (
-               <Button variant="ghost" size="sm" asChild className="gap-1.5 text-muted-foreground">
-                 <Link to="/guest/requests">
-                   Browse Services
-                   <ArrowRight className="h-4 w-4" />
-                 </Link>
-               </Button>
-             )
-           }
-          />
+           secondaryActionLabel={filter === 'active' && completedCount > 0 ? undefined : "Browse Services"}
+           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : "/guest/requests"}
+         />
         </motion.div>
       )}
 
