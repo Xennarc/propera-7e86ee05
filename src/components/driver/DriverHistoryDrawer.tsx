@@ -50,7 +50,7 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
           <div className="flex items-center gap-2">
             {isCompleted ? (
               <Badge variant="outline" className="gap-1">
-                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                <CheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400" />
                 Completed
               </Badge>
             ) : (
