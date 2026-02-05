@@ -234,7 +234,10 @@ export default function DriverTripRunnerPage() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 p-4 space-y-4 pb-32">
+      <div className="flex-1 p-4 space-y-4">
+        {/* Status Banners (Offline/GPS) */}
+        <DriverStatusBanner isOnline={isOnline} hasGPS={!!driverLocation} />
+        
         {/* Primary Action CTA - shows next lifecycle action */}
         {currentLifecycleState === 'assigned' && (
           <Card className="border-primary shadow-lg">
