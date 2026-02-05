@@ -74,20 +74,29 @@ export function TripsPanel({
         
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TripTab)}>
-          <TabsList className="w-full">
-            <TabsTrigger value="planning" className="flex-1">
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="planning" className="text-xs px-2">
               Planning
               {planningTrips.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
                   {planningTrips.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="active" className="flex-1">
+            <TabsTrigger value="active" className="text-xs px-2">
               Active
               {activeTrips.length > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
                   {activeTrips.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs px-2">
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              Done
+              {recentCompletedTrips.length > 0 && (
+                <Badge variant="secondary" className="ml-1.5 h-5 px-1.5">
+                  {recentCompletedTrips.length}
                 </Badge>
               )}
             </TabsTrigger>
