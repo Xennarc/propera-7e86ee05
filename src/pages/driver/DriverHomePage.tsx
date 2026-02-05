@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TripPreviewCard, TripPreviewCardSkeleton } from '@/components/driver/TripPreviewCard';
 import { DriverStatsSection } from '@/components/driver/DriverStatsSection';
+import { TripQuickInfoChips } from '@/components/driver/TripQuickInfoChips';
 import { 
   Car, 
   Coffee, 
