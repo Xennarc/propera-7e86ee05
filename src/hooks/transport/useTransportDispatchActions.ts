@@ -32,6 +32,14 @@ interface CancelTripResult {
   error?: string;
 }
 
+interface StaffUpdateTripResult {
+  success: boolean;
+  trip_id: string;
+  action: 'complete' | 'cancel';
+  affected_requests: number;
+  error?: string;
+}
+
 interface RpcError {
   message: string;
   code?: string;
