@@ -120,6 +120,12 @@ export default function DriverTripRunnerPage() {
     return stops.find(s => s.status === 'pending') || null;
   }, [stops]);
 
+  // Fallback: derive trip info from requests when stops are missing
+  const derivedInfo = useMemo(() => {
+    if (stops.length > 0) return null;
+    return deriveTripInfoFromRequests(requests);
+  }, [stops, requests]);
+
   // Get next stop for ETA calculation (using helper)
   const nextStopForETA = useMemo(() => getNextStop(stops), [stops]);
   const nextStopLocation = nextStopForETA?.stopLatLng ?? null;
