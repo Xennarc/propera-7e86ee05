@@ -123,7 +123,7 @@ export function DriverHistoryDrawer({ trip, open, onOpenChange }: DriverHistoryD
                     key={stop.id}
                     className={cn(
                       'flex items-center gap-3 p-3 rounded-lg border bg-card',
-                      stop.status === 'completed' && 'border-green-500/30 bg-green-500/5'
+                      stop.status === 'completed' && 'border-emerald-500/30 dark:border-emerald-400/30 bg-emerald-500/5'
                     )}
                   >
                     <div className="flex items-center justify-center h-6 w-6 rounded-full bg-muted text-xs font-medium">
