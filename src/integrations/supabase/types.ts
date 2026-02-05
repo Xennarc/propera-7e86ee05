@@ -7761,7 +7761,7 @@ export type Database = {
       }
       rpc_transport_create_trip_from_requests: {
         Args: {
-          p_created_by_staff_id: string
+          p_created_by_staff_id?: string
           p_request_ids: string[]
           p_resort_id: string
         }
