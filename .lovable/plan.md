@@ -1,51 +1,36 @@
 
 
-# Add Privacy Policy Page
+# Add Terms of Service Page
 
 ## Overview
-Create a dedicated `/privacy` page displaying the Propera privacy policy, using the existing `MarketingLayout` wrapper. Update the footer "Privacy" link (currently `href="#"`) to point to this new page.
+Create a `/terms` page displaying the Propera Terms of Service, following the exact same pattern as the recently added Privacy Policy page. Update the footer "Terms" link to point to it.
 
 ## What Changes
 
-### 1. New File: `src/pages/PrivacyPolicyPage.tsx`
-- Wrap content in `MarketingLayout` (no `currentPage` prop needed -- it's not a nav item)
-- Add `SEOHead` with appropriate title, description, and structured data
-- Render the privacy policy text provided by the user in a clean, readable layout
-- Use existing Tailwind prose/typography patterns (heading sizes, spacing, muted-foreground for body text) consistent with how the About page structures long-form content
-- Sections: Introduction, Information We Collect, Use of Information, Sharing of Information, Cookies and Tracking, Data Security, Jurisdiction, Contact Us
-- Include "Last Updated: February 6, 2026" at the top
+### 1. New File: `src/pages/TermsOfServicePage.tsx`
+- Wrap content in `MarketingLayout` (no `currentPage` prop -- not a nav item)
+- Add `SEOHead` with title "Terms of Service", description, canonical URL `/terms`, and structured data
+- Render the 9 sections provided: Acceptance of Terms, User Accounts, User Content, Payments, Intellectual Property, Termination, Limitation of Liability, Governing Law, Changes
+- Include "Last Updated: February 6, 2026" subtitle
+- Match the exact same styling as `PrivacyPolicyPage.tsx` (same heading sizes, spacing, `muted-foreground` body text, list styles)
 
 ### 2. Modified File: `src/App.tsx`
-- Add lazy import: `const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));`
-- Add route: `<Route path="/privacy" element={<PrivacyPolicyPage />} />` alongside the other public routes (`/pricing`, `/about`, `/book-demo`)
+- Add lazy import: `const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage"));`
+- Add route: `<Route path="/terms" element={<TermsOfServicePage />} />` alongside `/privacy`
 
 ### 3. Modified File: `src/components/layout/MarketingLayout.tsx`
-- Update the footer "Privacy" link from `<a href="#">` to `<Link to="/privacy">` (using react-router-dom `Link`)
-- The "Terms" link stays as `href="#"` for now (no terms page yet)
+- Line 186: Change `<a href="#" ...>Terms</a>` to `<Link to="/terms" ...>Terms</Link>`
 
 ## Design Approach
-- No new components or dependencies
-- The page will use the same marketing canvas background, header, and footer as all other public pages
-- Content styled with standard heading/paragraph Tailwind classes already used across the codebase
-- Mobile-responsive by default (inherits MarketingLayout behavior)
+- No new components, no new dependencies
+- Identical layout and styling to the Privacy Policy page
+- Mobile-responsive by default via `MarketingLayout`
 
 ## Technical Details
 
-**Page structure:**
-```
-MarketingLayout
-  SEOHead (title, description, canonical, structured data)
-  <section> with container + prose-like layout
-    h1: Privacy Policy
-    "Last Updated" subtitle
-    Sections 1-8 as h2 + p elements
-```
-
-**No database, no edge functions, no new dependencies.**
-
-## Files Summary
 | File | Action |
 |------|--------|
-| `src/pages/PrivacyPolicyPage.tsx` | Create |
+| `src/pages/TermsOfServicePage.tsx` | Create |
 | `src/App.tsx` | Add lazy import + route |
-| `src/components/layout/MarketingLayout.tsx` | Update footer Privacy link |
+| `src/components/layout/MarketingLayout.tsx` | Update footer Terms link (line 186) |
+
