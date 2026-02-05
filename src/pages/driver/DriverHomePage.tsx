@@ -269,14 +269,58 @@ export default function DriverHomePage() {
 
       {/* Offline warning */}
       {!isOnline && (
-        <Card className="border-amber-500/50 bg-amber-500/5">
+        <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="py-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
-            <p className="text-sm text-amber-700 dark:text-amber-400">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">
               You're offline. Actions will sync when reconnected.
             </p>
           </CardContent>
         </Card>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Contextual action button based on trip lifecycle state
+ */
+function ContextualTripButton({ 
+  trip, 
+  onClick 
+}: { 
+  trip: { status: string; lifecycle_state?: string | null }; 
+  onClick: () => void;
+}) {
+  const { label, sublabel } = useMemo(() => 
+    getContextualActionLabel(trip.lifecycle_state, trip.status),
+    [trip.lifecycle_state, trip.status]
+  );
+  
+  const isStartTrip = trip.status === 'assigned' || trip.lifecycle_state === 'assigned';
+  
+  return (
+    <div className="space-y-1">
+      <Button
+        size="lg"
+        className="w-full h-14 text-lg gap-2"
+        onClick={onClick}
+      >
+        {isStartTrip ? (
+          <>
+            <Play className="h-5 w-5" />
+            {label}
+          </>
+        ) : (
+          <>
+            <Navigation className="h-5 w-5" />
+            {label}
+            <ChevronRight className="h-5 w-5" />
+          </>
+        )}
+      </Button>
+      {sublabel && (
+        <p className="text-xs text-center text-muted-foreground">{sublabel}</p>
       )}
     </div>
   );
