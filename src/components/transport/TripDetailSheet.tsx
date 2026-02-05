@@ -236,7 +236,92 @@ export function TripDetailSheet({
             </div>
           </div>
         </ScrollArea>
+        
+        {/* Footer Actions */}
+        {(canComplete || canCancel) && (
+          <div className="p-4 border-t bg-muted/30 flex gap-2">
+            {canComplete && onCompleteTrip && (
+              <Button 
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => setShowCompleteDialog(true)}
+                disabled={isLoading}
+              >
+                {isCompletingTrip ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                )}
+                Mark Complete
+              </Button>
+            )}
+            {canCancel && onCancelTrip && (
+              <Button 
+                variant="destructive"
+                className="flex-1"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={isLoading}
+              >
+                {isCancellingTrip ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-2" />
+                )}
+                Cancel Trip
+              </Button>
+            )}
+          </div>
+        )}
       </SheetContent>
+      
+      {/* Complete Confirmation Dialog */}
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark Trip as Complete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark all {trip.request_count} request(s) as completed. The trip will move to the completed history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 text-white hover:bg-green-700"
+              onClick={() => {
+                onCompleteTrip?.(trip.id);
+                setShowCompleteDialog(false);
+                onOpenChange(false);
+              }}
+            >
+              Mark Complete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Trip?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will return all {trip.request_count} request(s) to the queue. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Trip</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                onCancelTrip?.(trip.id);
+                setShowCancelDialog(false);
+                onOpenChange(false);
+              }}
+            >
+              Cancel Trip
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }
