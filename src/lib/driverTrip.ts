@@ -98,3 +98,81 @@ export function areAllStopsCompleted(
     return status === 'completed' || status === 'skipped' || status === 'cancelled';
   });
 }
+
+/**
+ * Derived trip info when stops are unavailable.
+ * Extracts pickup/dropoff info from trip requests.
+ */
+export interface DerivedTripInfo {
+  pickupNames: string[];
+  dropoffNames: string[];
+  totalPassengers: number;
+  firstGuest: { name: string | null; room: string | null } | null;
+}
+
+/**
+ * Extract trip info from trip requests when stops are missing.
+ * Provides fallback display data for the Driver Portal.
+ * 
+ * @param tripRequests - Array of trip requests with details
+ * @returns Derived trip info with pickup/dropoff names and passenger count
+ */
+export function deriveTripInfoFromRequests(
+  tripRequests: TripRequestWithDetails[] | undefined | null
+): DerivedTripInfo {
+  if (!tripRequests?.length) {
+    return { pickupNames: [], dropoffNames: [], totalPassengers: 0, firstGuest: null };
+  }
+
+  const pickupNames = tripRequests
+    .map(r => r.pickup_name || r.pickup_text)
+    .filter(Boolean) as string[];
+  
+  const dropoffNames = tripRequests
+    .map(r => r.dropoff_name || r.dropoff_text)
+    .filter(Boolean) as string[];
+  
+  const totalPassengers = tripRequests.reduce((sum, r) => sum + (r.party_size || 0), 0);
+  
+  const firstReq = tripRequests[0];
+
+  return {
+    pickupNames: [...new Set(pickupNames)],
+    dropoffNames: [...new Set(dropoffNames)],
+    totalPassengers,
+    firstGuest: firstReq ? { name: firstReq.guest_name, room: firstReq.room_number } : null,
+  };
+}
+
+/**
+ * Get contextual button label based on lifecycle state.
+ * 
+ * @param lifecycleState - Current trip lifecycle state
+ * @param status - Trip status as fallback
+ * @returns Object with label and icon hint
+ */
+export function getContextualActionLabel(
+  lifecycleState: string | null | undefined,
+  status: string
+): { label: string; sublabel: string } {
+  const state = lifecycleState?.toLowerCase() ?? status.toLowerCase();
+  
+  switch (state) {
+    case 'assigned':
+      return { label: 'Start Trip', sublabel: 'Head to pickup location' };
+    case 'enroute_to_pickup':
+      return { label: 'View Trip', sublabel: 'Heading to pickup' };
+    case 'arrived_pickup':
+      return { label: 'View Trip', sublabel: 'Waiting for passengers' };
+    case 'enroute_to_dropoff':
+      return { label: 'View Trip', sublabel: 'Driving to dropoff' };
+    case 'en_route':
+      return { label: 'View Trip', sublabel: 'Trip in progress' };
+    case 'active':
+      return { label: 'View Trip', sublabel: 'Trip active' };
+    case 'planning':
+      return { label: 'View Trip', sublabel: 'Awaiting assignment' };
+    default:
+      return { label: 'Continue Trip', sublabel: '' };
+  }
+}
