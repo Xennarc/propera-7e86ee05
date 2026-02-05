@@ -3,7 +3,7 @@
  * These helpers do not affect existing logic or non-driver pages.
  */
 
-import type { TripStopWithDetails, StopLatLng } from '@/hooks/transport/useTripDetails';
+import type { TripStopWithDetails, TripRequestWithDetails, StopLatLng } from '@/hooks/transport/useTripDetails';
 
 /**
  * Status values that indicate a stop is still actionable (not yet completed).
