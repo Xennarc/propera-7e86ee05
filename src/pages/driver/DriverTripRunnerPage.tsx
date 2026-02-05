@@ -255,9 +255,7 @@ export default function DriverTripRunnerPage() {
                 )}
                 {nextActionLabel || 'Start Trip'}
               </Button>
-              <p className="text-center text-xs text-muted-foreground mt-3">
-                Tap to begin and notify passengers
-              </p>
+              <TripStateMicrocopy state={currentLifecycleState} />
             </CardContent>
           </Card>
         )}
