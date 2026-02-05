@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
 import {
   ChevronLeft,
   Calendar,
@@ -26,6 +27,7 @@ import {
   XCircle,
   ArrowRight,
   Inbox,
+  Search,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInMinutes } from 'date-fns';
