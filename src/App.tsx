@@ -163,6 +163,7 @@ const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPa
 const PricingPage = lazy(() => import("./pages/PricingPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const BookDemoPage = lazy(() => import("./pages/BookDemoPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 
 // Loading fallback component
 const PageLoader = () => (
