@@ -1,66 +1,65 @@
 
 
-# Fix: Race Condition in Trip Creation Trigger
+# Fix: Invalid Enum Value 'on_demand' in Trip Creation
 
 ## Problem
 
-When creating a trip from requests, the error occurs:
+When creating a trip, the error occurs:
 ```
-Request cannot be marked as assigned_to_trip without an active trip link
-Code: P0001
-```
-
-**Root Cause**: The `rpc_transport_create_trip_from_requests` function does operations in this order:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│  1. UPDATE buggy_requests SET status = 'assigned_to_trip'   │
-│                          ↓                                  │
-│     TRIGGER FIRES: validate_request_status_transition       │
-│     → Checks: EXISTS(buggy_trip_requests WHERE state='queued')
-│     → FAILS: Trip link doesn't exist yet!                   │
-│                          ↓                                  │
-│  2. INSERT INTO buggy_trip_requests (never reached)         │
-└─────────────────────────────────────────────────────────────┘
+invalid input value for enum buggy_trip_type: "on_demand"
+Code: 22P02
 ```
 
-The trigger validates that a trip link exists **before** the RPC inserts it.
-
----
+**Root Cause**: The `rpc_transport_create_trip_from_requests` function hardcodes `'on_demand'` as the trip type, but the `buggy_trip_type` enum only contains:
+- `pooled_custom`
+- `scheduled_pool`
+- `fixed_route_run`
 
 ## Solution
 
-Swap the order of operations in `rpc_transport_create_trip_from_requests`:
-
-1. **First** insert into `buggy_trip_requests` (create the trip link)
-2. **Then** update `buggy_requests.status` to `assigned_to_trip`
-
-This ensures the trip link exists when the trigger validates.
+Change the hardcoded value from `'on_demand'` to `'pooled_custom'` in the RPC function. This is the appropriate type for staff-created trips from queued requests.
 
 ---
 
-## Updated RPC Logic
+## Database Migration
 
 ```sql
--- Inside the FOREACH loop, swap order:
-
--- 1. FIRST: Create junction table entry (trip link)
-INSERT INTO buggy_trip_requests (
-  resort_id, trip_id, request_id, party_size, state, created_at, updated_at
+-- Fix: Use valid enum value 'pooled_custom' instead of 'on_demand'
+CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(
+  p_resort_id uuid,
+  p_request_ids uuid[],
+  p_created_by_staff_id uuid DEFAULT NULL
 )
-SELECT p_resort_id, v_trip_id, v_request_id, br.party_size, 'queued', now(), now()
-FROM buggy_requests br
-WHERE br.id = v_request_id
-ON CONFLICT DO NOTHING;
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_trip_id uuid;
+  v_request_id uuid;
+  v_attached_count integer := 0;
+  v_total_party_size integer := 0;
+BEGIN
+  -- ... existing validation code ...
 
--- 2. THEN: Update the request status (trigger can now find the trip link)
-UPDATE buggy_requests
-SET 
-  attached_trip_id = v_trip_id,
-  assigned_at = NULL,
-  status = 'assigned_to_trip',
-  updated_at = now()
-WHERE id = v_request_id;
+  -- Create the trip with CORRECT enum value
+  INSERT INTO buggy_trips (
+    resort_id, status, trip_type, created_by_staff_id, lifecycle_state, created_at, updated_at
+  ) VALUES (
+    p_resort_id,
+    'planning',
+    'pooled_custom',  -- ✅ FIXED: was 'on_demand'
+    p_created_by_staff_id,
+    'planning',
+    now(),
+    now()
+  )
+  RETURNING id INTO v_trip_id;
+
+  -- ... rest of function unchanged ...
+END;
+$function$;
 ```
 
 ---
@@ -69,7 +68,7 @@ WHERE id = v_request_id;
 
 | File | Action | Description |
 |------|--------|-------------|
-| New migration | CREATE | Fix operation order in `rpc_transport_create_trip_from_requests` |
+| New migration | CREATE | Fix trip_type from `'on_demand'` to `'pooled_custom'` |
 
 ---
 
@@ -77,8 +76,8 @@ WHERE id = v_request_id;
 
 After migration:
 1. Staff Dashboard → Transport → Dispatch Queue
-2. Select 1-2 pending requests
+2. Select 1+ pending requests
 3. Click "Create Trip"
-4. Trip should be created successfully without errors
-5. Requests should show as "Assigned to Trip" status
+4. Trip should be created successfully
+5. Trip should appear in Planning Trips panel
 
