@@ -132,15 +132,21 @@ export default function DriverHistoryPage() {
                 </div>
               ))}
             </div>
-          ) : trips.length === 0 ? (
+          ) : filteredTrips.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-16 text-center">
                 <Inbox className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold text-lg">No trips found</h3>
+                <h3 className="font-semibold text-lg">
+                  {searchQuery ? 'No matches found' : 'No trips found'}
+                </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {dateRange === '7d'
+                  {searchQuery
+                    ? 'Try a different search term.'
+                    : dateRange === '7d'
                     ? 'No completed trips in the last 7 days. Try expanding to 30 days.'
-                    : 'No completed trips in the last 30 days.'}
+                    : dateRange === '30d'
+                    ? 'No completed trips in the last 30 days. Try "All time".'
+                    : 'No completed trips yet.'}
                 </p>
               </CardContent>
             </Card>
