@@ -16,15 +16,11 @@ export function TripStateMicrocopy({ state, stopKind, className }: TripStateMicr
     switch (state) {
       case 'assigned':
         return 'Head to pickup. Tap "Start Trip" when you begin moving.';
-      case 'en_route_to_pickup':
+      case 'enroute_to_pickup':
         return 'Tap "Arrived" when you reach the pickup location.';
       case 'arrived_pickup':
         return 'Confirm pickup once all guests are aboard, then continue.';
-      case 'picked_up':
-        return stopKind === 'dropoff' 
-          ? 'Head to dropoff. Complete stop when guests exit.'
-          : 'Continue to next stop. Mark arrived when you get there.';
-      case 'en_route_to_dropoff':
+      case 'enroute_to_dropoff':
         return 'Tap "Arrived" when you reach the dropoff location.';
       case 'arrived_dropoff':
         return 'Complete the stop once guests have exited.';

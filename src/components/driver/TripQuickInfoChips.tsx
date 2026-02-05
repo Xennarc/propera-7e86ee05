@@ -24,8 +24,9 @@ export function TripQuickInfoChips({
   
   const isScheduled = trip?.scheduled_for && new Date(trip.scheduled_for) > new Date();
   
+  // Check if any request indicates accessibility need (from buggy_requests table)
   const needsAccessibility = (tripRequests || []).some(
-    (req) => req.needs_accessible === true
+    (req) => (req as any).needs_accessible === true
   );
 
   // Don't render if no chips to show
