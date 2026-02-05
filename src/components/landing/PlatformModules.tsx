@@ -6,13 +6,9 @@ import {
   Car,
   Navigation,
   Award,
-  Calendar,
-  Users,
-  Bell
 } from 'lucide-react';
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { NotificationStreamShowcase } from '@/components/illustrations/NotificationStreamShowcase';
 
 const modules = [
   { 
