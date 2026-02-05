@@ -35,7 +35,9 @@ export function TripsPanel({
   onRemoveRequest,
   onViewTripDetails,
   onCancelTrip,
+  onCompleteTrip,
   isCancellingTrip,
+  isCompletingTrip,
   onRefresh,
 }: TripsPanelProps) {
   const [activeTab, setActiveTab] = useState<TripTab>('planning');
