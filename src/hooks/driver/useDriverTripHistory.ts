@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 
-export type HistoryDateRange = '7d' | '30d';
+export type HistoryDateRange = '7d' | '30d' | 'all';
 
 export interface DriverTripHistoryRow {
   id: string;
