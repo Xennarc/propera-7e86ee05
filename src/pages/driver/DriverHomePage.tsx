@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useOutletContext, useNavigate, Link } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { 
@@ -14,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { TripPreviewCard, TripPreviewCardSkeleton } from '@/components/driver/TripPreviewCard';
 import { DriverStatsSection } from '@/components/driver/DriverStatsSection';
 import { TripQuickInfoChips } from '@/components/driver/TripQuickInfoChips';
+import { TripStateMicrocopy } from '@/components/driver/TripStateMicrocopy';
+import { getContextualActionLabel } from '@/lib/driverTrip';
 import { 
   Car, 
   Coffee, 
@@ -26,6 +29,7 @@ import {
   AlertCircle,
   Play,
   History,
+  Navigation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
