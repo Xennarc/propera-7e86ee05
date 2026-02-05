@@ -268,7 +268,8 @@ function GuestRequestsPageContent() {
       <RequestsStickyBar
         selectedCount={selectedItems.length}
         totalQuantity={totalSelectedCount}
-        onSubmit={handleOpenReview}
+        onDirectSubmit={handleDirectSubmit}
+        onReview={handleOpenReview}
         isSubmitting={isCreatingBundle}
         disabled={selectedItems.length === 0}
       />
