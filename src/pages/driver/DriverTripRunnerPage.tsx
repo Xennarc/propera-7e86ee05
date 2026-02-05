@@ -113,6 +113,7 @@ export default function DriverTripRunnerPage() {
   // State
   const [skipConfirmId, setSkipConfirmId] = useState<string | null>(null);
   const [expandedStopId, setExpandedStopId] = useState<string | null>(null);
+  const [allStopsExpanded, setAllStopsExpanded] = useState(false);
 
   // Find current stop (first pending)
   const currentStop = useMemo(() => {
