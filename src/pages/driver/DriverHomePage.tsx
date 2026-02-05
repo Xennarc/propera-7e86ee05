@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TripPreviewCard, TripPreviewCardSkeleton } from '@/components/driver/TripPreviewCard';
+import { DriverStatsSection } from '@/components/driver/DriverStatsSection';
 import { 
   Car, 
   Coffee, 
