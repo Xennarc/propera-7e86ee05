@@ -284,6 +284,7 @@ export default function DriverTripRunnerPage() {
                 )}
                 {nextActionLabel}
               </Button>
+              <TripStateMicrocopy state={currentLifecycleState} stopKind={currentStop?.stop_kind as any} />
             </CardContent>
           </Card>
         )}
