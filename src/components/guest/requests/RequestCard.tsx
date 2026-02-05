@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { RequestStatusPill } from './RequestStatusPill';
 import { categoryConfigs } from './RequestCategoryGrid';
 import { ServiceRequest } from '@/hooks/useServiceRequests';
-import { Clock, Package, Calendar, X, ChevronDown, ChevronUp } from 'lucide-react';
+ import { Clock, Package, Calendar, X, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -41,6 +41,7 @@ export const RequestCard = memo(function RequestCard({
   
   const createdAt = parseISO(request.created_at);
   const minutesAgo = differenceInMinutes(new Date(), createdAt);
+   const isCancelled = request.status === 'CANCELLED';
   
   // Smart time display: "Xm ago" for recent, otherwise relative
   const getTimeChip = () => {
@@ -88,7 +89,10 @@ export const RequestCard = memo(function RequestCard({
               {/* Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <h3 className="font-semibold text-sm text-foreground truncate">
+                 <h3 className={cn(
+                   'font-semibold text-sm truncate',
+                   isCancelled ? 'text-muted-foreground line-through' : 'text-foreground'
+                 )}>
                     {request.title}
                   </h3>
                   <p className="text-xs text-muted-foreground">
@@ -112,6 +116,13 @@ export const RequestCard = memo(function RequestCard({
                   </span>
                 )}
                 
+               {request.notes && !expanded && (
+                 <span className="flex items-center gap-1">
+                   <MessageSquare className="h-3 w-3" />
+                   Notes
+                 </span>
+               )}
+ 
                 {request.is_asap ? (
                   <span className="flex items-center gap-1 text-primary font-medium">
                     <Clock className="h-3 w-3" />
@@ -139,7 +150,7 @@ export const RequestCard = memo(function RequestCard({
                 </TooltipProvider>
               </div>
               
-              {/* Notes preview */}
+             {/* Notes section */}
               {request.notes && (
                 <motion.div
                   initial={false}
@@ -177,7 +188,18 @@ export const RequestCard = memo(function RequestCard({
               
               {/* Status timestamps */}
               <AnimatePresence mode="wait">
-                {request.status === 'COMPLETED' && request.completed_at && (
+               {isCancelled && request.cancelled_at && (
+                 <motion.p
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
+                   className="text-xs text-muted-foreground flex items-center gap-1"
+                 >
+                   <span className="text-base">✗</span>
+                   Cancelled {formatDistanceToNow(parseISO(request.cancelled_at), { addSuffix: true })}
+                 </motion.p>
+               )}
+ 
+               {!isCancelled && request.status === 'COMPLETED' && request.completed_at && (
                   <motion.p
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -188,7 +210,7 @@ export const RequestCard = memo(function RequestCard({
                   </motion.p>
                 )}
                 
-                {request.status === 'ACKNOWLEDGED' && request.acknowledged_at && (
+               {!isCancelled && request.status === 'ACKNOWLEDGED' && request.acknowledged_at && (
                   <motion.p
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}

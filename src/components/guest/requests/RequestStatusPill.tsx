@@ -20,6 +20,7 @@ interface RequestStatusPillProps {
   createdAt?: string;
   slaMinutes?: number; // Optional SLA warning threshold
   animate?: boolean;
+   customLabel?: string; // Override the default label (e.g., "Partial" for partial completion)
 }
 
 const statusConfig: Record<RequestStatus, {
@@ -66,6 +67,7 @@ export function RequestStatusPill({
   createdAt,
   slaMinutes,
   animate = true,
+   customLabel,
 }: RequestStatusPillProps) {
   const config = statusConfig[status] || statusConfig.NEW;
   const Icon = config.icon;
@@ -100,7 +102,7 @@ export function RequestStatusPill({
           )} />
         )
       )}
-      {isSlaBreach ? 'Waiting' : config.label}
+       {isSlaBreach ? 'Waiting' : (customLabel || config.label)}
     </Badge>
   );
 
