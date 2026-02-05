@@ -2,12 +2,13 @@ import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingBag, ArrowRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, Zap, Loader2, Settings2 } from 'lucide-react';
 
 interface RequestsStickyBarProps {
   selectedCount: number;
   totalQuantity: number;
-  onSubmit: () => void;
+  onDirectSubmit: () => void;
+  onReview: () => void;
   isSubmitting?: boolean;
   disabled?: boolean;
 }
