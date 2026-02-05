@@ -1,253 +1,172 @@
 
-# Driver Portal Trip Display Comprehensive Fix
+
+# Fix Driver Portal Display Issues + Add Driver Debug Console
 
 ## Problem Summary
 
-The screenshot shows a driver with an assigned trip displaying:
-- Status: "en_route" 
-- NEXT STOP: "—" (empty)
-- PAX: 0
-- DIST: "—"
-- ETA: "—"
-- Only a generic "Continue Trip >" button with no actionable context
+The `/driver` and `/driver/trip/*` pages are showing empty/useless information despite having a valid trip with an attached request. Database investigation confirms:
 
-**Root Causes Identified:**
+- **Trip** `5263ddc3` exists with `status: en_route`, `lifecycle_state: en_route`, and 1 attached request
+- **0 trip stops** exist for this trip (stops were created by the recently updated RPC, but this trip was created BEFORE the migration)
+- **The request** has valid data: Guest "Vifau Waheed", Room 654, 3 passengers, Pickup: "Main Pool", Dropoff: "Water Sports"
+- **All `buggy_stops`** have `lat: null, lng: null` -- no coordinates exist in the database at all
 
-### Flaw 1: Trip Stops Not Being Created
-The `rpc_transport_create_trip_from_requests` RPC creates trips but does NOT generate `buggy_trip_stops` entries. Database query confirmed the active trip has 0 stops despite having 1 attached request.
+### Root Causes Identified
 
-The `rpc_transport_attach_requests_to_trip` RPC correctly creates stops, but they use different code paths.
+1. **Pre-migration trip has no stops**: The RPC fix to create stops only applies to NEW trips. Existing active trips still have 0 stops, and there is no backfill or runtime fallback.
 
-### Flaw 2: Stop Coordinates Missing
-All `buggy_stops` in the database have `lat: null, lng: null`. Without coordinates, ETA/distance calculations return "—".
+2. **Trip Runner page is empty when stops are 0**: The `DriverTripRunnerPage` only shows useful content (Current Stop card, All Stops list, action buttons) when `stops.length > 0`. With 0 stops, the driver sees just the header, an empty progress bar, and the "Start Trip"/"state advance" button -- but no pickup/dropoff info, no guest info, no passenger count.
 
-### Flaw 3: DriverHomePage Missing Fallback Display
-When `tripStops` is empty, the preview shows dashes. No fallback to derive info from `tripRequests` (which has pickup/dropoff names).
+3. **Home page fallback exists in `TripPreviewCard` but Trip Runner has NO equivalent fallback**: The `TripPreviewCard` component already has `deriveTripInfoFromRequests()` fallback logic, but the Trip Runner page directly iterates over `stops` and renders nothing when the array is empty.
 
-### Flaw 4: Action Button Not Contextual
-The "Continue Trip >" button is static and doesn't indicate what action the driver should take based on current `lifecycle_state`.
+4. **`lifecycle_state = 'en_route'` is not in the frontend type**: The `TripLifecycleState` type only includes `assigned | enroute_to_pickup | arrived_pickup | enroute_to_dropoff | completed`. The database value `en_route` (from the `buggy_trip_status` enum set via legacy status column) doesn't match any of these, causing `getNextState()` to return `null` and `NEXT_ACTION_LABELS` to return `undefined`. The "advance" button becomes inert.
 
-### Flaw 5: No Direct Route to Trip Runner
-From Home, the "Continue Trip" should navigate to the Trip Runner where the driver can take specific actions, but the information shown before clicking is useless.
+5. **No Driver Debug Console**: Staff and Guest portals have debug consoles accessible via `?debug=1`, but the Driver Portal has none, making it impossible to diagnose issues in the field.
 
 ---
 
-## Comprehensive Fix Plan
+## Implementation Plan
 
-### Phase 1: Fix Database - Trip Creation RPC
-Update `rpc_transport_create_trip_from_requests` to generate trip stops when attaching requests (matching the behavior of `rpc_transport_attach_requests_to_trip`).
+### Phase 1: Fix lifecycle_state Mismatch
 
-**Database Migration:**
+**File: `src/hooks/transport/useDriverLifecycleActions.ts`**
+
+The `TripLifecycleState` type and all maps (`LIFECYCLE_STATE_LABELS`, `NEXT_ACTION_LABELS`, `getNextState`) need to handle the legacy `en_route` and `active` values that exist in the database.
+
+- Add `en_route` and `active` to `TripLifecycleState` union as aliases
+- Map `en_route` to behave like `enroute_to_pickup` (or allow transition to `arrived_pickup`)  
+- Map `active` to behave like `enroute_to_dropoff`
+- Add a `normalizeLifecycleState()` helper that maps legacy values to the canonical lifecycle states
+
+**File: `src/pages/driver/DriverTripRunnerPage.tsx`**
+
+- Normalize the `currentLifecycleState` before using it, so `en_route` maps to `enroute_to_pickup` and the state machine works
+
+### Phase 2: Add Request-Based Fallback to Trip Runner
+
+**File: `src/pages/driver/DriverTripRunnerPage.tsx`**
+
+When `stops.length === 0` but `requests.length > 0`, display a fallback section:
+- Show pickup and dropoff locations derived from requests using `deriveTripInfoFromRequests()`
+- Show guest name and room number
+- Show passenger count
+- Show the lifecycle action button (which now works after Phase 1 fix)
+- Keep the Passengers list section (already works since it reads from `requests`)
+
+This is a new "RequestBasedTripInfo" section inserted where the "Current Stop" card would normally appear.
+
+### Phase 3: Backfill Stops for Active Trips (Database Migration)
+
+Create a one-time migration that generates `buggy_trip_stops` for any active trip that has attached requests but 0 stops. This ensures:
+- The current active trip gets stops retroactively
+- The Trip Runner stop-based UI works for this trip
+- Future trips already get stops from the updated RPC
+
 ```sql
-CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(...)
--- Add stop creation logic for each request:
--- 1. Insert pickup stop with sequence, stop_id, title from request
--- 2. Insert dropoff stop with sequence, stop_id, title from request
+-- For each active trip with requests but no stops,
+-- create pickup + dropoff stops from the request data
 ```
 
-### Phase 2: Frontend Fallback - Derive Trip Info from Requests
-When `tripStops` is empty, fallback to extracting pickup/dropoff info from `tripRequests`.
+### Phase 4: Driver Debug Console
 
-**File: `src/components/driver/TripPreviewCard.tsx`**
-- Add fallback logic: if no stops, derive "next stop" from first request's `pickup_name`
-- Show passenger count from requests even when stops missing
-- Display pickup → dropoff flow
+**File: `src/components/driver/DriverDebugConsole.tsx`** (new)
 
-**File: `src/pages/driver/DriverHomePage.tsx`**
-- Enhance the Current Trip card to show request-derived info when stops unavailable
-- Add pickup/dropoff location text from request data
+Create a Driver-specific debug console modeled after the existing `StaffDebugConsole`, but tailored to driver context:
 
-### Phase 3: Contextual Action Button
-Replace generic "Continue Trip >" with state-specific CTAs.
+Sections:
+- **Driver Session**: user_id, status, assigned_buggy, resort
+- **Current Trip**: trip_id, status, lifecycle_state, stops count, requests count
+- **Trip Data**: raw stop/request details for the active trip
+- **GPS/Location**: current driver coordinates, last update time
+- **Error Log**: captured errors (reuse `debug-error-capture`)
+- **React Query**: pending/recent queries (reuse `debug-query-tracker`)
 
-**Changes in `DriverHomePage.tsx`:**
-```text
-┌─────────────────────────────────────────┐
-│ lifecycle_state   │   Button Label      │
-├─────────────────────────────────────────┤
-│ assigned          │ Start Trip          │
-│ enroute_to_pickup │ View Trip (Heading) │
-│ arrived_pickup    │ View Trip (Waiting) │
-│ enroute_to_dropoff│ View Trip (Active)  │
-└─────────────────────────────────────────┘
-```
+**File: `src/components/driver/DriverLayout.tsx`** (modify)
 
-The button always navigates to Trip Runner, but the label provides context.
-
-### Phase 4: Enhance Trip Preview Information Density
-Add derived fields to show meaningful info even with incomplete data.
-
-**File: `src/components/driver/TripPreviewCard.tsx`**
-- Add `pickupLocation` display from request
-- Add `dropoffLocation` display from request  
-- Show "X passengers waiting" summary
-- Add status indicator badge
-
-**File: `src/lib/driverTrip.ts`**
-- Add `deriveTripInfoFromRequests()` helper function
-- Returns: pickupNames[], dropoffNames[], totalPassengers, hasScheduled
-
-### Phase 5: Improve Trip Card on Home Page
-
-**Update Current Trip Card structure:**
-```text
-┌─────────────────────────────────────────────────────┐
-│ Current Trip                     [enroute_to_pickup]│
-├─────────────────────────────────────────────────────┤
-│ 📍 PICKUP: Main Pool                                │
-│ 🏁 DROPOFF: Water Sports                            │
-├─────────────────────────────────────────────────────┤
-│    👥 3      📏 —       ⏱️ —                        │
-│    PAX      DIST      ETA                          │
-├─────────────────────────────────────────────────────┤
-│ Guest: Vifau Waheed • Room 654                      │
-├─────────────────────────────────────────────────────┤
-│ [ 🚗 Head to Pickup → ]                             │
-│ "Tap when you start driving"                        │
-└─────────────────────────────────────────────────────┘
-```
+- Import and initialize `initErrorCapture()` and `initQueryTracker()`
+- Add `?debug=1` URL parameter detection (using `useStaffDebugMode` pattern but with driver-appropriate auth check -- driver must exist in `buggy_drivers`)
+- Render `DriverDebugConsole` when debug mode is active
 
 ---
 
-## Technical Implementation Details
+## Technical Details
 
-### Database Migration
-```sql
--- Fix rpc_transport_create_trip_from_requests to create stops
-CREATE OR REPLACE FUNCTION public.rpc_transport_create_trip_from_requests(
-  p_resort_id uuid,
-  p_request_ids uuid[],
-  p_created_by_staff_id uuid DEFAULT NULL
-)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_trip_id uuid;
-  v_request record;
-  v_attached_count integer := 0;
-  v_stop_sequence integer := 0;
-BEGIN
-  -- Create trip (existing logic)
-  INSERT INTO buggy_trips (...) VALUES (...) RETURNING id INTO v_trip_id;
-  
-  -- For each request, create junction + stops
-  FOR v_request IN 
-    SELECT * FROM buggy_requests WHERE id = ANY(p_request_ids)
-  LOOP
-    -- Create junction entry (existing)
-    INSERT INTO buggy_trip_requests (...);
-    
-    -- Update request status (existing)
-    UPDATE buggy_requests SET attached_trip_id = v_trip_id, ...;
-    
-    -- NEW: Create pickup stop
-    v_stop_sequence := v_stop_sequence + 1;
-    INSERT INTO buggy_trip_stops (
-      trip_id, resort_id, stop_id, stop_kind, title, sequence, status
-    ) VALUES (
-      v_trip_id, p_resort_id, v_request.pickup_stop_id, 'pickup',
-      COALESCE((SELECT name FROM buggy_stops WHERE id = v_request.pickup_stop_id), 
-               v_request.pickup_text, 'Pickup'),
-      v_stop_sequence, 'pending'
-    );
-    
-    -- NEW: Create dropoff stop
-    v_stop_sequence := v_stop_sequence + 1;
-    INSERT INTO buggy_trip_stops (
-      trip_id, resort_id, stop_id, stop_kind, title, sequence, status
-    ) VALUES (
-      v_trip_id, p_resort_id, v_request.dropoff_stop_id, 'dropoff',
-      COALESCE((SELECT name FROM buggy_stops WHERE id = v_request.dropoff_stop_id),
-               v_request.dropoff_text, 'Dropoff'),
-      v_stop_sequence, 'pending'
-    );
-    
-    v_attached_count := v_attached_count + 1;
-  END LOOP;
-  
-  RETURN jsonb_build_object('success', true, 'trip_id', v_trip_id, ...);
-END;
-$$;
-```
+### Lifecycle State Normalization
 
-### Frontend Helper Function
 ```typescript
-// src/lib/driverTrip.ts
-export function deriveTripInfoFromRequests(
-  tripRequests: TripRequestWithDetails[] | undefined | null
-): {
-  pickupNames: string[];
-  dropoffNames: string[];
-  totalPassengers: number;
-  firstGuest: { name: string | null; room: string | null } | null;
-} {
-  if (!tripRequests?.length) {
-    return { pickupNames: [], dropoffNames: [], totalPassengers: 0, firstGuest: null };
+// Map database values to canonical lifecycle states
+function normalizeLifecycleState(
+  lifecycleState: string | null | undefined,
+  tripStatus: string
+): TripLifecycleState {
+  const state = lifecycleState || tripStatus;
+  switch (state) {
+    case 'assigned': return 'assigned';
+    case 'enroute_to_pickup': return 'enroute_to_pickup';
+    case 'en_route': return 'enroute_to_pickup'; // legacy mapping
+    case 'arrived_pickup': return 'arrived_pickup';
+    case 'active': return 'enroute_to_dropoff'; // legacy mapping
+    case 'enroute_to_dropoff': return 'enroute_to_dropoff';
+    case 'completed': return 'completed';
+    default: return 'assigned';
   }
-  
-  const pickupNames = tripRequests
-    .map(r => r.pickup_name || r.pickup_text)
-    .filter(Boolean) as string[];
-  const dropoffNames = tripRequests
-    .map(r => r.dropoff_name || r.dropoff_text)
-    .filter(Boolean) as string[];
-  const totalPassengers = tripRequests.reduce((sum, r) => sum + (r.party_size || 0), 0);
-  const firstReq = tripRequests[0];
-  
-  return {
-    pickupNames: [...new Set(pickupNames)],
-    dropoffNames: [...new Set(dropoffNames)],
-    totalPassengers,
-    firstGuest: firstReq ? { name: firstReq.guest_name, room: firstReq.room_number } : null,
-  };
 }
 ```
 
-### Updated TripPreviewCard
-```typescript
-// TripPreviewCard.tsx - with fallback logic
-const derivedInfo = useMemo(() => {
-  if (tripStops?.length) return null; // Use stops if available
-  return deriveTripInfoFromRequests(tripRequests);
-}, [tripStops, tripRequests]);
+### Request-Based Fallback in Trip Runner
 
-// In render:
-{derivedInfo ? (
-  // Show request-derived pickup/dropoff
-  <div>
-    <p>📍 Pickup: {derivedInfo.pickupNames.join(', ') || '—'}</p>
-    <p>🏁 Dropoff: {derivedInfo.dropoffNames.join(', ') || '—'}</p>
-  </div>
-) : (
-  // Show stop-based info (existing)
-)}
+```text
+When stops = 0, requests > 0:
+ ┌──────────────────────────────────────────┐
+ │ Trip Information                         │
+ ├──────────────────────────────────────────┤
+ │ PICKUP: Main Pool (Leisure)             │
+ │ DROPOFF: Water Sports (Activities)      │
+ ├──────────────────────────────────────────┤
+ │ Guest: Vifau Waheed - Room 654          │
+ │ Passengers: 3                           │
+ ├──────────────────────────────────────────┤
+ │ [ Arrived at Pickup ]                   │
+ │ "Tap when you reach the pickup"         │
+ └──────────────────────────────────────────┘
+```
+
+### Backfill SQL Pattern
+
+```sql
+INSERT INTO buggy_trip_stops (trip_id, resort_id, stop_id, stop_kind, title, sequence, status, related_request_id)
+SELECT 
+  btr.trip_id,
+  bt.resort_id,
+  br.pickup_stop_id,
+  'pickup',
+  COALESCE(ps.name, br.pickup_text, 'Pickup'),
+  (ROW_NUMBER() OVER (PARTITION BY btr.trip_id ORDER BY btr.created_at)) * 2 - 1,
+  'pending',
+  br.id
+FROM buggy_trip_requests btr
+JOIN buggy_trips bt ON bt.id = btr.trip_id
+JOIN buggy_requests br ON br.id = btr.request_id
+LEFT JOIN buggy_stops ps ON ps.id = br.pickup_stop_id
+WHERE bt.status NOT IN ('completed', 'cancelled')
+  AND NOT EXISTS (SELECT 1 FROM buggy_trip_stops WHERE trip_id = btr.trip_id);
+-- Plus similar INSERT for dropoff stops
 ```
 
 ---
 
+## Files to Create
+1. `src/components/driver/DriverDebugConsole.tsx` -- Driver-specific debug overlay
+
 ## Files to Modify
-
-### Database
-1. **New migration**: Fix `rpc_transport_create_trip_from_requests` to create stops
-
-### Frontend
-1. **`src/lib/driverTrip.ts`** - Add `deriveTripInfoFromRequests` helper
-2. **`src/components/driver/TripPreviewCard.tsx`** - Add fallback logic for missing stops
-3. **`src/pages/driver/DriverHomePage.tsx`** - Enhance Current Trip card with:
-   - Contextual action button labels
-   - Request-derived info display
-   - Guest info row
-   - Microcopy guidance
-
----
+1. `src/hooks/transport/useDriverLifecycleActions.ts` -- Add `normalizeLifecycleState()`, update types/maps
+2. `src/pages/driver/DriverTripRunnerPage.tsx` -- Normalize state, add request-based fallback UI
+3. `src/components/driver/DriverLayout.tsx` -- Init error/query tracking, render debug console
+4. Database migration -- Backfill stops for existing active trips
 
 ## Acceptance Criteria
-- [ ] Trip creation RPC generates stops for all attached requests
-- [ ] Driver Home shows pickup/dropoff names even when stops missing
-- [ ] Passenger count displays correctly (3 in this case)
-- [ ] Action button shows contextual label based on lifecycle_state
-- [ ] Guest info (name, room) visible on Current Trip card
-- [ ] Microcopy guides driver on next action
-- [ ] Existing Trip Runner page continues working (no breaking changes)
+- Driver sees pickup/dropoff names, guest info, and passenger count on Trip Runner even when stops are missing
+- The "advance state" button works correctly for trips with `lifecycle_state = 'en_route'` or `'active'`
+- Existing active trips get stops backfilled so the full stop-based UI works
+- Driver Debug Console accessible via `?debug=1` showing session, trip, GPS, error, and query data
+- No breaking changes to the Staff or Guest portals
