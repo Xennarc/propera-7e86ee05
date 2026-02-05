@@ -10,7 +10,7 @@ const VALUE_CHIPS = [
   'Unlimited staff',
   'Multi-resort ready',
   'Real-time sync',
-  'White-label capable',
+  'Feature flag control',
 ];
 
 // Preview content
