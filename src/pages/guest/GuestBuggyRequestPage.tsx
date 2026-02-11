@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Car, AlertCircle } from 'lucide-react';
+import { Car, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,6 +19,7 @@ import {
 } from '@/hooks/transport/useGuestBuggyRequests';
 import { BuggyRequestForm, BuggyRideCard } from '@/components/guest/buggy';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { cn } from '@/lib/utils';
 
 export default function GuestBuggyRequestPage() {
