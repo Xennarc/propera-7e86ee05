@@ -24,7 +24,7 @@ export function SessionExpiredState({ activityName, onViewOtherTimes }: SessionE
     if (onViewOtherTimes) {
       onViewOtherTimes();
     } else {
-      navigate('/guest/activities/sessions');
+      navigate(GUEST_ROUTES.ACTIVITY_SESSIONS);
     }
   };
 
