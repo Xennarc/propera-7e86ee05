@@ -65,17 +65,22 @@ function NotificationItem({
     }
   };
 
+  const variant = getNotificationVariant(notification.type);
+  const accentMap: Record<string, string> = {
+    confirmed: 'bg-emerald-500',
+    pending: 'bg-amber-500',
+    cancelled: 'bg-red-500',
+    default: 'bg-muted-foreground',
+  };
+
   return (
-    <Card 
-      className={cn(
-        'p-4 cursor-pointer transition-colors hover:bg-accent/50',
-        !notification.is_read && 'border-l-4 border-l-primary'
-      )}
+    <MobileCard
       onClick={onClick}
+      accentColor={!notification.is_read ? accentMap[variant] : undefined}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-lg shrink-0', colorClasses)}>
-          <Icon className="h-4 w-4" />
+        <div className="p-2 rounded-lg shrink-0 bg-muted">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -92,12 +97,15 @@ function NotificationItem({
           <p className="text-sm text-muted-foreground mt-1">
             {notification.message}
           </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {formatNotificationDate(notification.created_at)}
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground">
+              {formatNotificationDate(notification.created_at)}
+            </p>
+            <StatusPill variant={variant} label={variant === 'default' ? 'Info' : variant.charAt(0).toUpperCase() + variant.slice(1)} size="sm" />
+          </div>
         </div>
       </div>
-    </Card>
+    </MobileCard>
   );
 }
 
