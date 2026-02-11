@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { RequestCard } from '@/components/guest/requests/RequestCard';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { RequestSubmissionCard } from '@/components/guest/requests/RequestSubmissionCard';
 import { RequestCardSkeleton } from '@/components/guest/requests/RequestCardSkeleton';
 import {
