@@ -7,6 +7,7 @@
 
 import { memo, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
