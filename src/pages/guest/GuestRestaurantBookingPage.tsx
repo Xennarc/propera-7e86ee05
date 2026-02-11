@@ -269,7 +269,7 @@ export default function GuestRestaurantBookingPage() {
             <p className="text-muted-foreground">
               This time slot is no longer available for booking.
             </p>
-            <Button className="mt-4" onClick={() => navigate('/guest/restaurants')}>
+            <Button className="mt-4" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
               Browse Restaurants
             </Button>
           </CardContent>
