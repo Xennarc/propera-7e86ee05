@@ -349,7 +349,7 @@ export default function GuestRestaurantBookingPage() {
     <div className="space-y-4">
       <MobilePageHeader 
         title={slot?.restaurant_name || 'Book a Table'}
-        onBack={() => navigate('/guest/restaurants')}
+        onBack={() => navigate(GUEST_ROUTES.RESTAURANTS)}
       />
 
       {/* Slot Details */}
