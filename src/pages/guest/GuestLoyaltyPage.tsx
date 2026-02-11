@@ -57,10 +57,10 @@ export default function GuestLoyaltyPage() {
             Start earning rewards on your bookings! You'll automatically join our loyalty program when you make your first booking.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => navigate('/guest/activities')}>
+            <Button onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}>
               Browse Activities
             </Button>
-            <Button variant="outline" onClick={() => navigate('/guest/restaurants')}>
+            <Button variant="outline" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
               Book a Table
             </Button>
           </div>
