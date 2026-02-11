@@ -1,6 +1,7 @@
 import { format, parseISO, addDays } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
