@@ -2,13 +2,15 @@
 
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Bell, Calendar, Utensils, CheckCheck, ArrowLeft } from 'lucide-react';
+import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGuestNotifications } from '@/hooks/useGuestNotifications';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
+import { MobileCard } from '@/components/guest/MobileCard';
+import { StatusPill } from '@/components/guest/StatusPill';
 
 function getNotificationIcon(type: string) {
   if (type.includes('ACTIVITY')) return Calendar;
