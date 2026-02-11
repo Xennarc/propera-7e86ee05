@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, DifficultyLevel } from '@/types/database';
