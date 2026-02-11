@@ -104,7 +104,7 @@ export function GuestQuickActions() {
       quickActions.push({
         icon: Bell,
         label: 'Requests',
-        href: '/guest/requests',
+        href: GUEST_ROUTES.REQUESTS,
         colorClass: 'text-white',
         bgClass: 'bg-sky-500',
         description: 'Room service & more',
