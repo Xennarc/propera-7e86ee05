@@ -30,6 +30,7 @@ import {
 import { AddPartyMemberDialog } from '@/components/guest/AddPartyMemberDialog';
 import { LinkRoomDialog } from '@/components/guest/LinkRoomDialog';
 import { cn } from '@/lib/utils';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 
 export default function GuestTravelPartyPage() {
   const navigate = useNavigate();
