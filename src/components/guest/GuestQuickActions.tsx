@@ -68,7 +68,7 @@ export function GuestQuickActions() {
     {
       icon: IconRestaurants,
       label: 'Dining',
-      href: '/guest/restaurants',
+      href: GUEST_ROUTES.RESTAURANTS,
       colorClass: 'text-white',
       bgClass: 'bg-amber-500',
       description: 'Reserve a table',
