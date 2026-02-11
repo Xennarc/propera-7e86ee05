@@ -380,7 +380,7 @@ export default function GuestHome() {
           title={t('common.today')}
           icon={<IconClock className="h-5 w-5 text-primary" />}
           actionLabel={todaySchedule.length > 0 ? t('common.viewAll') : undefined}
-          actionHref="/guest/bookings"
+          actionHref={GUEST_ROUTES.BOOKINGS}
         />
         
         {/* Today & Tomorrow Timeline */}
