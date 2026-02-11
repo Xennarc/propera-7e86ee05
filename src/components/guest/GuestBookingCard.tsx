@@ -200,9 +200,9 @@ export function GuestBookingCard({
                         variant="ghost"
                         size="sm"
                         onClick={onEdit}
-                        className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                        className="h-9 px-3 text-muted-foreground hover:text-foreground tap-target"
                       >
-                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
                         Edit
                       </Button>
                     )}
@@ -211,9 +211,9 @@ export function GuestBookingCard({
                         variant="ghost"
                         size="sm"
                         onClick={onCancel}
-                        className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10 tap-target"
                       >
-                        <X className="h-3.5 w-3.5 mr-1" />
+                        <X className="h-3.5 w-3.5 mr-1.5" />
                         Cancel
                       </Button>
                     )}
