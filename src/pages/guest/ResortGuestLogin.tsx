@@ -237,6 +237,7 @@ export default function ResortGuestLogin() {
       const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
       navigate(target, { replace: true });
     }
+    setLoading(false);
   };
 
   // Loading state
