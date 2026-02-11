@@ -98,7 +98,7 @@ export default function GuestLoyaltyPage() {
           <Button
             variant="outline"
             className="h-auto py-4 flex-col items-center gap-2"
-            onClick={() => navigate('/guest/bookings')}
+            onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}
           >
             <Calendar className="h-5 w-5 text-primary" />
             <span className="text-sm">My Bookings</span>

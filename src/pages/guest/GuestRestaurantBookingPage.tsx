@@ -469,7 +469,7 @@ export default function GuestRestaurantBookingPage() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => navigate('/guest/bookings')}
+              onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}
             >
               View My Bookings
             </Button>
