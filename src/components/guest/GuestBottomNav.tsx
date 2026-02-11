@@ -39,7 +39,7 @@ const coreNavItems: NavItemDef[] = [
 const requestsNavItem: NavItemDef = { 
   icon: Bell, 
   labelKey: 'nav.requests', 
-  href: '/guest/requests', 
+  href: GUEST_ROUTES.REQUESTS, 
   key: 'guest-requests', 
   restrictPrearrival: true,
   featureFlag: 'enable_requests_guest_submit',
@@ -48,7 +48,7 @@ const requestsNavItem: NavItemDef = {
 const transportNavItem: NavItemDef = { 
   icon: Car, 
   labelKey: 'nav.ride', 
-  href: '/guest/buggy', 
+  href: GUEST_ROUTES.BUGGY, 
   key: 'guest-buggy',
   featureFlag: 'enable_transport_guest_booking',
 };
@@ -56,14 +56,14 @@ const transportNavItem: NavItemDef = {
 const bookingsNavItem: NavItemDef = { 
   icon: IconBookings, 
   labelKey: 'nav.bookings', 
-  href: '/guest/bookings', 
+  href: GUEST_ROUTES.BOOKINGS, 
   key: 'guest-bookings',
 };
 
 const loyaltyNavItem: NavItemDef = { 
   icon: Crown, 
   labelKey: 'nav.loyalty', 
-  href: '/guest/loyalty', 
+  href: GUEST_ROUTES.LOYALTY, 
   key: 'guest-loyalty',
 };
 
