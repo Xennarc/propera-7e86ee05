@@ -217,7 +217,7 @@ export function GuestQuickActionsCompact() {
       : {
           icon: IconBookings,
           label: 'Bookings',
-          href: '/guest/bookings',
+          href: GUEST_ROUTES.BOOKINGS,
           colorClass: 'text-orchid',
           bgClass: 'bg-orchid/10',
           description: 'View & manage',

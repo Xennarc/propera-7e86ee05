@@ -1,4 +1,5 @@
 import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
