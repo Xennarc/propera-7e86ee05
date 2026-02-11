@@ -795,7 +795,7 @@ export default function GuestMyBookings() {
                   <CardContent className="py-6 text-center">
                     <p className="text-sm text-muted-foreground mb-3">No upcoming activities</p>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/guest/activities">Browse Activities</Link>
+                      <Link to={GUEST_ROUTES.ACTIVITIES}>Browse Activities</Link>
                     </Button>
                   </CardContent>
                 </Card>
