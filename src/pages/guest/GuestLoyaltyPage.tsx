@@ -90,7 +90,7 @@ export default function GuestLoyaltyPage() {
           <Button
             variant="outline"
             className="h-auto py-4 flex-col items-center gap-2"
-            onClick={() => navigate('/guest/activities')}
+            onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
           >
             <Sparkles className="h-5 w-5 text-primary" />
             <span className="text-sm">Earn Points</span>
