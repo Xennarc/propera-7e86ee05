@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { format, parseISO, eachDayOfInterval, addDays } from 'date-fns';
@@ -80,7 +81,7 @@ export function PrearrivalActivitiesPreview() {
             <IconActivities className="h-5 w-5 text-primary" />
             {t('prearrival.planActivities', 'Plan your activities')}
           </CardTitle>
-          <Link to="/guest/activities">
+          <Link to={GUEST_ROUTES.ACTIVITIES}>
             <Button variant="ghost" size="sm" className="text-xs">
               {t('common.seeAll', 'See all')}
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -179,7 +180,7 @@ export function PrearrivalActivitiesPreview() {
               variant="link"
               size="sm"
               className="mt-2"
-              onClick={() => navigate('/guest/activities')}
+              onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
             >
               Browse all dates
             </Button>

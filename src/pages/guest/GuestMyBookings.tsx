@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -748,9 +749,9 @@ export default function GuestMyBookings() {
               title={t('bookings.noBookings')}
               description={t('bookings.noBookingsDescription')}
               actionLabel={t('bookings.browseActivities')}
-              actionHref="/guest/activities"
+              actionHref={GUEST_ROUTES.ACTIVITIES}
               secondaryActionLabel={t('bookings.viewRestaurants')}
-              secondaryActionHref="/guest/restaurants"
+              secondaryActionHref={GUEST_ROUTES.RESTAURANTS}
             />
           </Card>
         </div>
@@ -788,14 +789,14 @@ export default function GuestMyBookings() {
                 iconClassName="text-lagoon"
                 iconBgClassName="bg-lagoon/10"
                 actionLabel="Book more"
-                actionHref="/guest/activities"
+                actionHref={GUEST_ROUTES.ACTIVITIES}
               />
               {upcomingActivities.length === 0 ? (
                 <Card className="border-dashed bg-muted/10">
                   <CardContent className="py-6 text-center">
                     <p className="text-sm text-muted-foreground mb-3">No upcoming activities</p>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/guest/activities">Browse Activities</Link>
+                      <Link to={GUEST_ROUTES.ACTIVITIES}>Browse Activities</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -825,14 +826,14 @@ export default function GuestMyBookings() {
                 iconClassName="text-sunset"
                 iconBgClassName="bg-sunset/10"
                 actionLabel="Reserve table"
-                actionHref="/guest/restaurants"
+                actionHref={GUEST_ROUTES.RESTAURANTS}
               />
               {upcomingReservations.length === 0 ? (
                 <Card className="border-dashed bg-muted/10">
                   <CardContent className="py-6 text-center">
                     <p className="text-sm text-muted-foreground mb-3">No upcoming reservations</p>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/guest/restaurants">View Restaurants</Link>
+                      <Link to={GUEST_ROUTES.RESTAURANTS}>View Restaurants</Link>
                     </Button>
                   </CardContent>
                 </Card>

@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Clock, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
 
 interface ExpiredLinkScreenProps {
@@ -71,7 +72,7 @@ export function ExpiredLinkScreen({
             {/* Actions */}
             <div className="space-y-3 pt-2">
               <Button
-                onClick={() => navigate('/guest/login')}
+                onClick={() => navigate(GUEST_ROUTES.LOGIN)}
                 className="w-full"
               >
                 Use Room Number & PIN

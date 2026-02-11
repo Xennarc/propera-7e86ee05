@@ -1,6 +1,7 @@
 // Guest notifications page
 
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { format } from 'date-fns';
 import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -179,7 +180,7 @@ export default function GuestNotificationsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               {t('notifications.noNotificationsDescription')}
             </p>
-            <Button className="h-11" onClick={() => navigate('/guest/bookings')}>
+            <Button className="h-11" onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}>
               {t('notifications.viewMyBookings')}
             </Button>
           </div>

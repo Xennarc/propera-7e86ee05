@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES, guestPath } from '@/routes/guestRoutes';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,11 +74,11 @@ export function GuestFeaturedActivities({ resortId }: GuestFeaturedActivitiesPro
         title="Explore Activities"
         icon={<Sparkles className="h-5 w-5 text-primary" />}
         actionLabel="View All"
-        actionHref="/guest/activities"
+        actionHref={GUEST_ROUTES.ACTIVITIES}
       />
       <div className="grid grid-cols-2 gap-3">
         {activities?.map((activity) => (
-          <Link key={activity.id} to={`/guest/activity/${activity.id}`}>
+          <Link key={activity.id} to={guestPath('ACTIVITY_DETAIL', { activityId: activity.id })}>
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
               <img
                 src={getImageUrl(activity)}

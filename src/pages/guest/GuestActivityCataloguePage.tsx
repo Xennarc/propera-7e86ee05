@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Activity, DifficultyLevel } from '@/types/database';
@@ -337,7 +338,7 @@ export default function GuestActivityCataloguePage() {
                 </div>
                 <Button 
                   size="sm" 
-                  onClick={() => navigate('/guest/activities/sessions')}
+                  onClick={() => navigate(GUEST_ROUTES.ACTIVITY_SESSIONS)}
                   className="shrink-0"
                 >
                   <Calendar className="h-4 w-4 mr-2" />

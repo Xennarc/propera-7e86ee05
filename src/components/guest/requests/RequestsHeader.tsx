@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
 import { ClipboardList, Sparkles } from 'lucide-react';
 
@@ -48,7 +49,7 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount, taglin
             asChild 
             className="gap-1.5 relative text-muted-foreground hover:text-foreground"
           >
-            <Link to="/guest/requests/my">
+            <Link to={GUEST_ROUTES.MY_REQUESTS}>
               <ClipboardList className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">My Requests</span>
               <AnimatePresence>

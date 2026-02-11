@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
@@ -156,7 +157,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li><a href="/#platform-overview" className="hover:text-foreground transition-colors py-1 inline-block">Features</a></li>
                   <li><Link to="/pricing" className="hover:text-foreground transition-colors py-1 inline-block">Pricing</Link></li>
-                  <li><Link to="/guest/login" className="hover:text-foreground transition-colors py-1 inline-block">Guest Portal</Link></li>
+                  <li><Link to={GUEST_ROUTES.LOGIN} className="hover:text-foreground transition-colors py-1 inline-block">Guest Portal</Link></li>
                 </ul>
               </div>
               
@@ -172,7 +173,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <h4 className="font-semibold text-foreground mb-4 md:mb-5">Get Started</h4>
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li><Link to="/auth" className="hover:text-foreground transition-colors py-1 inline-block">Sign In</Link></li>
-                  <li><Link to="/guest/find" className="hover:text-foreground transition-colors py-1 inline-block">Find Your Resort</Link></li>
+                  <li><Link to={GUEST_ROUTES.FIND_RESORT} className="hover:text-foreground transition-colors py-1 inline-block">Find Your Resort</Link></li>
                 </ul>
               </div>
             </div>

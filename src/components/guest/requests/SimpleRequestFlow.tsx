@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { toast } from 'sonner';
 import { 
   Send, 
@@ -115,7 +116,7 @@ export function SimpleRequestFlow({ guestId, resortId, resortTimezone }: SimpleR
           </p>
         </div>
         <Button variant="outline" size="sm" asChild className="gap-1.5">
-          <Link to="/guest/requests/my">
+          <Link to={GUEST_ROUTES.MY_REQUESTS}>
             <ClipboardList className="h-4 w-4" />
             My Requests
           </Link>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 import { Car, Plus, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
@@ -182,7 +183,7 @@ export default function GuestMyRidesPage() {
           : 'Track your buggy requests'}
         actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
-            <Link to="/guest/buggy">
+            <Link to={GUEST_ROUTES.BUGGY}>
               <Plus className="h-4 w-4" />
               New Ride
             </Link>
@@ -247,7 +248,7 @@ export default function GuestMyRidesPage() {
             title={getEmptyContent().title}
             description={getEmptyContent().description}
             actionLabel="Request a Buggy"
-            actionHref="/guest/buggy"
+            actionHref={GUEST_ROUTES.BUGGY}
           />
         </motion.div>
       )}

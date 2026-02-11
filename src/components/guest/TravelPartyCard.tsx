@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +31,7 @@ export function TravelPartyCard() {
   return (
     <Card className="guest-card border-primary/10 bg-gradient-to-br from-muted/40 via-muted/20 to-transparent hover:border-primary/20 transition-all duration-200">
       <CardContent className="p-4">
-        <Link to="/guest/travel-party" className="flex items-center gap-4">
+        <Link to={GUEST_ROUTES.TRAVEL_PARTY} className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 shadow-sm">
             <Users className="h-6 w-6 text-primary" />
           </div>

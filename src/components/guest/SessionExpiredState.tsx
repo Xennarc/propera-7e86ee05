@@ -8,6 +8,7 @@ import { Clock, ArrowRight, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 
 interface SessionExpiredStateProps {
@@ -23,7 +24,7 @@ export function SessionExpiredState({ activityName, onViewOtherTimes }: SessionE
     if (onViewOtherTimes) {
       onViewOtherTimes();
     } else {
-      navigate('/guest/activities/sessions');
+      navigate(GUEST_ROUTES.ACTIVITY_SESSIONS);
     }
   };
 
@@ -63,7 +64,7 @@ export function SessionExpiredState({ activityName, onViewOtherTimes }: SessionE
             
             <Button 
               variant="ghost"
-              onClick={() => navigate('/guest/activities')}
+              onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
               className="w-full text-muted-foreground"
             >
               {t('guest.sessions.expired.browseActivities', 'Browse all activities')}
