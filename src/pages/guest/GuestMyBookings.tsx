@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { IconRestaurants, IconActivities, IconBookings } from '@/components/icons/ProperaIcons';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
+import { StatusPill, bookingStatusToVariant } from '@/components/guest/StatusPill';
 import { EditBookingDialog } from '@/components/guest/EditBookingDialog';
 import { GuestBookingsLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
