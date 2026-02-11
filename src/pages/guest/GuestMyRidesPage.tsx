@@ -175,38 +175,20 @@ export default function GuestMyRidesPage() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <motion.div
-          className="flex items-center gap-3"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">My Rides</h1>
-            <p className="text-sm text-muted-foreground">
-              {activeCount > 0 
-                ? `${activeCount} active ride${activeCount !== 1 ? 's' : ''}` 
-                : 'Track your buggy requests'}
-            </p>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
+      <MobilePageHeader
+        title="My Rides"
+        subtitle={activeCount > 0 
+          ? `${activeCount} active ride${activeCount !== 1 ? 's' : ''}` 
+          : 'Track your buggy requests'}
+        actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
             <Link to="/guest/buggy">
               <Plus className="h-4 w-4" />
               New Ride
             </Link>
           </Button>
-        </motion.div>
-      </div>
+        }
+      />
 
       {/* Filter Tabs */}
       <motion.div 
