@@ -259,7 +259,7 @@ export default function GuestRestaurantBookingPage() {
   if (!slot) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/guest/restaurants')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Restaurants
         </Button>
