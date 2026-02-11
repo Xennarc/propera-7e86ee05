@@ -46,7 +46,6 @@ function NotificationItem({
   t: (key: string) => string;
 }) {
   const Icon = getNotificationIcon(notification.type);
-  const colorClasses = getNotificationColor(notification.type);
 
   const formatNotificationDate = (dateString: string): string => {
     const date = new Date(dateString);
