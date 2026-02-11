@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
 import { Clock, Lock, Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
