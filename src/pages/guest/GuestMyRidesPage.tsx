@@ -183,7 +183,7 @@ export default function GuestMyRidesPage() {
           : 'Track your buggy requests'}
         actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
-            <Link to="/guest/buggy">
+            <Link to={GUEST_ROUTES.BUGGY}>
               <Plus className="h-4 w-4" />
               New Ride
             </Link>
