@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldAlert, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 
 interface GuestAccessGateProps {
   children: React.ReactNode;
