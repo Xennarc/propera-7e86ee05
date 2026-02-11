@@ -133,7 +133,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
 
         {/* Quick Actions to browse */}
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/guest/activities">
+          <Link to={GUEST_ROUTES.ACTIVITIES}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
