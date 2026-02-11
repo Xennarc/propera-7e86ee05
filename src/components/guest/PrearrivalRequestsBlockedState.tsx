@@ -89,7 +89,7 @@ export function PrearrivalRequestsBlockedState({
             className="h-auto py-4 flex-col gap-2" 
             asChild
           >
-            <Link to="/guest/activities">
+            <Link to={GUEST_ROUTES.ACTIVITIES}>
               <IconActivities className="h-6 w-6 text-primary" />
               <span className="text-sm font-medium">Pre-book Activities</span>
             </Link>
