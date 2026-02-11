@@ -54,7 +54,7 @@ export function GuestNotificationBell() {
     if (notification.link_url) {
       navigate(notification.link_url);
     } else {
-      navigate('/guest/notifications');
+      navigate(GUEST_ROUTES.NOTIFICATIONS);
     }
     setOpen(false);
   };
