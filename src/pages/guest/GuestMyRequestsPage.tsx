@@ -254,9 +254,9 @@ export default function GuestMyRequestsPage() {
             title={getEmptyContent().title}
             description={getEmptyContent().description}
             actionLabel="Make a Request"
-            actionHref="/guest/requests"
+            actionHref={GUEST_ROUTES.REQUESTS}
            secondaryActionLabel={filter === 'active' && completedCount > 0 ? undefined : "Browse Services"}
-           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : "/guest/requests"}
+           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : GUEST_ROUTES.REQUESTS}
          />
         </motion.div>
       )}
