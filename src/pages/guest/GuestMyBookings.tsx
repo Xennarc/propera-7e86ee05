@@ -748,9 +748,9 @@ export default function GuestMyBookings() {
               title={t('bookings.noBookings')}
               description={t('bookings.noBookingsDescription')}
               actionLabel={t('bookings.browseActivities')}
-              actionHref="/guest/activities"
+              actionHref={GUEST_ROUTES.ACTIVITIES}
               secondaryActionLabel={t('bookings.viewRestaurants')}
-              secondaryActionHref="/guest/restaurants"
+              secondaryActionHref={GUEST_ROUTES.RESTAURANTS}
             />
           </Card>
         </div>
