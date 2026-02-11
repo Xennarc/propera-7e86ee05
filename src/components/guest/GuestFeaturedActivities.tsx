@@ -78,7 +78,7 @@ export function GuestFeaturedActivities({ resortId }: GuestFeaturedActivitiesPro
       />
       <div className="grid grid-cols-2 gap-3">
         {activities?.map((activity) => (
-          <Link key={activity.id} to={`/guest/activity/${activity.id}`}>
+          <Link key={activity.id} to={guestPath('ACTIVITY_DETAIL', { activityId: activity.id })}>
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden group">
               <img
                 src={getImageUrl(activity)}

@@ -832,7 +832,7 @@ export default function GuestMyBookings() {
                   <CardContent className="py-6 text-center">
                     <p className="text-sm text-muted-foreground mb-3">No upcoming reservations</p>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/guest/restaurants">View Restaurants</Link>
+                      <Link to={GUEST_ROUTES.RESTAURANTS}>View Restaurants</Link>
                     </Button>
                   </CardContent>
                 </Card>

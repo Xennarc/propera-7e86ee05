@@ -100,7 +100,7 @@ export function PrearrivalRequestsBlockedState({
             className="h-auto py-4 flex-col gap-2" 
             asChild
           >
-            <Link to="/guest/activities?tab=dining">
+            <Link to={`${GUEST_ROUTES.ACTIVITIES}?tab=dining`}>
               <IconRestaurants className="h-6 w-6 text-primary" />
               <span className="text-sm font-medium">Reserve Dining</span>
             </Link>

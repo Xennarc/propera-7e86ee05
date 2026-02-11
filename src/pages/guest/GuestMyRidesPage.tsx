@@ -248,7 +248,7 @@ export default function GuestMyRidesPage() {
             title={getEmptyContent().title}
             description={getEmptyContent().description}
             actionLabel="Request a Buggy"
-            actionHref="/guest/buggy"
+            actionHref={GUEST_ROUTES.BUGGY}
           />
         </motion.div>
       )}

@@ -338,7 +338,7 @@ export default function GuestActivityCataloguePage() {
                 </div>
                 <Button 
                   size="sm" 
-                  onClick={() => navigate('/guest/activities/sessions')}
+                  onClick={() => navigate(GUEST_ROUTES.ACTIVITY_SESSIONS)}
                   className="shrink-0"
                 >
                   <Calendar className="h-4 w-4 mr-2" />

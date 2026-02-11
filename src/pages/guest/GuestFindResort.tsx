@@ -279,7 +279,7 @@ export default function GuestFindResort() {
           </Card>
           
           <div className="flex justify-center mt-6 pb-8">
-            <Link to="/guest/login">
+            <Link to={GUEST_ROUTES.LOGIN}>
               <Button variant="ghost" className="text-muted-foreground gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Back
