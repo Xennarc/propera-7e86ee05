@@ -299,10 +299,10 @@ export default function GuestRestaurantBookingPage() {
                 : "You can view or cancel this in 'My Bookings'."}
             </p>
             <div className="space-y-2">
-              <Button className="w-full" onClick={() => navigate('/guest/bookings')}>
+              <Button className="w-full" onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}>
                 View My Bookings
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/guest/restaurants')}>
+              <Button variant="outline" className="w-full" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
                 Back to Restaurants
               </Button>
             </div>
