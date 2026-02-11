@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 interface GuestLoadingSkeletonProps {
-  variant?: 'card' | 'list' | 'page' | 'booking';
+  variant?: 'card' | 'list' | 'page' | 'booking' | 'detail';
   count?: number;
   className?: string;
   /** Delay before showing skeleton (prevents flash on fast loads) */
