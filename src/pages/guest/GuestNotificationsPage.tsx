@@ -1,6 +1,7 @@
 // Guest notifications page
 
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { format } from 'date-fns';
 import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
