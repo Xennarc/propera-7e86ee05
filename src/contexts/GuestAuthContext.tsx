@@ -142,9 +142,14 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
             if (parsed.sessionToken) {
               const validation = await validateSession(parsed.sessionToken);
               if (!validation.success) {
-                // Session revoked or invalid - clear and logout
+                // Session revoked or invalid - clear and redirect with expiry flag
                 console.log('Session invalid or revoked:', validation.error, validation.reason);
                 localStorage.removeItem(GUEST_SESSION_KEY);
+                // Redirect to login with expired flag (only if we're on a guest page)
+                if (window.location.pathname.startsWith('/guest')) {
+                  window.location.replace('/guest/login?expired=1');
+                  return;
+                }
                 setLoading(false);
                 return;
               }

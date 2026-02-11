@@ -152,10 +152,15 @@ export function GuestLayout() {
   }
 
   if (!guest) {
+    // Preserve the current path so login can redirect back
+    const returnTo = location.pathname + location.search;
+    const loginUrl = returnTo && returnTo !== '/guest' && returnTo !== '/guest/'
+      ? `/guest/login?returnTo=${encodeURIComponent(returnTo)}`
+      : '/guest/login';
     return (
       <>
         {showDebugPanel && <GuestDebugConsole />}
-        <Navigate to="/guest/login" replace />
+        <Navigate to={loginUrl} replace />
       </>
     );
   }
