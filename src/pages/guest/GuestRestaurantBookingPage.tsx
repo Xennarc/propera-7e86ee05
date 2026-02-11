@@ -346,10 +346,10 @@ export default function GuestRestaurantBookingPage() {
       </AlertDialog>
 
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/guest/restaurants')}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Restaurants
-      </Button>
+      <MobilePageHeader 
+        title={slot?.restaurant_name || 'Book a Table'}
+        onBack={() => navigate('/guest/restaurants')}
+      />
 
       {/* Slot Details */}
       <Card>
