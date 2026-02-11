@@ -172,16 +172,18 @@ export default function GuestNotificationsPage() {
           <NotificationSkeleton />
         </div>
       ) : notifications.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="font-medium mb-2">{t('notifications.noNotifications')}</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t('notifications.noNotificationsDescription')}
-          </p>
-          <Button onClick={() => navigate('/guest/bookings')}>
-            {t('notifications.viewMyBookings')}
-          </Button>
-        </Card>
+        <MobileCard>
+          <div className="text-center py-4">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="font-medium mb-2">{t('notifications.noNotifications')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t('notifications.noNotificationsDescription')}
+            </p>
+            <Button className="h-11" onClick={() => navigate('/guest/bookings')}>
+              {t('notifications.viewMyBookings')}
+            </Button>
+          </div>
+        </MobileCard>
       ) : (
         <div className="space-y-3">
           {notifications.map((notification) => (
