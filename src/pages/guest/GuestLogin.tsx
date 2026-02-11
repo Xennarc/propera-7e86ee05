@@ -1,21 +1,31 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, QrCode, HelpCircle, Search } from 'lucide-react';
+import { Loader2, QrCode, HelpCircle, Search, AlertTriangle } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { GUEST_ROUTES, isGuestPath } from '@/routes/guestRoutes';
 
 export default function GuestLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { guest } = useGuestAuth();
 
+  const returnTo = searchParams.get('returnTo');
+  const isExpired = searchParams.get('expired') === '1';
+
   useEffect(() => {
-    if (guest) navigate('/guest');
-  }, [guest, navigate]);
+    if (guest) {
+      // Navigate to returnTo if it's a valid guest path, otherwise home
+      const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+      navigate(target, { replace: true });
+    }
+  }, [guest, navigate, returnTo]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
