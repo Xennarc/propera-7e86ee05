@@ -334,6 +334,11 @@ const App = () => (
                 <Route path="/prearrival/:token/checkin" element={<LegacyPrearrivalRedirect />} />
                 <Route path="/prearrival/:token/experiences" element={<LegacyPrearrivalRedirect />} />
                 
+                {/* Guest alias redirects (legacy / typo paths) */}
+                <Route path="/guest/dining" element={<Navigate to="/guest/restaurants" replace />} />
+                <Route path="/guest/transport" element={<Navigate to="/guest/buggy" replace />} />
+                <Route path="/guest/rides" element={<Navigate to="/guest/my-rides" replace />} />
+
                 {/* Guest portal routes */}
                 <Route path="/guest/login" element={<GuestLogin />} />
                 <Route path="/guest/find" element={<GuestFindResort />} />
@@ -359,6 +364,7 @@ const App = () => (
                   <Route path="requests/my" element={<GuestMyRequestsPage />} />
                   <Route path="buggy" element={<GuestBuggyRequestPage />} />
                   <Route path="my-rides" element={<GuestMyRidesPage />} />
+                  <Route path="*" element={<GuestNotFound />} />
                 </Route>
                 
                 <Route path="*" element={<NotFound />} />
