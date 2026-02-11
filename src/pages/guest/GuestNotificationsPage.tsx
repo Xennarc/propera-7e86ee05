@@ -147,32 +147,23 @@ export default function GuestNotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/guest')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold">{t('notifications.title')}</h1>
-            <p className="text-sm text-muted-foreground">{t('notifications.subtitle')}</p>
-          </div>
-        </div>
-        {unreadCount > 0 && (
+      <MobilePageHeader
+        title={t('notifications.title')}
+        subtitle={t('notifications.subtitle')}
+        onBack={() => navigate('/guest')}
+        actions={unreadCount > 0 ? (
           <Button 
             variant="outline" 
             size="sm"
+            className="h-10 tap-target"
             onClick={() => markAllAsRead()}
             disabled={isMarkingAllRead}
           >
             <CheckCheck className="h-4 w-4 mr-1" />
             {t('notifications.markAllRead')}
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Notifications list */}
       {isLoading ? (

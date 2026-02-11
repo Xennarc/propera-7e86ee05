@@ -207,7 +207,7 @@ export default function GuestMyRidesPage() {
             variant={filter === key ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              'h-8 px-3 gap-1.5 rounded-full transition-all',
+              'h-10 px-3 gap-1.5 rounded-full transition-all tap-target',
               filter === key && 'shadow-md shadow-primary/20'
             )}
             onClick={() => setFilter(key)}

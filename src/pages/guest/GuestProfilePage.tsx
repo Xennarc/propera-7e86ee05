@@ -41,20 +41,11 @@ export default function GuestProfilePage() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => navigate('/guest')}
-          className="rounded-xl"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('profile.title')}</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">{t('profile.subtitle')}</p>
-        </div>
-      </div>
+      <MobilePageHeader
+        title={t('profile.title')}
+        subtitle={t('profile.subtitle')}
+        onBack={() => navigate('/guest')}
+      />
 
       {/* Guest Card - Premium Hero Treatment */}
       <Card className="guest-card overflow-hidden border-0">
