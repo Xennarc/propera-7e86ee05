@@ -185,7 +185,7 @@ export default function GuestMyRequestsPage() {
         showBack={false}
         actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
-            <Link to="/guest/requests">
+            <Link to={GUEST_ROUTES.REQUESTS}>
               <Plus className="h-4 w-4" />
               New
             </Link>
