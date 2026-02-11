@@ -207,7 +207,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
       >
         {navItems.map((item) => {
           const isActive = location.pathname === item.href || 
-            (item.href !== '/guest' && location.pathname.startsWith(item.href));
+            (item.href !== GUEST_ROUTES.HOME && location.pathname.startsWith(item.href));
           return (
             <NavItem 
               key={item.href} 
