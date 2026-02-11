@@ -77,12 +77,10 @@ export default function GuestTravelPartyPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      </div>
+      <MobilePageHeader 
+        title={travelParty?.name || 'Your Travel Party'}
+        subtitle={`${adultsCount} adult${adultsCount !== 1 ? 's' : ''}${childrenCount > 0 ? `, ${childrenCount} child${childrenCount !== 1 ? 'ren' : ''}` : ''}${roomsCount > 1 ? ` · ${roomsCount} rooms` : ''}`}
+      />
 
       {/* Overview Card */}
       <Card className="guest-card bg-gradient-to-br from-primary/5 to-transparent">

@@ -474,7 +474,7 @@ export default function GuestRestaurantBookingPage() {
             </Button>
           ) : (
             <Button
-              className="w-full"
+              className="w-full h-11 tap-target"
               onClick={handleBooking}
               disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
             >

@@ -202,10 +202,7 @@ export default function GuestStayFeedback() {
 
   return (
     <div className="space-y-6 pb-8">
-      <Button variant="ghost" onClick={() => navigate('/guest')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Home
-      </Button>
+      <MobilePageHeader title="How was your stay?" onBack={() => navigate('/guest')} />
 
       <Card>
         <CardHeader>
