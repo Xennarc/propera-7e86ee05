@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
 import { Car, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
