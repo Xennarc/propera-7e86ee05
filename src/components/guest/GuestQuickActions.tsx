@@ -209,7 +209,7 @@ export function GuestQuickActionsCompact() {
       ? {
           icon: Bell,
           label: 'Requests',
-          href: '/guest/requests',
+          href: GUEST_ROUTES.REQUESTS,
           colorClass: 'text-cyan-500',
           bgClass: 'bg-cyan-500/10',
           description: 'Room service & more',
