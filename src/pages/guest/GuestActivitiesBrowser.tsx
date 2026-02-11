@@ -15,6 +15,7 @@ import { GuestActivitiesLoading } from '@/components/guest/GuestLoadingSkeleton'
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { cn } from '@/lib/utils';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { CategoryBadge, CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { coreActivityCategories, ActivityCategoryKey, getCategoryConfig } from '@/lib/activity-category-config';
 import {
