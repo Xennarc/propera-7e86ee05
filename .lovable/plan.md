@@ -1,171 +1,158 @@
 
-# Systematically Apply New Mobile Components Across Guest Portal
 
-## Context
-You have created 4 reusable mobile UI components that are only currently used in `GuestBuggyRequestPage.tsx`:
-- **MobilePageHeader**: Back button + title + optional subtitle and right actions
-- **MobileCard**: Unified card container with optional accent strip for lists
-- **StatusPill**: Standardized status badges with icon + label (not color-only)
-- **StickyActionBar**: Bottom-sticky form action bar above bottom nav
+# Guest Portal Routing Audit and Repair
 
-The Guest Portal has 27 pages across activities, dining, bookings, requests, transport, profile, and notifications. Currently, most pages use manual headers, inconsistent card styling, and inline status badges.
+## Current State Assessment
 
-## Objective
-Replace manual header/card/status patterns across all relevant Guest Portal pages with the new components, ensuring consistent mobile UX, proper touch targets (44px+), and clean presentation.
+After a thorough audit, the Guest Portal routing is largely well-structured. Here are the findings:
 
-## Pages to Refactor (Priority Order)
+### What's Working
+- All core routes exist and are properly nested under `<GuestLayout />`
+- Bottom nav links match actual routes
+- Auth guard exists in `GuestLayout` (redirects to `/guest/login` if no session)
+- Legacy pre-arrival routes have redirects via `LegacyPrearrivalRedirect`
+- Resort-specific login (`/resort/:code/guest/login`) works
+- No `/guest/dining` vs `/guest/restaurants` conflict (only `/guest/restaurants` is used consistently)
 
-### Tier 1 - List/Detail Pages (Highest Impact)
-These pages display lists or collection views:
+### Issues Found
+1. **No `returnTo` support** -- if an unauthenticated guest hits a deep link (e.g., `/guest/activities/book/123`), after login they always land on `/guest` instead of the intended page
+2. **No session expiry UI** -- when session validation fails, the guest silently loses their session with no feedback
+3. **Hardcoded route strings everywhere** -- 130+ `to="/guest/..."` links and 170+ `navigate('/guest/...')` calls scattered across 17+ files with no central route constants
+4. **No guest-specific 404** -- if a guest hits `/guest/nonexistent`, they see the generic Propera 404 page with "Return to Home" (landing page), not a guest-friendly recovery
+5. **No alias redirects** for common legacy/typo paths like `/guest/dining`, `/guest/transport`, `/guest/rides`
+6. **Missing `GuestActivitiesBrowser`** in routes -- it's lazy-imported (line 135) but never used in any route; `GuestActivitySessionsPage` is mounted at `/guest/activities` instead
 
-1. **GuestMyBookings.tsx**
-   - Replace manual header with MobilePageHeader
-   - Replace Card-based booking items with MobileCard + MobileCardHeader/MobileCardMeta
-   - Replace inline status badges with StatusPill (use bookingStatusToVariant helper)
-   - Ensure cancel/edit buttons are 44px+ height
-   - Add MobileCard accent color based on status
+## Plan
 
-2. **GuestMyRequestsPage.tsx**
-   - Replace manual "My Requests" heading with MobilePageHeader
-   - Ensure RequestCard/RequestSubmissionCard use MobileCard internally (or wrap them)
-   - Replace inline status indicators with StatusPill (use request status helper)
-   - Verify filter button heights (currently h-8, should be h-10 for mobile)
+### Phase 1: Create `src/routes/guestRoutes.ts` -- Single Source of Truth
 
-3. **GuestMyRidesPage.tsx**
-   - Replace ArrowLeft + heading combo with MobilePageHeader
-   - Wrap BuggyRideCard output in MobileCard if needed
-   - Replace inline status with StatusPill
-   - Verify cancel button is 44px+
+Create a constants file exporting all guest route paths, a `guestPath()` helper, and an `isGuestPath()` utility.
 
-4. **GuestNotificationsPage.tsx**
-   - Add MobilePageHeader with "Notifications" title
-   - Replace Card-based NotificationItem with MobileCard
-   - Replace inline type-based color badges with StatusPill variant system
-   - Ensure notification items have proper touch targets
+```text
+GUEST_ROUTES = {
+  // Public (unauthenticated)
+  LOGIN:           '/guest/login',
+  FIND_RESORT:     '/guest/find',
+  RESORT_LOGIN:    '/resort/:code/guest/login',
+  QR_LOGIN:        '/guest/qr',
+  QR_CONFIRM:      '/guest/qr/:token',
+  ACCESS:          '/guest/access',
 
-5. **GuestProfilePage.tsx**
-   - Replace ArrowLeft + heading with MobilePageHeader
-   - Replace inline Cards with consistent MobileCard styling
-   - Ensure all buttons/interactive elements are 44px+
+  // Authenticated (inside GuestLayout)
+  HOME:            '/guest',
+  PROFILE:         '/guest/profile',
+  ACTIVITIES:      '/guest/activities',
+  ACTIVITY_CATALOGUE: '/guest/activities/catalogue',
+  ACTIVITY_SESSIONS:  '/guest/activities/sessions',
+  ACTIVITY_DETAIL: '/guest/activities/:activityId',
+  ACTIVITY_BOOK:   '/guest/activities/book/:sessionId',
+  RESTAURANTS:     '/guest/restaurants',
+  RESTAURANT_BOOK: '/guest/restaurants/book/:slotId',
+  BOOKINGS:        '/guest/bookings',
+  REQUESTS:        '/guest/requests',
+  MY_REQUESTS:     '/guest/requests/my',
+  BUGGY:           '/guest/buggy',
+  MY_RIDES:        '/guest/my-rides',
+  NOTIFICATIONS:   '/guest/notifications',
+  FEEDBACK:        '/guest/feedback',
+  LOYALTY:         '/guest/loyalty',
+  TRAVEL_PARTY:    '/guest/travel-party',
+}
+```
 
-### Tier 2 - Browse/Catalog Pages (Medium Impact)
-These pages have search/filter patterns:
+Plus helpers:
+- `guestPath(route, params?)` -- replaces `:param` placeholders with actual values
+- `isGuestPath(pathname)` -- returns true if path starts with `/guest`
 
-6. **GuestActivitiesBrowser.tsx**
-   - Replace inline Card-based session display with MobileCard
-   - Use MobileCardHeader for title + badge (capacity, availability)
-   - Use MobileCardMeta for time, location, duration
-   - Add accent color for "CONFIRMED" vs "AVAILABLE" states
+### Phase 2: `returnTo` Support in Auth Flow
 
-7. **GuestRestaurantBrowser.tsx**
-   - Replace Card-based slot display with MobileCard
-   - Use accent color for meal period (breakfast = orange, lunch = blue, etc.)
-   - Ensure proper touch targets for "Book" actions
+**GuestLayout** (auth guard):
+- When redirecting to login, append `?returnTo=<current_path>` to the login URL
 
-### Tier 3 - Detail/Form Pages (Lower Priority but Important)
-These pages are single-view details or booking flows:
+**GuestLogin + ResortGuestLogin**:
+- After successful login, read `returnTo` from query params
+- Navigate to `returnTo` if it starts with `/guest` (security check), otherwise `/guest`
 
-8. **GuestActivityDetailPage.tsx**
-   - Replace manual header with MobilePageHeader
-   - Ensure booking button is sticky and 44px+ height
+**Session expiry handling**:
+- In `GuestAuthContext`, when session validation fails, redirect to `/guest/login?expired=1` instead of silently clearing
+- In `GuestLogin`, show a toast/banner when `?expired=1` is present: "Your session has expired. Please log in again."
 
-9. **GuestRestaurantBookingPage.tsx**
-   - Replace manual header with MobilePageHeader
-   - Use StickyActionBar for "Confirm Booking" at bottom (above nav)
+### Phase 3: Alias Redirects for Legacy/Typo Paths
 
-10. **GuestActivityBookingPage.tsx**
-    - Same pattern as restaurant booking
+Add these redirect routes in `App.tsx`:
+- `/guest/dining` -> `/guest/restaurants`
+- `/guest/transport` -> `/guest/buggy`
+- `/guest/rides` -> `/guest/my-rides`
 
-11. **GuestRequestsPage.tsx**
-    - Replace header with MobilePageHeader
-    - Ensure category grid buttons are 44px+ height
-    - Use StickyActionBar for "Submit" button
+These are simple `<Route path="..." element={<Navigate to="..." replace />} />` entries placed before the main guest layout route, ensuring old bookmarks/links don't 404.
 
-12. **GuestBuggyRequestPage.tsx** *(Already started)*
-    - Already uses MobilePageHeader
-    - Verify BuggyRequestForm integration with StickyActionBar
-    - Polish accent colors and spacing
+### Phase 4: Guest-Specific 404 Page
 
-### Tier 4 - Secondary Pages
-13. **GuestPrearrivalHome.tsx**, **GuestTravelPartyPage.tsx**, **GuestLoyaltyPage.tsx**, **GuestStayFeedback.tsx**
-    - Replace headers with MobilePageHeader
-    - Ensure consistent card styling (MobileCard)
-    - Verify button heights
+Create `src/pages/guest/GuestNotFound.tsx`:
+- Guest-themed 404 with the resort branding style
+- Buttons: "Go Home" (`/guest`), "My Bookings" (`/guest/bookings`)
+- Uses `GUEST_ROUTES` constants
 
-## Implementation Strategy
+Add a catch-all route inside the `<Route path="/guest" element={<GuestLayout />}>` block:
+```
+<Route path="*" element={<GuestNotFound />} />
+```
 
-### Phase 1: Components Audit
-- **Understand** existing component props and usage
-- **Identify** which components wrap MobileCard (RequestCard, BuggyRideCard, etc.)
-- **Plan** wrapping vs. internal refactoring (wrapping preferred to avoid breaking existing logic)
+This ensures any unmatched `/guest/*` path shows a guest-friendly recovery page instead of the generic Propera 404.
 
-### Phase 2: Tier 1 - Core Lists
-- Refactor GuestMyBookings, GuestMyRequestsPage, GuestMyRidesPage, GuestNotificationsPage
-- Replace headers, cards, and status indicators
-- Test filtering, sorting, and CTA functionality
+### Phase 5: Migrate Hardcoded Strings to Constants
 
-### Phase 3: Tier 2 - Browse Pages
-- Refactor browse/catalog pages (Activities, Restaurants)
-- Ensure accent colors match category/status semantics
-- Test search and filter interactions
+Update all files that contain hardcoded `/guest/...` strings to import from `GUEST_ROUTES`:
 
-### Phase 4: Tier 3 & 4 - Detail & Secondary Pages
-- Refactor remaining pages systematically
-- Add StickyActionBar where forms have long scrolling
-- Ensure all interactive elements meet 44px touch target
+| File | Approximate changes |
+|------|---------------------|
+| `GuestBottomNav.tsx` | 5 nav item hrefs |
+| `GuestLayout.tsx` | Login redirect, profile link |
+| `GuestHome.tsx` | 8+ links/navigates |
+| `GuestPrearrivalHome.tsx` | 4 links |
+| `GuestLogin.tsx` | 2 navigates |
+| `ResortGuestLogin.tsx` | 3 navigates |
+| `GuestBuggyRequestPage.tsx` | 2 navigates |
+| `GuestRestaurantBookingPage.tsx` | 6 navigates |
+| `GuestMyRidesPage.tsx` | 1 link |
+| `GuestMyRequestsPage.tsx` | 1 link |
+| `GuestLoyaltyPage.tsx` | 3 navigates |
+| `GuestNotificationBell.tsx` | 2 navigates |
+| `GuestTodayTimeline.tsx` | 3 links |
+| `GuestAccessGate.tsx` | 1 navigate |
+| `PrearrivalRequestsBlockedState.tsx` | 2 links |
+| `TravelPartyCard.tsx` | 1 link |
+| `ExpiredLinkScreen.tsx` | 1 navigate |
 
-## Technical Approach
+### Phase 6: Bottom Nav Active State Fix
 
-**For each page:**
-1. Keep all logic and state unchanged (UI-only refactor)
-2. Replace header structure:
-   ```tsx
-   // OLD: <div className="flex items-center gap-3"> + <ArrowLeft> + <h1>
-   // NEW: <MobilePageHeader title="..." showBack={true} />
-   ```
-3. Wrap list items in MobileCard:
-   ```tsx
-   <MobileCard onClick={() => navigate(...)} accentColor={statusColor}>
-     <MobileCardHeader title={...} badge={<StatusPill {...} />} />
-     <MobileCardMeta>{time} • {location}</MobileCardMeta>
-   </MobileCard>
-   ```
-4. Replace status badges:
-   ```tsx
-   // OLD: <Badge variant="outline" className={statusClass}>{status}</Badge>
-   // NEW: <StatusPill variant="confirmed" label="Confirmed" />
-   ```
+Update `GuestBottomNav.tsx` to use `GUEST_ROUTES` constants for href values and ensure the active-state matching logic handles nested routes correctly (e.g., `/guest/activities/book/123` should highlight the "Activities" tab, `/guest/requests/my` should highlight "Requests").
 
 ## Files Summary
 
-| File | Component Changes |
-|------|-------------------|
-| `GuestMyBookings.tsx` | Header → MobilePageHeader, Cards → MobileCard, Badges → StatusPill |
-| `GuestMyRequestsPage.tsx` | Header → MobilePageHeader, RequestCard wrapping, StatusPill |
-| `GuestMyRidesPage.tsx` | Header → MobilePageHeader, BuggyRideCard wrapping, StatusPill |
-| `GuestNotificationsPage.tsx` | Add MobilePageHeader, NotificationItem → MobileCard |
-| `GuestProfilePage.tsx` | Header → MobilePageHeader, Card consistency |
-| `GuestActivitiesBrowser.tsx` | Session items → MobileCard, accent colors |
-| `GuestRestaurantBrowser.tsx` | Slot items → MobileCard, meal-period colors |
-| `GuestActivityDetailPage.tsx` | Header → MobilePageHeader, button sizing |
-| `GuestRestaurantBookingPage.tsx` | Header → MobilePageHeader, StickyActionBar |
-| `GuestActivityBookingPage.tsx` | Header → MobilePageHeader, StickyActionBar |
-| `GuestRequestsPage.tsx` | Header → MobilePageHeader, StickyActionBar |
-| `GuestBuggyRequestPage.tsx` | Polish & verify StickyActionBar integration |
-| Secondary pages | Header → MobilePageHeader, Card consistency |
+| File | Action |
+|------|--------|
+| `src/routes/guestRoutes.ts` | **Create** -- route constants + helpers |
+| `src/pages/guest/GuestNotFound.tsx` | **Create** -- guest-specific 404 |
+| `src/App.tsx` | **Edit** -- add alias redirects, add guest catch-all 404 route |
+| `src/contexts/GuestAuthContext.tsx` | **Edit** -- redirect to login with `?expired=1` on session failure |
+| `src/components/guest/GuestLayout.tsx` | **Edit** -- append `returnTo` when redirecting to login |
+| `src/pages/guest/GuestLogin.tsx` | **Edit** -- handle `returnTo` + `expired` query params |
+| `src/pages/guest/ResortGuestLogin.tsx` | **Edit** -- handle `returnTo` after login |
+| `src/components/guest/GuestBottomNav.tsx` | **Edit** -- use GUEST_ROUTES constants |
+| ~15 more component/page files | **Edit** -- replace hardcoded `/guest/...` strings with `GUEST_ROUTES` imports |
+
+## What This Does NOT Change
+- No database schema, RLS, RPC, or realtime changes
+- No staff/superadmin/driver routing changes
+- No feature removals -- purely additive
+- No business logic changes -- all existing flows (booking, requests, buggy) work identically
+- All existing URLs continue to work (aliases added, not replacements)
 
 ## Success Criteria
-✓ All Guest Portal pages use consistent MobilePageHeader for top navigation  
-✓ All list items use MobileCard with proper spacing and touch targets  
-✓ All status indicators use StatusPill (icon + label, not color-only)  
-✓ Form actions use StickyActionBar (mobile-only, respects safe areas)  
-✓ No horizontal scrolling on mobile (360px–414px widths)  
-✓ Bottom nav never overlaps content  
-✓ All buttons/interactive elements: 44px+ minimum  
-✓ All existing business logic preserved (cancel, book, submit flows work identically)  
-
-## Notes
-- **Backward Compatibility**: All changes are additive CSS/component wrapping—no logic changes or route modifications
-- **Safe Areas**: StickyActionBar and MobilePageHeader already handle iOS notches via env(safe-area-inset-bottom)
-- **Testing**: After refactoring each tier, verify on 360px, 390px, and 414px viewports
-- **Naming**: Use accentColor with semantic CSS classes (e.g., "bg-emerald-500", "bg-amber-500" for status)
+- Unauthenticated deep link -> login -> returnTo works
+- Session expiry shows friendly message
+- `/guest/dining`, `/guest/transport`, `/guest/rides` redirect correctly
+- `/guest/anything-invalid` shows guest-themed 404 with recovery buttons
+- All 130+ hardcoded route strings replaced with constants
+- Bottom nav active state correct on all nested routes
