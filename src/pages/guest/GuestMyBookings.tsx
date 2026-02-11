@@ -825,7 +825,7 @@ export default function GuestMyBookings() {
                 iconClassName="text-sunset"
                 iconBgClassName="bg-sunset/10"
                 actionLabel="Reserve table"
-                actionHref="/guest/restaurants"
+                actionHref={GUEST_ROUTES.RESTAURANTS}
               />
               {upcomingReservations.length === 0 ? (
                 <Card className="border-dashed bg-muted/10">
