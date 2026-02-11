@@ -31,8 +31,8 @@ interface NavItemDef {
 
 // Core nav items that are always shown
 const coreNavItems: NavItemDef[] = [
-  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
-  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
+  { icon: IconStay, labelKey: 'nav.home', href: GUEST_ROUTES.HOME, key: 'guest-home' },
+  { icon: IconActivities, labelKey: 'nav.activities', href: GUEST_ROUTES.ACTIVITIES, key: 'guest-activities' },
 ];
 
 // Feature-gated nav items
