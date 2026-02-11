@@ -156,7 +156,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li><a href="/#platform-overview" className="hover:text-foreground transition-colors py-1 inline-block">Features</a></li>
                   <li><Link to="/pricing" className="hover:text-foreground transition-colors py-1 inline-block">Pricing</Link></li>
-                  <li><Link to="/guest/login" className="hover:text-foreground transition-colors py-1 inline-block">Guest Portal</Link></li>
+                  <li><Link to={GUEST_ROUTES.LOGIN} className="hover:text-foreground transition-colors py-1 inline-block">Guest Portal</Link></li>
                 </ul>
               </div>
               
