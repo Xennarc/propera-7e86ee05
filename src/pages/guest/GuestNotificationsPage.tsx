@@ -18,11 +18,11 @@ function getNotificationIcon(type: string) {
   return Bell;
 }
 
-function getNotificationColor(type: string) {
-  if (type.includes('PENDING')) return 'text-orange-500 bg-orange-50 dark:bg-orange-950';
-  if (type.includes('CONFIRMED')) return 'text-green-500 bg-green-50 dark:bg-green-950';
-  if (type.includes('CANCELLED')) return 'text-red-500 bg-red-50 dark:bg-red-950';
-  return 'text-muted-foreground bg-muted';
+function getNotificationVariant(type: string): 'confirmed' | 'pending' | 'cancelled' | 'default' {
+  if (type.includes('CONFIRMED')) return 'confirmed';
+  if (type.includes('PENDING')) return 'pending';
+  if (type.includes('CANCELLED')) return 'cancelled';
+  return 'default';
 }
 
 interface GuestNotification {
