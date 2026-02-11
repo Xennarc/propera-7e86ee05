@@ -111,12 +111,7 @@ export default function GuestMyRidesPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">My Rides</h1>
-        </div>
+        <MobilePageHeader title="My Rides" />
         
         <GuestEmptyState
           icon={Car}
