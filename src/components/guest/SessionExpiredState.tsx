@@ -64,7 +64,7 @@ export function SessionExpiredState({ activityName, onViewOtherTimes }: SessionE
             
             <Button 
               variant="ghost"
-              onClick={() => navigate('/guest/activities')}
+              onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
               className="w-full text-muted-foreground"
             >
               {t('guest.sessions.expired.browseActivities', 'Browse all activities')}

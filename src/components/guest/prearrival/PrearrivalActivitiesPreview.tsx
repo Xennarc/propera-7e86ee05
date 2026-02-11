@@ -180,7 +180,7 @@ export function PrearrivalActivitiesPreview() {
               variant="link"
               size="sm"
               className="mt-2"
-              onClick={() => navigate('/guest/activities')}
+              onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
             >
               Browse all dates
             </Button>

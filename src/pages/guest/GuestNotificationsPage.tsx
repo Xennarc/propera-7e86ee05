@@ -180,7 +180,7 @@ export default function GuestNotificationsPage() {
             <p className="text-sm text-muted-foreground mb-4">
               {t('notifications.noNotificationsDescription')}
             </p>
-            <Button className="h-11" onClick={() => navigate('/guest/bookings')}>
+            <Button className="h-11" onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}>
               {t('notifications.viewMyBookings')}
             </Button>
           </div>

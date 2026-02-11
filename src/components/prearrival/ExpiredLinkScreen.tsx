@@ -72,7 +72,7 @@ export function ExpiredLinkScreen({
             {/* Actions */}
             <div className="space-y-3 pt-2">
               <Button
-                onClick={() => navigate('/guest/login')}
+                onClick={() => navigate(GUEST_ROUTES.LOGIN)}
                 className="w-full"
               >
                 Use Room Number & PIN

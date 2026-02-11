@@ -49,7 +49,7 @@ export const RequestsHeader = memo(function RequestsHeader({ activeCount, taglin
             asChild 
             className="gap-1.5 relative text-muted-foreground hover:text-foreground"
           >
-            <Link to="/guest/requests/my">
+            <Link to={GUEST_ROUTES.MY_REQUESTS}>
               <ClipboardList className="h-4 w-4" />
               <span className="sr-only sm:not-sr-only">My Requests</span>
               <AnimatePresence>
