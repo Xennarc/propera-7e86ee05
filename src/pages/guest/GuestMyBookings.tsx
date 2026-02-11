@@ -32,6 +32,8 @@ import { cn } from '@/lib/utils';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { getCategoryConfig } from '@/lib/activity-category-config';
 import { IconRestaurants, IconActivities, IconBookings } from '@/components/icons/ProperaIcons';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
+import { StatusPill, bookingStatusToVariant } from '@/components/guest/StatusPill';
 import { EditBookingDialog } from '@/components/guest/EditBookingDialog';
 import { GuestBookingsLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
@@ -540,12 +542,7 @@ export default function GuestMyBookings() {
             booking.status === 'CANCELLED' && "bg-red-50/50 dark:bg-red-950/20 border-red-100 dark:border-red-900/30",
             (booking.status === 'COMPLETED' || booking.status === 'NO_SHOW') && "bg-muted/30 border-border"
           )}>
-            <div className="flex items-center gap-2">
-              <StatusIcon className={cn("h-4 w-4", statusConfig.className)} />
-              <span className={cn("text-sm font-medium", statusConfig.className)}>
-                {statusConfig.label}
-              </span>
-            </div>
+            <StatusPill {...bookingStatusToVariant(booking.status)} />
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
           
@@ -655,10 +652,11 @@ export default function GuestMyBookings() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="mb-1">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">{t('bookings.title')}</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('bookings.subtitle')}</p>
-      </div>
+      <MobilePageHeader 
+        title={t('bookings.title')} 
+        subtitle={t('bookings.subtitle')}
+        showBack={false}
+      />
 
       {/* Today's Quick Status - Always visible */}
       <div className="guest-card-surface mb-4">

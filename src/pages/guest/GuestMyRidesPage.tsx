@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Car, Plus, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Car, Plus, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -110,12 +111,7 @@ export default function GuestMyRidesPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">My Rides</h1>
-        </div>
+        <MobilePageHeader title="My Rides" />
         
         <GuestEmptyState
           icon={Car}
@@ -179,38 +175,20 @@ export default function GuestMyRidesPage() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <motion.div
-          className="flex items-center gap-3"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">My Rides</h1>
-            <p className="text-sm text-muted-foreground">
-              {activeCount > 0 
-                ? `${activeCount} active ride${activeCount !== 1 ? 's' : ''}` 
-                : 'Track your buggy requests'}
-            </p>
-          </div>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: 10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
+      <MobilePageHeader
+        title="My Rides"
+        subtitle={activeCount > 0 
+          ? `${activeCount} active ride${activeCount !== 1 ? 's' : ''}` 
+          : 'Track your buggy requests'}
+        actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
             <Link to="/guest/buggy">
               <Plus className="h-4 w-4" />
               New Ride
             </Link>
           </Button>
-        </motion.div>
-      </div>
+        }
+      />
 
       {/* Filter Tabs */}
       <motion.div 
@@ -229,7 +207,7 @@ export default function GuestMyRidesPage() {
             variant={filter === key ? 'default' : 'outline'}
             size="sm"
             className={cn(
-              'h-8 px-3 gap-1.5 rounded-full transition-all',
+              'h-10 px-3 gap-1.5 rounded-full transition-all tap-target',
               filter === key && 'shadow-md shadow-primary/20'
             )}
             onClick={() => setFilter(key)}

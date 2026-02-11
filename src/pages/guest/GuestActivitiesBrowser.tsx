@@ -15,6 +15,7 @@ import { GuestActivitiesLoading } from '@/components/guest/GuestLoadingSkeleton'
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { cn } from '@/lib/utils';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { CategoryBadge, CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { coreActivityCategories, ActivityCategoryKey, getCategoryConfig } from '@/lib/activity-category-config';
 import {
@@ -100,13 +101,15 @@ export default function GuestActivitiesBrowser() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
-      <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('activities.title')}</h1>
+      <MobilePageHeader
+        title={t('activities.title')}
+        subtitle={t('activities.subtitle')}
+        showBack={false}
+        actions={
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground transition-colors tap-target flex items-center justify-center">
+                <button className="text-muted-foreground hover:text-foreground transition-colors tap-target flex items-center justify-center h-10 w-10">
                   <Info className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -115,9 +118,8 @@ export default function GuestActivitiesBrowser() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('activities.subtitle')}</p>
-      </div>
+        }
+      />
 
       {/* Search Input with focus glow and animated clear */}
       <div className="relative group">

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info, CalendarX, Coffee, Sun, Moon, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
@@ -144,13 +145,15 @@ export default function GuestRestaurantBrowser() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">{t('dining.title')}</h1>
+      <MobilePageHeader
+        title={t('dining.title')}
+        subtitle={t('dining.subtitle')}
+        showBack={false}
+        actions={
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <button className="text-muted-foreground hover:text-foreground transition-colors h-10 w-10 flex items-center justify-center">
                   <Info className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -159,9 +162,8 @@ export default function GuestRestaurantBrowser() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('dining.subtitle')}</p>
-      </div>
+        }
+      />
 
       {/* Restaurant Filter */}
       <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>

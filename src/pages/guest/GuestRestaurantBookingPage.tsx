@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Utensils, Info } from 'lucide-react';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NumberStepper } from '@/components/ui/number-stepper';
 
@@ -345,10 +346,10 @@ export default function GuestRestaurantBookingPage() {
       </AlertDialog>
 
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/guest/restaurants')}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Restaurants
-      </Button>
+      <MobilePageHeader 
+        title={slot?.restaurant_name || 'Book a Table'}
+        onBack={() => navigate('/guest/restaurants')}
+      />
 
       {/* Slot Details */}
       <Card>
@@ -473,7 +474,7 @@ export default function GuestRestaurantBookingPage() {
             </Button>
           ) : (
             <Button
-              className="w-full"
+              className="w-full h-11 tap-target"
               onClick={handleBooking}
               disabled={bookMutation.isPending || totalPax > slot.remaining_covers || totalPax < 1}
             >

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Star, CheckCircle2, ThumbsUp, ThumbsDown, Minus, ArrowLeft } from 'lucide-react';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { cn } from '@/lib/utils';
 
 type RecommendResponse = 'YES' | 'NO' | 'MAYBE';
@@ -165,10 +166,7 @@ export default function GuestStayFeedback() {
   if (!canSubmitData?.can_submit && canSubmitData?.reason === 'Already submitted') {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/guest')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
+        <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card className="border-primary/20">
           <CardContent className="py-12 text-center">
@@ -187,10 +185,7 @@ export default function GuestStayFeedback() {
   if (!canSubmitData?.can_submit) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/guest')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
+        <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card>
           <CardContent className="py-12 text-center">
@@ -207,10 +202,7 @@ export default function GuestStayFeedback() {
 
   return (
     <div className="space-y-6 pb-8">
-      <Button variant="ghost" onClick={() => navigate('/guest')}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Home
-      </Button>
+      <MobilePageHeader title="How was your stay?" onBack={() => navigate('/guest')} />
 
       <Card>
         <CardHeader>

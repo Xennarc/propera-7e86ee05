@@ -2,13 +2,15 @@
 
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Bell, Calendar, Utensils, CheckCheck, ArrowLeft } from 'lucide-react';
+import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGuestNotifications } from '@/hooks/useGuestNotifications';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
+import { MobileCard } from '@/components/guest/MobileCard';
+import { StatusPill } from '@/components/guest/StatusPill';
 
 function getNotificationIcon(type: string) {
   if (type.includes('ACTIVITY')) return Calendar;
@@ -16,11 +18,11 @@ function getNotificationIcon(type: string) {
   return Bell;
 }
 
-function getNotificationColor(type: string) {
-  if (type.includes('PENDING')) return 'text-orange-500 bg-orange-50 dark:bg-orange-950';
-  if (type.includes('CONFIRMED')) return 'text-green-500 bg-green-50 dark:bg-green-950';
-  if (type.includes('CANCELLED')) return 'text-red-500 bg-red-50 dark:bg-red-950';
-  return 'text-muted-foreground bg-muted';
+function getNotificationVariant(type: string): 'confirmed' | 'pending' | 'cancelled' | 'default' {
+  if (type.includes('CONFIRMED')) return 'confirmed';
+  if (type.includes('PENDING')) return 'pending';
+  if (type.includes('CANCELLED')) return 'cancelled';
+  return 'default';
 }
 
 interface GuestNotification {
@@ -44,7 +46,6 @@ function NotificationItem({
   t: (key: string) => string;
 }) {
   const Icon = getNotificationIcon(notification.type);
-  const colorClasses = getNotificationColor(notification.type);
 
   const formatNotificationDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -63,17 +64,22 @@ function NotificationItem({
     }
   };
 
+  const variant = getNotificationVariant(notification.type);
+  const accentMap: Record<string, string> = {
+    confirmed: 'bg-emerald-500',
+    pending: 'bg-amber-500',
+    cancelled: 'bg-red-500',
+    default: 'bg-muted-foreground',
+  };
+
   return (
-    <Card 
-      className={cn(
-        'p-4 cursor-pointer transition-colors hover:bg-accent/50',
-        !notification.is_read && 'border-l-4 border-l-primary'
-      )}
+    <MobileCard
       onClick={onClick}
+      accentColor={!notification.is_read ? accentMap[variant] : undefined}
     >
       <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-lg shrink-0', colorClasses)}>
-          <Icon className="h-4 w-4" />
+        <div className="p-2 rounded-lg shrink-0 bg-muted">
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -90,18 +96,21 @@ function NotificationItem({
           <p className="text-sm text-muted-foreground mt-1">
             {notification.message}
           </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {formatNotificationDate(notification.created_at)}
-          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-muted-foreground">
+              {formatNotificationDate(notification.created_at)}
+            </p>
+            <StatusPill variant={variant} label={variant === 'default' ? 'Info' : variant.charAt(0).toUpperCase() + variant.slice(1)} size="sm" />
+          </div>
         </div>
       </div>
-    </Card>
+    </MobileCard>
   );
 }
 
 function NotificationSkeleton() {
   return (
-    <Card className="p-4">
+    <MobileCard>
       <div className="flex items-start gap-3">
         <Skeleton className="h-8 w-8 rounded-lg" />
         <div className="flex-1">
@@ -109,7 +118,7 @@ function NotificationSkeleton() {
           <Skeleton className="h-3 w-2/3" />
         </div>
       </div>
-    </Card>
+    </MobileCard>
   );
 }
 
@@ -137,32 +146,23 @@ export default function GuestNotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/guest')}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold">{t('notifications.title')}</h1>
-            <p className="text-sm text-muted-foreground">{t('notifications.subtitle')}</p>
-          </div>
-        </div>
-        {unreadCount > 0 && (
+      <MobilePageHeader
+        title={t('notifications.title')}
+        subtitle={t('notifications.subtitle')}
+        onBack={() => navigate('/guest')}
+        actions={unreadCount > 0 ? (
           <Button 
             variant="outline" 
             size="sm"
+            className="h-10 tap-target"
             onClick={() => markAllAsRead()}
             disabled={isMarkingAllRead}
           >
             <CheckCheck className="h-4 w-4 mr-1" />
             {t('notifications.markAllRead')}
           </Button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Notifications list */}
       {isLoading ? (
@@ -172,16 +172,18 @@ export default function GuestNotificationsPage() {
           <NotificationSkeleton />
         </div>
       ) : notifications.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="font-medium mb-2">{t('notifications.noNotifications')}</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t('notifications.noNotificationsDescription')}
-          </p>
-          <Button onClick={() => navigate('/guest/bookings')}>
-            {t('notifications.viewMyBookings')}
-          </Button>
-        </Card>
+        <MobileCard>
+          <div className="text-center py-4">
+            <Bell className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <h3 className="font-medium mb-2">{t('notifications.noNotifications')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t('notifications.noNotificationsDescription')}
+            </p>
+            <Button className="h-11" onClick={() => navigate('/guest/bookings')}>
+              {t('notifications.viewMyBookings')}
+            </Button>
+          </div>
+        </MobileCard>
       ) : (
         <div className="space-y-3">
           {notifications.map((notification) => (
