@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Car, AlertCircle } from 'lucide-react';
+import { Car, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -19,6 +19,7 @@ import {
 } from '@/hooks/transport/useGuestBuggyRequests';
 import { BuggyRequestForm, BuggyRideCard } from '@/components/guest/buggy';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { cn } from '@/lib/utils';
 
 export default function GuestBuggyRequestPage() {
@@ -58,12 +59,7 @@ export default function GuestBuggyRequestPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Request a Buggy</h1>
-        </div>
+        <MobilePageHeader title="Request a Buggy" />
         
         <GuestEmptyState
           icon={Car}
@@ -83,12 +79,7 @@ export default function GuestBuggyRequestPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Request a Buggy</h1>
-        </div>
+        <MobilePageHeader title="Request a Buggy" />
         
         <GuestEmptyState
           icon={Car}
@@ -151,15 +142,10 @@ export default function GuestBuggyRequestPage() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Request a Buggy</h1>
-          <p className="text-sm text-muted-foreground">We'll pick you up anywhere on the island</p>
-        </div>
-      </div>
+      <MobilePageHeader 
+        title="Request a Buggy" 
+        subtitle="We'll pick you up anywhere on the island" 
+      />
 
       {/* Active Ride Card (if exists) */}
       {activeRide && (

@@ -51,20 +51,20 @@ export function GuestEmptyState({
         {description}
       </p>
       
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-3">
         {actionLabel && (actionHref || onAction) && (
           actionHref ? (
             <Link to={actionHref}>
-              <Button className="min-w-[140px]">{actionLabel}</Button>
+              <Button className="min-w-[140px] h-11">{actionLabel}</Button>
             </Link>
           ) : (
-            <Button onClick={onAction} className="min-w-[140px]">{actionLabel}</Button>
+            <Button onClick={onAction} className="min-w-[140px] h-11">{actionLabel}</Button>
           )
         )}
         
         {secondaryActionLabel && secondaryActionHref && (
           <Link to={secondaryActionHref}>
-            <Button variant="outline" className="min-w-[140px]">{secondaryActionLabel}</Button>
+            <Button variant="outline" className="min-w-[140px] h-11">{secondaryActionLabel}</Button>
           </Link>
         )}
       </div>

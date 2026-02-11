@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 interface GuestLoadingSkeletonProps {
-  variant?: 'card' | 'list' | 'page' | 'booking';
+  variant?: 'card' | 'list' | 'page' | 'booking' | 'detail';
   count?: number;
   className?: string;
   /** Delay before showing skeleton (prevents flash on fast loads) */
@@ -30,12 +30,48 @@ export function GuestLoadingSkeleton({
   if (variant === 'page') {
     return (
       <div className={cn("space-y-6", className)}>
+        {/* Page header skeleton */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl shrink-0 shimmer" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-6 w-40 shimmer" />
+            <Skeleton className="h-4 w-56 shimmer" />
+          </div>
+        </div>
         <Skeleton className="h-32 w-full rounded-2xl shimmer" />
         <div className="space-y-3">
           <Skeleton className="h-6 w-32 shimmer" />
           <Skeleton className="h-24 w-full rounded-xl shimmer" />
           <Skeleton className="h-24 w-full rounded-xl shimmer" />
         </div>
+      </div>
+    );
+  }
+
+  if (variant === 'detail') {
+    return (
+      <div className={cn("space-y-5", className)}>
+        {/* Back + title */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl shrink-0 shimmer" />
+          <Skeleton className="h-6 w-48 shimmer" />
+        </div>
+        {/* Hero card */}
+        <Skeleton className="h-44 w-full rounded-2xl shimmer" />
+        {/* Info rows */}
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-lg shrink-0 shimmer" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-2/3 shimmer" />
+                <Skeleton className="h-3 w-1/3 shimmer" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Action button */}
+        <Skeleton className="h-11 w-full rounded-xl shimmer" />
       </div>
     );
   }
