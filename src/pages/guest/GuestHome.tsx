@@ -399,12 +399,12 @@ export default function GuestHome() {
                 <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">Discover experiences curated for your stay</p>
                 <div className="flex gap-2 sm:gap-3">
-                  <Link to="/guest/activities" className="flex-1">
+                  <Link to={GUEST_ROUTES.ACTIVITIES} className="flex-1">
                     <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                       {t('home.exploreActivities')}
                     </Button>
                   </Link>
-                  <Link to="/guest/restaurants" className="flex-1">
+                  <Link to={GUEST_ROUTES.RESTAURANTS} className="flex-1">
                     <Button variant="outline" className="w-full font-semibold tap-target hover:bg-muted/50 transition-all duration-200">
                       {t('home.exploreDining')}
                     </Button>
