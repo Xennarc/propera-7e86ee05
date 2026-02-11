@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Star, CheckCircle2, ThumbsUp, ThumbsDown, Minus, ArrowLeft } from 'lucide-react';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { cn } from '@/lib/utils';
 
 type RecommendResponse = 'YES' | 'NO' | 'MAYBE';
