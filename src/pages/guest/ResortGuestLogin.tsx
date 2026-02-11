@@ -110,7 +110,9 @@ export default function ResortGuestLogin() {
         setError(result.error);
         setLoading(false);
       } else {
-        navigate('/guest');
+        const returnTo = searchParams.get('returnTo');
+        const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+        navigate(target, { replace: true });
       }
     } catch (err) {
       console.error('Auto-login error:', err);
