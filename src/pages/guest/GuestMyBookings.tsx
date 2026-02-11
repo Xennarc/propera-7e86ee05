@@ -788,7 +788,7 @@ export default function GuestMyBookings() {
                 iconClassName="text-lagoon"
                 iconBgClassName="bg-lagoon/10"
                 actionLabel="Book more"
-                actionHref="/guest/activities"
+                actionHref={GUEST_ROUTES.ACTIVITIES}
               />
               {upcomingActivities.length === 0 ? (
                 <Card className="border-dashed bg-muted/10">
