@@ -132,7 +132,7 @@ export default function GuestBuggyRequestPage() {
     });
     
     // Navigate to my rides after successful request
-    navigate('/guest/my-rides');
+    navigate(GUEST_ROUTES.MY_RIDES);
   };
 
   return (
