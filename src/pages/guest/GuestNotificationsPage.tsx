@@ -110,7 +110,7 @@ function NotificationItem({
 
 function NotificationSkeleton() {
   return (
-    <Card className="p-4">
+    <MobileCard>
       <div className="flex items-start gap-3">
         <Skeleton className="h-8 w-8 rounded-lg" />
         <div className="flex-1">
@@ -118,7 +118,7 @@ function NotificationSkeleton() {
           <Skeleton className="h-3 w-2/3" />
         </div>
       </div>
-    </Card>
+    </MobileCard>
   );
 }
 
