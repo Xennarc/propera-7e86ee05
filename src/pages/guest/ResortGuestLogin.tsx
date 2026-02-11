@@ -343,7 +343,7 @@ export default function ResortGuestLogin() {
               <Button onClick={logout} variant="default" className="w-full">
                 Log Out & Continue Here
               </Button>
-              <Link to="/guest" className="w-full">
+              <Link to={GUEST_ROUTES.HOME} className="w-full">
                 <Button variant="outline" className="w-full">
                   Return to Current Portal
                 </Button>
