@@ -129,9 +129,9 @@ export default function ResortGuestLogin() {
         return;
       }
       // Same resort - redirect to portal
-      navigate('/guest');
+      navigate(GUEST_ROUTES.HOME);
     } else if (guest && !loadingResort && !resortInfo) {
-      navigate('/guest');
+      navigate(GUEST_ROUTES.HOME);
     }
   }, [guest, resortInfo, loadingResort, navigate]);
 
