@@ -59,12 +59,7 @@ export default function GuestBuggyRequestPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Request a Buggy</h1>
-        </div>
+        <MobilePageHeader title="Request a Buggy" />
         
         <GuestEmptyState
           icon={Car}
@@ -84,12 +79,7 @@ export default function GuestBuggyRequestPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Request a Buggy</h1>
-        </div>
+        <MobilePageHeader title="Request a Buggy" />
         
         <GuestEmptyState
           icon={Car}
