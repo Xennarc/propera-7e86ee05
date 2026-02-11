@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -56,10 +57,10 @@ export default function GuestLoyaltyPage() {
             Start earning rewards on your bookings! You'll automatically join our loyalty program when you make your first booking.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => navigate('/guest/activities')}>
+            <Button onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}>
               Browse Activities
             </Button>
-            <Button variant="outline" onClick={() => navigate('/guest/restaurants')}>
+            <Button variant="outline" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
               Book a Table
             </Button>
           </div>
@@ -89,7 +90,7 @@ export default function GuestLoyaltyPage() {
           <Button
             variant="outline"
             className="h-auto py-4 flex-col items-center gap-2"
-            onClick={() => navigate('/guest/activities')}
+            onClick={() => navigate(GUEST_ROUTES.ACTIVITIES)}
           >
             <Sparkles className="h-5 w-5 text-primary" />
             <span className="text-sm">Earn Points</span>
@@ -97,7 +98,7 @@ export default function GuestLoyaltyPage() {
           <Button
             variant="outline"
             className="h-auto py-4 flex-col items-center gap-2"
-            onClick={() => navigate('/guest/bookings')}
+            onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}
           >
             <Calendar className="h-5 w-5 text-primary" />
             <span className="text-sm">My Bookings</span>

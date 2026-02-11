@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import {
   IconActivities,
   IconRestaurants,
@@ -59,7 +60,7 @@ export function GuestQuickActions() {
     {
       icon: IconActivities,
       label: 'Activities',
-      href: '/guest/activities',
+      href: GUEST_ROUTES.ACTIVITIES,
       colorClass: 'text-white',
       bgClass: 'bg-teal-500',
       description: 'Explore & book',
@@ -67,7 +68,7 @@ export function GuestQuickActions() {
     {
       icon: IconRestaurants,
       label: 'Dining',
-      href: '/guest/restaurants',
+      href: GUEST_ROUTES.RESTAURANTS,
       colorClass: 'text-white',
       bgClass: 'bg-amber-500',
       description: 'Reserve a table',
@@ -79,7 +80,7 @@ export function GuestQuickActions() {
     quickActions.push({
       icon: Car,
       label: 'Buggy',
-      href: '/guest/buggy',
+      href: GUEST_ROUTES.BUGGY,
       colorClass: 'text-white',
       bgClass: 'bg-emerald-500',
       description: 'Request a ride',
@@ -90,7 +91,7 @@ export function GuestQuickActions() {
   quickActions.push({
     icon: IconBookings,
     label: 'Bookings',
-    href: '/guest/bookings',
+    href: GUEST_ROUTES.BOOKINGS,
     colorClass: 'text-white',
     bgClass: 'bg-purple-500',
     description: 'View & manage',
@@ -103,7 +104,7 @@ export function GuestQuickActions() {
       quickActions.push({
         icon: Bell,
         label: 'Requests',
-        href: '/guest/requests',
+        href: GUEST_ROUTES.REQUESTS,
         colorClass: 'text-white',
         bgClass: 'bg-sky-500',
         description: 'Room service & more',
@@ -191,7 +192,7 @@ export function GuestQuickActionsCompact() {
     {
       icon: IconActivities,
       label: 'Activities',
-      href: '/guest/activities',
+      href: GUEST_ROUTES.ACTIVITIES,
       colorClass: 'text-lagoon',
       bgClass: 'bg-lagoon/10',
       description: 'Explore & book',
@@ -199,7 +200,7 @@ export function GuestQuickActionsCompact() {
     {
       icon: IconRestaurants,
       label: 'Dining',
-      href: '/guest/restaurants',
+      href: GUEST_ROUTES.RESTAURANTS,
       colorClass: 'text-sunset',
       bgClass: 'bg-sunset/10',
       description: 'Reserve a table',
@@ -208,7 +209,7 @@ export function GuestQuickActionsCompact() {
       ? {
           icon: Bell,
           label: 'Requests',
-          href: '/guest/requests',
+          href: GUEST_ROUTES.REQUESTS,
           colorClass: 'text-cyan-500',
           bgClass: 'bg-cyan-500/10',
           description: 'Room service & more',
@@ -216,7 +217,7 @@ export function GuestQuickActionsCompact() {
       : {
           icon: IconBookings,
           label: 'Bookings',
-          href: '/guest/bookings',
+          href: GUEST_ROUTES.BOOKINGS,
           colorClass: 'text-orchid',
           bgClass: 'bg-orchid/10',
           description: 'View & manage',

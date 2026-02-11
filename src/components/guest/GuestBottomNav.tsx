@@ -7,6 +7,7 @@
 
 import { memo, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
@@ -30,15 +31,15 @@ interface NavItemDef {
 
 // Core nav items that are always shown
 const coreNavItems: NavItemDef[] = [
-  { icon: IconStay, labelKey: 'nav.home', href: '/guest', key: 'guest-home' },
-  { icon: IconActivities, labelKey: 'nav.activities', href: '/guest/activities', key: 'guest-activities' },
+  { icon: IconStay, labelKey: 'nav.home', href: GUEST_ROUTES.HOME, key: 'guest-home' },
+  { icon: IconActivities, labelKey: 'nav.activities', href: GUEST_ROUTES.ACTIVITIES, key: 'guest-activities' },
 ];
 
 // Feature-gated nav items
 const requestsNavItem: NavItemDef = { 
   icon: Bell, 
   labelKey: 'nav.requests', 
-  href: '/guest/requests', 
+  href: GUEST_ROUTES.REQUESTS, 
   key: 'guest-requests', 
   restrictPrearrival: true,
   featureFlag: 'enable_requests_guest_submit',
@@ -47,7 +48,7 @@ const requestsNavItem: NavItemDef = {
 const transportNavItem: NavItemDef = { 
   icon: Car, 
   labelKey: 'nav.ride', 
-  href: '/guest/buggy', 
+  href: GUEST_ROUTES.BUGGY, 
   key: 'guest-buggy',
   featureFlag: 'enable_transport_guest_booking',
 };
@@ -55,14 +56,14 @@ const transportNavItem: NavItemDef = {
 const bookingsNavItem: NavItemDef = { 
   icon: IconBookings, 
   labelKey: 'nav.bookings', 
-  href: '/guest/bookings', 
+  href: GUEST_ROUTES.BOOKINGS, 
   key: 'guest-bookings',
 };
 
 const loyaltyNavItem: NavItemDef = { 
   icon: Crown, 
   labelKey: 'nav.loyalty', 
-  href: '/guest/loyalty', 
+  href: GUEST_ROUTES.LOYALTY, 
   key: 'guest-loyalty',
 };
 
@@ -206,7 +207,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
       >
         {navItems.map((item) => {
           const isActive = location.pathname === item.href || 
-            (item.href !== '/guest' && location.pathname.startsWith(item.href));
+            (item.href !== GUEST_ROUTES.HOME && location.pathname.startsWith(item.href));
           return (
             <NavItem 
               key={item.href} 

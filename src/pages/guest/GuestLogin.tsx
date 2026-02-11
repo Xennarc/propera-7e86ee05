@@ -1,21 +1,31 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, QrCode, HelpCircle, Search } from 'lucide-react';
+import { Loader2, QrCode, HelpCircle, Search, AlertTriangle } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { GUEST_ROUTES, isGuestPath } from '@/routes/guestRoutes';
 
 export default function GuestLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { guest } = useGuestAuth();
 
+  const returnTo = searchParams.get('returnTo');
+  const isExpired = searchParams.get('expired') === '1';
+
   useEffect(() => {
-    if (guest) navigate('/guest');
-  }, [guest, navigate]);
+    if (guest) {
+      // Navigate to returnTo if it's a valid guest path, otherwise home
+      const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+      navigate(target, { replace: true });
+    }
+  }, [guest, navigate, returnTo]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -49,6 +59,15 @@ export default function GuestLogin() {
       {/* Main content */}
       <main className="flex-1 flex items-start justify-center px-4 pt-8 relative z-10">
         <div className="w-full max-w-md space-y-6">
+          {/* Session expired banner */}
+          {isExpired && (
+            <Alert variant="destructive" className="rounded-2xl">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Your session has expired. Please use your resort link to sign in again.
+              </AlertDescription>
+            </Alert>
+          )}
           {/* Main info card */}
           <Card className="shadow-xl shadow-black/10 border-border/30 dark:bg-midnight-900 rounded-3xl">
             <CardHeader className="pb-4 pt-8 text-center">
@@ -104,7 +123,7 @@ export default function GuestLogin() {
                   <p className="font-medium text-foreground">Can't find your link?</p>
                   <p className="text-sm text-muted-foreground">We can help you find your resort</p>
                 </div>
-                <Link to="/guest/find">
+                <Link to={GUEST_ROUTES.FIND_RESORT}>
                   <Button variant="outline" size="sm">
                     Find Resort
                   </Button>

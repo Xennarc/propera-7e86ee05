@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { GUEST_ROUTES, isGuestPath } from '@/routes/guestRoutes';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,7 +110,9 @@ export default function ResortGuestLogin() {
         setError(result.error);
         setLoading(false);
       } else {
-        navigate('/guest');
+        const returnTo = searchParams.get('returnTo');
+        const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+        navigate(target, { replace: true });
       }
     } catch (err) {
       console.error('Auto-login error:', err);
@@ -126,9 +129,9 @@ export default function ResortGuestLogin() {
         return;
       }
       // Same resort - redirect to portal
-      navigate('/guest');
+      navigate(GUEST_ROUTES.HOME);
     } else if (guest && !loadingResort && !resortInfo) {
-      navigate('/guest');
+      navigate(GUEST_ROUTES.HOME);
     }
   }, [guest, resortInfo, loadingResort, navigate]);
 
@@ -229,7 +232,11 @@ export default function ResortGuestLogin() {
     setLoading(true);
     const result = await login(resortInfo.id, formData.roomNumber, formData.lastName, formData.pin);
     if (result.error) setError(result.error);
-    else navigate('/guest');
+    else {
+      const returnTo = searchParams.get('returnTo');
+      const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+      navigate(target, { replace: true });
+    }
     setLoading(false);
   };
 
@@ -336,7 +343,7 @@ export default function ResortGuestLogin() {
               <Button onClick={logout} variant="default" className="w-full">
                 Log Out & Continue Here
               </Button>
-              <Link to="/guest" className="w-full">
+              <Link to={GUEST_ROUTES.HOME} className="w-full">
                 <Button variant="outline" className="w-full">
                   Return to Current Portal
                 </Button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
 import { Car, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -131,7 +132,7 @@ export default function GuestBuggyRequestPage() {
     });
     
     // Navigate to my rides after successful request
-    navigate('/guest/my-rides');
+    navigate(GUEST_ROUTES.MY_RIDES);
   };
 
   return (
@@ -158,7 +159,7 @@ export default function GuestBuggyRequestPage() {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => navigate('/guest/my-rides')}
+            onClick={() => navigate(GUEST_ROUTES.MY_RIDES)}
           >
             View Ride Details
           </Button>

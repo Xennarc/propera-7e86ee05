@@ -1,6 +1,7 @@
 import { format, parseISO, addDays } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +110,7 @@ export function GuestTodayTimeline({
                   </div>
                 </div>
               </div>
-              <Link to="/guest/bookings">
+              <Link to={GUEST_ROUTES.BOOKINGS}>
                 <Button variant="ghost" size="sm" className="shrink-0">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -129,7 +130,7 @@ export function GuestTodayTimeline({
             </span>
           </div>
           <Link 
-            to="/guest/bookings" 
+            to={GUEST_ROUTES.BOOKINGS} 
             className="text-xs text-primary hover:underline font-medium"
           >
             {t('common.viewAll', 'View all')}
@@ -142,7 +143,7 @@ export function GuestTodayTimeline({
             <span>{t('home.noTomorrowBookings', 'No bookings tomorrow yet')}</span>
           </div>
           <Link 
-            to="/guest/activities" 
+            to={GUEST_ROUTES.ACTIVITIES} 
             className="text-xs text-primary hover:underline font-medium"
           >
             {t('home.bookSomething', 'Book something')}

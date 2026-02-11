@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Bell, Calendar, Utensils, CheckCheck, Car } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -53,7 +54,7 @@ export function GuestNotificationBell() {
     if (notification.link_url) {
       navigate(notification.link_url);
     } else {
-      navigate('/guest/notifications');
+      navigate(GUEST_ROUTES.NOTIFICATIONS);
     }
     setOpen(false);
   };
@@ -145,7 +146,7 @@ export function GuestNotificationBell() {
         <DropdownMenuItem 
           className="text-center justify-center text-sm text-primary cursor-pointer"
           onClick={() => {
-            navigate('/guest/notifications');
+            navigate(GUEST_ROUTES.NOTIFICATIONS);
             setOpen(false);
           }}
         >

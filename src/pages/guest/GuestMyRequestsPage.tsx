@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { 
@@ -185,7 +186,7 @@ export default function GuestMyRequestsPage() {
         showBack={false}
         actions={
           <Button size="sm" asChild className="gap-1.5 shadow-md shadow-primary/20">
-            <Link to="/guest/requests">
+            <Link to={GUEST_ROUTES.REQUESTS}>
               <Plus className="h-4 w-4" />
               New
             </Link>
@@ -253,9 +254,9 @@ export default function GuestMyRequestsPage() {
             title={getEmptyContent().title}
             description={getEmptyContent().description}
             actionLabel="Make a Request"
-            actionHref="/guest/requests"
+            actionHref={GUEST_ROUTES.REQUESTS}
            secondaryActionLabel={filter === 'active' && completedCount > 0 ? undefined : "Browse Services"}
-           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : "/guest/requests"}
+           secondaryActionHref={filter === 'active' && completedCount > 0 ? undefined : GUEST_ROUTES.REQUESTS}
          />
         </motion.div>
       )}

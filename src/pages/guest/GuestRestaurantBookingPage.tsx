@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -258,7 +259,7 @@ export default function GuestRestaurantBookingPage() {
   if (!slot) {
     return (
       <div className="space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/guest/restaurants')}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Restaurants
         </Button>
@@ -268,7 +269,7 @@ export default function GuestRestaurantBookingPage() {
             <p className="text-muted-foreground">
               This time slot is no longer available for booking.
             </p>
-            <Button className="mt-4" onClick={() => navigate('/guest/restaurants')}>
+            <Button className="mt-4" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
               Browse Restaurants
             </Button>
           </CardContent>
@@ -298,10 +299,10 @@ export default function GuestRestaurantBookingPage() {
                 : "You can view or cancel this in 'My Bookings'."}
             </p>
             <div className="space-y-2">
-              <Button className="w-full" onClick={() => navigate('/guest/bookings')}>
+              <Button className="w-full" onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}>
                 View My Bookings
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/guest/restaurants')}>
+              <Button variant="outline" className="w-full" onClick={() => navigate(GUEST_ROUTES.RESTAURANTS)}>
                 Back to Restaurants
               </Button>
             </div>
@@ -348,7 +349,7 @@ export default function GuestRestaurantBookingPage() {
     <div className="space-y-4">
       <MobilePageHeader 
         title={slot?.restaurant_name || 'Book a Table'}
-        onBack={() => navigate('/guest/restaurants')}
+        onBack={() => navigate(GUEST_ROUTES.RESTAURANTS)}
       />
 
       {/* Slot Details */}
@@ -468,7 +469,7 @@ export default function GuestRestaurantBookingPage() {
             <Button
               className="w-full"
               variant="outline"
-              onClick={() => navigate('/guest/bookings')}
+              onClick={() => navigate(GUEST_ROUTES.BOOKINGS)}
             >
               View My Bookings
             </Button>

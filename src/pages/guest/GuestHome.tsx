@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { format, parseISO, addDays, differenceInDays } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -307,7 +308,7 @@ export default function GuestHome() {
                   {t('profile.feedback')}
                 </p>
               </div>
-              <Link to="/guest/feedback">
+              <Link to={GUEST_ROUTES.FEEDBACK}>
                 <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl font-semibold shrink-0 tap-target">
                   {t('feedback.submit').split(' ')[0]}
                   <ChevronRight className="ml-1 h-4 w-4" />
@@ -379,7 +380,7 @@ export default function GuestHome() {
           title={t('common.today')}
           icon={<IconClock className="h-5 w-5 text-primary" />}
           actionLabel={todaySchedule.length > 0 ? t('common.viewAll') : undefined}
-          actionHref="/guest/bookings"
+          actionHref={GUEST_ROUTES.BOOKINGS}
         />
         
         {/* Today & Tomorrow Timeline */}
@@ -398,12 +399,12 @@ export default function GuestHome() {
                 <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">Discover experiences curated for your stay</p>
                 <div className="flex gap-2 sm:gap-3">
-                  <Link to="/guest/activities" className="flex-1">
+                  <Link to={GUEST_ROUTES.ACTIVITIES} className="flex-1">
                     <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
                       {t('home.exploreActivities')}
                     </Button>
                   </Link>
-                  <Link to="/guest/restaurants" className="flex-1">
+                  <Link to={GUEST_ROUTES.RESTAURANTS} className="flex-1">
                     <Button variant="outline" className="w-full font-semibold tap-target hover:bg-muted/50 transition-all duration-200">
                       {t('home.exploreDining')}
                     </Button>
@@ -460,7 +461,7 @@ export default function GuestHome() {
             title={t('home.upcoming')}
             icon={<Calendar className="h-5 w-5 text-lagoon" />}
             actionLabel={t('common.seeMore')}
-            actionHref="/guest/bookings"
+            actionHref={GUEST_ROUTES.BOOKINGS}
           />
           
           <div className="space-y-2">

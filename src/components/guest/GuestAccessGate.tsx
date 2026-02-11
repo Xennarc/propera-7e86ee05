@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldAlert, Phone, Mail, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 
 interface GuestAccessGateProps {
   children: React.ReactNode;
@@ -90,7 +91,7 @@ export function GuestAccessGate({ children, resortName }: GuestAccessGateProps) 
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => navigate('/guest/login')}
+              onClick={() => navigate(GUEST_ROUTES.LOGIN)}
             >
               <ArrowLeft className="h-4 w-4" />
               Return to Login

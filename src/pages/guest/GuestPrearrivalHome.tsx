@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { differenceInHours, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -132,7 +133,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
 
         {/* Quick Actions to browse */}
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/guest/activities">
+          <Link to={GUEST_ROUTES.ACTIVITIES}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -143,7 +144,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
             </Card>
           </Link>
           
-          <Link to="/guest/restaurants">
+          <Link to={GUEST_ROUTES.RESTAURANTS}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lagoon/10">
@@ -213,8 +214,8 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
             profile={profile || null}
             settings={settings}
             onOpenWizard={handleOpenWizard}
-            onOpenActivities={() => navigate('/guest/activities')}
-            onOpenDining={() => navigate('/guest/restaurants')}
+            onOpenActivities={() => navigate(GUEST_ROUTES.ACTIVITIES)}
+            onOpenDining={() => navigate(GUEST_ROUTES.RESTAURANTS)}
             activityBookingsCount={bookingCounts?.activities || 0}
             diningBookingsCount={bookingCounts?.dining || 0}
           />
@@ -231,7 +232,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         {settings?.allow_activity_bookings && (
-          <Link to="/guest/activities">
+          <Link to={GUEST_ROUTES.ACTIVITIES}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -244,7 +245,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
         )}
         
         {settings?.allow_dining_bookings && (
-          <Link to="/guest/restaurants">
+          <Link to={GUEST_ROUTES.RESTAURANTS}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lagoon/10">
