@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Car, Plus, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Car, Plus, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
