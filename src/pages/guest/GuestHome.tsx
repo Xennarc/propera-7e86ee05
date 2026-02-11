@@ -308,7 +308,7 @@ export default function GuestHome() {
                   {t('profile.feedback')}
                 </p>
               </div>
-              <Link to="/guest/feedback">
+              <Link to={GUEST_ROUTES.FEEDBACK}>
                 <Button size="sm" className="bg-warning hover:bg-warning/90 text-warning-foreground rounded-xl font-semibold shrink-0 tap-target">
                   {t('feedback.submit').split(' ')[0]}
                   <ChevronRight className="ml-1 h-4 w-4" />
