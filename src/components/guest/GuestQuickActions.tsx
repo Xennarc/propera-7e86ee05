@@ -91,7 +91,7 @@ export function GuestQuickActions() {
   quickActions.push({
     icon: IconBookings,
     label: 'Bookings',
-    href: '/guest/bookings',
+    href: GUEST_ROUTES.BOOKINGS,
     colorClass: 'text-white',
     bgClass: 'bg-purple-500',
     description: 'View & manage',
