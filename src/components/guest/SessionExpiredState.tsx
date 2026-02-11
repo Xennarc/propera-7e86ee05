@@ -8,6 +8,7 @@ import { Clock, ArrowRight, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 
 interface SessionExpiredStateProps {
