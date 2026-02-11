@@ -60,7 +60,7 @@ export function GuestQuickActions() {
     {
       icon: IconActivities,
       label: 'Activities',
-      href: '/guest/activities',
+      href: GUEST_ROUTES.ACTIVITIES,
       colorClass: 'text-white',
       bgClass: 'bg-teal-500',
       description: 'Explore & book',
