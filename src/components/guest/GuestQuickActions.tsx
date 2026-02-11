@@ -80,7 +80,7 @@ export function GuestQuickActions() {
     quickActions.push({
       icon: Car,
       label: 'Buggy',
-      href: '/guest/buggy',
+      href: GUEST_ROUTES.BUGGY,
       colorClass: 'text-white',
       bgClass: 'bg-emerald-500',
       description: 'Request a ride',
