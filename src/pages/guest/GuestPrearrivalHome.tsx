@@ -214,8 +214,8 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
             profile={profile || null}
             settings={settings}
             onOpenWizard={handleOpenWizard}
-            onOpenActivities={() => navigate('/guest/activities')}
-            onOpenDining={() => navigate('/guest/restaurants')}
+            onOpenActivities={() => navigate(GUEST_ROUTES.ACTIVITIES)}
+            onOpenDining={() => navigate(GUEST_ROUTES.RESTAURANTS)}
             activityBookingsCount={bookingCounts?.activities || 0}
             diningBookingsCount={bookingCounts?.dining || 0}
           />
