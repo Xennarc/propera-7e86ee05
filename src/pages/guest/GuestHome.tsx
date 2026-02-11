@@ -461,7 +461,7 @@ export default function GuestHome() {
             title={t('home.upcoming')}
             icon={<Calendar className="h-5 w-5 text-lagoon" />}
             actionLabel={t('common.seeMore')}
-            actionHref="/guest/bookings"
+            actionHref={GUEST_ROUTES.BOOKINGS}
           />
           
           <div className="space-y-2">

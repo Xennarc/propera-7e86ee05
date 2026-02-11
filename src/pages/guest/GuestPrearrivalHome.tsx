@@ -245,7 +245,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
         )}
         
         {settings?.allow_dining_bookings && (
-          <Link to="/guest/restaurants">
+          <Link to={GUEST_ROUTES.RESTAURANTS}>
             <Card className="guest-card hover:border-primary/30 transition-colors h-full">
               <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-lagoon/10">
