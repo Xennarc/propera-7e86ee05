@@ -110,7 +110,7 @@ export function GuestTodayTimeline({
                   </div>
                 </div>
               </div>
-              <Link to="/guest/bookings">
+              <Link to={GUEST_ROUTES.BOOKINGS}>
                 <Button variant="ghost" size="sm" className="shrink-0">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
