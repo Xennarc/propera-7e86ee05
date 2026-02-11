@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Utensils, Clock, Users, ChevronRight, Sparkles, Phone, Info, CalendarX, Coffee, Sun, Moon, PartyPopper } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { IconRestaurants } from '@/components/icons/ProperaIcons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
