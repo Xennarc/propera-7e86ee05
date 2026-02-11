@@ -232,8 +232,11 @@ export default function ResortGuestLogin() {
     setLoading(true);
     const result = await login(resortInfo.id, formData.roomNumber, formData.lastName, formData.pin);
     if (result.error) setError(result.error);
-    else navigate('/guest');
-    setLoading(false);
+    else {
+      const returnTo = searchParams.get('returnTo');
+      const target = returnTo && isGuestPath(returnTo) ? returnTo : GUEST_ROUTES.HOME;
+      navigate(target, { replace: true });
+    }
   };
 
   // Loading state

@@ -123,7 +123,7 @@ export default function GuestLogin() {
                   <p className="font-medium text-foreground">Can't find your link?</p>
                   <p className="text-sm text-muted-foreground">We can help you find your resort</p>
                 </div>
-                <Link to="/guest/find">
+                <Link to={GUEST_ROUTES.FIND_RESORT}>
                   <Button variant="outline" size="sm">
                     Find Resort
                   </Button>
