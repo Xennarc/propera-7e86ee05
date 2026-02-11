@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
+import { GUEST_ROUTES, isGuestPath } from '@/routes/guestRoutes';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { supabase } from '@/integrations/supabase/client';
