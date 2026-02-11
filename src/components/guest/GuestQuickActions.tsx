@@ -192,7 +192,7 @@ export function GuestQuickActionsCompact() {
     {
       icon: IconActivities,
       label: 'Activities',
-      href: '/guest/activities',
+      href: GUEST_ROUTES.ACTIVITIES,
       colorClass: 'text-lagoon',
       bgClass: 'bg-lagoon/10',
       description: 'Explore & book',
