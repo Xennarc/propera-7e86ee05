@@ -59,6 +59,16 @@ export default function GuestLogin() {
       {/* Main content */}
       <main className="flex-1 flex items-start justify-center px-4 pt-8 relative z-10">
         <div className="w-full max-w-md space-y-6">
+          {/* Session expired banner */}
+          {isExpired && (
+            <Alert variant="destructive" className="rounded-2xl">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Your session has expired. Please use your resort link to sign in again.
+              </AlertDescription>
+            </Alert>
+          )}
+        <div className="w-full max-w-md space-y-6">
           {/* Main info card */}
           <Card className="shadow-xl shadow-black/10 border-border/30 dark:bg-midnight-900 rounded-3xl">
             <CardHeader className="pb-4 pt-8 text-center">
