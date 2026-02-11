@@ -657,10 +657,11 @@ export default function GuestMyBookings() {
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       {/* Header */}
-      <div className="mb-1">
-        <h1 className="text-xl font-bold text-foreground tracking-tight">{t('bookings.title')}</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t('bookings.subtitle')}</p>
-      </div>
+      <MobilePageHeader 
+        title={t('bookings.title')} 
+        subtitle={t('bookings.subtitle')}
+        showBack={false}
+      />
 
       {/* Today's Quick Status - Always visible */}
       <div className="guest-card-surface mb-4">
