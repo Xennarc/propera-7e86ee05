@@ -251,7 +251,7 @@ function GuestLayoutInner({
         )}>
           <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto">
             <Link 
-              to="/guest/profile" 
+              to={GUEST_ROUTES.PROFILE} 
               className="flex items-center gap-2.5 sm:gap-3 min-w-0 group"
             >
               {/* Use branding logo from DB (fresh on each load) */}
