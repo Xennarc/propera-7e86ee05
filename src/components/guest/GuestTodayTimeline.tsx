@@ -130,7 +130,7 @@ export function GuestTodayTimeline({
             </span>
           </div>
           <Link 
-            to="/guest/bookings" 
+            to={GUEST_ROUTES.BOOKINGS} 
             className="text-xs text-primary hover:underline font-medium"
           >
             {t('common.viewAll', 'View all')}
