@@ -185,10 +185,7 @@ export default function GuestStayFeedback() {
   if (!canSubmitData?.can_submit) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate('/guest')}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
+        <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card>
           <CardContent className="py-12 text-center">
