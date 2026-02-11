@@ -150,6 +150,7 @@ const GuestMyRequestsPage = lazy(() => import("./pages/guest/GuestMyRequestsPage
 const GuestBuggyRequestPage = lazy(() => import("./pages/guest/GuestBuggyRequestPage"));
 const GuestMyRidesPage = lazy(() => import("./pages/guest/GuestMyRidesPage"));
 const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
+const GuestNotFound = lazy(() => import("./pages/guest/GuestNotFound"));
 const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage"));
 const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
 const GuestAccessLoginPage = lazy(() => import("./pages/guest/GuestAccessLoginPage"));
