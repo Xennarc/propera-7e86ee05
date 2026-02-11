@@ -30,6 +30,14 @@ export function GuestLoadingSkeleton({
   if (variant === 'page') {
     return (
       <div className={cn("space-y-6", className)}>
+        {/* Page header skeleton */}
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl shrink-0 shimmer" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-6 w-40 shimmer" />
+            <Skeleton className="h-4 w-56 shimmer" />
+          </div>
+        </div>
         <Skeleton className="h-32 w-full rounded-2xl shimmer" />
         <div className="space-y-3">
           <Skeleton className="h-6 w-32 shimmer" />
