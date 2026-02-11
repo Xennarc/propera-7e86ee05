@@ -91,7 +91,7 @@ export function GuestAccessGate({ children, resortName }: GuestAccessGateProps) 
             <Button
               variant="outline"
               className="w-full gap-2"
-              onClick={() => navigate('/guest/login')}
+              onClick={() => navigate(GUEST_ROUTES.LOGIN)}
             >
               <ArrowLeft className="h-4 w-4" />
               Return to Login

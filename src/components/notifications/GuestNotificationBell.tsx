@@ -146,7 +146,7 @@ export function GuestNotificationBell() {
         <DropdownMenuItem 
           className="text-center justify-center text-sm text-primary cursor-pointer"
           onClick={() => {
-            navigate('/guest/notifications');
+            navigate(GUEST_ROUTES.NOTIFICATIONS);
             setOpen(false);
           }}
         >

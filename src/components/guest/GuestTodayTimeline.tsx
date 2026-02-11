@@ -143,7 +143,7 @@ export function GuestTodayTimeline({
             <span>{t('home.noTomorrowBookings', 'No bookings tomorrow yet')}</span>
           </div>
           <Link 
-            to="/guest/activities" 
+            to={GUEST_ROUTES.ACTIVITIES} 
             className="text-xs text-primary hover:underline font-medium"
           >
             {t('home.bookSomething', 'Book something')}

@@ -159,7 +159,7 @@ export default function GuestBuggyRequestPage() {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => navigate('/guest/my-rides')}
+            onClick={() => navigate(GUEST_ROUTES.MY_RIDES)}
           >
             View Ride Details
           </Button>
