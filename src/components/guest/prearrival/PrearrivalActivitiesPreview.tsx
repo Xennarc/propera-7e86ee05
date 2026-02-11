@@ -81,7 +81,7 @@ export function PrearrivalActivitiesPreview() {
             <IconActivities className="h-5 w-5 text-primary" />
             {t('prearrival.planActivities', 'Plan your activities')}
           </CardTitle>
-          <Link to="/guest/activities">
+          <Link to={GUEST_ROUTES.ACTIVITIES}>
             <Button variant="ghost" size="sm" className="text-xs">
               {t('common.seeAll', 'See all')}
               <ChevronRight className="h-4 w-4 ml-1" />
