@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { differenceInHours, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
