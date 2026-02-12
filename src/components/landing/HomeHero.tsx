@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap } from 'lucide-react';
 import { MobileGuestShowcase } from '@/components/illustrations/MobileGuestShowcase';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 // Lazy load desktop-only showcase (hidden on mobile, reduces initial bundle)
 const InteractiveProductShowcase = lazy(() => 
@@ -17,47 +19,75 @@ const valueChips = [
   'White-label capable',
 ];
 
+// Framer Motion variants
+const fadeRise = (y: number, delay: number) => ({
+  hidden: { opacity: 0, y },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut', delay } },
+});
+
+const scaleIn = (delay: number) => ({
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.6, ease: 'easeOut', delay } },
+});
+
 export function HomeHero() {
+  const prefersReducedMotion = useReducedMotion();
+
   const scrollToProduct = () => {
     const el = document.getElementById('platform-overview');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // When reduced motion is on, show everything instantly
+  const initial = prefersReducedMotion ? 'visible' : 'hidden';
+  const animate = 'visible';
+
   return (
-    <section className="relative min-h-[85vh] md:min-h-screen flex items-center pt-20 md:pt-24 pb-12 md:pb-16 overflow-hidden bg-background">
+    <section className="relative min-h-[90vh] md:min-h-screen flex items-center pt-16 md:pt-24 pb-12 md:pb-16 overflow-hidden bg-background">
       {/* Midnight gradient base */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
       
-      {/* Lime glow spotlight - hidden on mobile for performance */}
-      <div className="absolute top-1/4 right-0 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-lime-400/8 dark:bg-lime-400/10 rounded-full blur-[100px] md:blur-[150px] pointer-events-none hidden sm:block" />
-      
-      {/* Blurple glow - hidden on mobile */}
-      <div className="absolute bottom-0 left-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blurple-500/6 dark:bg-blurple-500/8 rounded-full blur-[80px] md:blur-[120px] pointer-events-none hidden sm:block" />
-      
-      {/* Teal accent glow - hidden on mobile */}
-      <div className="absolute top-1/2 left-1/3 w-[200px] md:w-[300px] h-[200px] md:h-[300px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[60px] md:blur-[100px] pointer-events-none hidden sm:block" />
+      {/* === Ocean Glow Blobs (visible on mobile) === */}
+      <div className="ocean-blob ocean-blob-1 absolute top-[15%] right-[-10%] w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[800px] md:h-[800px] rounded-full blur-[80px] md:blur-[150px] bg-teal-400/10 dark:bg-teal-400/12" />
+      <div className="ocean-blob ocean-blob-2 absolute bottom-[5%] left-[-10%] w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[70px] md:blur-[120px] bg-blurple-500/8 dark:bg-blurple-500/10" />
+      <div className="ocean-blob ocean-blob-3 absolute top-[45%] left-[25%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] md:w-[300px] md:h-[300px] rounded-full blur-[50px] md:blur-[100px] bg-lime-400/5 dark:bg-lime-400/7" />
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-16 items-center text-center lg:text-left">
           {/* Left: Copy + Phone Mockup */}
           <div className="max-w-xl mx-auto lg:mx-0 relative z-10">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-[1.1] tracking-tight">
+            <motion.h1
+              variants={fadeRise(10, 0)}
+              initial={initial}
+              animate={animate}
+              className="text-[1.75rem] xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 md:mb-6 leading-[1.1] tracking-tight"
+            >
               Resort operations.{' '}
               <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
                 Beautifully organized.
               </span>
-            </h1>
+            </motion.h1>
 
-            <p className="text-base md:text-lg lg:text-xl text-muted-foreground mb-6 md:mb-8 leading-relaxed">
+            <motion.p
+              variants={fadeRise(8, 0.1)}
+              initial={initial}
+              animate={animate}
+              className="text-base md:text-lg lg:text-xl text-foreground/70 mb-5 md:mb-8 leading-relaxed"
+            >
               Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless.
-            </p>
+            </motion.p>
 
             {/* CTA Row */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 md:mb-8 sm:justify-center lg:justify-start">
+            <motion.div
+              variants={fadeRise(6, 0.2)}
+              initial={initial}
+              animate={animate}
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 md:mb-8 sm:justify-center lg:justify-start"
+            >
               <Button 
                 asChild 
                 size="lg" 
-                className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime transition-all duration-200 group hover:-translate-y-0.5 w-full sm:w-auto"
+                className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime cta-breathe-once transition-all duration-200 group hover:-translate-y-0.5 active:scale-[0.97] w-full sm:w-auto"
               >
                 <Link to="/book-demo">
                   Book a demo
@@ -67,27 +97,41 @@ export function HomeHero() {
               <Button
                 variant="outline"
                 size="lg"
-                className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 group w-full sm:w-auto"
+                className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 group active:scale-[0.97] transition-all duration-200 w-full sm:w-auto"
                 onClick={scrollToProduct}
               >
                 <Zap className="mr-2 h-4 w-4 text-primary" />
                 Explore the platform
               </Button>
-            </div>
+            </motion.div>
 
-            {/* Value Chips - glassmorphism style */}
-            <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
-              {valueChips.map((chip) => (
-                <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors">
-                  {chip}
-                </Badge>
-              ))}
-            </div>
+            {/* Value Chips - horizontal scroll on mobile, wrap on sm+ */}
+            <motion.div
+              variants={fadeRise(0, 0.3)}
+              initial={initial}
+              animate={animate}
+              className="relative"
+            >
+              <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-fade-right sm:flex-wrap sm:overflow-visible sm:justify-center lg:justify-start sm:[mask-image:none]">
+                {valueChips.map((chip) => (
+                  <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors snap-start shrink-0 sm:shrink">
+                    {chip}
+                  </Badge>
+                ))}
+              </div>
+            </motion.div>
 
-            {/* Phone Mockup - Below CTAs with proper spacing */}
-            <div className="flex justify-center lg:justify-start mt-8 lg:mt-10">
-              <MobileGuestShowcase />
-            </div>
+            {/* Phone Mockup - Below CTAs with float animation */}
+            <motion.div
+              variants={scaleIn(0.4)}
+              initial={initial}
+              animate={animate}
+              className="flex justify-center lg:justify-start mt-6 lg:mt-10"
+            >
+              <div className="animate-hero-float">
+                <MobileGuestShowcase />
+              </div>
+            </motion.div>
           </div>
 
           {/* Right: Interactive Product Showcase (Desktop only - lazy loaded) */}
