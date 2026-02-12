@@ -1511,6 +1511,30 @@ serve(async (req) => {
         }
       }
 
+      // 5d. Check if demo needs reset (Phase 4 integration)
+      try {
+        const { data: shouldReset } = await supabaseAdmin.rpc('should_reset_demo', {
+          p_resort_id: demoResort.id,
+          p_max_age_minutes: 120,
+          p_seed_version: 'v1',
+        });
+        
+        if (shouldReset?.should_reset) {
+          console.log(`Demo reset needed (reason: ${shouldReset.reason}), triggering...`);
+          const { data: resetResult } = await supabaseAdmin.rpc('reset_demo_resort', {
+            p_resort_id: demoResort.id,
+            p_seed_version: 'v1',
+            p_trigger: 'provisioning',
+          });
+          console.log('Demo reset complete:', resetResult);
+        } else {
+          console.log('Demo reset not needed:', shouldReset?.reason);
+        }
+      } catch (resetErr) {
+        // Non-fatal: log but continue with provisioning
+        console.error('Demo reset check/run failed (non-fatal):', resetErr);
+      }
+
       // 6. Generate short-lived tokens (15 min TTL, reusable within window)
       const staffToken = generateToken();
       const guestToken = generateToken();
@@ -1921,6 +1945,7 @@ serve(async (req) => {
         resort_id: tokenRecord.resort_id,
         resort_name: resort?.name,
         resort_code: resort?.code,
+        demo_instance_id: resort?.demo_instance_id ?? 1,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -2014,10 +2039,18 @@ serve(async (req) => {
         ? DEMO_STAFF_EMAIL 
         : (workspace.staff_email || DEMO_STAFF_EMAIL);
 
+      // Fetch resort for demo_instance_id
+      const { data: staffResort } = await supabaseAdmin
+        .from("resorts")
+        .select("demo_instance_id")
+        .eq("id", tokenRecord.resort_id)
+        .single();
+
       return new Response(JSON.stringify({
         success: true,
         email: staffEmail,
         temp_password: tempPassword,
+        demo_instance_id: staffResort?.demo_instance_id ?? 1,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

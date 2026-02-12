@@ -1,12 +1,13 @@
-import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from 'next-themes';
-import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { useGuestAuth, GUEST_SESSION_KEY } from '@/contexts/GuestAuthContext';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
+import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
 import { GuestRealtimeProvider } from '@/contexts/GuestRealtimeContext';
 import { useGuestUnifiedRealtimeEnabled } from '@/hooks/useGuestUnifiedRealtimeEnabled';
@@ -19,7 +20,8 @@ import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
 import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
 import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
   IconLogout,
 } from '@/components/icons/ProperaIcons';
@@ -35,6 +37,7 @@ const scrollPositions = new Map<string, number>();
 
 export function GuestLayout() {
   const { guest, loading, logout } = useGuestAuth();
+  const navigate = useNavigate();
   const { isPrearrival } = useIsPrearrivalGuest();
   const { showDebugPanel, isDebugMode } = useGuestDebugMode(guest?.resortId);
   const { t } = useTranslation();
@@ -107,6 +110,16 @@ export function GuestLayout() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
   const isLoyaltyEnabled = !!loyaltyProgram?.is_enabled;
+
+  // Demo instance rotation guard
+  const demoGuard = useDemoInstanceGuard(guest?.resortId, 'guest');
+
+  const handleDemoRefreshContinue = useCallback(() => {
+    clearDemoInstanceState('guest');
+    localStorage.removeItem(GUEST_SESSION_KEY);
+    demoGuard.dismiss();
+    navigate('/guest/login');
+  }, [demoGuard, navigate]);
 
   // Get current path for scroll tracking
   const currentTab = location.pathname;
@@ -193,6 +206,11 @@ export function GuestLayout() {
 
   return (
     <FeatureFlagsProvider resortId={guest?.resortId} guestId={guest?.guestId}>
+      <DemoRefreshedModal 
+        open={demoGuard.isStale} 
+        variant="guest" 
+        onContinue={handleDemoRefreshContinue} 
+      />
       <GuestLayoutInner
         guest={guest}
         branding={branding}

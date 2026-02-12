@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AccountDisabledScreen } from '@/components/auth/AccountDisabledScreen';
 import { useResort } from '@/contexts/ResortContext';
@@ -7,6 +7,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
@@ -28,6 +29,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { SkipLink } from '@/components/a11y/SkipLink';
+import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 
 export function StaffShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,10 +37,20 @@ export function StaffShell() {
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
   const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
+
+  // Demo instance rotation guard
+  const demoGuard = useDemoInstanceGuard(currentResort?.id, 'staff');
+  
+  const handleDemoRefreshContinue = useCallback(() => {
+    clearDemoInstanceState('staff');
+    demoGuard.dismiss();
+    signOut();
+  }, [demoGuard, signOut]);
 
   // Prefetch common resort data
   usePrefetchResortData();
@@ -129,6 +141,11 @@ export function StaffShell() {
   return (
     <FeatureFlagsProvider resortId={currentResort?.id}>
       <TooltipProvider>
+        <DemoRefreshedModal
+          open={demoGuard.isStale}
+          variant="staff"
+          onContinue={handleDemoRefreshContinue}
+        />
         <SEOHead
           title="Staff Console"
           description="Propera staff console for resort operations management."

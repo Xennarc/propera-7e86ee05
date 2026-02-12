@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Mail, ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DEMO_RESORT_CODE } from '@/lib/demoSingleton';
+import { storeDemoInstanceId } from '@/hooks/useDemoInstanceGuard';
 
 const GUEST_SESSION_KEY = 'propera_guest_session';
 const DEMO_EMAIL_KEY = 'propera_demo_email';
@@ -41,6 +42,11 @@ export default function DemoLoginPage() {
       });
 
       if (staffData?.success) {
+        // Store demo instance for the guard
+        if (staffData.demo_instance_id != null) {
+          storeDemoInstanceId(staffData.demo_instance_id, 'staff');
+        }
+
         // Staff token - sign in with temporary password
         // Add small delay to ensure password update has propagated
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -98,9 +104,14 @@ export default function DemoLoginPage() {
             resortId: guestData.resort_id,
             resortName: guestData.resort_name,
             resortCode: guestData.resort_code || DEMO_RESORT_CODE,
+            demoInstanceId: guestData.demo_instance_id ?? 1,
           };
           
           localStorage.setItem(GUEST_SESSION_KEY, JSON.stringify(session));
+          // Also store demo instance for the guard
+          if (guestData.demo_instance_id != null) {
+            storeDemoInstanceId(guestData.demo_instance_id, 'guest');
+          }
           
           setStatus('success');
           toast.success('Welcome to the guest portal!');
