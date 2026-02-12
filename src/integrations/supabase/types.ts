@@ -1894,6 +1894,56 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_reset_runs: {
+        Row: {
+          demo_instance_after: number | null
+          demo_instance_before: number | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          resort_id: string
+          seed_version: string
+          started_at: string
+          status: string
+          summary: Json | null
+          trigger: string
+        }
+        Insert: {
+          demo_instance_after?: number | null
+          demo_instance_before?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          resort_id: string
+          seed_version?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          trigger: string
+        }
+        Update: {
+          demo_instance_after?: number | null
+          demo_instance_before?: number | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          resort_id?: string
+          seed_version?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_reset_runs_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_tenants: {
         Row: {
           created_at: string
@@ -4646,7 +4696,10 @@ export type Database = {
           created_at: string
           currency: string
           demo_expires_at: string | null
+          demo_instance_id: number | null
+          demo_last_reset_at: string | null
           demo_note: string | null
+          demo_seed_version: string | null
           favicon_url: string | null
           guest_login_instructions: string | null
           guest_login_subtitle: string | null
@@ -4689,7 +4742,10 @@ export type Database = {
           created_at?: string
           currency?: string
           demo_expires_at?: string | null
+          demo_instance_id?: number | null
+          demo_last_reset_at?: string | null
           demo_note?: string | null
+          demo_seed_version?: string | null
           favicon_url?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
@@ -4732,7 +4788,10 @@ export type Database = {
           created_at?: string
           currency?: string
           demo_expires_at?: string | null
+          demo_instance_id?: number | null
+          demo_last_reset_at?: string | null
           demo_note?: string | null
+          demo_seed_version?: string | null
           favicon_url?: string | null
           guest_login_instructions?: string | null
           guest_login_subtitle?: string | null
@@ -7706,6 +7765,14 @@ export type Database = {
         }
         Returns: string
       }
+      reset_demo_resort: {
+        Args: {
+          p_resort_id: string
+          p_seed_version?: string
+          p_trigger?: string
+        }
+        Returns: Json
+      }
       resolve_permissions: {
         Args: { p_resort_id: string; p_user_id: string }
         Returns: {
@@ -7808,6 +7875,14 @@ export type Database = {
           p_permission_key: string
           p_resort_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      should_reset_demo: {
+        Args: {
+          p_max_age_minutes?: number
+          p_resort_id: string
+          p_seed_version?: string
         }
         Returns: Json
       }
