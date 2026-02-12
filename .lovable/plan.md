@@ -1,113 +1,102 @@
 
 
-# Mobile Homepage Hero Upgrade — "Ocean Glow"
+# Tablet Homepage Hero Upgrade
 
-## Summary
+## Problem
 
-Upgrade the mobile hero on the landing page to feel premium and alive with a lightweight animated background, polished entrance animations, and refined mobile spacing — all without breaking existing routes, CTAs, or desktop layout.
+At tablet widths (768px-1023px), the hero uses a single-column centered layout identical to mobile, wasting significant horizontal real estate. There's excessive dead space above the fold, and the phone mockup sits below everything, pushing key content down.
 
-## What Changes
+## Changes
 
-### 1. Animated "Ocean Glow" Background Layer (CSS-only)
+### 1. Two-Column Layout at `md` Breakpoint
 
-Add 2-3 slow-moving gradient blobs visible on mobile (currently all glow blobs are `hidden sm:block`). These use pure CSS keyframes on `transform` and `opacity` only (GPU-composited, no repaints).
+Shift from `lg:grid` to `md:grid` so the tablet gets a side-by-side layout:
 
-- **Blob 1**: Teal/primary glow, top-right area, 10s loop drifting diagonally
-- **Blob 2**: Blurple glow, bottom-left area, 14s loop drifting opposite
-- **Blob 3** (optional): Small lime accent, center, 12s loop, very subtle
+- Left column: headline, subtext, CTAs, value chips
+- Right column: phone mockup (moved from below CTAs to beside them)
 
-All blobs use existing CSS variables (`--teal-400`, `--blurple-500`, `--lime-400`) for theme consistency. A faint noise texture overlay (tiny inline SVG filter, ~200 bytes) prevents gradient banding.
+This means `MobileGuestShowcase` appears in the right column on tablet, and the `InteractiveProductShowcase` remains desktop-only (`lg:block`).
 
-All animation is wrapped in `@media (prefers-reduced-motion: no-preference)` — blobs become static when reduced motion is on.
+| Class | Current | Updated |
+|-------|---------|---------|
+| Grid trigger | `lg:grid lg:grid-cols-2` | `md:grid md:grid-cols-2` |
+| Text alignment | `text-center lg:text-left` | `text-center md:text-left` |
+| CTA justify | `sm:justify-center lg:justify-start` | `sm:justify-center md:justify-start` |
+| Chips justify | `sm:justify-center lg:justify-start` | `sm:justify-center md:justify-start` |
+| Max-width constraint | `max-w-xl mx-auto lg:mx-0` | `max-w-xl mx-auto md:mx-0` |
 
-### 2. Entrance Animation Sequence (Framer Motion)
+### 2. Phone Mockup Repositioning
 
-Since Framer Motion is already installed and used across the site (AboutHero, etc.), use it for the hero entrance:
+On tablet (md) and above, move the phone mockup from below the CTAs into the right grid column:
 
-- **Headline**: fade-in + rise 10px, 500ms, ease-out
-- **Subtext**: fade-in + rise 8px, 500ms, 100ms delay
-- **CTA buttons**: fade-in + rise 6px, 400ms, 200ms delay
-- **Primary CTA**: single soft glow "breathe" after 800ms (one-shot, not repeating)
-- **Value chips**: fade-in, 300ms, 300ms delay
-- **Phone mockup**: scale 0.98 to 1.0 + fade-in, 600ms, 400ms delay, with gentle `animate-float` after entrance
+- Below `md`: mockup stays inline below CTAs (current mobile behavior)
+- At `md`+: mockup renders in a dedicated right column with vertical centering and the float animation
+- At `lg`+: the `InteractiveProductShowcase` replaces it (existing behavior)
 
-All animations disabled when `useReducedMotion()` returns true — content renders instantly with no motion.
+This creates a layout structure like:
 
-### 3. Mobile Spacing and Typography Refinements
+```text
+md-1023px:
++-------------------+------------------+
+|  Headline         |   [Phone Mockup] |
+|  Subtext          |   (floating)     |
+|  [CTAs]           |                  |
+|  Chips            |                  |
++-------------------+------------------+
 
-In `HomeHero.tsx`, adjust the mobile-specific classes:
+1024px+:
++-------------------+------------------+
+|  Headline         | [Interactive     |
+|  Subtext          |  Product         |
+|  [CTAs]           |  Showcase]       |
+|  Chips            |                  |
++-------------------+------------------+
+```
 
-| Element | Current | Updated |
-|---------|---------|---------|
-| Section padding-top | `pt-20` | `pt-16` (less dead space above fold) |
-| Section min-height | `min-h-[85vh]` | `min-h-[90vh]` (more content visible) |
-| Headline size | `text-3xl` | `text-[1.75rem] xs:text-3xl` (better on 360px screens) |
-| Headline margin-bottom | `mb-4` | `mb-3` (tighter) |
-| Subtext | `text-base text-muted-foreground` | `text-base text-foreground/70` (better contrast) |
-| Subtext margin-bottom | `mb-6` | `mb-5` |
-| CTA height | `h-12` | `h-12` (unchanged, already 48px > 44px minimum) |
-| CTA primary | existing glow | add `active:scale-[0.97]` press state |
-| CTA secondary | existing | add `active:scale-[0.97]` press state |
-| Value chips container | `flex-wrap` | horizontal scroll with snap on mobile, wrap on sm+ |
-| Phone mockup spacing | `mt-8` | `mt-6` |
+### 3. Tablet Spacing Refinements
 
-### 4. Value Chips: Horizontal Scroll on Mobile
+| Element | Current (md) | Updated (md) |
+|---------|-------------|-------------|
+| Section padding-top | `md:pt-24` | `md:pt-20` (reduce dead space) |
+| Gap between columns | inherited `gap-8` | `md:gap-12` |
+| Mockup margin-top | `mt-6` (inline) | `mt-0` (in grid column, vertically centered) |
 
-On screens below `sm`, change the chips from `flex-wrap` to a horizontally scrollable row with snap alignment:
-- `overflow-x-auto snap-x snap-mandatory` with `scrollbar-hide`
-- Each chip gets `snap-start shrink-0`
-- On `sm:` and above, keep existing `flex-wrap` behavior
-- Add a subtle gradient fade on the right edge as a scroll hint
+### 4. Ocean Glow Blobs - Tablet Tuning
 
-### 5. Phone Mockup Float Effect
+The blobs already scale at `md:` but can be refined for the two-column layout:
 
-After entrance animation completes, the `MobileGuestShowcase` gets a gentle CSS `animate-float` class (already defined in tailwind config: 6s ease-in-out infinite, 8px vertical). Disabled via reduced-motion media query.
+- Blob 1 (teal): shift slightly more to the right to glow behind the mockup column
+- Blob 2 (blurple): keep left positioning to illuminate the text column
+- No size changes needed; existing `md:w-[800px]` / `md:w-[600px]` / `md:w-[300px]` work well
+
+### 5. Value Chips on Tablet
+
+Currently chips wrap at `sm:` with center justification. Update to left-align at `md:` to match the new left-aligned text column.
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/landing/HomeHero.tsx` | Add Framer Motion entrance sequence, ocean glow blobs (mobile-visible), refined spacing, scroll chips, float on mockup, reduced-motion guard |
-| `src/index.css` | Add `@keyframes ocean-drift-1/2/3` for blob movement, noise texture overlay class, scroll-hint gradient utility |
+| `src/components/landing/HomeHero.tsx` | Restructure grid to trigger at `md`, move phone mockup into a right column visible at `md` but hidden at `lg` (where InteractiveProductShowcase takes over), update alignment classes |
 
-## Files NOT Changed
+## What Does NOT Change
 
-- `tailwind.config.ts` — no new config needed, existing keyframes/animations suffice
-- `MobileGuestShowcase.tsx` — untouched, float class applied from parent
-- `LandingPage.tsx` — untouched
-- All routes, navigation, CTAs, links — unchanged
+- No new files, no new dependencies
+- `src/index.css` -- no changes (all existing animations work as-is)
+- `MobileGuestShowcase.tsx` -- untouched
+- `InteractiveProductShowcase` -- still lazy-loaded, still `lg:block` only
+- Mobile layout (below 768px) -- completely unchanged
+- Desktop layout (1024px+) -- completely unchanged
+- All routes, CTAs, links, tracking -- unchanged
+- Ocean glow animations, entrance animations, reduced-motion support -- unchanged
 
-## Performance
+## Technical Detail
 
-- All blob animations use only `transform` and `opacity` (compositor-only, no layout/paint)
-- No new dependencies
-- No images or video
-- Noise overlay is an inline SVG filter (~200 bytes), not an image asset
-- `will-change: transform` on blobs for GPU promotion
-- Entrance animations are one-shot (no infinite loops except the subtle float and background drift)
+The key structural change in `HomeHero.tsx` is splitting the phone mockup into two render locations:
 
-## Reduced Motion Behavior
+1. **Inline (mobile only)**: `<div className="md:hidden">` wrapping the current mockup position below CTAs
+2. **Grid column (tablet only)**: `<div className="hidden md:flex lg:hidden">` with the mockup centered vertically, sitting beside the text column
+3. **Grid column (desktop)**: existing `<div className="hidden lg:block">` with `InteractiveProductShowcase` -- unchanged
 
-- `useReducedMotion()` hook (already exists) controls Framer Motion entrance
-- CSS `@media (prefers-reduced-motion: reduce)` kills blob drift and float animations
-- Content renders instantly with zero motion when preference is set
-
-## Technical Details
-
-The ocean glow CSS keyframes will look approximately like:
-
-```text
-@keyframes ocean-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%      { transform: translate(30px, -20px) scale(1.05); }
-  66%      { transform: translate(-15px, 15px) scale(0.97); }
-}
-
-@keyframes ocean-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50%      { transform: translate(-25px, 20px) scale(1.03); }
-}
-```
-
-The entrance sequence uses Framer Motion's `motion.div` with staggered delays, matching the pattern already used in `AboutHero.tsx`.
+The `MobileGuestShowcase` component renders twice in the DOM but only one instance is visible at any breakpoint, keeping it lightweight.
 
