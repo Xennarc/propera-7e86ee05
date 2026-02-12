@@ -1521,12 +1521,16 @@ serve(async (req) => {
         
         if (shouldReset?.should_reset) {
           console.log(`Demo reset needed (reason: ${shouldReset.reason}), triggering...`);
-          const { data: resetResult } = await supabaseAdmin.rpc('reset_demo_resort', {
+          const { data: resetResult, error: resetError } = await supabaseAdmin.rpc('reset_demo_resort', {
             p_resort_id: demoResort.id,
             p_seed_version: 'v1',
             p_trigger: 'provisioning',
           });
-          console.log('Demo reset complete:', resetResult);
+          if (resetError) {
+            console.error('Demo reset RPC error:', resetError);
+          } else {
+            console.log('Demo reset complete:', resetResult);
+          }
         } else {
           console.log('Demo reset not needed:', shouldReset?.reason);
         }
