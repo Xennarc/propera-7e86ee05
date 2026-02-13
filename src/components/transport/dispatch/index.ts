@@ -6,4 +6,5 @@ export * from './TripEditLock';
 export * from './QuickReassign';
 export * from './TripActions';
 export * from './AddDriverDialog';
+export * from './AddBuggyDialog';
 export * from './MobileDispatchNav';
