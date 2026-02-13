@@ -1,102 +1,61 @@
 
 
-# Tablet Homepage Hero Upgrade
+# Fix: Driver "Arrived" Button Fails Due to Legacy State Mismatch
 
 ## Problem
 
-At tablet widths (768px-1023px), the hero uses a single-column centered layout identical to mobile, wasting significant horizontal real estate. There's excessive dead space above the fold, and the phone mockup sits below everything, pushing key content down.
+The `rpc_transport_driver_update_trip_state` RPC validates state transitions using a CASE statement that only recognizes the new canonical lifecycle states (`enroute_to_pickup`, `arrived_pickup`, `enroute_to_dropoff`). But the database contains legacy values like `en_route` and `active` (from the `buggy_trip_status` enum or older RPCs).
 
-## Changes
+The frontend already handles this via `normalizeLifecycleState()`, but the backend RPC does not normalize before validating -- so the transition is rejected.
 
-### 1. Two-Column Layout at `md` Breakpoint
+**Current trip data in DB:**
+- `lifecycle_state: 'en_route'` (legacy)
+- `status: 'en_route'`
+- Both stops already marked `arrived`
 
-Shift from `lg:grid` to `md:grid` so the tablet gets a side-by-side layout:
+When the driver taps "Arrived at Pickup", the RPC receives `p_next_state = 'arrived_pickup'` but sees `v_current_state = 'en_route'` which has no matching CASE branch, so it fails.
 
-- Left column: headline, subtext, CTAs, value chips
-- Right column: phone mockup (moved from below CTAs to beside them)
+## Fix (2 parts)
 
-This means `MobileGuestShowcase` appears in the right column on tablet, and the `InteractiveProductShowcase` remains desktop-only (`lg:block`).
+### Part 1: Update the RPC to normalize legacy states
 
-| Class | Current | Updated |
-|-------|---------|---------|
-| Grid trigger | `lg:grid lg:grid-cols-2` | `md:grid md:grid-cols-2` |
-| Text alignment | `text-center lg:text-left` | `text-center md:text-left` |
-| CTA justify | `sm:justify-center lg:justify-start` | `sm:justify-center md:justify-start` |
-| Chips justify | `sm:justify-center lg:justify-start` | `sm:justify-center md:justify-start` |
-| Max-width constraint | `max-w-xl mx-auto lg:mx-0` | `max-w-xl mx-auto md:mx-0` |
-
-### 2. Phone Mockup Repositioning
-
-On tablet (md) and above, move the phone mockup from below the CTAs into the right grid column:
-
-- Below `md`: mockup stays inline below CTAs (current mobile behavior)
-- At `md`+: mockup renders in a dedicated right column with vertical centering and the float animation
-- At `lg`+: the `InteractiveProductShowcase` replaces it (existing behavior)
-
-This creates a layout structure like:
+Add legacy value handling in the CASE statement of `rpc_transport_driver_update_trip_state`. Before the CASE, normalize `v_current_state`:
 
 ```text
-md-1023px:
-+-------------------+------------------+
-|  Headline         |   [Phone Mockup] |
-|  Subtext          |   (floating)     |
-|  [CTAs]           |                  |
-|  Chips            |                  |
-+-------------------+------------------+
-
-1024px+:
-+-------------------+------------------+
-|  Headline         | [Interactive     |
-|  Subtext          |  Product         |
-|  [CTAs]           |  Showcase]       |
-|  Chips            |                  |
-+-------------------+------------------+
+-- Normalize legacy lifecycle states
+v_current_state := CASE v_current_state
+  WHEN 'en_route' THEN 'enroute_to_pickup'
+  WHEN 'active'   THEN 'enroute_to_dropoff'
+  WHEN 'planning' THEN 'assigned'
+  ELSE v_current_state
+END;
 ```
 
-### 3. Tablet Spacing Refinements
+This mirrors the exact same mapping used by the frontend's `normalizeLifecycleState()` function, ensuring backend and frontend agree on state semantics.
 
-| Element | Current (md) | Updated (md) |
-|---------|-------------|-------------|
-| Section padding-top | `md:pt-24` | `md:pt-20` (reduce dead space) |
-| Gap between columns | inherited `gap-8` | `md:gap-12` |
-| Mockup margin-top | `mt-6` (inline) | `mt-0` (in grid column, vertically centered) |
+### Part 2: Fix the stuck trip data
 
-### 4. Ocean Glow Blobs - Tablet Tuning
-
-The blobs already scale at `md:` but can be refined for the two-column layout:
-
-- Blob 1 (teal): shift slightly more to the right to glow behind the mockup column
-- Blob 2 (blurple): keep left positioning to illuminate the text column
-- No size changes needed; existing `md:w-[800px]` / `md:w-[600px]` / `md:w-[300px]` work well
-
-### 5. Value Chips on Tablet
-
-Currently chips wrap at `sm:` with center justification. Update to left-align at `md:` to match the new left-aligned text column.
+Run a one-time data fix to update the current stuck trip's `lifecycle_state` from `'en_route'` to `'enroute_to_pickup'` so the driver can immediately proceed. (The RPC fix will prevent this from happening again.)
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `src/components/landing/HomeHero.tsx` | Restructure grid to trigger at `md`, move phone mockup into a right column visible at `md` but hidden at `lg` (where InteractiveProductShowcase takes over), update alignment classes |
+| Database migration | Add legacy state normalization to `rpc_transport_driver_update_trip_state` RPC |
+
+No frontend code changes needed -- the frontend already normalizes correctly.
 
 ## What Does NOT Change
 
-- No new files, no new dependencies
-- `src/index.css` -- no changes (all existing animations work as-is)
-- `MobileGuestShowcase.tsx` -- untouched
-- `InteractiveProductShowcase` -- still lazy-loaded, still `lg:block` only
-- Mobile layout (below 768px) -- completely unchanged
-- Desktop layout (1024px+) -- completely unchanged
-- All routes, CTAs, links, tracking -- unchanged
-- Ocean glow animations, entrance animations, reduced-motion support -- unchanged
+- Frontend components (already handle legacy values)
+- Other RPCs
+- Trip stops, requests, or any other data
+- Routes, navigation, or UI
 
-## Technical Detail
+## Testing
 
-The key structural change in `HomeHero.tsx` is splitting the phone mockup into two render locations:
-
-1. **Inline (mobile only)**: `<div className="md:hidden">` wrapping the current mockup position below CTAs
-2. **Grid column (tablet only)**: `<div className="hidden md:flex lg:hidden">` with the mockup centered vertically, sitting beside the text column
-3. **Grid column (desktop)**: existing `<div className="hidden lg:block">` with `InteractiveProductShowcase` -- unchanged
-
-The `MobileGuestShowcase` component renders twice in the DOM but only one instance is visible at any breakpoint, keeping it lightweight.
+After the fix:
+1. The driver should be able to tap "Arrived at Pickup" on the trip runner and have it succeed
+2. Any future trips that somehow get legacy state values will also work correctly
+3. The state machine will properly advance through all stages
 
