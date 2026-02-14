@@ -9,7 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, TrendingDown, Clock, AlertTriangle, XCircle, DollarSign, Calendar } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { TierGate } from '@/components/tier/TierGate';
@@ -353,34 +353,34 @@ export default function CancellationsReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <ReportStatCard
-          title="Total Cancellations"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 md:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Total Cancellations"
           value={reportData.totalCancellations}
-          subtitle={`${reportData.totalPaxLost} pax lost`}
-          icon={<XCircle className="h-5 w-5 text-destructive" />}
-          variant="danger"
+          helperText={`${reportData.totalPaxLost} pax lost`}
+          icon={XCircle}
+          variant="destructive"
         />
-        <ReportStatCard
-          title="Revenue Lost"
+        <KpiCard
+          label="Revenue Lost"
           value={`${currentResort.currency} ${reportData.totalRevenueLost.toLocaleString()}`}
-          icon={<DollarSign className="h-5 w-5 text-destructive" />}
-          variant="danger"
+          icon={DollarSign}
+          variant="destructive"
         />
-        <ReportStatCard
-          title="Avg Lead Time"
+        <KpiCard
+          label="Avg Lead Time"
           value={`${reportData.avgLeadTime}h`}
-          subtitle="Booking to cancellation"
-          icon={<Clock className="h-5 w-5 text-primary" />}
+          helperText="Booking to cancellation"
+          icon={Clock}
         />
-        <ReportStatCard
-          title="Last-Minute (<24h)"
+        <KpiCard
+          label="Last-Minute (<24h)"
           value={reportData.lastMinuteCancellations}
-          subtitle={`${reportData.totalCancellations > 0 ? ((reportData.lastMinuteCancellations / reportData.totalCancellations) * 100).toFixed(0) : 0}% of total`}
-          icon={<AlertTriangle className="h-5 w-5 text-warning" />}
+          helperText={`${reportData.totalCancellations > 0 ? ((reportData.lastMinuteCancellations / reportData.totalCancellations) * 100).toFixed(0) : 0}% of total`}
+          icon={AlertTriangle}
           variant="warning"
         />
-      </div>
+      </KpiGrid>
 
       {/* Elite-tier Advanced Analytics */}
       <TierGate feature="reports_sales_performance" fallback="hide">

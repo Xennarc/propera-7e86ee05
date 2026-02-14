@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useResort } from '@/contexts/ResortContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { TrendChart } from '@/components/reports/TrendChart';
@@ -580,46 +580,46 @@ export default function SalesPerformanceReport() {
           {/* Main Content */}
           <div className="xl:col-span-2 space-y-6">
             {/* Key Metrics */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <ReportStatCard
-                title="Total Revenue"
+            <KpiGrid columns="grid-cols-2 lg:grid-cols-3" maxWidth="full">
+              <KpiCard
+                label="Total Revenue"
                 value={`${currentResort.currency} ${metrics?.totalRevenue.toFixed(2) || '0.00'}`}
-                subtitle="Ancillary revenue"
-                icon={<DollarSign className="h-5 w-5 text-primary" />}
+                helperText="Ancillary revenue"
+                icon={DollarSign}
               />
-              <ReportStatCard
-                title="Revenue per Guest"
+              <KpiCard
+                label="Revenue per Guest"
                 value={`${currentResort.currency} ${metrics?.revenuePerGuest.toFixed(2) || '0.00'}`}
-                subtitle="Avg per in-house guest"
-                icon={<TrendingUp className="h-5 w-5 text-primary" />}
+                helperText="Avg per in-house guest"
+                icon={TrendingUp}
               />
-              <ReportStatCard
-                title="Activity Attach Rate"
+              <KpiCard
+                label="Activity Attach Rate"
                 value={`${metrics?.activityAttachRate.toFixed(1) || '0.0'}%`}
-                subtitle="Guests who booked activities"
-                icon={<Users className="h-5 w-5 text-primary" />}
+                helperText="Guests who booked activities"
+                icon={Users}
               />
-              <ReportStatCard
-                title="F&B Capture Rate"
+              <KpiCard
+                label="F&B Capture Rate"
                 value={`${metrics?.fnbCaptureRate.toFixed(1) || '0.0'}%`}
-                subtitle="Guests with reservations"
-                icon={<UtensilsCrossed className="h-5 w-5 text-primary" />}
+                helperText="Guests with reservations"
+                icon={UtensilsCrossed}
               />
-              <ReportStatCard
-                title="Pre-stay Revenue"
+              <KpiCard
+                label="Pre-stay Revenue"
                 value={`${currentResort.currency} ${metrics?.preStayRevenue.toFixed(2) || '0.00'}`}
-                subtitle={`${metrics?.preStayBookings || 0} bookings`}
-                icon={<CalendarClock className="h-5 w-5 text-chart-2" />}
+                helperText={`${metrics?.preStayBookings || 0} bookings`}
+                icon={CalendarClock}
                 variant="success"
               />
-              <ReportStatCard
-                title="Cancellation Loss"
+              <KpiCard
+                label="Cancellation Loss"
                 value={`${currentResort.currency} ${metrics?.cancellationLoss.toFixed(2) || '0.00'}`}
-                subtitle="Revenue lost"
-                icon={<XCircle className="h-5 w-5 text-destructive" />}
-                variant="danger"
+                helperText="Revenue lost"
+                icon={XCircle}
+                variant="destructive"
               />
-            </div>
+            </KpiGrid>
 
             {/* Elite: Revenue Trend & Day of Week Analysis */}
             <TierGate feature="reports_trend_analysis" fallback="hide">

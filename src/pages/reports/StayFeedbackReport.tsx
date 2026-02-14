@@ -11,7 +11,7 @@ import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 
 interface StayFeedbackRow {
   id: string;
@@ -178,31 +178,31 @@ export default function StayFeedbackReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <ReportStatCard
-          title="Total Responses"
+      <KpiGrid columns="grid-cols-2 md:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Total Responses"
           value={totalResponses}
-          icon={<MessageSquare className="h-5 w-5 text-primary" />}
+          icon={MessageSquare}
         />
-        <ReportStatCard
-          title="Avg Overall Rating"
+        <KpiCard
+          label="Avg Overall Rating"
           value={avgOverall}
-          icon={<Star className="h-5 w-5 text-yellow-500" />}
-          variant={Number(avgOverall) >= 4 ? 'success' : Number(avgOverall) >= 3 ? 'warning' : 'danger'}
+          icon={Star}
+          variant={Number(avgOverall) >= 4 ? 'success' : Number(avgOverall) >= 3 ? 'warning' : 'destructive'}
         />
-        <ReportStatCard
-          title="Would Recommend"
+        <KpiCard
+          label="Would Recommend"
           value={`${recommendPercentage}%`}
-          icon={<ThumbsUp className="h-5 w-5 text-primary" />}
-          variant={recommendPercentage >= 80 ? 'success' : recommendPercentage >= 60 ? 'warning' : 'danger'}
+          icon={ThumbsUp}
+          variant={recommendPercentage >= 80 ? 'success' : recommendPercentage >= 60 ? 'warning' : 'destructive'}
         />
-        <ReportStatCard
-          title="Response Rate"
+        <KpiCard
+          label="Response Rate"
           value="-"
-          subtitle="N/A"
-          icon={<Users className="h-5 w-5 text-muted-foreground" />}
+          helperText="N/A"
+          icon={Users}
         />
-      </div>
+      </KpiGrid>
 
       {/* Category Averages */}
       <Card>

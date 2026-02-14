@@ -24,7 +24,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, Calendar, Users, DollarSign, TrendingUp, Activity, Percent } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FeatureVisible } from '@/components/FeatureGate';
 import { TrendChart } from '@/components/reports/TrendChart';
@@ -343,28 +343,28 @@ export default function ActivitiesReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <ReportStatCard
-          title="Total Sessions"
+      <KpiGrid columns="grid-cols-2 lg:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Total Sessions"
           value={reportData?.summary.totalSessions || 0}
-          icon={<Calendar className="h-5 w-5 text-primary" />}
+          icon={Calendar}
         />
-        <ReportStatCard
-          title="Total Guests"
+        <KpiCard
+          label="Total Guests"
           value={reportData?.summary.totalPax || 0}
-          subtitle={`${reportData?.summary.totalBookings || 0} bookings`}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          helperText={`${reportData?.summary.totalBookings || 0} bookings`}
+          icon={Users}
         />
-        <ReportStatCard
-          title="Total Revenue"
+        <KpiCard
+          label="Total Revenue"
           value={`${currentResort.currency} ${(reportData?.summary.totalRevenue || 0).toLocaleString()}`}
-          icon={<DollarSign className="h-5 w-5 text-primary" />}
+          icon={DollarSign}
         />
-        <ReportStatCard
-          title="Avg Occupancy"
+        <KpiCard
+          label="Avg Occupancy"
           value={`${reportData?.summary.avgOccupancy || 0}%`}
-          subtitle={`${reportData?.summary.noShowRate || 0}% no-show rate`}
-          icon={<TrendingUp className="h-5 w-5 text-primary" />}
+          helperText={`${reportData?.summary.noShowRate || 0}% no-show rate`}
+          icon={TrendingUp}
           variant={
             (reportData?.summary.avgOccupancy || 0) >= 70 
               ? 'success' 
@@ -373,7 +373,7 @@ export default function ActivitiesReport() {
                 : 'warning'
           }
         />
-      </div>
+      </KpiGrid>
 
       {/* Elite: Trend Analysis */}
       <TierGate feature="reports_trend_analysis" fallback="hide">
@@ -484,20 +484,21 @@ export default function ActivitiesReport() {
 
       {/* Booking Source Breakdown */}
       {(reportData?.summary.preStayRevenue || 0) > 0 || (reportData?.summary.inStayRevenue || 0) > 0 ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <ReportStatCard
-            title="Pre-Stay Bookings"
+        <KpiGrid columns="grid-cols-2 lg:grid-cols-4" maxWidth="full">
+          <KpiCard
+            label="Pre-Stay Bookings"
             value={`${currentResort.currency} ${(reportData?.summary.preStayRevenue || 0).toLocaleString()}`}
-            subtitle="Booked before arrival"
-            icon={<Calendar className="h-5 w-5 text-blue-500" />}
+            helperText="Booked before arrival"
+            icon={Calendar}
           />
-          <ReportStatCard
-            title="In-Stay Upsells"
+          <KpiCard
+            label="In-Stay Upsells"
             value={`${currentResort.currency} ${(reportData?.summary.inStayRevenue || 0).toLocaleString()}`}
-            subtitle="From suggestions"
-            icon={<TrendingUp className="h-5 w-5 text-green-500" />}
+            helperText="From suggestions"
+            icon={TrendingUp}
+            variant="success"
           />
-        </div>
+        </KpiGrid>
       ) : null}
 
       {/* Table */}
