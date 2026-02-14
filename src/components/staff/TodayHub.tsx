@@ -5,6 +5,7 @@ import { format, addDays, isToday, parseISO } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -229,38 +230,12 @@ export function TodayHub({ className }: TodayHubProps) {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <QuickStatCard
-          title="In-House"
-          value={guestStats?.inHouseCount ?? 0}
-          icon={Users}
-          loading={loadingGuests}
-          variant="default"
-        />
-        <QuickStatCard
-          title="Arrivals"
-          value={guestStats?.arrivalsCount ?? 0}
-          icon={ArrowUpRight}
-          loading={loadingGuests}
-          variant="success"
-        />
-        <QuickStatCard
-          title="Sessions"
-          value={sessionStats?.totalSessions ?? 0}
-          icon={Activity}
-          loading={loadingSessions}
-          variant="primary"
-          subtitle={`${sessionStats?.totalPax ?? 0} pax`}
-        />
-        <QuickStatCard
-          title="Covers"
-          value={diningStats?.totalCovers ?? 0}
-          icon={UtensilsCrossed}
-          loading={loadingDining}
-          variant="warning"
-          subtitle={`${diningStats?.totalSlots ?? 0} slots`}
-        />
-      </div>
+      <KpiGrid columns="grid-cols-2 lg:grid-cols-4" maxWidth="full" spacing="dense">
+        <KpiCard label="In-House" value={guestStats?.inHouseCount ?? 0} icon={Users} loading={loadingGuests} />
+        <KpiCard label="Arrivals" value={guestStats?.arrivalsCount ?? 0} icon={ArrowUpRight} variant="success" loading={loadingGuests} />
+        <KpiCard label="Sessions" value={sessionStats?.totalSessions ?? 0} icon={Activity} variant="primary" loading={loadingSessions} helperText={`${sessionStats?.totalPax ?? 0} pax`} />
+        <KpiCard label="Covers" value={diningStats?.totalCovers ?? 0} icon={UtensilsCrossed} variant="warning" loading={loadingDining} helperText={`${diningStats?.totalSlots ?? 0} slots`} />
+      </KpiGrid>
 
       {/* Filter Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>

@@ -5,6 +5,7 @@ import { format, parseISO, differenceInDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Card, CardContent } from '@/components/ui/card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,91 +187,24 @@ export default function PrearrivalDashboardPage() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <Card className="cursor-pointer hover:border-primary/30" onClick={() => setStatusFilter('all')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Plane className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Arriving</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:border-success/30" onClick={() => setStatusFilter('completed')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.completed}</p>
-                <p className="text-xs text-muted-foreground">Completed</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:border-warning/30" onClick={() => setStatusFilter('partial')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.partial}</p>
-                <p className="text-xs text-muted-foreground">In Progress</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:border-muted-foreground/30" onClick={() => setStatusFilter('not_started')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                <AlertCircle className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.notStarted}</p>
-                <p className="text-xs text-muted-foreground">Not Started</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-lagoon/10">
-                <Calendar className="h-5 w-5 text-lagoon" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.withBookings}</p>
-                <p className="text-xs text-muted-foreground">Pre-Booked</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:border-pink-500/30" onClick={() => setStatusFilter('special_occasion')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-500/10">
-                <PartyPopper className="h-5 w-5 text-pink-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.specialOccasions}</p>
-                <p className="text-xs text-muted-foreground">Occasions</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <KpiGrid columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-6" maxWidth="full" spacing="dense">
+        <div onClick={() => setStatusFilter('all')} className="cursor-pointer">
+          <KpiCard label="Arriving" value={stats.total} icon={Plane} variant="primary" />
+        </div>
+        <div onClick={() => setStatusFilter('completed')} className="cursor-pointer">
+          <KpiCard label="Completed" value={stats.completed} icon={CheckCircle2} variant="success" />
+        </div>
+        <div onClick={() => setStatusFilter('partial')} className="cursor-pointer">
+          <KpiCard label="In Progress" value={stats.partial} icon={Clock} variant="warning" />
+        </div>
+        <div onClick={() => setStatusFilter('not_started')} className="cursor-pointer">
+          <KpiCard label="Not Started" value={stats.notStarted} icon={AlertCircle} />
+        </div>
+        <KpiCard label="Pre-Booked" value={stats.withBookings} icon={Calendar} />
+        <div onClick={() => setStatusFilter('special_occasion')} className="cursor-pointer">
+          <KpiCard label="Occasions" value={stats.specialOccasions} icon={PartyPopper} />
+        </div>
+      </KpiGrid>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">

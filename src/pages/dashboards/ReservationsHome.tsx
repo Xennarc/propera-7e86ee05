@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, UserMinus, Calendar, Utensils, Plus, ArrowRight, Eye, Home } from 'lucide-react';
-import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
+import { TableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ReservationsHome() {
