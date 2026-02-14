@@ -1,4 +1,4 @@
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { 
   Clock, 
   CheckCircle2, 
@@ -18,67 +18,62 @@ interface TransportMetricsCardsProps {
 
 export function TransportMetricsCards({ requestMetrics, tripMetrics }: TransportMetricsCardsProps) {
   return (
-    <div className="w-full flex justify-center">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-6xl w-full">
-      <ReportStatCard
-        title="Avg Wait Time"
+    <KpiGrid>
+      <KpiCard
+        label="Avg Wait Time"
         value={`${requestMetrics.avgWaitTimeMinutes}m`}
-        subtitle={`${requestMetrics.minWaitTimeMinutes}m - ${requestMetrics.maxWaitTimeMinutes}m range`}
-        icon={<Clock className="h-5 w-5 text-primary" />}
+        icon={Clock}
+        variant="primary"
+        helperText={`${requestMetrics.minWaitTimeMinutes}m - ${requestMetrics.maxWaitTimeMinutes}m range`}
       />
-      
-      <ReportStatCard
-        title="Completion Rate"
+      <KpiCard
+        label="Completion Rate"
         value={`${requestMetrics.completionRate.toFixed(1)}%`}
-        subtitle={`${requestMetrics.completedRequests} of ${requestMetrics.totalRequests}`}
-        icon={<CheckCircle2 className="h-5 w-5 text-green-600" />}
-        variant={requestMetrics.completionRate >= 90 ? 'success' : requestMetrics.completionRate >= 70 ? 'warning' : 'danger'}
+        icon={CheckCircle2}
+        variant={requestMetrics.completionRate >= 90 ? 'success' : requestMetrics.completionRate >= 70 ? 'warning' : 'destructive'}
+        helperText={`${requestMetrics.completedRequests} of ${requestMetrics.totalRequests}`}
       />
-      
-      <ReportStatCard
-        title="Cancellations"
-        value={requestMetrics.cancelledRequests.toString()}
-        subtitle={`${requestMetrics.cancellationRate.toFixed(1)}% of requests`}
-        icon={<XCircle className="h-5 w-5 text-amber-600" />}
+      <KpiCard
+        label="Cancellations"
+        value={requestMetrics.cancelledRequests}
+        icon={XCircle}
         variant={requestMetrics.cancellationRate <= 10 ? 'default' : 'warning'}
+        helperText={`${requestMetrics.cancellationRate.toFixed(1)}% of requests`}
       />
-      
-      <ReportStatCard
-        title="No-Shows"
-        value={requestMetrics.noShowRequests.toString()}
-        subtitle={`${requestMetrics.noShowRate.toFixed(1)}% of requests`}
-        icon={<UserX className="h-5 w-5 text-red-600" />}
-        variant={requestMetrics.noShowRate <= 5 ? 'default' : 'danger'}
+      <KpiCard
+        label="No-Shows"
+        value={requestMetrics.noShowRequests}
+        icon={UserX}
+        variant={requestMetrics.noShowRate <= 5 ? 'default' : 'destructive'}
+        helperText={`${requestMetrics.noShowRate.toFixed(1)}% of requests`}
       />
-      
-      <ReportStatCard
-        title="Total Passengers"
+      <KpiCard
+        label="Total Passengers"
         value={requestMetrics.totalPassengers.toLocaleString()}
-        subtitle={`Avg ${requestMetrics.avgPartySize.toFixed(1)} per request`}
-        icon={<Users className="h-5 w-5 text-primary" />}
+        icon={Users}
+        variant="primary"
+        helperText={`Avg ${requestMetrics.avgPartySize.toFixed(1)} per request`}
       />
-      
-      <ReportStatCard
-        title="Trips Completed"
-        value={tripMetrics.totalTrips.toString()}
-        subtitle={`${tripMetrics.avgRequestsPerTrip} reqs/trip avg`}
-        icon={<Car className="h-5 w-5 text-primary" />}
+      <KpiCard
+        label="Trips Completed"
+        value={tripMetrics.totalTrips}
+        icon={Car}
+        variant="primary"
+        helperText={`${tripMetrics.avgRequestsPerTrip} reqs/trip avg`}
       />
-      
-      <ReportStatCard
-        title="Avg Trip Duration"
+      <KpiCard
+        label="Avg Trip Duration"
         value={`${tripMetrics.avgTripDurationMinutes}m`}
-        subtitle={`${tripMetrics.totalStops} total stops`}
-        icon={<TrendingUp className="h-5 w-5 text-primary" />}
+        icon={TrendingUp}
+        variant="primary"
+        helperText={`${tripMetrics.totalStops} total stops`}
       />
-      
-      <ReportStatCard
-        title="Stops per Trip"
+      <KpiCard
+        label="Stops per Trip"
         value={tripMetrics.avgStopsPerTrip.toFixed(1)}
-        subtitle="Average stops"
-        icon={<MapPin className="h-5 w-5 text-primary" />}
+        icon={MapPin}
+        helperText="Average stops"
       />
-    </div>
-    </div>
+    </KpiGrid>
   );
 }

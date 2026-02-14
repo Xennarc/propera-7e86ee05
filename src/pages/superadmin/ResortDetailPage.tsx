@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getTierInfo, SubscriptionTier, TierFeature, tierHasFeature, FEATURE_NAMES } from '@/lib/tier-features';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 
 const KEY_FEATURES: { key: TierFeature; label: string; tier: SubscriptionTier }[] = [
   { key: 'loyalty_program', label: 'Loyalty Program', tier: 'ELITE' },
@@ -210,32 +210,36 @@ export default function ResortDetailPage() {
       />
 
       {/* Resort Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Guests In House"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          label="Guests In House"
           value={isLoading ? '—' : resortData?.guestsInHouse || 0}
           icon={Users}
-          description="Currently checked in"
+          helperText="Currently checked in"
+          loading={isLoading}
         />
-        <StatCard
-          title="Staff Members"
+        <KpiCard
+          label="Staff Members"
           value={isLoading ? '—' : resortData?.staffCount || 0}
           icon={Shield}
-          description="Active team members"
+          helperText="Active team members"
+          loading={isLoading}
         />
-        <StatCard
-          title="Activities"
+        <KpiCard
+          label="Activities"
           value={isLoading ? '—' : resortData?.activityCount || 0}
           icon={Calendar}
-          description="Active activities"
+          helperText="Active activities"
+          loading={isLoading}
         />
-        <StatCard
-          title="Restaurants"
+        <KpiCard
+          label="Restaurants"
           value={isLoading ? '—' : resortData?.restaurantCount || 0}
           icon={Utensils}
-          description="Active restaurants"
+          helperText="Active restaurants"
+          loading={isLoading}
         />
-      </div>
+      </KpiGrid>
 
       {/* Plan & Features */}
       <div className="grid gap-6 lg:grid-cols-2">

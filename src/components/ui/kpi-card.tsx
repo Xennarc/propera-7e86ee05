@@ -224,11 +224,5 @@ export const KpiSkeleton = memo(function KpiSkeleton({
   );
 });
 
-// ─── Migration TODO ────────────────────────────────────────
-// Next dashboards to migrate to KpiGrid + KpiCard:
-// TODO: src/pages/dashboards/SuperAdminHome.tsx (StatCard → KpiCard)
-// TODO: src/pages/superadmin/SuperAdminDashboard.tsx (StatCard → KpiCard)
-// TODO: src/pages/superadmin/ResortDetailPage.tsx (StatCard → KpiCard)
-// TODO: src/components/transport/history/TransportMetricsCards.tsx (ReportStatCard → KpiCard)
-// TODO: src/components/driver/DriverStatsSection.tsx (internal StatCard → KpiCard)
-// TODO: src/pages/guests/GuestsPage.tsx (summary strip)
+// ─── Migration Complete ────────────────────────────────────
+// All KPI card usages have been migrated to KpiGrid + KpiCard.

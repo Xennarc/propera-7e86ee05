@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { useDriverStats } from '@/hooks/driver/useDriverStats';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { KpiGrid, KpiCard, KpiSkeleton } from '@/components/ui/kpi-card';
 import { 
   Car, 
   Users, 
@@ -10,43 +10,6 @@ import {
   TrendingUp,
   Inbox,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  subValue?: string;
-  icon: React.ElementType;
-  className?: string;
-}
-
-function StatCard({ label, value, subValue, icon: Icon, className }: StatCardProps) {
-  return (
-    <div className={cn(
-      'flex flex-col items-center justify-center p-4 rounded-xl border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
-      className
-    )}>
-      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-        <Icon className="h-4 w-4 text-primary" />
-      </div>
-      <span className="text-2xl font-bold">{value}</span>
-      <span className="text-xs text-muted-foreground text-center">{label}</span>
-      {subValue && (
-        <span className="text-[10px] text-muted-foreground/70 mt-0.5">{subValue}</span>
-      )}
-    </div>
-  );
-}
-
-function StatCardSkeleton() {
-  return (
-    <div className="flex flex-col items-center justify-center p-4 rounded-xl border bg-card">
-      <Skeleton className="h-8 w-8 rounded-full mb-2" />
-      <Skeleton className="h-7 w-10 mb-1" />
-      <Skeleton className="h-3 w-16" />
-    </div>
-  );
-}
 
 export function DriverStatsSection() {
   const { user } = useAuth();
@@ -59,22 +22,21 @@ export function DriverStatsSection() {
     return (
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </div>
+          <KpiGrid columns="grid-cols-2" maxWidth="full" spacing="dense">
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+            <KpiSkeleton />
+          </KpiGrid>
         </CardContent>
       </Card>
     );
   }
 
   if (error || !stats) {
-    return null; // Fail silently - stats are nice-to-have
+    return null;
   }
 
-  // If no trips at all, show friendly empty state
   if (stats.tripsLast7Days === 0) {
     return (
       <Card className="border-dashed">
@@ -91,38 +53,40 @@ export function DriverStatsSection() {
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
+        <KpiGrid columns="grid-cols-2" maxWidth="full" spacing="dense">
+          <KpiCard
             icon={Car}
             value={stats.tripsToday}
             label="Trips Today"
-            subValue={`${stats.tripsLast7Days} this week`}
+            helperText={`${stats.tripsLast7Days} this week`}
+            variant="primary"
           />
-          <StatCard
+          <KpiCard
             icon={Users}
             value={stats.passengersToday}
             label="Passengers Today"
-            subValue={`${stats.passengersLast7Days} this week`}
+            helperText={`${stats.passengersLast7Days} this week`}
+            variant="primary"
           />
-          <StatCard
+          <KpiCard
             icon={TrendingUp}
             value={stats.tripsLast7Days}
             label="Trips (7 days)"
           />
           {stats.avgDurationMinutes !== null ? (
-            <StatCard
+            <KpiCard
               icon={Clock}
               value={`${stats.avgDurationMinutes}m`}
               label="Avg Trip Duration"
             />
           ) : (
-            <StatCard
+            <KpiCard
               icon={Clock}
               value={stats.passengersLast7Days}
               label="Passengers (7 days)"
             />
           )}
-        </div>
+        </KpiGrid>
       </CardContent>
     </Card>
   );
