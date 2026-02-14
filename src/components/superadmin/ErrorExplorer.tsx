@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -214,44 +215,22 @@ export function ErrorExplorer({ onResortClick }: ErrorExplorerProps) {
 
       {/* Metrics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase">Total Errors</p>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16 mt-1" />
-                ) : (
-                  <p className="text-2xl font-bold">{data?.metrics.totalErrors || 0}</p>
-                )}
-              </div>
-              <AlertTriangle className="h-8 w-8 text-warning/50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase">Trend</p>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16 mt-1" />
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <p className="text-2xl font-bold">{data?.metrics.trend || 0}%</p>
-                    {(data?.metrics.trend || 0) < 0 ? (
-                      <TrendingDown className="h-5 w-5 text-success" />
-                    ) : (
-                      <TrendingUp className="h-5 w-5 text-destructive" />
-                    )}
-                  </div>
-                )}
-              </div>
-              <Activity className="h-8 w-8 text-muted-foreground/50" />
-            </div>
-          </CardContent>
-        </Card>
+        <KpiCard
+          label="Total Errors"
+          value={data?.metrics.totalErrors || 0}
+          icon={AlertTriangle}
+          variant="warning"
+          loading={isLoading}
+          align="left"
+        />
+        <KpiCard
+          label="Trend"
+          value={`${data?.metrics.trend || 0}%`}
+          icon={Activity}
+          variant={(data?.metrics.trend || 0) < 0 ? 'success' : 'destructive'}
+          loading={isLoading}
+          align="left"
+        />
 
         <Card className="sm:col-span-2">
           <CardContent className="p-4">

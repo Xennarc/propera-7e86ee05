@@ -24,7 +24,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 import { Download, Globe, Users, DollarSign } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -295,30 +295,30 @@ export default function MarketReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <ReportStatCard
-          title="Total Pax"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 md:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Total Pax"
           value={summaryStats.totalPax}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={Users}
         />
         {segmentType === 'activities' && (
-          <ReportStatCard
-            title="Total Revenue"
+          <KpiCard
+            label="Total Revenue"
             value={`${currentResort.currency} ${summaryStats.totalRevenue.toLocaleString()}`}
-            icon={<DollarSign className="h-5 w-5 text-primary" />}
+            icon={DollarSign}
           />
         )}
-        <ReportStatCard
-          title="Unique Guests"
+        <KpiCard
+          label="Unique Guests"
           value={summaryStats.uniqueGuests}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={Users}
         />
-        <ReportStatCard
-          title="Top Market"
+        <KpiCard
+          label="Top Market"
           value={summaryStats.topMarket}
-          icon={<Globe className="h-5 w-5 text-primary" />}
+          icon={Globe}
         />
-      </div>
+      </KpiGrid>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -17,7 +17,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Ba
 import { Download, Users, Activity, TrendingUp, RefreshCw, Clock, Calendar } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { LeadTimeDistribution } from '@/components/reports/LeadTimeDistribution';
@@ -335,29 +335,29 @@ export default function GuestBehaviourReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <ReportStatCard
-          title="Unique Guests"
+      <KpiGrid columns="grid-cols-2 md:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Unique Guests"
           value={reportData?.summary.uniqueGuests || 0}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={Users}
         />
-        <ReportStatCard
-          title="Avg Activities/Guest"
+        <KpiCard
+          label="Avg Activities/Guest"
           value={reportData?.summary.avgActivitiesPerGuest || 0}
-          icon={<Activity className="h-5 w-5 text-primary" />}
+          icon={Activity}
         />
-        <ReportStatCard
-          title="Total Revenue"
+        <KpiCard
+          label="Total Revenue"
           value={`${currentResort.currency} ${(reportData?.summary.totalRevenue || 0).toLocaleString()}`}
-          icon={<TrendingUp className="h-5 w-5 text-primary" />}
+          icon={TrendingUp}
         />
-        <ReportStatCard
-          title="Multi-Category Guests"
+        <KpiCard
+          label="Multi-Category Guests"
           value={reportData?.summary.multiCategoryGuests || 0}
-          subtitle="Tried multiple categories"
-          icon={<RefreshCw className="h-5 w-5 text-chart-2" />}
+          helperText="Tried multiple categories"
+          icon={RefreshCw}
         />
-      </div>
+      </KpiGrid>
 
       {/* Elite-tier Advanced Analytics */}
       <TierGate feature="reports_sales_performance" fallback="hide">

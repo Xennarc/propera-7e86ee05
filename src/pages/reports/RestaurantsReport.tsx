@@ -24,7 +24,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, Users, TrendingDown, Utensils, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { TrendChart } from '@/components/reports/TrendChart';
 import { DayOfWeekChart } from '@/components/reports/DayOfWeekChart';
 import { TierGate } from '@/components/tier/TierGate';
@@ -310,29 +310,29 @@ export default function RestaurantsReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <ReportStatCard
-          title="Total Covers"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 md:grid-cols-4" maxWidth="full">
+        <KpiCard
+          label="Total Covers"
           value={reportData?.summary.totalCovers || 0}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={Users}
         />
-        <ReportStatCard
-          title="Avg Covers/Slot"
+        <KpiCard
+          label="Avg Covers/Slot"
           value={reportData?.summary.avgCoversPerSlot || 0}
-          icon={<Utensils className="h-5 w-5 text-primary" />}
+          icon={Utensils}
         />
-        <ReportStatCard
-          title="Total Slots"
+        <KpiCard
+          label="Total Slots"
           value={reportData?.summary.totalSlots || 0}
-          icon={<Clock className="h-5 w-5 text-primary" />}
+          icon={Clock}
         />
-        <ReportStatCard
-          title="No-Show Rate"
+        <KpiCard
+          label="No-Show Rate"
           value={`${reportData?.summary.noShowPercent || 0}%`}
-          icon={<TrendingDown className="h-5 w-5 text-destructive" />}
-          variant={reportData?.summary.noShowPercent && reportData.summary.noShowPercent > 10 ? 'danger' : 'default'}
+          icon={TrendingDown}
+          variant={reportData?.summary.noShowPercent && reportData.summary.noShowPercent > 10 ? 'destructive' : 'default'}
         />
-      </div>
+      </KpiGrid>
 
       {/* Elite: Trend Analysis */}
       <TierGate feature="reports_trend_analysis" fallback="hide">

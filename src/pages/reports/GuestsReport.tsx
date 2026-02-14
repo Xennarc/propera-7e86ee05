@@ -11,7 +11,7 @@ import { Download, Users, Bed, Calendar, Lock } from 'lucide-react';
 import { AIInsightsPanel } from '@/components/reports/AIInsightsPanel';
 import { FeatureVisible } from '@/components/FeatureGate';
 import { DateRangePresets } from '@/components/reports/DateRangePresets';
-import { ReportStatCard } from '@/components/reports/ReportStatCard';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { format, subDays, differenceInDays } from 'date-fns';
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -170,23 +170,23 @@ export default function GuestsReport() {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <ReportStatCard
-          title="Total Guests"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 md:grid-cols-3" maxWidth="full">
+        <KpiCard
+          label="Total Guests"
           value={reportData.totalGuests}
-          icon={<Users className="h-5 w-5 text-primary" />}
+          icon={Users}
         />
-        <ReportStatCard
-          title="Room Nights"
+        <KpiCard
+          label="Room Nights"
           value={reportData.totalRoomNights}
-          icon={<Bed className="h-5 w-5 text-primary" />}
+          icon={Bed}
         />
-        <ReportStatCard
-          title="Avg Length of Stay"
+        <KpiCard
+          label="Avg Length of Stay"
           value={`${reportData.avgLengthOfStay} nights`}
-          icon={<Calendar className="h-5 w-5 text-primary" />}
+          icon={Calendar}
         />
-      </div>
+      </KpiGrid>
 
       {/* Charts */}
       <div className="grid gap-6 md:grid-cols-2">
