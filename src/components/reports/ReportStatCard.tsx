@@ -15,6 +15,7 @@ interface ReportStatCardProps {
   className?: string;
 }
 
+/** @deprecated Use KpiCard from '@/components/ui/kpi-card' instead. */
 export function ReportStatCard({
   title,
   value,
@@ -24,6 +25,10 @@ export function ReportStatCard({
   variant = 'default',
   className,
 }: ReportStatCardProps) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[ReportStatCard] is deprecated. Migrate to <KpiCard /> from @/components/ui/kpi-card.');
+  }
+
   const getTrendIcon = () => {
     if (!trend) return null;
     if (trend.value > 0) return <TrendingUp className="h-3 w-3" />;

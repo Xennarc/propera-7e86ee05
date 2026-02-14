@@ -39,6 +39,7 @@ const variantStyles = {
   },
 };
 
+/** @deprecated Use KpiCard from '@/components/ui/kpi-card' instead. */
 export function StatCard({
   title,
   value,
@@ -48,6 +49,10 @@ export function StatCard({
   variant = 'default',
   className,
 }: StatCardProps) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[StatCard] is deprecated. Migrate to <KpiCard /> from @/components/ui/kpi-card.');
+  }
+
   const styles = variantStyles[variant];
 
   return (
