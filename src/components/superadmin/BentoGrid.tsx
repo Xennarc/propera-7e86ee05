@@ -12,21 +12,19 @@ interface BentoGridProps {
  */
 export function BentoGrid({ children, className }: BentoGridProps) {
   return (
-    <div 
-      className={cn(
-        'grid gap-3',
-        // Mobile: 2 columns
-        'grid-cols-2',
-        // Tablet: 3 columns
-        'md:grid-cols-3',
-        // Desktop: 4 columns
-        'lg:grid-cols-4',
-        // Large desktop: 7 columns (1 row)
-        'xl:grid-cols-7',
-        className
-      )}
-    >
-      {children}
+    <div className="w-full flex justify-center">
+      <div 
+        className={cn(
+          'grid gap-3 max-w-6xl w-full',
+          'grid-cols-2',
+          'md:grid-cols-3',
+          'lg:grid-cols-4',
+          'xl:grid-cols-7',
+          className
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }

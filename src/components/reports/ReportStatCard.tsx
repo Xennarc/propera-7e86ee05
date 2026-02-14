@@ -65,15 +65,15 @@ export function ReportStatCard({
   };
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", getVariantStyles(), className)}>
+    <Card className={cn("transition-all duration-200 hover:shadow-md hover:-translate-y-0.5", getVariantStyles(), className)}>
       <CardContent className="pt-5 pb-4">
-        <div className="flex items-start gap-4">
+        <div className="flex flex-col items-center justify-center gap-2 text-center">
           <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", getIconContainerStyles())}>
             {icon}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-muted-foreground truncate">{title}</p>
-            <div className="flex items-baseline gap-2 mt-0.5">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <div className="flex items-baseline justify-center gap-2 mt-0.5">
               <p className="text-2xl font-bold tracking-tight">{value}</p>
               {trend && (
                 <div className={cn("flex items-center gap-0.5 text-xs font-medium", getTrendColor())}>
