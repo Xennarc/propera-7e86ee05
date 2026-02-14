@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
 import { Users, UserPlus, UserMinus, Calendar, Utensils, Search, ArrowRight, Eye, Plus } from 'lucide-react';
-import { StatCardGridSkeleton, TableSkeleton, CardTableSkeleton } from '@/components/ui/dashboard-skeletons';
+import { TableSkeleton, CardTableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function FrontOfficeHome() {

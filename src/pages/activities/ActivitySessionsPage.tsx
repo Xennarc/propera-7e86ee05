@@ -24,7 +24,7 @@ import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/f
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
-import { StatCardGridSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeletons';
+import { TableSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { SessionCalendarView } from '@/components/activities/SessionCalendarView';

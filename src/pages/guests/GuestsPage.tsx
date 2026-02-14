@@ -12,7 +12,7 @@ import { SendPrearrivalEmailDialog } from '@/components/guests/SendPrearrivalEma
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingPage } from '@/components/ui/loading-spinner';
-import { StatCardGridSkeleton } from '@/components/ui/dashboard-skeletons';
+import { KpiGrid, KpiSkeleton } from '@/components/ui/kpi-card';
 import { FeatureGate } from '@/components/FeatureGate';
 import {
   AlertDialog,
@@ -238,7 +238,9 @@ function GuestsPageContent() {
           title="Guests"
           description="Manage resort guests and their stays"
         />
-        <StatCardGridSkeleton count={5} />
+        <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5" maxWidth="full">
+          <KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
+        </KpiGrid>
         <Card>
           <CardContent className="p-8">
             <LoadingPage />
@@ -284,7 +286,9 @@ function GuestsPageContent() {
 
       {/* Summary Strip */}
       {loading ? (
-        <StatCardGridSkeleton count={5} />
+        <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5" maxWidth="full">
+          <KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton />
+        </KpiGrid>
       ) : (
         <GuestsSummaryStrip
           stats={stats}

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
 import { Calendar, Users, Clock, AlertCircle, Search, Plus, Check, X, ArrowRight } from 'lucide-react';
-import { StatCardGridSkeleton, TableSkeleton, RequestCardSkeleton } from '@/components/ui/dashboard-skeletons';
+import { TableSkeleton, RequestCardSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
