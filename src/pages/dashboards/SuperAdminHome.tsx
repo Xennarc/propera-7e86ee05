@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -225,35 +225,39 @@ export default function SuperAdminHome() {
       </div>
 
       {/* Platform Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title={includeDemos ? "All Resorts" : "Active Resorts"}
+      <KpiGrid maxWidth="lg">
+        <KpiCard
+          label={includeDemos ? "All Resorts" : "Active Resorts"}
           value={isLoading ? '—' : platformStats?.totalResorts || 0}
           icon={Building2}
           variant="primary"
-          description={includeDemos ? "Including demos" : "Production resorts"}
+          helperText={includeDemos ? "Including demos" : "Production resorts"}
+          loading={isLoading}
         />
-        <StatCard
-          title="Guests In House"
+        <KpiCard
+          label="Guests In House"
           value={isLoading ? '—' : platformStats?.totalGuests || 0}
           icon={Users}
-          description="Across all resorts today"
+          helperText="Across all resorts today"
+          loading={isLoading}
         />
-        <StatCard
-          title="Activities Pax"
+        <KpiCard
+          label="Activities Pax"
           value={isLoading ? '—' : platformStats?.totalActivityPax || 0}
           icon={Calendar}
           variant="success"
-          description="Confirmed for today"
+          helperText="Confirmed for today"
+          loading={isLoading}
         />
-        <StatCard
-          title="Restaurant Covers"
+        <KpiCard
+          label="Restaurant Covers"
           value={isLoading ? '—' : platformStats?.totalCovers || 0}
           icon={Utensils}
           variant="warning"
-          description="Confirmed for today"
+          helperText="Confirmed for today"
+          loading={isLoading}
         />
-      </div>
+      </KpiGrid>
 
       {/* Resorts Table */}
       <Card>
