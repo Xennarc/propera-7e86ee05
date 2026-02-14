@@ -23,7 +23,7 @@ interface StatCardProps {
 function StatCard({ label, value, subValue, icon: Icon, className }: StatCardProps) {
   return (
     <div className={cn(
-      'flex flex-col items-center justify-center p-4 rounded-xl border bg-card',
+      'flex flex-col items-center justify-center p-4 rounded-xl border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
       className
     )}>
       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mb-2">

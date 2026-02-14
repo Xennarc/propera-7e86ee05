@@ -163,12 +163,14 @@ interface PriorityCardGridProps {
  */
 export function PriorityCardGrid({ children, className }: PriorityCardGridProps) {
   return (
-    <div className={cn(
-      "grid gap-3 sm:gap-4",
-      "grid-cols-1 xs:grid-cols-2 lg:grid-cols-4",
-      className
-    )}>
-      {children}
+    <div className="w-full flex justify-center">
+      <div className={cn(
+        "grid gap-3 sm:gap-4 max-w-6xl w-full",
+        "grid-cols-1 xs:grid-cols-2 lg:grid-cols-4",
+        className
+      )}>
+        {children}
+      </div>
     </div>
   );
 }

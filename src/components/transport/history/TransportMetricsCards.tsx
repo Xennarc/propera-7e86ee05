@@ -18,7 +18,8 @@ interface TransportMetricsCardsProps {
 
 export function TransportMetricsCards({ requestMetrics, tripMetrics }: TransportMetricsCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="w-full flex justify-center">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 max-w-6xl w-full">
       <ReportStatCard
         title="Avg Wait Time"
         value={`${requestMetrics.avgWaitTimeMinutes}m`}
@@ -77,6 +78,7 @@ export function TransportMetricsCards({ requestMetrics, tripMetrics }: Transport
         subtitle="Average stops"
         icon={<MapPin className="h-5 w-5 text-primary" />}
       />
+    </div>
     </div>
   );
 }
