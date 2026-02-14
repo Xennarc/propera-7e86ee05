@@ -37,7 +37,6 @@ import { GuestSmartSuggestions } from '@/components/guest/GuestSmartSuggestions'
 import { GuestTodayTimeline } from '@/components/guest/GuestTodayTimeline';
 import { TravelPartyCard } from '@/components/guest/TravelPartyCard';
 import { GuestFeaturedActivities } from '@/components/guest/GuestFeaturedActivities';
-import { StayOverviewStrip } from '@/components/guest/StayOverviewStrip';
 import { useIsPrearrivalGuest, usePrearrivalData } from '@/hooks/usePrearrivalData';
 import { useActiveStay } from '@/hooks/useActiveStay';
 import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
@@ -356,15 +355,6 @@ export default function GuestHome() {
           </div>
         </div>
       </div>
-
-      {/* Stay Overview KPI Strip */}
-      <StayOverviewStrip
-        checkInDate={guest.checkInDate}
-        checkOutDate={guest.checkOutDate}
-        totalBookingsCount={allBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PENDING').length}
-        todayActivitiesCount={todaySchedule.length}
-        loading={isLoading}
-      />
 
       {/* Quick Actions Grid */}
       <GuestQuickActions />
