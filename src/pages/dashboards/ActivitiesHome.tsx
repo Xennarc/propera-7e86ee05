@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -262,35 +262,12 @@ export default function ActivitiesHome() {
       </div>
 
       {/* Stats */}
-      {isLoading ? (
-        <StatCardGridSkeleton count={4} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Sessions"
-            value={stats?.totalSessions || 0}
-            icon={Calendar}
-            variant="primary"
-          />
-          <StatCard
-            title="Confirmed Pax"
-            value={stats?.totalPax || 0}
-            icon={Users}
-            variant="success"
-          />
-          <StatCard
-            title="Avg Occupancy"
-            value={`${stats?.avgOccupancy || 0}%`}
-            icon={Clock}
-          />
-          <StatCard
-            title="Pending Requests"
-            value={stats?.pendingRequests || 0}
-            icon={AlertCircle}
-            variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
-          />
-        </div>
-      )}
+      <KpiGrid>
+        <KpiCard label="Total Sessions" value={stats?.totalSessions || 0} icon={Calendar} variant="primary" loading={isLoading} />
+        <KpiCard label="Confirmed Pax" value={stats?.totalPax || 0} icon={Users} variant="success" loading={isLoading} />
+        <KpiCard label="Avg Occupancy" value={`${stats?.avgOccupancy || 0}%`} icon={Clock} loading={isLoading} />
+        <KpiCard label="Pending Requests" value={stats?.pendingRequests || 0} icon={AlertCircle} variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'} loading={isLoading} />
+      </KpiGrid>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Sessions Table */}

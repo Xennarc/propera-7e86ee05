@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -242,41 +242,13 @@ export default function FnbHome() {
       </div>
 
       {/* Stats */}
-      {isLoading ? (
-        <StatCardGridSkeleton count={5} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard
-            title="Total Covers"
-            value={stats?.totalCovers || 0}
-            icon={Utensils}
-            variant="primary"
-          />
-          <StatCard
-            title="Breakfast"
-            value={stats?.breakfastCovers || 0}
-            icon={Clock}
-            variant="warning"
-          />
-          <StatCard
-            title="Lunch"
-            value={stats?.lunchCovers || 0}
-            icon={Clock}
-          />
-          <StatCard
-            title="Dinner"
-            value={stats?.dinnerCovers || 0}
-            icon={Clock}
-            variant="success"
-          />
-          <StatCard
-            title="Pending Requests"
-            value={stats?.pendingRequests || 0}
-            icon={AlertCircle}
-            variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'}
-          />
-        </div>
-      )}
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5">
+        <KpiCard label="Total Covers" value={stats?.totalCovers || 0} icon={Utensils} variant="primary" loading={isLoading} />
+        <KpiCard label="Breakfast" value={stats?.breakfastCovers || 0} icon={Clock} variant="warning" loading={isLoading} />
+        <KpiCard label="Lunch" value={stats?.lunchCovers || 0} icon={Clock} loading={isLoading} />
+        <KpiCard label="Dinner" value={stats?.dinnerCovers || 0} icon={Clock} variant="success" loading={isLoading} />
+        <KpiCard label="Pending Requests" value={stats?.pendingRequests || 0} icon={AlertCircle} variant={stats?.pendingRequests && stats.pendingRequests > 0 ? 'warning' : 'default'} loading={isLoading} />
+      </KpiGrid>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Slots Table */}

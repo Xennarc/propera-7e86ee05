@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -399,41 +399,46 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Platform Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          title="Total Resorts"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5">
+        <KpiCard
+          label="Total Resorts"
           value={isLoading ? '—' : platformStats?.totalResorts || 0}
           icon={Building2}
           variant="primary"
-          description={includeDemos ? "Including demos" : "Active only"}
+          helperText={includeDemos ? "Including demos" : "Active only"}
+          loading={isLoading}
         />
-        <StatCard
-          title="Guests In House"
+        <KpiCard
+          label="Guests In House"
           value={isLoading ? '—' : platformStats?.totalGuests || 0}
           icon={Users}
-          description="Across all resorts"
+          helperText="Across all resorts"
+          loading={isLoading}
         />
-        <StatCard
-          title="Activities Pax"
+        <KpiCard
+          label="Activities Pax"
           value={isLoading ? '—' : platformStats?.totalActivityPax || 0}
           icon={Calendar}
           variant="success"
-          description="Today"
+          helperText="Today"
+          loading={isLoading}
         />
-        <StatCard
-          title="Restaurant Covers"
+        <KpiCard
+          label="Restaurant Covers"
           value={isLoading ? '—' : platformStats?.totalCovers || 0}
           icon={Utensils}
           variant="warning"
-          description="Today"
+          helperText="Today"
+          loading={isLoading}
         />
-        <StatCard
-          title="7-Day Bookings"
+        <KpiCard
+          label="7-Day Bookings"
           value={isLoading ? '—' : platformStats?.rolling7DayBookings || 0}
           icon={TrendingUp}
-          description="Activities + Dining"
+          helperText="Activities + Dining"
+          loading={isLoading}
         />
-      </div>
+      </KpiGrid>
 
       {/* Tier Breakdown */}
       <div className="grid gap-4 sm:grid-cols-3">

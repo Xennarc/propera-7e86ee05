@@ -18,7 +18,7 @@ import { RecurringRulesList } from '@/components/recurring/RecurringRulesList';
 import { ClosureDialog } from '@/components/closures/ClosureDialog';
 import { ClosuresList } from '@/components/closures/ClosuresList';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { FilterBar, FilterBarGroup } from '@/components/ui/filter-bar';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -188,27 +188,11 @@ export default function RestaurantSlotsPage() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          title="Total Covers"
-          value={stats.totalCovers}
-          icon={Users}
-          variant="success"
-          description={format(parseISO(selectedDate), 'MMMM d, yyyy')}
-        />
-        <StatCard
-          title="Open Slots"
-          value={stats.openSlots}
-          icon={Clock}
-          variant="primary"
-        />
-        <StatCard
-          title="Avg. Covers/Slot"
-          value={stats.avgCovers}
-          icon={TrendingUp}
-          variant="default"
-        />
-      </div>
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+        <KpiCard label="Total Covers" value={stats.totalCovers} icon={Users} variant="success" helperText={format(parseISO(selectedDate), 'MMMM d, yyyy')} />
+        <KpiCard label="Open Slots" value={stats.openSlots} icon={Clock} variant="primary" />
+        <KpiCard label="Avg. Covers/Slot" value={stats.avgCovers} icon={TrendingUp} />
+      </KpiGrid>
 
       {/* Filters and Table */}
       <Card>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
@@ -299,37 +299,42 @@ export default function ResortManagerHome() {
       />
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          title="Total Guests"
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5">
+        <KpiCard
+          label="Total Guests"
           value={isLoading ? '—' : stats?.totalGuests || 0}
           icon={Users}
           variant="primary"
+          loading={isLoading}
         />
-        <StatCard
-          title="Activity Pax"
+        <KpiCard
+          label="Activity Pax"
           value={isLoading ? '—' : stats?.totalActivityPax || 0}
           icon={Calendar}
           variant="success"
+          loading={isLoading}
         />
-        <StatCard
-          title="Restaurant Covers"
+        <KpiCard
+          label="Restaurant Covers"
           value={isLoading ? '—' : stats?.totalCovers || 0}
           icon={Utensils}
           variant="warning"
+          loading={isLoading}
         />
-        <StatCard
-          title="Avg Rating"
+        <KpiCard
+          label="Avg Rating"
           value={isLoading ? '—' : stats?.avgRating || '—'}
           icon={Star}
+          loading={isLoading}
         />
-        <StatCard
-          title="Would Recommend"
+        <KpiCard
+          label="Would Recommend"
           value={isLoading ? '—' : stats?.recommendPercent ? `${stats.recommendPercent}%` : '—'}
           icon={ThumbsUp}
           variant={stats?.recommendPercent && stats.recommendPercent >= 80 ? 'success' : 'default'}
+          loading={isLoading}
         />
-      </div>
+      </KpiGrid>
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">

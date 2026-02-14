@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard, KpiSkeleton } from '@/components/ui/kpi-card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -228,40 +228,13 @@ export default function FrontOfficeHome() {
       </div>
 
       {/* Stats */}
-      {isLoading ? (
-        <StatCardGridSkeleton count={5} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard
-            title="In-House Guests"
-            value={stats?.guestsInHouse || 0}
-            icon={Users}
-            variant="primary"
-          />
-          <StatCard
-            title="Arrivals Today"
-            value={stats?.arrivalsToday || 0}
-            icon={UserPlus}
-            variant="success"
-          />
-          <StatCard
-            title="Departures Today"
-            value={stats?.departuresToday || 0}
-            icon={UserMinus}
-            variant="warning"
-          />
-          <StatCard
-            title="With Activities"
-            value={stats?.guestsWithActivities || 0}
-            icon={Calendar}
-          />
-          <StatCard
-            title="Dinner Tonight"
-            value={stats?.guestsWithDinner || 0}
-            icon={Utensils}
-          />
-        </div>
-      )}
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5">
+        <KpiCard label="In-House Guests" value={stats?.guestsInHouse || 0} icon={Users} variant="primary" loading={isLoading} />
+        <KpiCard label="Arrivals Today" value={stats?.arrivalsToday || 0} icon={UserPlus} variant="success" loading={isLoading} />
+        <KpiCard label="Departures Today" value={stats?.departuresToday || 0} icon={UserMinus} variant="warning" loading={isLoading} />
+        <KpiCard label="With Activities" value={stats?.guestsWithActivities || 0} icon={Calendar} loading={isLoading} />
+        <KpiCard label="Dinner Tonight" value={stats?.guestsWithDinner || 0} icon={Utensils} loading={isLoading} />
+      </KpiGrid>
 
       {/* Arrivals Today */}
       <Card>

@@ -19,7 +19,7 @@ import { RecurringRulesList } from '@/components/recurring/RecurringRulesList';
 import { ClosureDialog } from '@/components/closures/ClosureDialog';
 import { ClosuresList } from '@/components/closures/ClosuresList';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
+import { KpiGrid, KpiCard } from '@/components/ui/kpi-card';
 import { FilterBar, FilterBarGroup, FilterBarSeparator } from '@/components/ui/filter-bar';
 import { DataTable } from '@/components/ui/data-table';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -247,32 +247,11 @@ function ActivitySessionsPageContent() {
       />
 
       {/* Stats */}
-      {loading ? (
-        <StatCardGridSkeleton count={3} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard
-            title="Total Sessions"
-            value={stats.totalSessions}
-            icon={Calendar}
-            variant="default"
-            description="In selected period"
-          />
-          <StatCard
-            title="Total Guests"
-            value={stats.totalPax}
-            icon={Users}
-            variant="success"
-            description="Confirmed pax"
-          />
-          <StatCard
-            title="Average Occupancy"
-            value={`${stats.avgOccupancy}%`}
-            icon={TrendingUp}
-            variant="primary"
-          />
-        </div>
-      )}
+      <KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-3">
+        <KpiCard label="Total Sessions" value={stats.totalSessions} icon={Calendar} helperText="In selected period" loading={loading} />
+        <KpiCard label="Total Guests" value={stats.totalPax} icon={Users} variant="success" helperText="Confirmed pax" loading={loading} />
+        <KpiCard label="Average Occupancy" value={`${stats.avgOccupancy}%`} icon={TrendingUp} variant="primary" loading={loading} />
+      </KpiGrid>
 
       {/* Filters and Table */}
       <Card>
