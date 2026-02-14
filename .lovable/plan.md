@@ -1,100 +1,95 @@
 
-# Align Remaining Cards to KpiGrid + KpiCard System
+# Align Remaining Non-Standard Cards to KpiCard System
 
 ## Overview
 
-Complete the KPI card migration by replacing all remaining `ReportStatCard` usages across 8 report pages, plus the inline metric cards in `ErrorExplorer`. This eliminates the last consumers of the deprecated `ReportStatCard` component and ensures every metric card in Propera uses the standardized `KpiGrid` + `KpiCard` primitives.
+Three locations still use hand-crafted or internal stat card patterns instead of the standardized `KpiGrid` + `KpiCard` system. This plan migrates them while preserving all interactive behavior (click-to-filter).
 
-## Scope
+## Changes
 
-### Group A -- Report Pages (8 files)
+### 1. `src/pages/staff/PrearrivalDashboardPage.tsx` (6 inline cards)
 
-Each report page follows the same mechanical swap: replace `ReportStatCard` import with `KpiGrid` + `KpiCard`, wrap the grid `<div>` with `<KpiGrid>`, and map props.
+**Current state:** 6 hand-crafted `<Card>` blocks with inline layout (icon + value + label). Four are clickable (filter by status), one is static ("Pre-Booked"), one is clickable ("Occasions").
 
-**Prop Mapping (ReportStatCard -> KpiCard):**
+**Migration:**
+- Replace the `<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">` wrapper with `<KpiGrid columns="grid-cols-2 md:grid-cols-3 lg:grid-cols-6" maxWidth="full" spacing="dense">`
+- Replace each inline card with `<KpiCard>` using:
+  - `label` for the bottom text (e.g., "Arriving", "Completed")
+  - `value` for the number
+  - `icon` for the Lucide component (Plane, CheckCircle2, Clock, AlertCircle, Calendar, PartyPopper)
+  - `variant` mapping: primary (Arriving), success (Completed), warning (In Progress), default (Not Started, Pre-Booked), destructive is not needed here
+- Wrap clickable cards in a `<button>` or add `onClick` via a wrapping `<div>` with `cursor-pointer` since `KpiCard` does not natively support `onClick`
+- Approach: wrap each `KpiCard` in a `<div onClick={...} className="cursor-pointer">` to preserve the click-to-filter behavior
 
-| ReportStatCard | KpiCard |
-|---|---|
-| `title` | `label` |
-| `value` | `value` |
-| `subtitle` | `helperText` |
-| `icon={<Users className="h-5 w-5 text-primary" />}` | `icon={Users}` (pass component, not JSX) |
-| `variant="danger"` | `variant="destructive"` |
-| `trend` | `delta` |
+**Variant mapping for Pre-Arrival cards:**
 
-**Files and card counts:**
-
-1. **`src/pages/reports/GuestsReport.tsx`** -- 3 cards in `grid md:grid-cols-3`
-2. **`src/pages/reports/ActivitiesReport.tsx`** -- 4 cards + 2 extra cards (booking source breakdown)
-3. **`src/pages/reports/RestaurantsReport.tsx`** -- 4 cards in `grid md:grid-cols-4`
-4. **`src/pages/reports/StayFeedbackReport.tsx`** -- 4 cards in `grid md:grid-cols-4`
-5. **`src/pages/reports/CancellationsReport.tsx`** -- 4 cards in `grid md:grid-cols-4`
-6. **`src/pages/reports/SalesPerformanceReport.tsx`** -- 6 cards in `grid lg:grid-cols-3`
-7. **`src/pages/reports/GuestBehaviourReport.tsx`** -- 4 cards in `grid md:grid-cols-4`
-8. **`src/pages/reports/MarketReport.tsx`** -- 3-4 cards (conditional) in `grid md:grid-cols-4`
-
-Each grid `<div>` becomes `<KpiGrid columns="..." maxWidth="full">` with appropriate column classes matching the existing layout.
-
-### Group B -- ErrorExplorer Inline Cards
-
-**`src/components/superadmin/ErrorExplorer.tsx`** -- 2 standard metric cards + 1 wide "Top Failing Routes" card
-
-The first two cards (Total Errors, Trend) will be converted to `KpiCard`. The third card (Top Failing Routes) is a list-style card, not a metric card -- it stays as-is but gets wrapped alongside the KpiCards in a `KpiGrid`.
-
-**Note:** The Trend card has custom inline JSX (trend icon next to value). This will be handled by passing the formatted value directly as `value` prop and using `variant` for color.
-
-### Group C -- Skeleton Alignment
-
-**`src/components/ui/dashboard-skeletons.tsx`** -- `StatCardGridSkeleton` remains available for backward compatibility but will no longer be actively imported. No deletion (additive-only).
-
-## Technical Details
-
-### KpiCard icon prop adaptation
-
-`ReportStatCard` accepts `icon` as JSX (`<Users className="h-5 w-5 text-primary" />`), while `KpiCard` accepts a `LucideIcon` component reference (`icon={Users}`). Each migration strips the JSX wrapper and passes just the component.
-
-For `variant`-based icon coloring (e.g., icons with `text-destructive` or `text-chart-2`), the `KpiCard` variant system handles this automatically via `variantStyles`, so the manual color classes are removed.
-
-### Variant mapping
-
-- `"danger"` -> `"destructive"` (KpiCard uses Tailwind semantic naming)
-- `"success"`, `"warning"`, `"default"` stay the same
-- Cards without explicit variant keep `"default"`
-
-### Column configurations
-
-| Report | Current grid | KpiGrid columns |
+| Card | Icon | KpiCard variant |
 |---|---|---|
-| GuestsReport | `md:grid-cols-3` | `grid-cols-1 xs:grid-cols-2 md:grid-cols-3` |
-| ActivitiesReport (main) | `grid-cols-2 lg:grid-cols-4` | `grid-cols-2 lg:grid-cols-4` |
-| ActivitiesReport (source) | `grid-cols-2 lg:grid-cols-4` | `grid-cols-2 lg:grid-cols-4` |
-| RestaurantsReport | `md:grid-cols-4` | `grid-cols-1 xs:grid-cols-2 md:grid-cols-4` |
-| StayFeedbackReport | `grid-cols-2 md:grid-cols-4` | `grid-cols-2 md:grid-cols-4` |
-| CancellationsReport | `md:grid-cols-4` | `grid-cols-1 xs:grid-cols-2 md:grid-cols-4` |
-| SalesPerformanceReport | `grid-cols-2 lg:grid-cols-3` | `grid-cols-2 lg:grid-cols-3` |
-| GuestBehaviourReport | `grid-cols-2 md:grid-cols-4` | `grid-cols-2 md:grid-cols-4` |
-| MarketReport | `md:grid-cols-4` | `grid-cols-1 xs:grid-cols-2 md:grid-cols-4` |
-| ErrorExplorer | `sm:grid-cols-2 lg:grid-cols-4` | Custom (keep wide card as-is in same grid) |
+| Arriving | Plane | primary |
+| Completed | CheckCircle2 | success |
+| In Progress | Clock | warning |
+| Not Started | AlertCircle | default |
+| Pre-Booked | Calendar | default |
+| Occasions | PartyPopper | default |
+
+Note: The current cards use custom color classes like `bg-lagoon/10` and `bg-pink-500/10`. Since KpiCard's variant system does not cover these, the "Pre-Booked" and "Occasions" cards will use `variant="default"` which provides a neutral muted style. This is acceptable and consistent with the design system.
+
+### 2. `src/components/staff/TodayHub.tsx` (4 internal QuickStatCard)
+
+**Current state:** Internal `QuickStatCard` component (lines 531-576) used for 4 cards (In-House, Arrivals, Sessions, Covers) in a `grid-cols-2 lg:grid-cols-4` layout.
+
+**Migration:**
+- Replace `<div className="grid gap-4 grid-cols-2 lg:grid-cols-4">` with `<KpiGrid columns="grid-cols-2 lg:grid-cols-4" maxWidth="full" spacing="dense">`
+- Replace each `QuickStatCard` with `<KpiCard>`:
+  - `title` -> `label`
+  - `value` stays
+  - `icon` stays (already component refs)
+  - `loading` stays
+  - `variant` mapping: default->default, primary->primary, success->success, warning->warning
+  - `subtitle` -> `helperText`
+- The internal `QuickStatCard` component (lines 531-576) stays in the file (additive-only) but will no longer be used
+- Add `KpiGrid`, `KpiCard` imports; remove unused `QuickStatCard` references from the JSX
+
+### 3. `src/pages/guests/GuestsPage.tsx` and loading skeletons
+
+**Current state:** Uses `StatCardGridSkeleton` in two places (line 241 for full loading, line 287 for strip loading). The actual content uses `GuestsSummaryStrip` which is a filter chip bar, NOT a KPI card -- so it stays unchanged.
+
+**Migration:**
+- Replace `StatCardGridSkeleton count={5}` with `<KpiGrid columns="grid-cols-1 xs:grid-cols-2 lg:grid-cols-5" maxWidth="full"><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /><KpiSkeleton /></KpiGrid>`
+- This ensures the loading skeleton visually matches KpiCard dimensions (no layout shift when the strip loads)
+- Update import from `StatCardGridSkeleton` to `KpiGrid, KpiSkeleton`
+
+### 4. Remaining `StatCardGridSkeleton` usages in dashboard pages
+
+These files still import `StatCardGridSkeleton` for their loading states, even though their loaded content now uses `KpiGrid + KpiCard`:
+
+- `src/pages/dashboards/FrontOfficeHome.tsx`
+- `src/pages/dashboards/ReservationsHome.tsx`
+- `src/pages/dashboards/FnbHome.tsx`
+- `src/pages/dashboards/ActivitiesHome.tsx`
+- `src/pages/activities/ActivitySessionsPage.tsx`
+
+**Migration:** In each file, replace `<StatCardGridSkeleton count={N} />` with `<KpiGrid columns="..." maxWidth="full"><KpiSkeleton />` x N `</KpiGrid>`, using the same column config as the loaded KpiGrid on that page. Update imports accordingly.
 
 ## What Does NOT Change
 
-- No database, RPC, or hook changes
+- No database, RPC, hook, or business logic changes
 - No route changes
-- `ReportStatCard` and `StatCard` components are NOT deleted (additive-only)
-- `ErrorExplorer` "Top Failing Routes" wide card keeps its custom list layout
-- Chart components, date pickers, export buttons, AI insights panels untouched
+- `GuestsSummaryStrip` stays as-is (it is a filter chip bar, not a KPI card)
+- `QuickStatCard` internal component in TodayHub is NOT deleted (additive-only)
+- `StatCardGridSkeleton` in `dashboard-skeletons.tsx` is NOT deleted (additive-only)
+- `BentoKPICard` in superadmin stays untouched
 - No new dependencies
 
 ## File Edit Summary
 
 | File | Action |
 |---|---|
-| `src/pages/reports/GuestsReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/ActivitiesReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/RestaurantsReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/StayFeedbackReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/CancellationsReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/SalesPerformanceReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/GuestBehaviourReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/pages/reports/MarketReport.tsx` | Replace ReportStatCard with KpiGrid+KpiCard |
-| `src/components/superadmin/ErrorExplorer.tsx` | Replace inline metric cards with KpiCard |
+| `src/pages/staff/PrearrivalDashboardPage.tsx` | Replace 6 inline cards with KpiGrid + KpiCard |
+| `src/components/staff/TodayHub.tsx` | Replace QuickStatCard with KpiCard |
+| `src/pages/guests/GuestsPage.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
+| `src/pages/dashboards/FrontOfficeHome.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
+| `src/pages/dashboards/ReservationsHome.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
+| `src/pages/dashboards/FnbHome.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
+| `src/pages/dashboards/ActivitiesHome.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
+| `src/pages/activities/ActivitySessionsPage.tsx` | Replace StatCardGridSkeleton with KpiGrid + KpiSkeleton |
