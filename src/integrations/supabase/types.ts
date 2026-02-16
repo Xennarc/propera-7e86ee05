@@ -4243,6 +4243,57 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          expires_at: string | null
+          guest_id: string
+          id: string
+          p256dh: string
+          resort_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          expires_at?: string | null
+          guest_id: string
+          id?: string
+          p256dh: string
+          resort_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          expires_at?: string | null
+          guest_id?: string
+          id?: string
+          p256dh?: string
+          resort_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_subscriptions_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limit_logs: {
         Row: {
           created_at: string | null
@@ -7505,6 +7556,21 @@ export type Database = {
       guest_remove_party_member: {
         Args: { p_lead_guest_id: string; p_member_id: string }
         Returns: Json
+      }
+      guest_remove_push_subscription: {
+        Args: { p_endpoint: string; p_guest_id: string }
+        Returns: undefined
+      }
+      guest_save_push_subscription: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_guest_id: string
+          p_p256dh: string
+          p_resort_id: string
+          p_user_agent?: string
+        }
+        Returns: string
       }
       guest_submit_stay_feedback: {
         Args: {

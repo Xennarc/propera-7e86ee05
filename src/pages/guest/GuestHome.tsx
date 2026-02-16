@@ -43,6 +43,7 @@ import GuestPrearrivalHome from '@/pages/guest/GuestPrearrivalHome';
 import { PrearrivalWizard } from '@/components/guest/prearrival/PrearrivalWizard';
 import { useResortBranding } from '@/hooks/useResortBranding';
 import { GuestRealtimeDebugBadge } from '@/components/guest/GuestRealtimeDebugBadge';
+import { GuestPushOptIn } from '@/components/guest/GuestPushOptIn';
 
 // Define interface at module level (not inside component)
 interface BookingItem {
@@ -261,7 +262,12 @@ export default function GuestHome() {
       )}
 
       <div className="space-y-5 md:space-y-6 guest-safe-bottom">
-      {/* Pre-arrival Nudge for In-Stay Guests - persistent until completed */}
+      {/* Push Notification Opt-In */}
+      <GuestPushOptIn
+        guestId={guest.guestId}
+        resortId={guest.resortId}
+        hasBookings={totalUpcomingBookings > 0}
+      />
       {!isPrearrival && 
        prearrivalData?.settings?.is_enabled && 
        prearrivalData?.profile?.prearrival_status !== 'completed' && (

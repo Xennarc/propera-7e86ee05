@@ -342,6 +342,15 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     is_dangerous: false,
     scope: 'global',
   },
+  {
+    key: 'enable_guest_push_notifications',
+    label: 'Guest Push Notifications',
+    description: 'Allow guests to opt in to browser push notifications for booking updates and alerts.',
+    category: 'experimental',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'resort',
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // DANGER ZONE FLAGS

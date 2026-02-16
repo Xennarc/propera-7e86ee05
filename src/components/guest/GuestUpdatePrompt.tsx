@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { updateServiceWorker } from '@/lib/pwa-registration';
@@ -8,23 +8,27 @@ const UNSAFE_ROUTES = ['/guest/book', '/guest/checkout', '/guest/buggy/request']
 
 export function GuestUpdatePrompt() {
   const location = useLocation();
+  const pendingUpdate = useRef(false);
+
+  useEffect(() => {
+    const isSafe = !UNSAFE_ROUTES.some((r) => location.pathname.startsWith(r));
+
+    // If there's a pending update and we navigated to a safe route, show toast
+    if (pendingUpdate.current && isSafe) {
+      pendingUpdate.current = false;
+      showUpdateToast();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const handler = () => {
-      // Don't prompt during active booking flows
       const isSafe = !UNSAFE_ROUTES.some((r) => location.pathname.startsWith(r));
       if (!isSafe) {
-        // Re-listen — will fire again on next navigation
+        // Store as pending — will fire on next safe navigation
+        pendingUpdate.current = true;
         return;
       }
-
-      toast('A new version is available', {
-        duration: Infinity,
-        action: {
-          label: 'Refresh',
-          onClick: () => updateServiceWorker(),
-        },
-      });
+      showUpdateToast();
     };
 
     window.addEventListener('pwa-update-available', handler);
@@ -32,4 +36,14 @@ export function GuestUpdatePrompt() {
   }, [location.pathname]);
 
   return null;
+}
+
+function showUpdateToast() {
+  toast('A new version is available', {
+    duration: Infinity,
+    action: {
+      label: 'Refresh',
+      onClick: () => updateServiceWorker(),
+    },
+  });
 }
