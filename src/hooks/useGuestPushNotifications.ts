@@ -47,12 +47,7 @@ export function useGuestPushNotifications(
       if (result !== 'granted') return false;
 
       const reg = await navigator.serviceWorker.ready;
-      // Get VAPID public key from env (will be set when VAPID keys are configured)
-      const vapidKey = (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY;
-      if (!vapidKey) {
-        console.warn('[Push] VAPID public key not configured');
-        return false;
-      }
+      const vapidKey = 'BKJ__MO9UQO2Bky2pLBVv4OQ8tdZwlZdWNrjTvCSYtp7aOGqZyZaFPwwxOMwoEVzmUNIwzNwrkFdkU_JKvNRlJA';
 
       const subscription = await (reg as any).pushManager.subscribe({
         userVisibleOnly: true,
