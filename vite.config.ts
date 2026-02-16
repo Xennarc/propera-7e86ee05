@@ -17,13 +17,13 @@ export default defineConfig(({ mode }) => ({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'offline.html'],
       manifest: {
-        name: 'Propera Guest',
+        name: 'Propera Guest Portal',
         short_name: 'Propera',
-        start_url: '/guest/entry',
+        start_url: '/guest?source=pwa',
         scope: '/',
         display: 'standalone',
-        background_color: '#0B0E14',
-        theme_color: '#0B0E14',
+        background_color: '#061A1A',
+        theme_color: '#0EA5A8',
         icons: [
           {
             src: '/icons/icon-192.png',
