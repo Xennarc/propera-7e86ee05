@@ -21,6 +21,7 @@ import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
 import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
 import { GuestUpdatePrompt } from '@/components/guest/GuestUpdatePrompt';
+import { GuestPWADebugOverlay } from '@/components/guest/GuestPWADebugOverlay';
 import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
@@ -32,6 +33,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { SkipLink } from '@/components/a11y/SkipLink';
+import { useGuestRoutePrefetch } from '@/hooks/useGuestRoutePrefetch';
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
@@ -253,6 +255,9 @@ function GuestLayoutInner({
 }: GuestLayoutInnerProps) {
   // Check if unified realtime is enabled (inside FeatureFlagsProvider)
   const enableUnifiedRealtime = useGuestUnifiedRealtimeEnabled();
+
+  // Prefetch key guest routes during idle time
+  useGuestRoutePrefetch();
   
   // Determine if we can safely mount the provider
   const canMountProvider = !!(guest?.guestId && guest?.resortId);
@@ -335,6 +340,9 @@ function GuestLayoutInner({
 
         {/* Debug Console - only shown with ?debug=1 */}
         {showDebugPanel && <GuestDebugConsole />}
+
+        {/* PWA Debug Overlay - only shown with ?pwaDebug=1 */}
+        <GuestPWADebugOverlay />
       </div>
     </GuestAccessGate>
   );

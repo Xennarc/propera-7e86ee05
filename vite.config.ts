@@ -96,6 +96,8 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'lucide-icons': ['lucide-react'],
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'recharts': ['recharts'],
+          'framer-motion': ['framer-motion'],
         },
       },
     },
