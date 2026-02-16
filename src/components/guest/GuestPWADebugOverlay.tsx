@@ -17,7 +17,10 @@ function getIdentityInfo() {
     title: document.title,
     manifestHref: manifestLink?.href || '(none)',
     displayMode,
+    iosStandalone: (navigator as any).standalone as boolean | undefined,
+    currentUrl: window.location.href,
     userAgent: navigator.userAgent,
+    swController: !!navigator.serviceWorker?.controller,
   };
 }
 
@@ -54,6 +57,17 @@ export function GuestPWADebugOverlay() {
           <Row label="Display" value={
             <Badge variant={identity.displayMode === 'standalone' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
               {identity.displayMode}
+            </Badge>
+          } />
+          <Row label="iOS standalone" value={
+            <Badge variant={identity.iosStandalone ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+              {identity.iosStandalone === undefined ? 'N/A' : identity.iosStandalone ? 'Yes' : 'No'}
+            </Badge>
+          } />
+          <Row label="URL" value={identity.currentUrl.replace(/^https?:\/\/[^/]+/, '')} />
+          <Row label="SW Controller" value={
+            <Badge variant={identity.swController ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+              {identity.swController ? 'Yes' : 'No'}
             </Badge>
           } />
           <Row label="UA" value={identity.userAgent.slice(0, 40) + '…'} />
