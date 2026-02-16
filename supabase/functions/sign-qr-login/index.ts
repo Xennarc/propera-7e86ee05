@@ -99,7 +99,7 @@ serve(async (req) => {
     // Verify staff has access to this resort
     const { data: membership, error: membershipError } = await supabase
       .from("resort_memberships")
-      .select("id")
+      .select("id, resort_role")
       .eq("user_id", userId)
       .eq("resort_id", guest.resort_id)
       .maybeSingle();
@@ -119,6 +119,32 @@ serve(async (req) => {
         JSON.stringify({ success: false, error: "Access denied to this resort" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Check fine-grained permission: only RESORT_ADMIN, MANAGER, or FRONT_OFFICE roles can generate QR codes
+    if (!isSuperAdmin) {
+      const allowedRoles = ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'];
+      const memberRole = membership?.resort_role;
+      
+      // Also check user_resort_roles for named roles
+      const { data: userRoles } = await supabase
+        .from("user_resort_roles")
+        .select("role_id, roles!inner(name)")
+        .eq("user_id", userId)
+        .eq("resort_id", guest.resort_id);
+
+      const hasAllowedMembershipRole = memberRole && allowedRoles.includes(memberRole);
+      const hasAllowedNamedRole = userRoles?.some((ur: any) => {
+        const roleName = ur.roles?.name;
+        return roleName && ['Resort Administrator', 'Manager', 'Front Office'].includes(roleName);
+      });
+
+      if (!hasAllowedMembershipRole && !hasAllowedNamedRole) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Insufficient permissions to generate QR codes" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Generate a fresh PIN for the guest

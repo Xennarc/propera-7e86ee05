@@ -93,7 +93,6 @@ Deno.serve(async (req) => {
 
     console.log(JSON.stringify({
       event: 'find-guest-resort-request',
-      ip: clientIP,
       hasLastName: !!lastName,
       hasRoomNumber: !!roomNumber,
       timestamp: new Date().toISOString()
@@ -138,11 +137,9 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().split('T')[0]
 
-    // Log search parameters for debugging
+    // Log search parameters for debugging (no PII)
     console.log(JSON.stringify({
       event: 'find-guest-resort-search-params',
-      searchLastName: sanitizedLastName,
-      searchRoom: sanitizedRoomNumber,
       searchDate: today,
       timestamp: new Date().toISOString()
     }))
@@ -214,25 +211,11 @@ Deno.serve(async (req) => {
 
       console.log(JSON.stringify({
         event: 'find-guest-resort-debug-no-match',
-        searchedLastName: sanitizedLastName,
-        searchedRoom: sanitizedRoomNumber,
         searchedDate: today,
         rawQueryResultCount: guests?.length || 0,
         activeGuestCount: activeGuests.length,
-        roomMatchSamples: roomMatches?.map(g => ({
-          fullNamePreview: g.full_name?.substring(0, 20) + '...',
-          room: g.room_number,
-          checkIn: g.check_in_date,
-          checkOut: g.check_out_date,
-          isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
-        })) || [],
-        nameMatchSamples: nameMatches?.map(g => ({
-          fullNamePreview: g.full_name?.substring(0, 20) + '...',
-          room: g.room_number,
-          checkIn: g.check_in_date,
-          checkOut: g.check_out_date,
-          isCurrentStay: g.check_in_date <= today && g.check_out_date >= today
-        })) || [],
+        roomMatchCount: roomMatches?.length || 0,
+        nameMatchCount: nameMatches?.length || 0,
         timestamp: new Date().toISOString()
       }))
     }
@@ -250,11 +233,8 @@ Deno.serve(async (req) => {
 
     console.log(JSON.stringify({
       event: 'find-guest-resort-result',
-      ip: clientIP,
       resultType: result.type,
       uniqueResortsFound: uniqueResorts.size,
-      searchedLastName: sanitizedLastName.substring(0, 3) + '***',
-      searchedRoom: sanitizedRoomNumber,
       timestamp: new Date().toISOString()
     }))
 
