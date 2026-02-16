@@ -1,0 +1,1 @@
+ALTER VIEW public.service_request_events_compat SET (security_invoker = true);
