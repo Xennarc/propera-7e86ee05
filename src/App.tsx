@@ -155,6 +155,7 @@ const GuestNotFound = lazy(() => import("./pages/guest/GuestNotFound"));
 const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage"));
 const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
 const GuestAccessLoginPage = lazy(() => import("./pages/guest/GuestAccessLoginPage"));
+const GuestEntryPage = lazy(() => import("./pages/guest/GuestEntryPage"));
 const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
 
 // Legacy redirect component for deprecated pre-arrival routes
@@ -343,6 +344,7 @@ const App = () => (
                 <Route path="/guest/rides" element={<Navigate to="/guest/my-rides" replace />} />
 
                 {/* Guest portal routes */}
+                <Route path="/guest/entry" element={<GuestEntryPage />} />
                 <Route path="/guest/login" element={<GuestLogin />} />
                 <Route path="/guest/find" element={<GuestFindResort />} />
                 <Route path="/guest/access" element={<GuestAccessLoginPage />} />

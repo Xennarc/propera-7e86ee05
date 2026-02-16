@@ -7,6 +7,7 @@
 
 export const GUEST_ROUTES = {
   // ── Public (unauthenticated) ──────────────────────────────────
+  ENTRY: '/guest/entry',
   LOGIN: '/guest/login',
   FIND_RESORT: '/guest/find',
   RESORT_LOGIN: '/resort/:code/guest/login',

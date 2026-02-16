@@ -166,15 +166,15 @@ export function GuestLayout() {
   }
 
   if (!guest) {
-    // Preserve the current path so login can redirect back
+    // Preserve the current path so entry route can redirect back via resort login
     const returnTo = location.pathname + location.search;
-    const loginUrl = returnTo && returnTo !== '/guest' && returnTo !== '/guest/'
-      ? `/guest/login?returnTo=${encodeURIComponent(returnTo)}`
-      : '/guest/login';
+    const entryUrl = returnTo && returnTo !== '/guest' && returnTo !== '/guest/'
+      ? `/guest/entry?next=${encodeURIComponent(returnTo)}`
+      : '/guest/entry';
     return (
       <>
         {showDebugPanel && <GuestDebugConsole />}
-        <Navigate to={loginUrl} replace />
+        <Navigate to={entryUrl} replace />
       </>
     );
   }
