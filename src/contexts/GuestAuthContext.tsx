@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getDeviceInfo } from '@/lib/device-info';
+import { saveLastResort } from '@/lib/guest-resort-context';
 
 export interface GuestSession {
   guestId: string;
@@ -147,7 +148,7 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
                 localStorage.removeItem(GUEST_SESSION_KEY);
                 // Redirect to login with expired flag (only if we're on a guest page)
                 if (window.location.pathname.startsWith('/guest')) {
-                  window.location.replace('/guest/login?expired=1');
+                  window.location.replace('/guest/entry?expired=1');
                   return;
                 }
                 setLoading(false);
@@ -257,12 +258,16 @@ export function GuestAuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: resortData } = await supabase
           .from('resorts')
-          .select('name, login_logo_url, timezone')
+          .select('name, login_logo_url, timezone, code')
           .eq('id', guestData.resort_id)
           .single();
         resortName = resortData?.name;
         resortLogoUrl = resortData?.login_logo_url || undefined;
         resortTimezone = resortData?.timezone || 'UTC';
+        // Persist resort context for smart entry routing
+        if (resortData?.code) {
+          saveLastResort(resortData.code, guestData.resort_id, resortData.name || undefined);
+        }
       } catch {
         // Ignore error, resort info is optional
       }
