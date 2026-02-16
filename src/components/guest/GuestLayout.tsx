@@ -20,6 +20,7 @@ import { GuestDebugConsole } from '@/components/guest/GuestDebugConsole';
 import { GuestPortalGate } from '@/components/guest/GuestPortalGate';
 import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
 import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
+import { GuestUpdatePrompt } from '@/components/guest/GuestUpdatePrompt';
 import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
@@ -328,6 +329,9 @@ function GuestLayoutInner({
 
         {/* Mobile-optimized Bottom Navigation - feature-flag gated */}
         <GuestBottomNav isLoyaltyEnabled={isLoyaltyEnabled} />
+
+        {/* PWA update prompt */}
+        <GuestUpdatePrompt />
 
         {/* Debug Console - only shown with ?debug=1 */}
         {showDebugPanel && <GuestDebugConsole />}
