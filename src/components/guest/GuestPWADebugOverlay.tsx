@@ -6,9 +6,25 @@ import { Badge } from '@/components/ui/badge';
 import { getPWAStatus, forceUpdateCheck } from '@/lib/pwa-registration';
 import { RefreshCw, X } from 'lucide-react';
 
+function getIdentityInfo() {
+  const manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+  const displayMode = window.matchMedia('(display-mode: standalone)').matches
+    ? 'standalone'
+    : window.matchMedia('(display-mode: fullscreen)').matches
+      ? 'fullscreen'
+      : 'browser';
+  return {
+    title: document.title,
+    manifestHref: manifestLink?.href || '(none)',
+    displayMode,
+    userAgent: navigator.userAgent,
+  };
+}
+
 export function GuestPWADebugOverlay() {
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState(getPWAStatus());
+  const [identity] = useState(getIdentityInfo);
   const [open, setOpen] = useState(true);
 
   const show = searchParams.get('pwaDebug') === '1';
@@ -22,7 +38,7 @@ export function GuestPWADebugOverlay() {
   if (!show || !open) return null;
 
   return (
-    <Card className="fixed bottom-20 left-3 z-50 w-64 border-border/50 bg-background/95 backdrop-blur-sm shadow-lg text-xs">
+    <Card className="fixed top-3 right-3 z-50 w-72 border-border/50 bg-background/95 backdrop-blur-sm shadow-lg text-xs">
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-foreground text-sm">PWA Debug</span>
@@ -30,6 +46,20 @@ export function GuestPWADebugOverlay() {
             <X className="h-3 w-3" />
           </Button>
         </div>
+
+        {/* Identity section */}
+        <div className="space-y-1.5 text-muted-foreground border-b border-border/30 pb-2">
+          <Row label="Title" value={identity.title} />
+          <Row label="Manifest" value={identity.manifestHref.replace(/^https?:\/\/[^/]+/, '')} />
+          <Row label="Display" value={
+            <Badge variant={identity.displayMode === 'standalone' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+              {identity.displayMode}
+            </Badge>
+          } />
+          <Row label="UA" value={identity.userAgent.slice(0, 40) + '…'} />
+        </div>
+
+        {/* SW section */}
         <div className="space-y-1.5 text-muted-foreground">
           <Row label="SW Registered" value={
             <Badge variant={status.swRegistered ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
@@ -59,8 +89,8 @@ export function GuestPWADebugOverlay() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between items-center gap-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-foreground font-mono truncate max-w-[120px]">{value}</span>
+      <span className="text-muted-foreground whitespace-nowrap">{label}</span>
+      <span className="text-foreground font-mono truncate max-w-[140px] text-right">{value}</span>
     </div>
   );
 }
