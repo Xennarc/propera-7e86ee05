@@ -1,124 +1,167 @@
 
-# Guest Portal Auth Routing Overhaul
+# Phase 1-2: PWA Foundations + Service Worker
 
-## Problem
+## Overview
 
-When a guest is signed out (session expired, logout, PWA cold launch), they land on `/guest/login` -- a generic page that says "Use your resort link." This loses resort context, forcing the guest to re-find their resort. There is no PWA manifest, no canonical entry point, and no resort context persistence across sessions.
+Install `vite-plugin-pwa`, configure it with Workbox-based service worker generation, enhance the manifest, add Apple PWA meta tags, create an offline fallback page, and wire up an update prompt toast. All additive -- no existing routes, auth, or realtime flows are modified.
 
-## Solution Overview
+## Phase 1 -- PWA Foundations
 
-Add a smart entry route (`/guest/entry`) that resolves resort context from localStorage and routes guests to the correct resort login page. Persist resort context on login and preserve it on logout. Update the auth gate in `GuestLayout` to redirect through this entry route instead of the generic login page.
+### 1a. Install `vite-plugin-pwa`
 
-## Changes
+Add `vite-plugin-pwa` as a dev dependency. This handles manifest generation, service worker creation, and update lifecycle.
 
-### 1. NEW: `src/lib/guest-resort-context.ts` -- Resort Context Persistence
+### 1b. Configure `vite-plugin-pwa` in `vite.config.ts`
 
-A small utility module for reading/writing `propera_last_resort` in localStorage.
-
-```text
-Shape: { slug: string; id: string; name?: string }
-```
-
-- `saveLastResort(slug, id, name?)` -- called after successful login and after find-resort
-- `getLastResort()` -- returns saved context or null
-- `clearLastResort()` -- NOT called on logout (resort context survives logout)
-
-### 2. NEW: `src/pages/guest/GuestEntryPage.tsx` -- Canonical Entry Route
-
-A lightweight page at `/guest/entry` that:
-
-1. Reads guest session from `useGuestAuth()`
-2. If authenticated: redirect to `next` param or `/guest`
-3. If not authenticated:
-   - Check `getLastResort()` for saved resort slug
-   - If slug exists: redirect to `/resort/{slug}/guest/login?returnTo={next}`
-   - If no slug: redirect to `/guest/find?returnTo={next}`
-4. While resolving, shows a premium "Reconnecting..." screen (ProperaLoader) -- prevents any flicker of protected UI
-
-This page has zero data-fetching dependencies; it only reads localStorage. Resolution is instant.
-
-### 3. EDIT: `src/components/guest/GuestLayout.tsx` -- Update Auth Gate Redirect
-
-Current behavior (line 168-179): redirects unauthenticated users to `/guest/login?returnTo=...`
-
-New behavior: redirect to `/guest/entry?next=...` instead. This lets the entry route resolve the correct resort login page.
-
-Changes:
-- Line 171-173: replace `/guest/login?returnTo=...` with `/guest/entry?next=...`
-- The loading state (lines 157-165) already shows ProperaLoader, which prevents flicker -- no change needed
-
-### 4. EDIT: `src/contexts/GuestAuthContext.tsx` -- Persist Resort Context
-
-**On login (line 287):** After `localStorage.setItem(GUEST_SESSION_KEY, ...)`, also call `saveLastResort()` using the resort code. Need to fetch resort code since login data only has resort_id. Add a lightweight query alongside the existing resort info fetch (line 258-268) to also grab `code`.
-
-**On logout (line 296-317):** Keep `propera_last_resort` intact (do NOT clear it). Only `GUEST_SESSION_KEY` is cleared, which is already the case.
-
-**On session expiry (line 149-152):** Change `window.location.replace('/guest/login?expired=1')` to `window.location.replace('/guest/entry?expired=1')` so the entry route can resolve the correct resort.
-
-### 5. EDIT: `src/routes/guestRoutes.ts` -- Add Entry Route Constant
-
-Add `ENTRY: '/guest/entry'` to `GUEST_ROUTES`.
-
-### 6. EDIT: `src/App.tsx` -- Register Entry Route
-
-Add route: `<Route path="/guest/entry" element={<GuestEntryPage />} />`
-
-Place it alongside the other public guest routes (near line 346-350).
-
-### 7. NEW: `public/manifest.json` -- PWA Manifest
-
-Create a basic web app manifest:
+Add the `VitePWA()` plugin with:
 
 ```text
-name: "Propera Guest"
-short_name: "Propera"
-start_url: "/guest/entry"
-display: "standalone"
-background_color: "#ffffff"
-theme_color: "#1a1a2e"
-icons: [reference existing Propera logo assets]
+registerType: 'prompt'         -- prompts user before activating new SW (safe for booking flows)
+manifest: { ... }              -- full manifest (replaces static manifest.json)
+workbox:
+  navigateFallback: '/index.html'
+  navigateFallbackDenylist: [/^\/~oauth/, /^\/api/]   -- never cache OAuth or API routes
+  runtimeCaching: [...]        -- see Phase 2 caching rules below
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}']
 ```
 
-### 8. EDIT: `index.html` -- Link Manifest
+Manifest fields:
+- name: "Propera Guest"
+- short_name: "Propera"
+- start_url: "/guest/entry"
+- scope: "/"
+- display: "standalone"
+- background_color: "#0B0E14"
+- theme_color: "#0B0E14"
+- icons: 192x192 + 512x512 (both "any" and "maskable" purpose variants, using existing Propera logo asset)
 
-Add `<link rel="manifest" href="/manifest.json" />` to the `<head>`.
+### 1c. Delete static `public/manifest.json`
+
+Since `vite-plugin-pwa` generates the manifest automatically from config, the static file is replaced. The `<link rel="manifest">` tag in `index.html` is also removed (the plugin injects it).
+
+### 1d. Add Apple PWA meta tags to `index.html`
+
+Add inside `<head>`:
+
+```text
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" sizes="512x512" href="[propera-512-icon-url]">
+```
+
+Remove the duplicate/existing `<link rel="manifest" href="/manifest.json">` since the plugin auto-injects it.
+
+## Phase 2 -- Service Worker + Caching
+
+### 2a. Runtime caching rules (in vite.config.ts VitePWA config)
+
+| Pattern | Strategy | Purpose |
+|---|---|---|
+| Google Fonts stylesheets | StaleWhileRevalidate | Font CSS |
+| Google Fonts webfonts | CacheFirst (1 year) | Font files |
+| Propera logo/icon assets (storage.googleapis.com) | CacheFirst (30 days) | App icons |
+| Supabase REST API `/rest/v1/*` (GET only) | NetworkFirst (3s timeout) | Data queries (activities, dining catalogs) |
+| All other Supabase API calls | NetworkOnly | Auth, mutations, realtime -- never cache |
+
+### 2b. Offline fallback page
+
+**New file: `src/pages/guest/GuestOfflinePage.tsx`**
+
+A mobile-first offline page showing:
+- WifiOff icon + "You're offline" heading
+- "Some features are unavailable without a connection" subtext
+- "Try Again" button that calls `window.location.reload()`
+- Propera branding (ProperaMark logo)
+- Uses existing design tokens (bg-background, text-foreground, etc.)
+
+**New file: `public/offline.html`**
+
+A minimal static HTML fallback (served by the service worker when navigation fails and no cache is available). Contains inline CSS matching Propera's dark theme with a simple "You're offline" message and reload button. This is the last-resort fallback before the React app loads.
+
+### 2c. Register service worker + update prompt
+
+**New file: `src/lib/pwa-registration.ts`**
+
+Uses `vite-plugin-pwa/vanilla` to register the SW and listen for updates. Exports:
+- `registerPWA()` -- called once from `main.tsx`
+- An event-based mechanism that fires when an update is available
+
+**Edit: `src/main.tsx`**
+
+Add `registerPWA()` call after React renders.
+
+### 2d. Update toast in GuestLayout
+
+**New file: `src/components/guest/GuestUpdatePrompt.tsx`**
+
+A small component that listens for SW update events and shows a `sonner` toast:
+- "A new version is available"
+- "Refresh" button that calls `updateSW(true)` to activate the new service worker and reload
+- Only appears on safe screens (not during active booking -- checks current route)
+
+**Edit: `src/components/guest/GuestLayout.tsx`**
+
+Add `<GuestUpdatePrompt />` inside the layout (after header, before main content). Additive only.
+
+### 2e. Offline-aware action guard
+
+**New file: `src/hooks/useOfflineActionGuard.ts`**
+
+A thin hook that wraps the existing `useOnlineStatus`:
+
+```typescript
+function useOfflineActionGuard() {
+  const isOnline = useOnlineStatus();
+  
+  const guardAction = (action: () => void, message?: string) => {
+    if (!isOnline) {
+      toast.error(message || "You're offline. This action requires an internet connection.");
+      return;
+    }
+    action();
+  };
+  
+  return { isOnline, guardAction };
+}
+```
+
+This can be adopted incrementally by booking/request forms -- no existing code is modified. It's a utility for future use.
 
 ## What Does NOT Change
 
-- No database, RPC, hook, or business logic changes
-- No changes to `GuestFindResort`, `ResortGuestLogin`, or any login form logic
-- No removal of existing routes (additive-only)
-- `/guest/login` continues to work as-is (fallback for direct links)
-- No new npm dependencies
-- No service worker (no vite-plugin-pwa) -- manifest-only for installability
-- Existing `returnTo` param handling in `GuestLogin` and `ResortGuestLogin` is preserved
-
-## Auth Flow Diagram
-
-```text
-PWA Launch / Deep Link / Session Expiry
-  |
-  v
-/guest/entry?next=/guest/bookings
-  |
-  +-- Session valid? --> /guest/bookings
-  |
-  +-- No session, has last_resort (slug: "oceanview")
-  |     --> /resort/oceanview/guest/login?returnTo=/guest/bookings
-  |
-  +-- No session, no last_resort
-        --> /guest/find?returnTo=/guest/bookings
-```
+- No database, RPC, or hook changes
+- No route changes (all existing routes preserved)
+- No changes to GuestAuthContext, GuestEntryPage, or login flows
+- No changes to realtime subscriptions
+- No removal of existing components (additive-only)
+- Existing `OfflineBanner` component stays as-is
+- `useOnlineStatus` hook stays as-is
+- No push notification code (deferred to later phase)
 
 ## File Summary
 
 | File | Action |
 |---|---|
-| `src/lib/guest-resort-context.ts` | NEW -- localStorage utility |
-| `src/pages/guest/GuestEntryPage.tsx` | NEW -- canonical entry route |
-| `public/manifest.json` | NEW -- PWA manifest |
-| `src/routes/guestRoutes.ts` | ADD `ENTRY` constant |
-| `src/App.tsx` | ADD entry route registration |
-| `src/components/guest/GuestLayout.tsx` | EDIT redirect target |
-| `src/contexts/GuestAuthContext.tsx` | EDIT persist resort context + update expiry redirect |
-| `index.html` | EDIT add manifest link |
+| `package.json` | ADD `vite-plugin-pwa` dev dependency |
+| `vite.config.ts` | ADD VitePWA plugin with manifest + workbox config |
+| `public/manifest.json` | DELETE (replaced by plugin-generated manifest) |
+| `public/offline.html` | NEW -- static offline fallback |
+| `index.html` | EDIT -- add Apple PWA meta tags, remove static manifest link |
+| `src/pages/guest/GuestOfflinePage.tsx` | NEW -- React offline page |
+| `src/lib/pwa-registration.ts` | NEW -- SW registration + update listener |
+| `src/main.tsx` | EDIT -- call registerPWA() |
+| `src/components/guest/GuestUpdatePrompt.tsx` | NEW -- update toast component |
+| `src/components/guest/GuestLayout.tsx` | EDIT -- add GuestUpdatePrompt (1 line) |
+| `src/hooks/useOfflineActionGuard.ts` | NEW -- offline action guard utility |
+
+## QA Testing Checklist
+
+- [ ] **Installability**: Visit guest portal on Android Chrome / iOS Safari. Confirm "Add to Home Screen" prompt appears or is available via browser menu
+- [ ] **PWA launch**: Open from home screen. Verify it launches in standalone mode (no browser chrome) at `/guest/entry`
+- [ ] **Deep links**: Navigate to `/guest/activities` while logged in, kill app, reopen from home screen -- verify correct landing
+- [ ] **Offline navigation**: Enable airplane mode. Cached pages (home, activities catalog) should still render from cache. Non-cached pages show offline fallback
+- [ ] **Offline action guard**: While offline, attempt a booking. Verify toast error appears and no silent failure
+- [ ] **Booking flow unaffected**: Complete a full activity booking and restaurant reservation while online. Verify no SW interference
+- [ ] **Service worker update**: Deploy a code change. Revisit the app. Verify "New version available" toast appears with Refresh CTA
+- [ ] **Lighthouse**: Run Lighthouse PWA audit on `/guest`. Target: all PWA criteria pass (installable, SW registered, offline fallback, manifest valid)
+- [ ] **Auth flow intact**: Log out, verify redirect to `/guest/entry`, login via resort page. No SW caching of auth state
