@@ -182,7 +182,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
   // Show skeleton during initial load (no cached data)
   if (isLoading) {
     return (
-      <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
+      <nav className="flex-shrink-0 z-20 guest-nav-elevated border-t border-border/10">
         <div 
           className="max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
           style={{ 
@@ -197,7 +197,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 guest-nav-elevated border-t border-border/10 contain-layout">
+    <nav className="flex-shrink-0 z-20 guest-nav-elevated border-t border-border/10">
       <div 
         className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
         style={{ 
