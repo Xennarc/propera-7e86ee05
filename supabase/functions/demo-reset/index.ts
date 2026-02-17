@@ -102,7 +102,7 @@ serve(async (req) => {
     // Prefer resort with code=DEMO, otherwise get the first is_demo=true resort
     const { data: demoResorts, error: resortError } = await supabase
       .from("resorts")
-      .select("id, code, is_demo, name, feature_flags")
+      .select("id, code, is_demo, name")
       .or(`code.eq.${DEMO_RESORT_CODE},is_demo.eq.true`)
       .order("code", { ascending: true }); // DEMO comes first alphabetically
 
@@ -721,7 +721,7 @@ serve(async (req) => {
     console.log("Pass 7: Auto-healing transport infrastructure...");
 
     // Check if transport module is enabled
-    const transportEnabled = demoResort.feature_flags?.transport_enabled ?? false;
+    const transportEnabled = false; // feature_flags column not yet created
     
     if (transportEnabled && !isDryRun) {
       // Count existing stops
