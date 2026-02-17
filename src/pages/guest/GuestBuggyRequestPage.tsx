@@ -55,55 +55,61 @@ export default function GuestBuggyRequestPage() {
   // Pre-arrival check
   if (isPrearrival) {
     return (
-      <motion.div 
-        className="space-y-4"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <MobilePageHeader title="Request a Buggy" />
-        
-        <GuestEmptyState
-          icon={Car}
-          title="Available during your stay"
-          description="Buggy transport requests will be available once you check in. We'll be ready to take you anywhere around the resort!"
-        />
-      </motion.div>
+      <GuestPageShell>
+        <motion.div 
+          className="space-y-4"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <MobilePageHeader title="Request a Buggy" />
+          
+          <GuestEmptyState
+            icon={Car}
+            title="Available during your stay"
+            description="Buggy transport requests will be available once you check in. We'll be ready to take you anywhere around the resort!"
+          />
+        </motion.div>
+      </GuestPageShell>
     );
   }
 
   // Feature disabled state
   if (!transportEnabled && !settingsLoading) {
     return (
-      <motion.div 
-        className="space-y-4"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        <MobilePageHeader title="Request a Buggy" />
-        
-        <GuestEmptyState
-          icon={Car}
-          title="Transport not available"
-          description="Buggy transport is not currently available at this resort. Please contact reception for assistance."
-        />
-      </motion.div>
+      <GuestPageShell>
+        <motion.div 
+          className="space-y-4"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <MobilePageHeader title="Request a Buggy" />
+          
+          <GuestEmptyState
+            icon={Car}
+            title="Transport not available"
+            description="Buggy transport is not currently available at this resort. Please contact reception for assistance."
+          />
+        </motion.div>
+      </GuestPageShell>
     );
   }
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-6 w-40" />
+      <GuestPageShell>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-6 w-40" />
+          </div>
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-14 w-full" />
         </div>
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-14 w-full" />
-      </div>
+      </GuestPageShell>
     );
   }
 
