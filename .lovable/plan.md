@@ -1,33 +1,48 @@
 
 
-# Fix: Mobile Viewport Zoom Issue
+## Audit Summary and Cleanup Plan
 
-## Problem
-On iOS Safari, the guest portal page gets stuck in a zoomed-in state and cannot zoom back out. Content is clipped on the right side. This is caused by iOS auto-zooming when focusing on inputs with font-size smaller than 16px, combined with no `maximum-scale` constraint in the viewport meta tag.
+### Per-Page Findings
 
-## Root Cause
-The viewport meta tag in `index.html` is:
-```
-width=device-width, initial-scale=1, viewport-fit=cover
-```
-It lacks `maximum-scale=1` which would prevent iOS from auto-zooming on small-text input focus.
+| Page | GuestPageShell? | Legacy Code Found | Issues |
+|------|----------------|-------------------|--------|
+| **GuestHome** | Yes | None | Clean |
+| **GuestActivitiesBrowser** | Yes | None | Clean |
+| **GuestBuggyRequestPage** | Yes (main return) | None | Early returns (pre-arrival, feature-disabled, loading) are NOT wrapped in GuestPageShell -- content may lack proper bottom padding on those states |
+| **GuestRestaurantBrowser (Dining)** | Yes | None | Clean |
+| **GuestRequestsPage** | Yes, with dynamic overlay | None | Clean |
+| **GuestMyBookings** | Yes | None | Clean |
+| **GuestActivityBookingPage** | Yes, overlay="action" | `StickyActionBarSpacer` on line 815 | Redundant spacer -- GuestPageShell already handles bottom padding via `overlay="action"` |
 
-## Fix (1 file, 1 line)
+### Changes Required
 
-**File:** `index.html` (line 4)
+#### 1. GuestActivityBookingPage -- Remove redundant StickyActionBarSpacer
 
-Change the viewport meta tag to:
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-```
+- **Line 815**: Remove `<StickyActionBarSpacer />` -- it is unnecessary because `GuestPageShell overlay="action"` already provides the correct bottom padding.
+- **Line 31**: Remove `StickyActionBarSpacer` from the import (keep `StickyActionBar`).
 
-Adding `maximum-scale=1` prevents iOS Safari from auto-zooming when users tap into form inputs, keeping the page at the correct device width at all times.
+#### 2. GuestBuggyRequestPage -- Wrap early returns in GuestPageShell
 
-## Why Not `user-scalable=no`?
-We intentionally avoid `user-scalable=no` as it harms accessibility by completely preventing pinch-to-zoom. `maximum-scale=1` achieves the same zoom-prevention for input focus without blocking intentional user zoom gestures in most modern browsers.
+Three early-return branches (pre-arrival, feature-disabled, loading) render content without `GuestPageShell`, meaning they lack safe bottom padding on mobile. Wrap each in `<GuestPageShell>` so the layout contract applies uniformly.
 
-## No Other Changes
-- No component changes needed
-- No CSS changes needed
-- The existing `16px` minimum font-size standard for inputs (per mobile UX standards) is already in place but some edge cases (e.g., select dropdowns, date pickers) may still trigger iOS zoom without this meta tag fix
+#### 3. Legacy CSS classes -- Safe to keep (no action)
+
+`.guest-safe-bottom` and `.guest-safe-bottom-extended` are defined in `index.css` but are NOT used by any component or page. They exist only for backward compatibility per the additive philosophy. No removal needed now.
+
+#### 4. StickyActionBarSpacer export -- Safe to keep (no action)
+
+The `StickyActionBarSpacer` component in `StickyActionBar.tsx` still exports the spacer function. After this cleanup it will have zero usages, but per the additive-only philosophy, we keep it (it already has a deprecation note in its JSDoc).
+
+### Technical Details
+
+**File: `src/pages/guest/GuestActivityBookingPage.tsx`**
+- Line 31: Change import from `{ StickyActionBar, StickyActionBarSpacer }` to `{ StickyActionBar }`
+- Line 815: Delete `<StickyActionBarSpacer />`
+
+**File: `src/pages/guest/GuestBuggyRequestPage.tsx`**
+- Lines 57-72 (pre-arrival return): Wrap `<motion.div>` in `<GuestPageShell>`
+- Lines 76-92 (feature-disabled return): Wrap `<motion.div>` in `<GuestPageShell>`
+- Lines 96-107 (loading return): Wrap `<div>` in `<GuestPageShell>`
+
+Total: 2 files modified, minimal diffs, no functional changes.
 
