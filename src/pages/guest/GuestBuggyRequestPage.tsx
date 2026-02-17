@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useNavigate } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion } from 'framer-motion';
@@ -136,6 +137,7 @@ export default function GuestBuggyRequestPage() {
   };
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -185,8 +187,7 @@ export default function GuestBuggyRequestPage() {
         </CardContent>
       </Card>
 
-      {/* Bottom safe area spacer */}
-      <div className="h-20 lg:h-0" />
     </motion.div>
+    </GuestPageShell>
   );
 }

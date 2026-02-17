@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,7 +190,7 @@ export default function GuestActivityDetailPage() {
   const difficulty = activity.difficulty_level ? difficultyConfig[activity.difficulty_level] : null;
 
   return (
-    <div className="pb-28 -mx-4 -mt-4">
+    <GuestPageShell className="pb-28 -mx-4 -mt-4">
       {/* Hero Section */}
       <div className="relative">
         {/* Hero Background - Image or Fallback Pattern */}
@@ -488,6 +489,6 @@ export default function GuestActivityDetailPage() {
           )}
         </div>
       </div>
-    </div>
+    </GuestPageShell>
   );
 }

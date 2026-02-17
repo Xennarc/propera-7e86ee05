@@ -7,6 +7,7 @@ import { Bell, Calendar, Utensils, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGuestNotifications } from '@/hooks/useGuestNotifications';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
@@ -145,7 +146,7 @@ export default function GuestNotificationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <GuestPageShell className="space-y-6">
       {/* Header */}
       <MobilePageHeader
         title={t('notifications.title')}
@@ -197,6 +198,6 @@ export default function GuestNotificationsPage() {
           ))}
         </div>
       )}
-    </div>
+    </GuestPageShell>
   );
 }

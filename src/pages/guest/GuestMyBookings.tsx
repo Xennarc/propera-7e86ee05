@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -646,6 +647,7 @@ export default function GuestMyBookings() {
   const isEmpty = totalUpcoming === 0 && totalCompleted === 0 && totalCancelled === 0;
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -991,5 +993,6 @@ export default function GuestMyBookings() {
         />
       )}
     </motion.div>
+    </GuestPageShell>
   );
 }
