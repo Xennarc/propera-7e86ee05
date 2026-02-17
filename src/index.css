@@ -1602,11 +1602,21 @@
     --guest-content-max-width-lg: 920px;
     --guest-content-max-width-xl: 1100px;
 
-    /* Layout contract: composable safe-bottom variables.
+    /* Bottom overlay stack contract:
+       --guest-bottom-nav-offset = height of the bottom nav bar
+       --guest-safe-area-b       = device safe-area inset (notch / home indicator)
+       --guest-fixed-base         = combined offset for elements that sit above nav + safe area
+       --guest-overlay-bottom     = where overlay bars position themselves (above the nav) */
+    --guest-bottom-nav-offset: var(--guest-nav-h);
+    --guest-safe-area-b: env(safe-area-inset-bottom, 0px);
+    --guest-fixed-base: calc(var(--guest-bottom-nav-offset) + var(--guest-safe-area-b));
+    --guest-overlay-bottom: var(--guest-bottom-nav-offset);
+
+    /* Layout contract: composable safe-bottom variables for page padding.
        --guest-safe-base  = nav + safe-area + breathing room
        --guest-overlay-h  = height of any sticky bar above the nav (set inline by GuestPageShell)
        --guest-safe-bottom = total bottom padding */
-    --guest-safe-base: calc(var(--guest-nav-h) + env(safe-area-inset-bottom, 0px) + 32px);
+    --guest-safe-base: calc(var(--guest-fixed-base) + 32px);
     --guest-overlay-h: 0px;
     --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h));
   }
