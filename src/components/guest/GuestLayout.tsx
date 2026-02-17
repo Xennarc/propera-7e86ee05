@@ -318,12 +318,16 @@ function GuestLayoutInner({
           </div>
         </header>
 
-        {/* Main content with safe-area-aware bottom padding */}
+        {/* Main scroll container — single scroll area for the entire page.
+             Safe bottom padding is handled by GuestPageShell per-page (not here)
+             to avoid double-padding. scroll-padding-bottom ensures scrollIntoView
+             targets don't land behind fixed bars. */}
         <main 
           id="main-content"
           tabIndex={-1}
           ref={mainRef} 
-          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden guest-safe-bottom scroll-smooth-touch gpu-scroll touch-scroll focus:outline-none"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scroll-smooth-touch gpu-scroll touch-scroll focus:outline-none"
+          style={{ scrollPaddingBottom: 'var(--guest-safe-bottom)' }}
         >
           <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">
             <GuestPortalGate>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -139,6 +140,7 @@ export default function GuestRestaurantBrowser() {
   const hasAvailableSlots = Object.keys(slotsByPeriod).length > 0;
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -313,5 +315,6 @@ export default function GuestRestaurantBrowser() {
         </div>
       )}
     </motion.div>
+    </GuestPageShell>
   );
 }

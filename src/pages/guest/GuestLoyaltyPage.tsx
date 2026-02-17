@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useNavigate } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,7 +71,7 @@ export default function GuestLoyaltyPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <GuestPageShell className="space-y-6">
         {/* Loyalty Card */}
         <LoyaltyCard
           tierName={currentTier?.name || 'Member'}
@@ -229,6 +230,6 @@ export default function GuestLoyaltyPage() {
           </CardContent>
         </Card>
       )}
-    </div>
+    </GuestPageShell>
   );
 }

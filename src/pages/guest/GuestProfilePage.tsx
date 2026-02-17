@@ -1,4 +1,5 @@
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { format, differenceInDays } from 'date-fns';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ export default function GuestProfilePage() {
   const firstName = guest.fullName.split(' ')[0];
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-6"
       initial={{ opacity: 0, y: 12 }}
@@ -209,5 +211,6 @@ export default function GuestProfilePage() {
         </CardContent>
       </Card>
     </motion.div>
+    </GuestPageShell>
   );
 }

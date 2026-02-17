@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -174,6 +175,7 @@ export default function GuestMyRequestsPage() {
   };
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -341,5 +343,6 @@ export default function GuestMyRequestsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </motion.div>
+    </GuestPageShell>
   );
 }

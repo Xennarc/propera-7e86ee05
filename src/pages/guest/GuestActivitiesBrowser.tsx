@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
@@ -95,6 +96,7 @@ export default function GuestActivitiesBrowser() {
   }
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -273,5 +275,6 @@ export default function GuestActivitiesBrowser() {
         </div>
       )}
     </motion.div>
+    </GuestPageShell>
   );
 }
