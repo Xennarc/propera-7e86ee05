@@ -1,40 +1,49 @@
 
-# Reseed Demo Resort Data & Activities
+# Fix: Confirm Booking Button Hidden Behind Bottom Navigation
 
 ## Problem
-The `demo-reset` edge function fails with `column resorts.feature_flags does not exist`, preventing any reseeding from running. This blocks all 7 passes of the reset (cleanup, dedup, guest freshness, activity sessions, seeded bookings, service requests, and transport).
-
-## Current State
-- **DEMO resort**: `7819d1dc-485a-4309-a403-67c16c468f4b` (instance 5, last reset ~30 min ago via RPC)
-- **Activities**: 8 active, but **0 sessions** for the next 7 days
-- **Guests**: 5 present
-- **Restaurants**: 6 active
+On the activity booking page (`GuestActivityBookingPage`), the "Confirm Booking" button sits at the very bottom of a Card. On mobile, the bottom navigation bar covers this button, making it impossible to scroll to or tap it.
 
 ## Root Cause
-Line 105 of `supabase/functions/demo-reset/index.ts` selects `feature_flags` from `resorts`, but that column was never created. The query fails, and the function returns a 404 before doing any work.
+The button (lines 793-808) is rendered inline inside the booking form Card. There is no bottom spacer or sticky action bar to ensure it remains accessible above the fixed bottom navigation.
 
-## Fix (Single File, Two Lines)
+## Solution
+Use the existing `StickyActionBar` and `StickyActionBarSpacer` components (already built for this exact pattern in the Guest Portal) to pin the confirm button above the bottom nav on mobile.
 
-**File:** `supabase/functions/demo-reset/index.ts`
+### Changes (1 file)
 
-1. **Line 105** -- Remove `feature_flags` from the `.select()` call:
-   ```
-   .select("id, code, is_demo, name")
-   ```
+**File:** `src/pages/guest/GuestActivityBookingPage.tsx`
 
-2. **Line 724** -- Change the transport check to default `false` since there's no feature flag column:
-   ```typescript
-   const transportEnabled = false; // feature_flags column not yet created
-   ```
+1. **Import** `StickyActionBar` and `StickyActionBarSpacer` from `@/components/guest/StickyActionBar`.
 
-This is the smallest safe change: it unblocks all 7 passes of the reset while keeping transport seeding disabled (it was already gated behind `false` by default via `?? false`).
+2. **Remove** the inline `<Button>` (lines 793-808) from inside the Card.
 
-## After Deploy
-- The function will be redeployed automatically.
-- I will invoke it to trigger a full reseed.
-- Expected outcome: activity sessions created for the next 14 days, guest dates refreshed, seed bookings and restaurant reservations populated.
+3. **Add** `<StickyActionBarSpacer />` after the closing `</Card>` to prevent content overlap.
 
-## No Other Changes
-- No schema changes
-- No RPC changes
-- No UI changes
+4. **Add** `<StickyActionBar>` after the spacer containing the confirm button. This will pin the button above the bottom nav on mobile and hide on desktop (where it's not needed since the page scrolls normally).
+
+5. **Keep the button inside the Card on desktop** by rendering it in both places: inside the card with `hidden lg:block` and in the sticky bar with `lg:hidden` (which `StickyActionBar` already handles).
+
+### What This Looks Like
+
+```
+Before:                          After:
++------------------+            +------------------+
+| Card             |            | Card             |
+|  Guest count     |            |  Guest count     |
+|  Pricing         |            |  Pricing         |
+|  Notes           |            |  Notes           |
+|  [Confirm] <--   |            |  [Confirm]       | (desktop only)
++--HIDDEN--+       |            +------------------+
+| Bottom Nav       |            | Spacer (mobile)  |
++------------------+            +==================+
+                                | [Confirm Booking]| (sticky, mobile)
+                                +------------------+
+                                | Bottom Nav       |
+                                +------------------+
+```
+
+### No Business Logic Changes
+- Mutation, validation, disabled states, and button labels remain identical.
+- Desktop rendering is unchanged (button stays inline in the card).
+- Only the mobile presentation is adjusted.
