@@ -28,6 +28,7 @@ import { useTravelParty } from '@/hooks/useTravelParty';
 import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils';
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
+import { StickyActionBar, StickyActionBarSpacer } from '@/components/guest/StickyActionBar';
 import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
 
 // Map server error messages to error codes
@@ -790,8 +791,9 @@ export default function GuestActivityBookingPage() {
             </Alert>
           )}
 
+          {/* Desktop-only inline button */}
           <Button
-            className="w-full h-12 text-base font-semibold"
+            className="hidden lg:flex w-full h-12 text-base font-semibold"
             onClick={() => bookMutation.mutate()}
             disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1 || hasRoomBooking}
           >
@@ -808,6 +810,27 @@ export default function GuestActivityBookingPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <StickyActionBarSpacer />
+
+      <StickyActionBar>
+        <Button
+          className="w-full h-12 text-base font-semibold"
+          onClick={() => bookMutation.mutate()}
+          disabled={bookMutation.isPending || totalPax > session.remaining_spots || totalPax < 1 || hasRoomBooking}
+        >
+          {bookMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Confirming your booking...
+            </>
+          ) : hasRoomBooking ? (
+            'Already Booked'
+          ) : (
+            session.requires_approval ? 'Submit Request' : 'Confirm Booking'
+          )}
+        </Button>
+      </StickyActionBar>
     </div>
   );
 }
