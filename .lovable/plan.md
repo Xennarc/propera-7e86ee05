@@ -1,49 +1,33 @@
 
-# Fix: Confirm Booking Button Hidden Behind Bottom Navigation
+
+# Fix: Mobile Viewport Zoom Issue
 
 ## Problem
-On the activity booking page (`GuestActivityBookingPage`), the "Confirm Booking" button sits at the very bottom of a Card. On mobile, the bottom navigation bar covers this button, making it impossible to scroll to or tap it.
+On iOS Safari, the guest portal page gets stuck in a zoomed-in state and cannot zoom back out. Content is clipped on the right side. This is caused by iOS auto-zooming when focusing on inputs with font-size smaller than 16px, combined with no `maximum-scale` constraint in the viewport meta tag.
 
 ## Root Cause
-The button (lines 793-808) is rendered inline inside the booking form Card. There is no bottom spacer or sticky action bar to ensure it remains accessible above the fixed bottom navigation.
-
-## Solution
-Use the existing `StickyActionBar` and `StickyActionBarSpacer` components (already built for this exact pattern in the Guest Portal) to pin the confirm button above the bottom nav on mobile.
-
-### Changes (1 file)
-
-**File:** `src/pages/guest/GuestActivityBookingPage.tsx`
-
-1. **Import** `StickyActionBar` and `StickyActionBarSpacer` from `@/components/guest/StickyActionBar`.
-
-2. **Remove** the inline `<Button>` (lines 793-808) from inside the Card.
-
-3. **Add** `<StickyActionBarSpacer />` after the closing `</Card>` to prevent content overlap.
-
-4. **Add** `<StickyActionBar>` after the spacer containing the confirm button. This will pin the button above the bottom nav on mobile and hide on desktop (where it's not needed since the page scrolls normally).
-
-5. **Keep the button inside the Card on desktop** by rendering it in both places: inside the card with `hidden lg:block` and in the sticky bar with `lg:hidden` (which `StickyActionBar` already handles).
-
-### What This Looks Like
-
+The viewport meta tag in `index.html` is:
 ```
-Before:                          After:
-+------------------+            +------------------+
-| Card             |            | Card             |
-|  Guest count     |            |  Guest count     |
-|  Pricing         |            |  Pricing         |
-|  Notes           |            |  Notes           |
-|  [Confirm] <--   |            |  [Confirm]       | (desktop only)
-+--HIDDEN--+       |            +------------------+
-| Bottom Nav       |            | Spacer (mobile)  |
-+------------------+            +==================+
-                                | [Confirm Booking]| (sticky, mobile)
-                                +------------------+
-                                | Bottom Nav       |
-                                +------------------+
+width=device-width, initial-scale=1, viewport-fit=cover
+```
+It lacks `maximum-scale=1` which would prevent iOS from auto-zooming on small-text input focus.
+
+## Fix (1 file, 1 line)
+
+**File:** `index.html` (line 4)
+
+Change the viewport meta tag to:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 ```
 
-### No Business Logic Changes
-- Mutation, validation, disabled states, and button labels remain identical.
-- Desktop rendering is unchanged (button stays inline in the card).
-- Only the mobile presentation is adjusted.
+Adding `maximum-scale=1` prevents iOS Safari from auto-zooming when users tap into form inputs, keeping the page at the correct device width at all times.
+
+## Why Not `user-scalable=no`?
+We intentionally avoid `user-scalable=no` as it harms accessibility by completely preventing pinch-to-zoom. `maximum-scale=1` achieves the same zoom-prevention for input focus without blocking intentional user zoom gestures in most modern browsers.
+
+## No Other Changes
+- No component changes needed
+- No CSS changes needed
+- The existing `16px` minimum font-size standard for inputs (per mobile UX standards) is already in place but some edge cases (e.g., select dropdowns, date pickers) may still trigger iOS zoom without this meta tag fix
+
