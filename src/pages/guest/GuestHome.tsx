@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
@@ -261,7 +262,7 @@ export default function GuestHome() {
         />
       )}
 
-      <div className="space-y-5 md:space-y-6 guest-safe-bottom">
+      <GuestPageShell className="space-y-5 md:space-y-6">
       {/* Push Notification Opt-In */}
       <GuestPushOptIn
         guestId={guest.guestId}
@@ -500,7 +501,7 @@ export default function GuestHome() {
           </div>
         </section>
       )}
-    </div>
+    </GuestPageShell>
 
     {/* Pre-arrival Wizard Dialog for in-stay nudge */}
     {prearrivalData?.settings && (

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
@@ -26,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { cn } from '@/lib/utils';
+
 
 function GuestRequestsPageContent() {
   const { guest } = useGuestAuth();
@@ -211,11 +212,10 @@ function GuestRequestsPageContent() {
   };
 
   return (
-    <div className={cn(
-      'space-y-5',
-      // Use extended safe bottom when sticky bar is visible
-      selectedItems.length > 0 && 'guest-safe-bottom-extended'
-    )}>
+    <GuestPageShell
+      overlay={selectedItems.length > 0 ? 'requests' : 'none'}
+      className="space-y-5"
+    >
       {/* Header - with dynamic tagline */}
       <RequestsHeader activeCount={activeCount} tagline={settings.headerTagline} />
 
@@ -288,7 +288,7 @@ function GuestRequestsPageContent() {
         requestsStartHour={settings.requestsStartHour}
         requestsEndHour={settings.requestsEndHour}
       />
-    </div>
+    </GuestPageShell>
   );
 }
 
