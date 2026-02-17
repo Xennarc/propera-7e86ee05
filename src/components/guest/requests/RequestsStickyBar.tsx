@@ -13,6 +13,13 @@ interface RequestsStickyBarProps {
   disabled?: boolean;
 }
 
+/**
+ * Sticky bottom bar for the Guest Requests page.
+ * Uses the unified bottom overlay stack contract:
+ *   - Positions at bottom: var(--guest-overlay-bottom) (above GuestBottomNav)
+ *   - Applies safe-area padding once via var(--guest-safe-area-b)
+ * Use with GuestPageShell overlay="requests" for correct page padding.
+ */
 export const RequestsStickyBar = memo(function RequestsStickyBar({
   selectedCount,
   totalQuantity,
@@ -33,8 +40,11 @@ export const RequestsStickyBar = memo(function RequestsStickyBar({
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className={cn(
             'fixed left-0 right-0 z-40',
-            'bottom-[calc(var(--guest-nav-h,72px)+env(safe-area-inset-bottom,0px))]',
-            'px-4 pb-3'
+            /* Position above bottom nav using shared contract variable */
+            'bottom-[var(--guest-overlay-bottom)]',
+            'px-4',
+            /* Safe-area padding applied once via shared variable */
+            'pb-[max(0.75rem,var(--guest-safe-area-b))]'
           )}
         >
           <div

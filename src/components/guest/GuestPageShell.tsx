@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { STICKY_ACTION_BAR_H, REQUESTS_STICKY_BAR_H } from './guest-overlay-constants';
 
 /**
  * Guest Layout Contract — GuestPageShell
@@ -10,10 +11,10 @@ import { cn } from '@/lib/utils';
  *  3. Consistent max-width and horizontal padding via inherited layout styles.
  *
  * Usage:
- *   <GuestPageShell>           — default safe bottom above nav
- *   <GuestPageShell overlay="action">  — extra room for StickyActionBar (~64px)
- *   <GuestPageShell overlay="requests"> — extra room for RequestsStickyBar (~80px)
- *   <GuestPageShell overlayHeight={120}> — custom px value
+ *   <GuestPageShell>                    — default safe bottom above nav
+ *   <GuestPageShell overlay="action">   — extra room for StickyActionBar
+ *   <GuestPageShell overlay="requests"> — extra room for RequestsStickyBar
+ *   <GuestPageShell overlayHeight={120}>— custom px value
  *
  * The shell sets --guest-overlay-h as an inline CSS variable which feeds into
  * the .guest-safe-shell utility class defined in index.css:
@@ -23,11 +24,11 @@ import { cn } from '@/lib/utils';
  * classes remain untouched and can still be used independently.
  */
 
-/** Preset overlay heights for known sticky bar components */
+/** Preset overlay heights sourced from shared constants */
 const OVERLAY_PRESETS: Record<string, number> = {
   none: 0,
-  action: 64,   // StickyActionBar height
-  requests: 80, // RequestsStickyBar height
+  action: STICKY_ACTION_BAR_H,
+  requests: REQUESTS_STICKY_BAR_H,
 };
 
 interface GuestPageShellProps {
