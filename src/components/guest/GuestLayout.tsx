@@ -22,6 +22,7 @@ import { GuestAccessGate } from '@/components/guest/GuestAccessGate';
 import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
 import { GuestUpdatePrompt } from '@/components/guest/GuestUpdatePrompt';
 import { GuestPWADebugOverlay } from '@/components/guest/GuestPWADebugOverlay';
+import { GuestLayoutDebugOverlay } from '@/components/guest/GuestLayoutDebugOverlay';
 import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
@@ -344,6 +345,9 @@ function GuestLayoutInner({
 
         {/* Debug Console - only shown with ?debug=1 */}
         {showDebugPanel && <GuestDebugConsole />}
+
+        {/* Layout Debug Overlay - only shown with ?debugLayout=1 */}
+        <GuestLayoutDebugOverlay />
 
         {/* PWA Debug Overlay - only shown with ?pwaDebug=1 */}
         <GuestPWADebugOverlay />
