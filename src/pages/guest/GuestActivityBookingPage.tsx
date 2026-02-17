@@ -29,6 +29,7 @@ import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils'
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
 import { StickyActionBar, StickyActionBarSpacer } from '@/components/guest/StickyActionBar';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
 
 // Map server error messages to error codes
@@ -474,7 +475,7 @@ export default function GuestActivityBookingPage() {
   const hasRoomBooking = !!existingRoomBooking;
 
   return (
-    <div className="space-y-4">
+    <GuestPageShell overlay="action" className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate(backPath)}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Activities
@@ -831,6 +832,6 @@ export default function GuestActivityBookingPage() {
           )}
         </Button>
       </StickyActionBar>
-    </div>
+    </GuestPageShell>
   );
 }
