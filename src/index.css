@@ -1616,7 +1616,7 @@
        --guest-safe-base  = nav + safe-area + breathing room
        --guest-overlay-h  = height of any sticky bar above the nav (set inline by GuestPageShell)
        --guest-safe-bottom = total bottom padding */
-    --guest-safe-base: calc(var(--guest-fixed-base) + 32px);
+    --guest-safe-base: calc(var(--guest-safe-area-b) + 32px);
     --guest-overlay-h: 0px;
     --guest-keyboard-inset: 0px;
     --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h) + var(--guest-keyboard-inset));
