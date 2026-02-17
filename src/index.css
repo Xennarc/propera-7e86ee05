@@ -1618,12 +1618,20 @@
        --guest-safe-bottom = total bottom padding */
     --guest-safe-base: calc(var(--guest-fixed-base) + 32px);
     --guest-overlay-h: 0px;
-    --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h));
+    --guest-keyboard-inset: 0px;
+    --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h) + var(--guest-keyboard-inset));
   }
 
   /* Layout-contract shell class — preferred approach via GuestPageShell */
   .guest-safe-shell {
     padding-bottom: var(--guest-safe-bottom);
+  }
+
+  /* Scroll-margin for inputs inside guest pages so focused fields don't land behind sticky bars */
+  .guest-safe-shell input,
+  .guest-safe-shell textarea,
+  .guest-safe-shell select {
+    scroll-margin-bottom: calc(var(--guest-overlay-h, 0px) + 80px);
   }
 
   /* Legacy: Safe bottom padding accounting for nav + safe area (keep for backwards compat) */

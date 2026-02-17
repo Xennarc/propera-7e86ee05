@@ -9,9 +9,9 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         type={type}
         className={cn(
           // Base styles - larger on mobile for better touch
-          "flex w-full rounded-xl border border-input bg-background text-sm text-foreground",
-          "h-12 px-4 py-3", // Larger for mobile touch (48px)
-          "sm:h-11 sm:py-2.5", // Slightly smaller on desktop
+          "flex w-full rounded-xl border border-input bg-background text-base text-foreground",
+          "h-12 px-4 py-3", // Larger for mobile touch (48px); text-base (16px) prevents iOS zoom
+          "sm:h-11 sm:py-2.5 sm:text-sm", // Slightly smaller on desktop
           // Ring and transitions
           "ring-offset-background transition-all duration-150",
           // File input
