@@ -202,6 +202,19 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               </div>
             </div>
+
+            {/* Dev-only theme debug toggle — visible only with ?debugTheme=1 */}
+            {showDebugToggle && (
+              <div className="pt-6 flex items-center justify-center gap-3">
+                <span className={`text-xs font-medium ${landingTheme === 'glass' ? 'text-foreground' : 'text-muted-foreground'}`}>Glass</span>
+                <Switch
+                  checked={landingTheme === 'skeuo'}
+                  onCheckedChange={(checked) => handleThemeSwitch(checked ? 'skeuo' : 'glass')}
+                  aria-label="Toggle landing theme"
+                />
+                <span className={`text-xs font-medium ${landingTheme === 'skeuo' ? 'text-foreground' : 'text-muted-foreground'}`}>Skeuo</span>
+              </div>
+            )}
           </div>
         </footer>
       </div>
