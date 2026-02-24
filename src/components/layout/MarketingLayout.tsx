@@ -92,7 +92,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             
             {/* Mobile menu button */}
             <div className="flex md:hidden items-center gap-2">
-              <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+              
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
