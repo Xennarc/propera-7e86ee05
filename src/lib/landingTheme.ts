@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react';
+
 export type LandingTheme = 'glass' | 'skeuo';
 
 const STORAGE_KEY = 'propera_landing_theme';
@@ -34,4 +36,23 @@ export function setLandingTheme(theme: LandingTheme) {
 export function isThemeDebugEnabled(): boolean {
   if (typeof window === 'undefined') return false;
   return new URLSearchParams(window.location.search).get('debugTheme') === '1';
+}
+
+// Reactive hook — reads from body[data-landing-theme]
+function subscribe(cb: () => void) {
+  const observer = new MutationObserver(cb);
+  observer.observe(document.body, { attributes: true, attributeFilter: ['data-landing-theme'] });
+  return () => observer.disconnect();
+}
+
+function getSnapshot(): LandingTheme {
+  return (document.body.getAttribute('data-landing-theme') as LandingTheme) || 'glass';
+}
+
+function getServerSnapshot(): LandingTheme {
+  return 'glass';
+}
+
+export function useLandingTheme(): LandingTheme {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
