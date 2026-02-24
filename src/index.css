@@ -3246,3 +3246,18 @@ body[data-landing-theme="skeuo"] .grain-overlay {
     transform: none;
   }
 }
+
+/* ========================================
+   SKEUO PHASE 5 — Enamel Badge
+   ======================================== */
+
+.skeuo-enamel-badge {
+  background: hsl(var(--skeuo-surface-2));
+  color: hsl(var(--skeuo-accent));
+  border: 1.5px solid hsl(var(--skeuo-accent-muted) / 0.5);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.25),
+    inset -1px -1px 0 0 hsla(225, 20%, 6%, 0.3),
+    0 2px 6px -2px hsla(225, 20%, 3%, 0.5);
+  text-shadow: 0 1px 0 hsla(225, 20%, 4%, 0.5);
+}
