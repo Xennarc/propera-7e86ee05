@@ -3261,3 +3261,83 @@ body[data-landing-theme="skeuo"] .grain-overlay {
     0 2px 6px -2px hsla(225, 20%, 3%, 0.5);
   text-shadow: 0 1px 0 hsla(225, 20%, 4%, 0.5);
 }
+
+/* ========================================
+   SKEUO PHASE 6 — Tactile Tags & Badges
+   ======================================== */
+
+/* Glass pills become raised tags */
+body[data-landing-theme="skeuo"] .glass-pill {
+  background: hsl(var(--skeuo-surface-2));
+  backdrop-filter: none;
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  border-right-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.2),
+    inset -1px -1px 0 0 hsla(225, 20%, 6%, 0.2),
+    0 2px 4px -2px hsla(225, 20%, 3%, 0.35);
+}
+
+body[data-landing-theme="skeuo"] .glass-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--skeuo-noise-url);
+  background-repeat: repeat;
+  opacity: 0.04;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+body[data-landing-theme="skeuo"] .glass-pill:hover {
+  background: hsl(var(--skeuo-surface));
+  border-color: hsla(225, 10%, 45%, 0.45);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 45%, 0.25),
+    0 3px 8px -3px hsla(225, 20%, 3%, 0.4);
+}
+
+/* Active / pressed pill state */
+body[data-landing-theme="skeuo"] .glass-pill:active,
+body[data-landing-theme="skeuo"] .glass-pill[data-state="active"] {
+  background: hsl(var(--skeuo-bg));
+  border-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 2px 2px 4px 0 var(--skeuo-edge-shadow),
+    inset -1px -1px 2px 0 var(--skeuo-edge-highlight);
+}
+
+/* Category badges — soften colors, add edge highlight */
+body[data-landing-theme="skeuo"] [class*="text-\[9px\]"][class*="rounded"] {
+  border-color: var(--skeuo-edge-highlight) !important;
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.15),
+    0 1px 2px -1px hsla(225, 20%, 3%, 0.25);
+  filter: saturate(0.8);
+}
+
+/* Focus states — realistic ring, not neon glow */
+body[data-landing-theme="skeuo"] .glass-pill:focus-visible,
+body[data-landing-theme="skeuo"] .skeuo-button-raised:focus-visible,
+body[data-landing-theme="skeuo"] .skeuo-surface:focus-visible,
+body[data-landing-theme="skeuo"] button:focus-visible,
+body[data-landing-theme="skeuo"] a:focus-visible {
+  outline: 2px solid hsl(var(--skeuo-accent-muted));
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 4px hsla(225, 15%, 10%, 0.6),
+    0 0 0 6px hsl(var(--skeuo-accent-muted) / 0.3);
+}
+
+/* Badge variant used in shadcn Badge component */
+body[data-landing-theme="skeuo"] [data-slot="badge"] {
+  position: relative;
+  background: hsl(var(--skeuo-surface-2));
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.15),
+    0 1px 3px -1px hsla(225, 20%, 3%, 0.3);
+}
