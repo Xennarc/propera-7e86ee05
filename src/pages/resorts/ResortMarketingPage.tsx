@@ -5,7 +5,7 @@ import { SEOHead, createResortSchema, PROPERA_ORGANIZATION_SCHEMA } from '@/comp
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaLogo } from '@/components/icons/ProperaLogo';
 import { 
   Waves, 
@@ -130,7 +130,7 @@ export default function ResortMarketingPage() {
               <span className="font-semibold text-lg text-foreground">Propera</span>
             </Link>
             <div className="flex items-center gap-3">
-              
+              <ThemeToggle />
               <Button asChild size="sm">
                 <Link to={`/resort/${resort.code}/guest/login`}>
                   Guest Portal

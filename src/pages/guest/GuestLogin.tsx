@@ -4,7 +4,7 @@ import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, QrCode, HelpCircle, Search, AlertTriangle } from 'lucide-react';
-
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { ProperaMark } from '@/components/icons/ProperaLogo';
@@ -36,6 +36,10 @@ export default function GuestLogin() {
         keywords="guest portal login, resort guest access, resort booking, activity booking"
       />
       
+      {/* Theme toggle in top right */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+      </div>
 
       {/* Hero section */}
       <header className="relative pt-16 pb-16 hero-pattern overflow-hidden">

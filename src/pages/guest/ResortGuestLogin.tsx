@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, User, AlertCircle, Home, Building2 } from 'lucide-react';
-
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { OfflineBanner } from '@/components/ui/offline-banner';
@@ -258,6 +258,9 @@ export default function ResortGuestLogin() {
           description="The resort you're looking for could not be found. Please check the URL or contact your resort."
           noIndex={true}
         />
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
         
         <Card className="w-full max-w-md shadow-elevated border-border/50">
           <CardContent className="flex flex-col items-center py-12">
@@ -289,6 +292,9 @@ export default function ResortGuestLogin() {
           description="The guest portal for this resort is currently unavailable. Please contact the front desk."
           noIndex={true}
         />
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
         
         <Card className="w-full max-w-md shadow-elevated border-border/50">
           <CardContent className="flex flex-col items-center py-12">
@@ -320,6 +326,9 @@ export default function ResortGuestLogin() {
           description={`Access the guest portal for ${resortInfo.name}. Book activities and reserve restaurants during your resort stay.`}
           noIndex={true}
         />
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
         
         <Card className="w-full max-w-md shadow-elevated border-border/50">
           <CardContent className="flex flex-col items-center py-12">
@@ -400,6 +409,10 @@ export default function ResortGuestLogin() {
         </>
       )}
 
+      {/* Theme toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle className={branding.login_hero_image_url ? "text-white/80 hover:text-white" : "text-muted-foreground hover:text-foreground"} />
+      </div>
 
       <main className="w-full max-w-md relative z-10">
         {/* Header with logo or icon - uses branding from hook for immediate updates */}

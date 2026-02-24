@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
-
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
 
@@ -14,17 +14,6 @@ interface MarketingLayoutProps {
 export function MarketingLayout({ children, currentPage }: MarketingLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [searchParams] = useSearchParams();
-
-  // Skeuomorphic theme by default; ?theme=glass for legacy glass look
-  useEffect(() => {
-    const stored = localStorage.getItem('marketing-theme');
-    const param = searchParams.get('theme');
-    const theme = param || stored || 'skeuo';
-    document.body.dataset.landingTheme = theme;
-    if (param) localStorage.setItem('marketing-theme', param);
-    return () => { delete document.body.dataset.landingTheme; };
-  }, [searchParams]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,6 +78,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             
             {/* Right: CTAs */}
             <div className="hidden md:flex items-center gap-3">
+              <ThemeToggle className="text-muted-foreground hover:text-foreground" />
               <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Link to="/auth">
                   Sign In
@@ -103,7 +93,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             
             {/* Mobile menu button */}
             <div className="flex md:hidden items-center gap-2">
-              
+              <ThemeToggle className="text-muted-foreground hover:text-foreground" />
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>

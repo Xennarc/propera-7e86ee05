@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { Loader2, Eye, EyeOff, AlertCircle, Lock, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 
@@ -189,6 +189,9 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <SEOHead title="Set Your Password" noIndex={true} />
+        <div className="absolute top-4 right-4">
+          <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+        </div>
         
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader className="text-center pb-2">
@@ -274,6 +277,9 @@ export default function Auth() {
         description="Sign in to the Propera staff console to manage resort operations, guests, activities, and reservations."
         noIndex={true}
       />
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle className="text-muted-foreground hover:text-foreground" />
+      </div>
 
       <div className="relative lg:w-2/5 bg-gradient-to-br from-lime-400/10 via-midnight-900/50 to-background dark:from-lime-400/5 dark:via-midnight-950 p-8 lg:p-12 flex flex-col justify-center">
         <div className="max-w-md mx-auto w-full space-y-6">
