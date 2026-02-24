@@ -16,6 +16,8 @@ interface MarketingLayoutProps {
 export function MarketingLayout({ children, currentPage }: MarketingLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [landingTheme, setTheme] = useState<LandingTheme>(getLandingTheme);
+  const showDebugToggle = isThemeDebugEnabled();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +26,17 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Sync data-landing-theme on <body>
+  useEffect(() => {
+    document.body.setAttribute('data-landing-theme', landingTheme);
+    return () => { document.body.removeAttribute('data-landing-theme'); };
+  }, [landingTheme]);
+
+  const handleThemeSwitch = (theme: LandingTheme) => {
+    setLandingTheme(theme);
+    setTheme(theme);
+  };
 
   const navLinks = [
     { href: '/', label: 'Home', key: 'home' },
