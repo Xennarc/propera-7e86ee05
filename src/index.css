@@ -3040,3 +3040,53 @@ body[data-landing-theme="skeuo"] {
     transform: none;
   }
 }
+
+/* ========================================
+   SKEUO PHASE 2 — Background & Lighting
+   Hides glass blobs, adds tactile backdrop
+   ======================================== */
+
+/* Hide neon blobs when skeuo is active */
+body[data-landing-theme="skeuo"] .marketing-glow-hero,
+body[data-landing-theme="skeuo"] .marketing-glow-mid,
+body[data-landing-theme="skeuo"] .marketing-glow-cta {
+  display: none;
+}
+
+/* Replace glass shimmer with skeuo canvas */
+body[data-landing-theme="skeuo"] .marketing-canvas {
+  background:
+    /* Layer 3: Vignette — darkens edges for hero focus */
+    radial-gradient(
+      ellipse 70% 60% at 50% 40%,
+      transparent 40%,
+      hsla(225, 20%, 3%, 0.55) 100%
+    ),
+    /* Layer 2: Top-left directional light source */
+    radial-gradient(
+      ellipse 80% 70% at 15% 10%,
+      hsla(225, 12%, 22%, 0.45) 0%,
+      transparent 65%
+    ),
+    /* Layer 1: Deep midnight base gradient */
+    linear-gradient(
+      175deg,
+      hsl(225, 18%, 10%) 0%,
+      hsl(225, 20%, 6%) 50%,
+      hsl(225, 22%, 4%) 100%
+    );
+}
+
+/* Replace shimmer overlay with grain */
+body[data-landing-theme="skeuo"] .marketing-canvas::after {
+  animation: none;
+  background: var(--skeuo-noise-url);
+  background-repeat: repeat;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+/* Also apply grain to the existing grain-overlay div */
+body[data-landing-theme="skeuo"] .grain-overlay {
+  opacity: 0.04 !important;
+}
