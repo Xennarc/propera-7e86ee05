@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap } from 'lucide-react';
 import { MobileGuestShowcase } from '@/components/illustrations/MobileGuestShowcase';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useLandingTheme } from '@/lib/landingTheme';
+import { cn } from '@/lib/utils';
 
 // Lazy load desktop-only showcase (hidden on mobile, reduces initial bundle)
 const InteractiveProductShowcase = lazy(() => 
@@ -32,6 +34,8 @@ const scaleIn = (delay: number) => ({
 
 export function HomeHero() {
   const prefersReducedMotion = useReducedMotion();
+  const theme = useLandingTheme();
+  const skeuo = theme === 'skeuo';
 
   const scrollToProduct = () => {
     const el = document.getElementById('platform-overview');
@@ -47,15 +51,25 @@ export function HomeHero() {
       {/* Midnight gradient base */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
       
-      {/* === Ocean Glow Blobs (visible on mobile) === */}
-      <div className="ocean-blob ocean-blob-1 absolute top-[15%] right-[-10%] md:right-[-5%] w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[800px] md:h-[800px] rounded-full blur-[80px] md:blur-[150px] bg-teal-400/10 dark:bg-teal-400/12" />
-      <div className="ocean-blob ocean-blob-2 absolute bottom-[5%] left-[-10%] w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[70px] md:blur-[120px] bg-blurple-500/8 dark:bg-blurple-500/10" />
-      <div className="ocean-blob ocean-blob-3 absolute top-[45%] left-[25%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] md:w-[300px] md:h-[300px] rounded-full blur-[50px] md:blur-[100px] bg-lime-400/5 dark:bg-lime-400/7" />
+      {/* === Ocean Glow Blobs (visible on mobile, glass only) === */}
+      {!skeuo && (
+        <>
+          <div className="ocean-blob ocean-blob-1 absolute top-[15%] right-[-10%] md:right-[-5%] w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[800px] md:h-[800px] rounded-full blur-[80px] md:blur-[150px] bg-teal-400/10 dark:bg-teal-400/12" />
+          <div className="ocean-blob ocean-blob-2 absolute bottom-[5%] left-[-10%] w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[70px] md:blur-[120px] bg-blurple-500/8 dark:bg-blurple-500/10" />
+          <div className="ocean-blob ocean-blob-3 absolute top-[45%] left-[25%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] md:w-[300px] md:h-[300px] rounded-full blur-[50px] md:blur-[100px] bg-lime-400/5 dark:bg-lime-400/7" />
+        </>
+      )}
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12 lg:gap-16 items-center text-center md:text-left">
-          {/* Left: Copy */}
-          <div className="max-w-xl mx-auto md:mx-0 relative z-10">
+          {/* Left: Copy — wrapped in skeuo-surface when skeuo active */}
+          <div className={cn(
+            "max-w-xl mx-auto md:mx-0 relative z-10",
+            skeuo && "skeuo-surface skeuo-noise skeuo-hero-panel p-6 md:p-8"
+          )}>
+            {/* Skeuo top edge highlight */}
+            {skeuo && <div className="skeuo-hero-edge-highlight" />}
+
             <motion.h1
               variants={fadeRise(10, 0)}
               initial={initial}
@@ -63,9 +77,13 @@ export function HomeHero() {
               className="text-[1.75rem] xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 md:mb-6 leading-[1.1] tracking-tight"
             >
               Resort operations.{' '}
-              <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
-                Beautifully organized.
-              </span>
+              {skeuo ? (
+                <span className="skeuo-hero-keyword">Beautifully organized.</span>
+              ) : (
+                <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
+                  Beautifully organized.
+                </span>
+              )}
             </motion.h1>
 
             <motion.p
@@ -87,7 +105,12 @@ export function HomeHero() {
               <Button 
                 asChild 
                 size="lg" 
-                className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime cta-breathe-once transition-all duration-200 group hover:-translate-y-0.5 active:scale-[0.97] w-full sm:w-auto"
+                className={cn(
+                  "text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold transition-all duration-200 group w-full sm:w-auto",
+                  skeuo
+                    ? "skeuo-button-raised skeuo-hero-cta-primary bg-[hsl(var(--skeuo-accent))] text-background hover:brightness-110"
+                    : "bg-primary text-primary-foreground glow-lime cta-breathe-once hover:-translate-y-0.5 active:scale-[0.97]"
+                )}
               >
                 <Link to="/book-demo">
                   Book a demo
@@ -97,7 +120,12 @@ export function HomeHero() {
               <Button
                 variant="outline"
                 size="lg"
-                className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 group active:scale-[0.97] transition-all duration-200 w-full sm:w-auto"
+                className={cn(
+                  "text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full group transition-all duration-200 w-full sm:w-auto",
+                  skeuo
+                    ? "skeuo-hero-cta-secondary border-[var(--skeuo-edge-highlight)] shadow-[inset_1px_1px_3px_0_var(--skeuo-edge-shadow)] hover:bg-[hsl(var(--skeuo-surface-2))]"
+                    : "border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 active:scale-[0.97]"
+                )}
                 onClick={scrollToProduct}
               >
                 <Zap className="mr-2 h-4 w-4 text-primary" />
@@ -105,19 +133,28 @@ export function HomeHero() {
               </Button>
             </motion.div>
 
-            {/* Value Chips - horizontal scroll on mobile, wrap on sm+ */}
+            {/* Value Chips - inside skeuo-inset tray when skeuo */}
             <motion.div
               variants={fadeRise(0, 0.3)}
               initial={initial}
               animate={animate}
               className="relative"
             >
-              <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-fade-right sm:flex-wrap sm:overflow-visible sm:justify-center md:justify-start sm:[mask-image:none]">
-                {valueChips.map((chip) => (
-                  <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors snap-start shrink-0 sm:shrink">
-                    {chip}
-                  </Badge>
-                ))}
+              <div className={cn(
+                skeuo && "skeuo-inset p-3"
+              )}>
+                <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-fade-right sm:flex-wrap sm:overflow-visible sm:justify-center md:justify-start sm:[mask-image:none]">
+                  {valueChips.map((chip) => (
+                    <Badge key={chip} variant="secondary" className={cn(
+                      "px-3 py-1.5 text-xs font-medium transition-colors snap-start shrink-0 sm:shrink",
+                      skeuo
+                        ? "bg-[hsl(var(--skeuo-surface-2))] border border-[var(--skeuo-edge-highlight)] text-foreground/80 hover:bg-[hsl(var(--skeuo-surface))]"
+                        : "glass-pill hover:bg-white/10 dark:hover:bg-white/10"
+                    )}>
+                      {chip}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </motion.div>
 
@@ -141,13 +178,19 @@ export function HomeHero() {
             animate={animate}
             className="hidden md:flex lg:hidden items-center justify-center"
           >
-            <div className="animate-hero-float">
+            <div className={cn(
+              "animate-hero-float",
+              skeuo && "skeuo-inset skeuo-noise p-4 rounded-[24px]"
+            )}>
               <MobileGuestShowcase />
             </div>
           </motion.div>
 
           {/* Right: Interactive Product Showcase (Desktop only - lazy loaded) */}
-          <div className="relative lg:pl-8 hidden lg:block" style={{ minHeight: '500px' }}>
+          <div className={cn(
+            "relative lg:pl-8 hidden lg:block",
+            skeuo && "skeuo-inset skeuo-noise skeuo-hero-device-bay p-5 rounded-[24px]"
+          )} style={{ minHeight: '500px' }}>
             <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>}>
               <InteractiveProductShowcase />
             </Suspense>
