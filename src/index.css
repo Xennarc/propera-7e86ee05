@@ -3177,3 +3177,72 @@ body[data-landing-theme="skeuo"] .grain-overlay {
     transform: none;
   }
 }
+
+/* ========================================
+   SKEUO PHASE 4 — Tactile Tile System
+   ======================================== */
+
+/* Skeuo tile hover: lift + stronger shadow + brighter edge */
+.skeuo-tile-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.skeuo-tile-hover:hover {
+  transform: translateY(-2px);
+  border-color: hsla(225, 10%, 45%, 0.45);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 45%, 0.4),
+    inset -1px -1px 0 0 var(--skeuo-edge-shadow),
+    0 6px 24px -6px hsla(225, 20%, 3%, 0.55),
+    0 12px 32px -8px hsla(225, 25%, 2%, 0.5);
+}
+
+/* Icon badge — raised mini surface for value cards */
+.skeuo-icon-badge {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--skeuo-surface-2));
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  border-right-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.25),
+    inset -1px -1px 0 0 hsla(225, 20%, 6%, 0.3),
+    0 2px 6px -2px hsla(225, 20%, 3%, 0.4);
+  transition: all 0.2s;
+}
+
+.group:hover .skeuo-icon-badge {
+  background: hsl(var(--skeuo-accent-muted) / 0.15);
+  border-color: hsl(var(--skeuo-accent-muted) / 0.3);
+  box-shadow:
+    inset 1px 1px 0 0 hsl(var(--skeuo-accent-muted) / 0.2),
+    0 3px 8px -2px hsla(225, 20%, 3%, 0.45);
+}
+
+/* Smaller icon badge for module cards */
+.skeuo-icon-badge-sm {
+  background: hsl(var(--skeuo-surface-2));
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  border-right-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.2),
+    0 2px 4px -2px hsla(225, 20%, 3%, 0.3);
+  transition: all 0.2s;
+}
+
+.group:hover .skeuo-icon-badge-sm {
+  background: hsl(var(--skeuo-accent-muted) / 0.12);
+  border-color: hsl(var(--skeuo-accent-muted) / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeuo-tile-hover:hover {
+    transform: none;
+  }
+}
