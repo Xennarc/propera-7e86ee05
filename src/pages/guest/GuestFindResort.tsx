@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Search, ArrowLeft, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from '@/components/ThemeToggle';
+
 import { IconPropera } from '@/components/icons/ProperaIcons';
 import { SEOHead } from '@/components/seo/SEOHead';
 
@@ -115,10 +115,6 @@ export default function GuestFindResort() {
         canonicalUrl="/guest/find"
         keywords="find resort, guest portal search, resort lookup"
       />
-      {/* Theme toggle in top right */}
-      <div className="absolute top-4 right-4 z-10">
-        <ThemeToggle className="text-muted-foreground hover:text-foreground" />
-      </div>
 
       {/* Hero section */}
       <div className="relative pt-16 pb-16 hero-pattern overflow-hidden">
