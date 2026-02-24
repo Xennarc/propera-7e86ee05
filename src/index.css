@@ -3341,3 +3341,97 @@ body[data-landing-theme="skeuo"] [data-slot="badge"] {
     inset 1px 1px 0 0 hsla(225, 10%, 40%, 0.15),
     0 1px 3px -1px hsla(225, 20%, 3%, 0.3);
 }
+
+/* ========================================
+   SKEUO PHASE 7 — Micro-Physics Motion
+   ======================================== */
+
+/* Replace CTA breathe glow with edge shimmer */
+@keyframes skeuo-edge-shimmer {
+  0%   { left: -40%; opacity: 0; }
+  30%  { opacity: 0.7; }
+  100% { left: 120%; opacity: 0; }
+}
+
+body[data-landing-theme="skeuo"] .cta-breathe-once {
+  animation: none !important;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body[data-landing-theme="skeuo"] .cta-breathe-once::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 30%;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsla(77, 72%, 80%, 0.6) 40%,
+      hsla(77, 72%, 90%, 0.8) 50%,
+      hsla(77, 72%, 80%, 0.6) 60%,
+      transparent 100%
+    );
+    border-radius: 1px;
+    animation: skeuo-edge-shimmer 2.4s ease-in-out 1s 1 forwards;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* Slow highlight drift for skeuo surfaces on hover */
+@keyframes skeuo-highlight-drift {
+  0%   { opacity: 0.15; transform: translateX(-5%); }
+  50%  { opacity: 0.25; transform: translateX(5%); }
+  100% { opacity: 0.15; transform: translateX(-5%); }
+}
+
+/* Skeuo hover: micro-translate + shadow deepen */
+body[data-landing-theme="skeuo"] .hover-scale {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body[data-landing-theme="skeuo"] .hover-scale:hover {
+  transform: translateY(-1px) scale(1);
+  box-shadow:
+    0 4px 14px -4px hsla(225, 20%, 3%, 0.5),
+    0 8px 20px -6px hsla(225, 25%, 2%, 0.4);
+}
+
+/* Generic skeuo button press feedback */
+body[data-landing-theme="skeuo"] button:active:not([disabled]),
+body[data-landing-theme="skeuo"] [role="button"]:active:not([disabled]) {
+  transform: translateY(1px) scale(0.98);
+  transition: transform 0.08s ease;
+}
+
+/* Hover lift for card-like elements */
+body[data-landing-theme="skeuo"] .hover-lift-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body[data-landing-theme="skeuo"] .hover-lift-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 1px 1px 0 0 hsla(225, 10%, 45%, 0.35),
+    inset -1px -1px 0 0 var(--skeuo-edge-shadow),
+    0 6px 20px -6px hsla(225, 20%, 3%, 0.5),
+    0 10px 28px -8px hsla(225, 25%, 2%, 0.45);
+}
+
+/* Disable all skeuo motion transforms under reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  body[data-landing-theme="skeuo"] .cta-breathe-once::before {
+    animation: none !important;
+  }
+
+  body[data-landing-theme="skeuo"] .hover-scale:hover,
+  body[data-landing-theme="skeuo"] .hover-lift-card:hover,
+  body[data-landing-theme="skeuo"] button:active,
+  body[data-landing-theme="skeuo"] [role="button"]:active {
+    transform: none !important;
+  }
+}
