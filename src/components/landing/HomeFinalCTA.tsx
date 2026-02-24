@@ -28,13 +28,13 @@ export function HomeFinalCTA() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 md:mb-8 stagger-3 px-4">
-              <Button asChild size="lg" className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime transition-all duration-200 group hover:-translate-y-0.5 w-full sm:w-auto">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime transition-all duration-200 group hover:-translate-y-0.5 active:scale-[0.97] w-full sm:w-auto">
                 <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 w-full sm:w-auto">
+              <Button asChild variant="outline" size="lg" className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 active:scale-[0.97] w-full sm:w-auto">
                 <Link to="/pricing">View pricing</Link>
               </Button>
             </div>

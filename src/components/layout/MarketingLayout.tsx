@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
 
@@ -14,6 +14,17 @@ interface MarketingLayoutProps {
 export function MarketingLayout({ children, currentPage }: MarketingLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Skeuomorphic theme by default; ?theme=glass for legacy glass look
+  useEffect(() => {
+    const stored = localStorage.getItem('marketing-theme');
+    const param = searchParams.get('theme');
+    const theme = param || stored || 'skeuo';
+    document.body.dataset.landingTheme = theme;
+    if (param) localStorage.setItem('marketing-theme', param);
+    return () => { delete document.body.dataset.landingTheme; };
+  }, [searchParams]);
 
   useEffect(() => {
     const handleScroll = () => {
