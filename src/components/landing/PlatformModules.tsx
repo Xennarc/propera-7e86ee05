@@ -13,8 +13,6 @@ import {
 import { memo } from 'react';
 import { useScrollReveal } from '@/hooks/useScrollReveal';
 import { NotificationStreamShowcase } from '@/components/illustrations/NotificationStreamShowcase';
-import { useLandingTheme } from '@/lib/landingTheme';
-import { cn } from '@/lib/utils';
 
 const modules = [
   { 
@@ -80,43 +78,26 @@ const categoryColors: Record<string, { bg: string; text: string; border: string 
 const ModuleCard = memo(function ModuleCard({
   module,
   staggerIndex,
-  skeuo,
 }: {
   module: typeof modules[0];
   staggerIndex: number;
-  skeuo: boolean;
 }) {
   const isSpotlight = module.spotlight;
   const colors = categoryColors[module.category];
   
   return (
     <div
-      className={cn(
-        "cursor-pointer group stagger-" + staggerIndex,
-        skeuo
-          ? `skeuo-surface skeuo-noise skeuo-tile-hover p-5 ${isSpotlight ? 'lg:col-span-1 ring-1 ring-[var(--skeuo-edge-highlight)]' : ''}`
-          : `module-card-premium hover-lift-card ${isSpotlight ? 'lg:col-span-1 ring-1 ring-primary/10' : ''}`
-      )}
+      className={`module-card-premium cursor-pointer group hover-lift-card stagger-${staggerIndex} ${isSpotlight ? 'lg:col-span-1 ring-1 ring-primary/10' : ''}`}
     >
       <div className="relative flex items-start gap-4">
         <div 
-          className={cn(
-            "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200",
-            skeuo
-              ? "skeuo-icon-badge-sm"
-              : `icon-orb-hover ${
-                  isSpotlight 
-                    ? 'bg-gradient-to-br from-primary/15 to-teal-400/10 group-hover:from-primary/25 group-hover:to-teal-400/20' 
-                    : 'bg-muted/50 group-hover:bg-primary/10'
-                }`
-          )}
+          className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 icon-orb-hover ${
+            isSpotlight 
+              ? 'bg-gradient-to-br from-primary/15 to-teal-400/10 group-hover:from-primary/25 group-hover:to-teal-400/20' 
+              : 'bg-muted/50 group-hover:bg-primary/10'
+          }`}
         >
-          <module.icon className={cn(
-            "h-5 w-5 transition-colors",
-            skeuo
-              ? "text-[hsl(var(--skeuo-accent-muted))]"
-              : isSpotlight ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'
-          )} />
+          <module.icon className={`h-5 w-5 transition-colors ${isSpotlight ? 'text-primary' : 'text-muted-foreground group-hover:text-primary'}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -134,12 +115,7 @@ const ModuleCard = memo(function ModuleCard({
                 {module.preview.map((item, i) => (
                   <span
                     key={item}
-                    className={cn(
-                      "text-[10px] px-2 py-1 rounded-full text-muted-foreground",
-                      skeuo
-                        ? `bg-[hsl(var(--skeuo-bg))] border border-[var(--skeuo-edge-shadow)] preview-item-${i + 1}`
-                        : `bg-background/80 border border-border/40 preview-item-${i + 1}`
-                    )}
+                    className={`text-[10px] px-2 py-1 rounded-full bg-background/80 border border-border/40 text-muted-foreground preview-item-${i + 1}`}
                   >
                     {item}
                   </span>
@@ -178,8 +154,6 @@ function FloatingFragments() {
 
 export function PlatformModules() {
   const { ref, revealed } = useScrollReveal();
-  const theme = useLandingTheme();
-  const skeuo = theme === 'skeuo';
 
   return (
     <section id="platform-overview" className="py-16 md:py-24 relative overflow-hidden">
@@ -203,7 +177,6 @@ export function PlatformModules() {
                   key={module.title} 
                   module={module} 
                   staggerIndex={Math.min(index + 2, 7)}
-                  skeuo={skeuo}
                 />
               ))}
             </div>
