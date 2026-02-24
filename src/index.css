@@ -2927,3 +2927,116 @@ select:focus,
   -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
+
+/* ========================================
+   SKEUOMORPHIC MATERIAL TOKENS
+   Scoped to body[data-landing-theme="skeuo"]
+   Phase 1 — tokens + utility classes only
+   ======================================== */
+
+body[data-landing-theme="skeuo"] {
+  /* Backgrounds — warm charcoal with slight brown undertone */
+  --skeuo-bg: 225 15% 8%;
+  --skeuo-surface: 225 12% 14%;
+  --skeuo-surface-2: 225 10% 18%;
+
+  /* Bevel edges */
+  --skeuo-edge-highlight: hsla(225, 10%, 40%, 0.35);
+  --skeuo-edge-shadow: hsla(225, 20%, 4%, 0.6);
+
+  /* Shadows */
+  --skeuo-shadow-ambient: 0 4px 20px -4px hsla(225, 20%, 3%, 0.5);
+  --skeuo-shadow-directional: 0 8px 24px -6px hsla(225, 25%, 2%, 0.65);
+
+  /* Accent — Astro Lime but slightly desaturated for realism */
+  --skeuo-accent: 77 72% 52%;
+  --skeuo-accent-muted: 77 50% 42%;
+
+  /* Noise SVG (< 500 bytes, embedded) */
+  --skeuo-noise-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+/* ---- Utility: Raised surface panel ---- */
+.skeuo-surface {
+  background: hsl(var(--skeuo-surface));
+  border-radius: 20px;
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  border-right-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 var(--skeuo-edge-highlight),
+    inset -1px -1px 0 0 var(--skeuo-edge-shadow),
+    var(--skeuo-shadow-ambient),
+    var(--skeuo-shadow-directional);
+}
+
+/* ---- Utility: Inset / pressed panel ---- */
+.skeuo-inset {
+  background: hsl(var(--skeuo-bg));
+  border-radius: 14px;
+  border: 1px solid var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 2px 2px 6px 0 var(--skeuo-edge-shadow),
+    inset -1px -1px 2px 0 var(--skeuo-edge-highlight);
+}
+
+/* ---- Utility: Raised button ---- */
+.skeuo-button-raised {
+  background: hsl(var(--skeuo-surface-2));
+  border-radius: 14px;
+  border: 1px solid var(--skeuo-edge-highlight);
+  border-bottom-color: var(--skeuo-edge-shadow);
+  border-right-color: var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 1px 1px 0 0 var(--skeuo-edge-highlight),
+    0 3px 8px -2px hsla(225, 20%, 3%, 0.5);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.skeuo-button-raised:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    inset 0 1px 3px 0 var(--skeuo-edge-shadow),
+    0 1px 2px -1px hsla(225, 20%, 3%, 0.3);
+}
+
+/* ---- Utility: Pressed button (static pressed state) ---- */
+.skeuo-button-pressed {
+  background: hsl(var(--skeuo-bg));
+  border-radius: 14px;
+  border: 1px solid var(--skeuo-edge-shadow);
+  box-shadow:
+    inset 2px 2px 4px 0 var(--skeuo-edge-shadow),
+    inset -1px -1px 2px 0 var(--skeuo-edge-highlight);
+}
+
+/* ---- Utility: Divider with faint highlight ---- */
+.skeuo-divider {
+  border: none;
+  height: 1px;
+  background: var(--skeuo-edge-shadow);
+  box-shadow: 0 1px 0 0 var(--skeuo-edge-highlight);
+}
+
+/* ---- Utility: Noise grain overlay ---- */
+.skeuo-noise {
+  position: relative;
+}
+.skeuo-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--skeuo-noise-url);
+  background-repeat: repeat;
+  opacity: 0.06;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Respect reduced-motion for skeuo button press */
+@media (prefers-reduced-motion: reduce) {
+  .skeuo-button-raised:active {
+    transform: none;
+  }
+}
