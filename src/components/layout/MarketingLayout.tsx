@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
+import { getLandingTheme, setLandingTheme, isThemeDebugEnabled, type LandingTheme } from '@/lib/landingTheme';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
@@ -14,6 +16,8 @@ interface MarketingLayoutProps {
 export function MarketingLayout({ children, currentPage }: MarketingLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [landingTheme, setTheme] = useState<LandingTheme>(getLandingTheme);
+  const showDebugToggle = isThemeDebugEnabled();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +26,17 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Sync data-landing-theme on <body>
+  useEffect(() => {
+    document.body.setAttribute('data-landing-theme', landingTheme);
+    return () => { document.body.removeAttribute('data-landing-theme'); };
+  }, [landingTheme]);
+
+  const handleThemeSwitch = (theme: LandingTheme) => {
+    setLandingTheme(theme);
+    setTheme(theme);
+  };
 
   const navLinks = [
     { href: '/', label: 'Home', key: 'home' },
@@ -187,6 +202,19 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               </div>
             </div>
+
+            {/* Dev-only theme debug toggle — visible only with ?debugTheme=1 */}
+            {showDebugToggle && (
+              <div className="pt-6 flex items-center justify-center gap-3">
+                <span className={`text-xs font-medium ${landingTheme === 'glass' ? 'text-foreground' : 'text-muted-foreground'}`}>Glass</span>
+                <Switch
+                  checked={landingTheme === 'skeuo'}
+                  onCheckedChange={(checked) => handleThemeSwitch(checked ? 'skeuo' : 'glass')}
+                  aria-label="Toggle landing theme"
+                />
+                <span className={`text-xs font-medium ${landingTheme === 'skeuo' ? 'text-foreground' : 'text-muted-foreground'}`}>Skeuo</span>
+              </div>
+            )}
           </div>
         </footer>
       </div>
