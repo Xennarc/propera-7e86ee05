@@ -9,16 +9,16 @@ export function getLandingTheme(): LandingTheme {
 
   const params = new URLSearchParams(window.location.search);
   const paramTheme = params.get('theme');
-  if (paramTheme === 'skeuo') return 'skeuo';
+  if (paramTheme === 'glass') return 'glass';
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'skeuo') return 'skeuo';
+    if (stored === 'glass') return 'glass';
   } catch {
     // localStorage blocked
   }
 
-  return 'glass';
+  return 'skeuo';
 }
 
 export function setLandingTheme(theme: LandingTheme) {
@@ -46,11 +46,11 @@ function subscribe(cb: () => void) {
 }
 
 function getSnapshot(): LandingTheme {
-  return (document.body.getAttribute('data-landing-theme') as LandingTheme) || 'glass';
+  return (document.body.getAttribute('data-landing-theme') as LandingTheme) || 'skeuo';
 }
 
 function getServerSnapshot(): LandingTheme {
-  return 'glass';
+  return 'skeuo';
 }
 
 export function useLandingTheme(): LandingTheme {
