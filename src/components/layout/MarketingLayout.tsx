@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
+import { getLandingTheme, setLandingTheme, isThemeDebugEnabled, type LandingTheme } from '@/lib/landingTheme';
 
 interface MarketingLayoutProps {
   children: React.ReactNode;
