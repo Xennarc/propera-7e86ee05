@@ -60,6 +60,7 @@ export function HomeHero() {
               variants={fadeRise(10, 0)}
               initial={initial}
               animate={animate}
+              style={{ willChange: 'opacity, transform' }}
               className="text-[1.75rem] xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 md:mb-6 leading-[1.1] tracking-tight"
             >
               Resort operations.{' '}
@@ -72,6 +73,7 @@ export function HomeHero() {
               variants={fadeRise(8, 0.1)}
               initial={initial}
               animate={animate}
+              style={{ willChange: 'opacity, transform' }}
               className="text-base md:text-lg lg:text-xl text-foreground/70 mb-5 md:mb-8 leading-relaxed"
             >
               Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless.
@@ -82,6 +84,7 @@ export function HomeHero() {
               variants={fadeRise(6, 0.2)}
               initial={initial}
               animate={animate}
+              style={{ willChange: 'opacity, transform' }}
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 md:mb-8 sm:justify-center md:justify-start"
             >
               <Button 
@@ -110,6 +113,7 @@ export function HomeHero() {
               variants={fadeRise(0, 0.3)}
               initial={initial}
               animate={animate}
+              style={{ willChange: 'opacity, transform' }}
               className="relative"
             >
               <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-fade-right sm:flex-wrap sm:overflow-visible sm:justify-center md:justify-start sm:[mask-image:none]">
@@ -126,6 +130,7 @@ export function HomeHero() {
               variants={scaleIn(0.4)}
               initial={initial}
               animate={animate}
+              style={{ willChange: 'opacity, transform' }}
               className="flex justify-center mt-6 md:hidden"
             >
               <div className="animate-hero-float">
@@ -139,6 +144,7 @@ export function HomeHero() {
             variants={scaleIn(0.4)}
             initial={initial}
             animate={animate}
+            style={{ willChange: 'opacity, transform' }}
             className="hidden md:flex lg:hidden items-center justify-center"
           >
             <div className="animate-hero-float">

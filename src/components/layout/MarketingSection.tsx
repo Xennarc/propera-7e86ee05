@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ScrollReveal } from '@/components/motion/ScrollReveal';
 
 interface MarketingSectionProps {
   id?: string;
@@ -25,32 +25,26 @@ export function MarketingSection({
   noPadding = false,
   children 
 }: MarketingSectionProps) {
-  const { ref, revealed } = useScrollReveal({ threshold: 0.05 });
-  
   return (
     <section
       id={id}
-      ref={ref}
       className={cn(
         'relative scroll-mt-24',
         !noPadding && 'py-20 md:py-28',
-        'section-reveal',
-        revealed && 'section-revealed',
         className
       )}
     >
-      {/* Spotlight radial glow (if tone = spotlight) */}
       {tone === 'spotlight' && (
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-primary/8 rounded-full blur-[100px] pointer-events-none" />
       )}
       
-      <div className={cn(
+      <ScrollReveal className={cn(
         'mx-auto px-6 relative',
         sizeClasses[size],
         tone === 'lifted' && 'marketing-lifted-surface'
       )}>
         {children}
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

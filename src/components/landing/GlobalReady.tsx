@@ -1,13 +1,11 @@
 import { Globe } from 'lucide-react';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { GuestJourneyFlow } from '@/components/illustrations/GuestJourneyFlow';
 import { MultiResortShowcase } from '@/components/illustrations/MultiResortShowcase';
 
 const regionChips = ['Island resorts', 'City resorts', 'Mountain retreats', 'Boutique hotels', 'Beach clubs'];
 
 export function GlobalReady() {
-  const { ref, revealed } = useScrollReveal();
-
   return (
     <section className="py-24 relative overflow-hidden">
       
@@ -25,11 +23,8 @@ export function GlobalReady() {
       </div>
 
       <div className="container relative mx-auto px-4">
-        <div
-          ref={ref}
-          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
-        >
-          <div className="max-w-3xl mx-auto text-center mb-12 stagger-1">
+        <ScrollReveal>
+          <RevealItem className="max-w-3xl mx-auto text-center mb-12">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-teal-400/10 flex items-center justify-center text-primary mx-auto mb-8 shadow-lg shadow-primary/10">
               <Globe className="h-8 w-8" />
             </div>
@@ -41,35 +36,29 @@ export function GlobalReady() {
 
             <div className="flex flex-wrap justify-center gap-3 mb-12">
               {regionChips.map((chip) => (
-                <span
-                  key={chip}
-                  className="glass-pill chip-stagger"
-                >
+                <span key={chip} className="glass-pill chip-stagger">
                   {chip}
                 </span>
               ))}
             </div>
-          </div>
+          </RevealItem>
 
-          {/* Multi-Resort Showcase - compact */}
-          <div className="flex justify-center mb-12 stagger-2">
+          <RevealItem className="flex justify-center mb-12">
             <MultiResortShowcase className="max-w-[260px]" />
-          </div>
+          </RevealItem>
 
-          {/* Visual separator */}
           <div className="max-w-xs mx-auto mb-12">
             <div className="h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
           </div>
 
-          {/* Guest Journey Flow - with subheader */}
-          <div className="max-w-4xl mx-auto stagger-3">
+          <RevealItem className="max-w-4xl mx-auto">
             <div className="text-center mb-6">
               <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">End-to-end experience</p>
               <h3 className="text-lg font-semibold text-foreground">The guest journey, seamlessly connected</h3>
             </div>
             <GuestJourneyFlow />
-          </div>
-        </div>
+          </RevealItem>
+        </ScrollReveal>
       </div>
     </section>
   );

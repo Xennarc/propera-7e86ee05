@@ -1,6 +1,6 @@
 import { BarChart3, Smartphone, RefreshCw, Check, ArrowRight } from 'lucide-react';
 import { memo } from 'react';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { AnalyticsMiniCard } from '@/components/illustrations/AnalyticsMiniCard';
 
 const cards = [
@@ -26,63 +26,50 @@ const cards = [
 
 const ValueCard = memo(function ValueCard({
   card,
-  staggerIndex,
 }: {
   card: typeof cards[0];
-  staggerIndex: number;
 }) {
   return (
-    <div
-      className={`group cursor-pointer stagger-${staggerIndex + 1}`}
-    >
+    <RevealItem className="group cursor-pointer">
       <div className="value-card-premium stroke-gradient h-full">
         <div className="relative p-6">
-          {/* Icon orb with gradient */}
           <div className="icon-orb-gradient icon-orb-hover text-primary mb-6">
             <card.icon className="h-7 w-7" />
-        </div>
+          </div>
         
-        <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>
-        <p className="text-muted-foreground leading-relaxed mb-4">{card.description}</p>
+          <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>
+          <p className="text-muted-foreground leading-relaxed mb-4">{card.description}</p>
 
-        {/* Feature list with CSS hover reveal */}
-        <div className="preview-reveal space-y-2">
-          {card.features.map((feature, i) => (
-            <div
-              key={feature}
-              className={`flex items-center gap-2 text-sm preview-item-${i + 1}`}
-            >
-              <div className="hover-scale-icon">
-                <Check className="h-3.5 w-3.5 text-success" />
+          <div className="preview-reveal space-y-2">
+            {card.features.map((feature, i) => (
+              <div
+                key={feature}
+                className={`flex items-center gap-2 text-sm preview-item-${i + 1}`}
+              >
+                <div className="hover-scale-icon">
+                  <Check className="h-3.5 w-3.5 text-success" />
+                </div>
+                <span className="text-muted-foreground">{feature}</span>
               </div>
-              <span className="text-muted-foreground">{feature}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        {/* Learn more hint on hover - CSS only */}
-        <div className="learn-more-hint mt-4 flex items-center gap-1 text-xs text-primary font-medium">
-          <span>Learn more</span>
-          <ArrowRight className="h-3 w-3" />
-        </div>
+          <div className="learn-more-hint mt-4 flex items-center gap-1 text-xs text-primary font-medium">
+            <span>Learn more</span>
+            <ArrowRight className="h-3 w-3" />
+          </div>
         </div>
       </div>
-    </div>
+    </RevealItem>
   );
 });
 
 export function WhyProperaCards() {
-  const { ref, revealed } = useScrollReveal();
-
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4">
-        <div
-          ref={ref}
-          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
-        >
-          {/* Header with Analytics illustration integrated */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12 lg:mb-16 stagger-1">
+        <ScrollReveal>
+          <RevealItem className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12 lg:mb-16">
             <div className="text-center lg:text-left">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Designed for real resort days.
@@ -92,22 +79,17 @@ export function WhyProperaCards() {
               </p>
             </div>
             
-            {/* Analytics illustration - integrated with header */}
-            <div className="flex justify-center lg:justify-end stagger-2">
+            <div className="flex justify-center lg:justify-end">
               <AnalyticsMiniCard className="scale-90 lg:scale-100" />
             </div>
-          </div>
+          </RevealItem>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {cards.map((card, index) => (
-              <ValueCard
-                key={card.title}
-                card={card}
-                staggerIndex={index + 2}
-              />
+            {cards.map((card) => (
+              <ValueCard key={card.title} card={card} />
             ))}
           </div>
-        </div>
+        </ScrollReveal>
       </div>
     </section>
   );
