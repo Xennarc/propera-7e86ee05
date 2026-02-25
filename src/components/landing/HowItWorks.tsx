@@ -1,7 +1,6 @@
-import { Settings, Smartphone, Users, Play, Waves, Sun, Sparkles, CheckCircle2, Clock, Circle } from 'lucide-react';
+import { Settings, Smartphone, Users, Play } from 'lucide-react';
 import { memo } from 'react';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
-import { cn } from '@/lib/utils';
+import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 
 import { DeviceMockup } from '@/components/illustrations/DeviceMockup';
 import { StaffTasksShowcase } from '@/components/illustrations/StaffTasksShowcase';
@@ -41,7 +40,6 @@ const steps = [
 
 const StepCard = memo(function StepCard({
   step,
-  index,
   isLast,
 }: {
   step: typeof steps[0];
@@ -49,10 +47,7 @@ const StepCard = memo(function StepCard({
   isLast: boolean;
 }) {
   return (
-    <div
-      className={`relative flex flex-col items-center text-center group stagger-${index + 2}`}
-    >
-      {/* Number badge with gradient orb */}
+    <RevealItem className="relative flex flex-col items-center text-center group">
       <div className="relative mb-4 md:mb-6">
         <div className="icon-orb-gradient icon-orb-hover w-14 h-14 md:w-16 md:h-16 text-primary cursor-pointer">
           <step.icon className="h-6 w-6 md:h-7 md:w-7" />
@@ -65,7 +60,6 @@ const StepCard = memo(function StepCard({
       <h3 className="text-base md:text-lg font-semibold text-foreground mb-2">{step.title}</h3>
       <p className="text-muted-foreground text-sm max-w-xs leading-relaxed mb-4">{step.description}</p>
 
-      {/* Mini preview on hover - CSS only */}
       <div className="preview-reveal">
         <div className="bg-card/80 backdrop-blur-sm rounded-lg border border-border/40 p-3 space-y-1.5">
           {step.preview.items.map((item, i) => (
@@ -80,28 +74,22 @@ const StepCard = memo(function StepCard({
         </div>
       </div>
 
-      {/* Connector line - static */}
       {!isLast && (
         <div className="hidden md:block absolute top-8 left-[calc(50%+48px)] w-[calc(100%-96px)] h-px">
           <div className="w-full h-full bg-gradient-to-r from-primary/40 via-teal-400/30 to-primary/40" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/40" />
         </div>
       )}
-    </div>
+    </RevealItem>
   );
 });
 
 export function HowItWorks() {
-  const { ref, revealed } = useScrollReveal();
-
   return (
     <section className="py-16 md:py-24 relative overflow-hidden">
       <div className="container relative mx-auto px-4">
-        <div
-          ref={ref}
-          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
-        >
-          <div className="text-center mb-10 md:mb-16 stagger-1">
+        <ScrollReveal>
+          <RevealItem className="text-center mb-10 md:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 md:mb-4">
               From setup to service — smoothly.
             </h2>
@@ -109,7 +97,7 @@ export function HowItWorks() {
               <span className="hidden md:inline">Hover over each step to see what happens</span>
               <span className="md:hidden">Tap each step to learn more</span>
             </p>
-          </div>
+          </RevealItem>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8 max-w-4xl mx-auto">
             {steps.map((step, index) => (
@@ -122,19 +110,14 @@ export function HowItWorks() {
             ))}
           </div>
 
-          {/* Device mockup showcase - with proper spacing */}
-          <div className="mt-12 md:mt-16 pt-8 border-t border-border/20">
-            {/* Mobile: Staff Tasks phone preview */}
+          <RevealItem className="mt-12 md:mt-16 pt-8 border-t border-border/20">
             <div className="md:hidden flex justify-center">
               <StaffTasksShowcase />
             </div>
 
-            {/* Desktop: Staff Tasks Phone + Dashboard side by side */}
-            <div className="hidden md:flex justify-center items-end gap-8 max-w-3xl mx-auto stagger-5">
-              {/* Staff Tasks Phone */}
+            <div className="hidden md:flex justify-center items-end gap-8 max-w-3xl mx-auto">
               <StaffTasksShowcase className="hidden lg:block" />
               
-              {/* Desktop Dashboard */}
               <DeviceMockup type="desktop" className="flex-1 max-w-md">
                 <div className="space-y-3">
                   <div className="text-xs font-medium text-muted-foreground mb-3">Staff Dashboard</div>
@@ -143,11 +126,8 @@ export function HowItWorks() {
                       { label: 'Bookings', value: '24' },
                       { label: 'Guests', value: '86' },
                       { label: 'Requests', value: '5' },
-                    ].map((stat, i) => (
-                      <div
-                        key={stat.label}
-                        className={`bg-background/60 rounded-lg p-2 text-center border border-border/20 stagger-${i + 1}`}
-                      >
+                    ].map((stat) => (
+                      <div key={stat.label} className="bg-background/60 rounded-lg p-2 text-center border border-border/20">
                         <p className="text-lg font-bold text-foreground">{stat.value}</p>
                         <p className="text-[9px] text-muted-foreground">{stat.label}</p>
                       </div>
@@ -165,10 +145,9 @@ export function HowItWorks() {
                 </div>
               </DeviceMockup>
             </div>
-          </div>
-        </div>
+          </RevealItem>
+        </ScrollReveal>
       </div>
-      
     </section>
   );
 }

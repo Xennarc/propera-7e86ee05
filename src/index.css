@@ -2147,26 +2147,7 @@
     transform: translateY(0);
   }
 
-  /* Section-level reveal for containers */
-  .section-reveal {
-    opacity: 0;
-    transform: translateY(30px);
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-  }
-
-  .section-reveal.section-revealed {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  /* Stagger delays for children inside revealed sections */
-  .section-revealed .stagger-1 { transition-delay: 0.05s; }
-  .section-revealed .stagger-2 { transition-delay: 0.1s; }
-  .section-revealed .stagger-3 { transition-delay: 0.15s; }
-  .section-revealed .stagger-4 { transition-delay: 0.2s; }
-  .section-revealed .stagger-5 { transition-delay: 0.25s; }
-  .section-revealed .stagger-6 { transition-delay: 0.3s; }
-  .section-revealed .stagger-7 { transition-delay: 0.35s; }
+  /* Legacy section-reveal classes removed — now handled by Framer Motion ScrollReveal */
 
   /* CSS-only hover animations - GPU accelerated */
   .hover-lift-card {
@@ -2315,7 +2296,6 @@
     .will-animate,
     .animate-pulse,
     .animate-spin,
-    .section-reveal,
     .reveal-on-scroll,
     .chip-stagger,
     .chart-bar-grow,
@@ -2330,11 +2310,6 @@
       transition: none !important;
       opacity: 1 !important;
       transform: none !important;
-    }
-    
-    .section-reveal {
-      opacity: 1;
-      transform: none;
     }
   }
   

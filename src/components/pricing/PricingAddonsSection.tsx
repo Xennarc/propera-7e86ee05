@@ -1,5 +1,5 @@
 import { Sparkles, Package, BarChart2, Headphones, FileEdit, Check } from 'lucide-react';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 
 interface Addon {
   name: string;
@@ -28,21 +28,14 @@ const ADDON_CONFIG: Record<string, { icon: typeof Package; vibe: string }> = {
 const ONBOARDING_STEPS = ['Resort setup', 'Catalog & branding', 'Training & launch check'];
 
 export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectionProps) {
-  const { ref, revealed } = useScrollReveal();
-
   return (
     <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/8 dark:from-primary/4 via-transparent to-transparent" />
-      {/* Enhanced glows for light mode */}
       <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div
-          ref={ref}
-          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
-        >
-          {/* Enhancements */}
-          <div className="text-center mb-10 stagger-1">
+        <ScrollReveal>
+          <RevealItem className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <Sparkles className="h-4 w-4" />
               Enhancements
@@ -53,17 +46,14 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
             <p className="text-muted-foreground max-w-xl mx-auto">
               Add capabilities when you need them — with the same crafted experience.
             </p>
-          </div>
+          </RevealItem>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto mb-16">
-            {addons.map((addon, index) => {
+            {addons.map((addon) => {
               const config = ADDON_CONFIG[addon.name] || { icon: Package, vibe: '' };
               const Icon = config.icon;
               return (
-                <div
-                  key={addon.name}
-                  className={`module-card-premium hover-lift-card group stagger-${index + 2}`}
-                >
+                <RevealItem key={addon.name} className="module-card-premium hover-lift-card group">
                   <div className="icon-orb-gradient icon-orb-hover h-10 w-10 mb-3">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
@@ -71,13 +61,12 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
                   <p className="text-sm font-medium text-primary mb-2">{addon.price}</p>
                   <p className="text-xs text-muted-foreground/80 italic mb-2">{config.vibe}</p>
                   <p className="text-xs text-muted-foreground">{addon.description}</p>
-                </div>
+                </RevealItem>
               );
             })}
           </div>
 
-          {/* Onboarding */}
-          <div className="max-w-3xl mx-auto stagger-6">
+          <RevealItem className="max-w-3xl mx-auto">
             <div className="lagoon-glass rounded-2xl p-8">
               <div className="grid md:grid-cols-2 gap-8 items-center">
                 <div className="text-center md:text-left">
@@ -106,8 +95,8 @@ export function PricingAddonsSection({ addons, onboarding }: PricingAddonsSectio
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </RevealItem>
+        </ScrollReveal>
       </div>
     </section>
   );

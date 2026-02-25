@@ -19,6 +19,7 @@ export function TrustStrip() {
           initial={shouldAnimate ? { opacity: 0 } : { opacity: 1 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
+          style={{ willChange: 'opacity, transform' }}
           className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-4 sm:gap-x-10 sm:gap-y-4"
         >
           {trustPoints.map((point, i) => (
@@ -28,6 +29,7 @@ export function TrustStrip() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
+              style={{ willChange: 'opacity, transform' }}
               className="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-primary/12 dark:bg-primary/15 flex items-center justify-center flex-shrink-0">

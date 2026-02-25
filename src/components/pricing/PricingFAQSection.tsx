@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 
 interface FAQ {
   question: string;
@@ -18,20 +18,14 @@ interface PricingFAQSectionProps {
 }
 
 export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
-  const { ref, revealed } = useScrollReveal();
-
   return (
     <section className="py-16 md:py-20 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 dark:from-primary/4 via-transparent to-transparent" />
-      {/* Enhanced glows for light mode */}
       <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 relative z-10">
-        <div
-          ref={ref}
-          className={`section-reveal ${revealed ? 'section-revealed' : ''}`}
-        >
-          <div className="text-center mb-10 stagger-1">
+        <ScrollReveal>
+          <RevealItem className="text-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <HelpCircle className="h-4 w-4" />
               Questions
@@ -39,9 +33,9 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
               Common questions
             </h2>
-          </div>
+          </RevealItem>
 
-          <div className="max-w-2xl mx-auto stagger-2">
+          <RevealItem className="max-w-2xl mx-auto">
             <Accordion type="single" collapsible className="space-y-3">
               {faqs.map((faq, index) => (
                 <AccordionItem 
@@ -59,8 +53,7 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
               ))}
             </Accordion>
             
-            {/* Help box */}
-            <div className="mt-10 lagoon-glass p-6 rounded-2xl text-center stagger-3">
+            <div className="mt-10 lagoon-glass p-6 rounded-2xl text-center">
               <h3 className="font-semibold text-foreground mb-2">Not sure which plan fits?</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Tell us your resort size and departments — we'll recommend the best fit.
@@ -72,8 +65,8 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
                 </a>
               </Button>
             </div>
-          </div>
-        </div>
+          </RevealItem>
+        </ScrollReveal>
       </div>
     </section>
   );
