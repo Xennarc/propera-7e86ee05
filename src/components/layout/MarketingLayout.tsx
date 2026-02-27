@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
-import { ThemeToggle } from '@/components/ThemeToggle';
+
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
 
@@ -78,7 +78,6 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             
             {/* Right: CTAs */}
             <div className="hidden md:flex items-center gap-3">
-              <ThemeToggle className="text-muted-foreground hover:text-foreground" />
               <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 <Link to="/auth">
                   Sign In
@@ -93,7 +92,6 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
             
             {/* Mobile menu button */}
             <div className="flex md:hidden items-center gap-2">
-              <ThemeToggle className="text-muted-foreground hover:text-foreground" />
               <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
