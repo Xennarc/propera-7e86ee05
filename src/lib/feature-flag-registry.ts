@@ -322,7 +322,7 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     key: 'enable_room_service_runner_view',
     label: 'Runner Deliveries View',
     description: 'Enable the "My Deliveries" view for staff runners.',
-    category: 'operations',
+    category: 'core',
     tier: 'professional',
     is_dangerous: false,
     scope: 'global',
