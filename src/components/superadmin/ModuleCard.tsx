@@ -42,6 +42,7 @@ import {
   Crown,
   Globe,
   Zap,
+  UtensilsCrossed,
 } from 'lucide-react';
 import type { ModuleViewModel } from '@/lib/feature-flag-modules';
 import type { FeatureFlag } from '@/hooks/useFeatureFlags';
@@ -56,6 +57,7 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   BarChart3,
   Crown,
   Globe,
+  UtensilsCrossed,
 };
 
 interface ModuleCardProps {
