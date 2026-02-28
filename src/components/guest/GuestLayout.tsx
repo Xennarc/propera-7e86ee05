@@ -36,6 +36,7 @@ import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { SkipLink } from '@/components/a11y/SkipLink';
 import { useGuestRoutePrefetch } from '@/hooks/useGuestRoutePrefetch';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
 
 // Store scroll positions per tab
 const scrollPositions = new Map<string, number>();
@@ -258,6 +259,9 @@ function GuestLayoutInner({
   // Check if unified realtime is enabled (inside FeatureFlagsProvider)
   const enableUnifiedRealtime = useGuestUnifiedRealtimeEnabled();
 
+  // Universal viewport height — sets --app-height CSS var
+  useViewportHeight();
+
   // Prefetch key guest routes during idle time
   useGuestRoutePrefetch();
   
@@ -268,8 +272,8 @@ function GuestLayoutInner({
     <GuestAccessGate resortName={guest?.resortName}>
       <SkipLink />
       <div 
-        className="guest-branded guest-page-bg fixed inset-0 flex flex-col bg-background overflow-hidden"
-        style={brandingStyles}
+        className="guest-branded guest-page-bg fixed top-0 left-0 right-0 flex flex-col bg-background overflow-hidden"
+        style={{ ...brandingStyles, height: 'var(--app-height, 100vh)' } as React.CSSProperties}
       >
         {/* Mobile-optimized Header with glassmorphism */}
         <header className={cn(
