@@ -246,83 +246,67 @@ export default function GuestActivityCataloguePage() {
             <div className="space-y-3">
               {filteredActivities.map((activity) => {
                 const categoryConfig = getCategoryConfig(activity.category);
-                const difficulty = activity.difficulty_level as DifficultyLevel | null;
                 
                 return (
                   <Card
                     key={activity.id}
-                    className="overflow-hidden hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer group"
+                    className="guest-card-interactive"
                     onClick={() => navigate(`/guest/activities/${activity.id}`)}
                   >
-                    <div className="flex">
-                      {/* Image or Category Icon */}
-                      <div className="relative w-28 shrink-0">
-                        {activity.image_url ? (
-                          <img 
-                            src={activity.image_url} 
-                            alt={activity.name}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className={cn(
-                            "absolute inset-0 flex items-center justify-center",
-                            categoryConfig.bgClass
-                          )}>
-                            <CategoryIcon category={activity.category} size={32} />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Content */}
-                      <CardContent className="p-4 flex-1 flex flex-col">
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          <Badge 
-                            variant="secondary" 
-                            className={`text-xs ${categoryConfig.chipClass}`}
-                          >
-                            {categoryConfig.label}
-                          </Badge>
-                          {difficulty && (
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        {/* Activity Image or Category Icon - 64x64 thumbnail */}
+                        <div className="relative h-16 w-16 shrink-0 rounded-2xl overflow-hidden shadow-md">
+                          {activity.image_url ? (
+                            <>
+                              <img 
+                                src={activity.image_url} 
+                                alt={activity.name}
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                            </>
+                          ) : (
+                            <div className={cn(
+                              "flex h-full w-full items-center justify-center shadow-inner",
+                              categoryConfig.bgClass
+                            )}>
+                              <CategoryIcon category={activity.category} size={28} />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Content area */}
+                        <div className="flex-1 min-w-0 min-h-16 flex flex-col justify-center space-y-0.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-semibold text-foreground truncate leading-tight">
+                              {activity.name}
+                            </h3>
                             <Badge 
-                              variant="outline" 
-                              className={`text-xs ${difficultyColors[difficulty]}`}
+                              variant="secondary" 
+                              className={cn("shrink-0 text-[10px]", categoryConfig.chipClass)}
                             >
-                              {difficultyLabels[difficulty]}
+                              {categoryConfig.shortLabel}
                             </Badge>
-                          )}
-                          {activity.suitable_for_non_swimmers && (
-                            <Badge variant="outline" className="text-xs gap-1 text-sky-600 dark:text-sky-400">
-                              <Waves className="h-3 w-3" />
-                              Non-swimmers
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">
-                          {activity.name}
-                        </h3>
-                        
-                        {activity.short_description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2 flex-1">
-                            {activity.short_description}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {formatDuration(activity.duration_minutes)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Users className="h-3.5 w-3.5" />
-                              Max {activity.max_pax_per_booking}
-                            </span>
                           </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          
+                          {activity.short_description && (
+                            <p className="text-sm text-muted-foreground truncate leading-tight">
+                              {activity.short_description}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground leading-tight">
+                              <span className="whitespace-nowrap">{formatDuration(activity.duration_minutes)}</span>
+                              <span className="text-border">·</span>
+                              <span className="whitespace-nowrap">Max {activity.max_pax_per_booking}</span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          </div>
                         </div>
-                      </CardContent>
-                    </div>
+                      </div>
+                    </CardContent>
                   </Card>
                 );
               })}
