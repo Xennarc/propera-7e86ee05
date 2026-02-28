@@ -28,8 +28,9 @@ import { useActionQueueDetectors } from '@/hooks/useActionQueueDetectors';
 import { toast } from 'sonner';
 import {
   Building2, Users, Calendar, Utensils, AlertCircle,
-  CheckCircle2, Plane, Activity, Clock, ChevronRight, Zap, Eye, Settings,
+  CheckCircle2, Plane, Activity, Clock, ChevronRight, Zap, Eye, Settings, LogOut,
 } from 'lucide-react';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { cn } from '@/lib/utils';
 
 // Write Mode Context
@@ -132,6 +133,8 @@ export default function CommandCenter() {
   const [writeMode, setWriteMode] = useState(false);
   const [writeModeExpiry, setWriteModeExpiry] = useState<Date | null>(null);
   const [showWriteModeConfirm, setShowWriteModeConfirm] = useState(false);
+  const [showLogoutAllConfirm, setShowLogoutAllConfirm] = useState(false);
+  const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
   // Auto-disable write mode after 10 minutes
   useEffect(() => {
@@ -465,6 +468,14 @@ export default function CommandCenter() {
                 <Eye className="h-4 w-4 mr-2" />
                 Support Mode
               </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                onClick={() => setShowLogoutAllConfirm(true)}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Log Out All Devices
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -530,6 +541,35 @@ export default function CommandCenter() {
         open={drawerOpen} 
         onOpenChange={setDrawerOpen}
         writeMode={writeMode}
+      />
+
+      {/* Log Out All Devices Confirmation */}
+      <ConfirmationDialog
+        open={showLogoutAllConfirm}
+        onOpenChange={setShowLogoutAllConfirm}
+        title="Log Out All Devices"
+        description="This will immediately revoke all active sessions for every user on the platform. Everyone except you will be signed out."
+        impact="All staff and guests will need to log in again."
+        confirmLabel="Log Out Everyone"
+        variant="critical"
+        isLoading={logoutAllLoading}
+        countdown={3}
+        onConfirm={async () => {
+          setLogoutAllLoading(true);
+          try {
+            const { data, error } = await supabase.functions.invoke('admin-logout-all-devices', {
+              method: 'POST',
+              body: {},
+            });
+            if (error) throw error;
+            toast.success(`Successfully logged out ${data?.logged_out_count ?? 0} users from all devices`);
+            setShowLogoutAllConfirm(false);
+          } catch (err: any) {
+            toast.error(err?.message || 'Failed to log out users');
+          } finally {
+            setLogoutAllLoading(false);
+          }
+        }}
       />
     </div>
   );
