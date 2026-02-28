@@ -78,6 +78,10 @@ export default function VendorLogin() {
                     className="pl-10"
                     required
                     autoFocus
+                    autoComplete="email"
+                    onFocus={(e) => {
+                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                    }}
                   />
                 </div>
               </div>
