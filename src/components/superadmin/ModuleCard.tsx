@@ -57,6 +57,7 @@ const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   BarChart3,
   Crown,
   Globe,
+  UtensilsCrossed,
 };
 
 interface ModuleCardProps {
