@@ -128,6 +128,19 @@ export const MODULES: ModuleDefinition[] = [
       'enable_guest_itinerary',
     ],
   },
+  {
+    key: 'room_service',
+    masterFlagKey: 'enable_room_service',
+    label: 'Room Service',
+    description: 'In-Villa Dining ordering and fulfilment',
+    icon: 'ClipboardList',
+    childFlagKeys: [
+      'enable_room_service_guest_ordering',
+      'enable_room_service_order_tracking',
+      'enable_room_service_modifiers',
+      'enable_room_service_runner_view',
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════

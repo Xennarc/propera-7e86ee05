@@ -291,6 +291,42 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     is_dangerous: false,
     scope: 'global',
   },
+  {
+    key: 'enable_room_service_guest_ordering',
+    label: 'Guest Ordering',
+    description: 'Allow guests to browse menus and place room service orders.',
+    category: 'guest',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
+  {
+    key: 'enable_room_service_order_tracking',
+    label: 'Order Tracking',
+    description: 'Allow guests to track their room service order status in real-time.',
+    category: 'guest',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
+  {
+    key: 'enable_room_service_modifiers',
+    label: 'Item Modifiers',
+    description: 'Enable modifier groups (e.g. cooking preference, extras) on menu items.',
+    category: 'premium',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
+  {
+    key: 'enable_room_service_runner_view',
+    label: 'Runner Deliveries View',
+    description: 'Enable the "My Deliveries" view for staff runners.',
+    category: 'operations',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // GUEST PORTAL FLAGS
