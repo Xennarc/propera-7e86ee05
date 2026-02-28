@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
@@ -321,44 +321,45 @@ export default function GuestMyBookings() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Separate bookings by status
+  // Separate bookings by status — memoized to avoid re-filtering on every render
   const allActivities = bookings?.activity_bookings || [];
   const allReservations = bookings?.restaurant_reservations || [];
   
-  // For upcoming: only show CONFIRMED or PENDING bookings for future/today dates
-  const upcomingActivities = allActivities
-    .filter((b) => b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))
-    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
-    .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
-  
-  const upcomingReservations = allReservations
-    .filter((r) => r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING'))
-    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
-    .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
-  
-  // For completed: past dates with COMPLETED status or past dates with CONFIRMED (assumed completed)
-  const completedActivities = allActivities
-    .filter((b) => (b.date < today && b.status !== 'CANCELLED' && b.status !== 'NO_SHOW') || b.status === 'COMPLETED')
-    .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING')))
-    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
-  
-  const completedReservations = allReservations
-    .filter((r) => (r.date < today && r.status !== 'CANCELLED' && r.status !== 'NO_SHOW') || r.status === 'COMPLETED')
-    .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING')))
-    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+  const { upcomingActivities, upcomingReservations, completedActivities, completedReservations, cancelledActivities, cancelledReservations } = useMemo(() => {
+    const dedupe = <T extends { id: string }>(arr: T[]) => arr.filter((b, i, self) => i === self.findIndex(o => o.id === b.id));
+    
+    const upAct = dedupe(allActivities
+      .filter((b) => b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING')))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+    
+    const upRes = dedupe(allReservations
+      .filter((r) => r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING')))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+    
+    const compAct = dedupe(allActivities
+      .filter((b) => (b.date < today && b.status !== 'CANCELLED' && b.status !== 'NO_SHOW') || b.status === 'COMPLETED')
+      .filter((b) => !(b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING'))))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+    
+    const compRes = dedupe(allReservations
+      .filter((r) => (r.date < today && r.status !== 'CANCELLED' && r.status !== 'NO_SHOW') || r.status === 'COMPLETED')
+      .filter((r) => !(r.date >= today && (r.status === 'CONFIRMED' || r.status === 'PENDING'))))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
 
-  // For cancelled/no-show: explicitly cancelled or no-show bookings
-  const cancelledActivities = allActivities
-    .filter((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW')
-    .filter((b, index, self) => index === self.findIndex(other => other.id === b.id))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
-  
-  const cancelledReservations = allReservations
-    .filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW')
-    .filter((r, index, self) => index === self.findIndex(other => other.id === r.id))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+    const canAct = dedupe(allActivities
+      .filter((b) => b.status === 'CANCELLED' || b.status === 'NO_SHOW'))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+    
+    const canRes = dedupe(allReservations
+      .filter((r) => r.status === 'CANCELLED' || r.status === 'NO_SHOW'))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.start_time.localeCompare(a.start_time));
+
+    return {
+      upcomingActivities: upAct, upcomingReservations: upRes,
+      completedActivities: compAct, completedReservations: compRes,
+      cancelledActivities: canAct, cancelledReservations: canRes,
+    };
+  }, [allActivities, allReservations, today]);
 
   // Debug logging for filtered counts
   useEffect(() => {
