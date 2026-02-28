@@ -203,8 +203,8 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
         <div 
           className="max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
           style={{ 
-            height: 'var(--guest-nav-h, 84px)', 
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' 
+            height: 'var(--guest-nav-h, 72px)', 
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
           }}
         >
           <NavSkeleton />
@@ -218,8 +218,8 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
       <div 
         className="flex items-center justify-around px-2 max-w-lg md:max-w-2xl xl:max-w-3xl mx-auto"
         style={{ 
-          height: 'var(--guest-nav-h, 84px)', 
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' 
+          height: 'var(--guest-nav-h, 72px)', 
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)' 
         }}
       >
         {navItems.map((item) => {
