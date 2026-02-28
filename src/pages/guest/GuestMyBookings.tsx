@@ -937,30 +937,56 @@ export default function GuestMyBookings() {
         </>
       )}
 
-      {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
-        <AlertDialogContent className="max-w-sm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('bookings.cancelConfirmTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('bookings.cancelConfirmDescription')} "{cancelDialog?.title}"
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel className="w-full sm:w-auto">{t('bookings.keepBooking')}</AlertDialogCancel>
-            <AlertDialogAction
+      {/* Cancel Confirmation Bottom Sheet */}
+      <Drawer open={!!cancelDialog} onOpenChange={(open) => !open && setCancelDialog(null)}>
+        <DrawerContent>
+          <DrawerHeader className="text-left">
+            <DrawerTitle className="text-lg">{t('bookings.cancelConfirmTitle')}</DrawerTitle>
+            <DrawerDescription className="text-sm">
+              {t('bookings.cancelConfirmDescription')} <span className="font-semibold text-foreground">"{cancelDialog?.title}"</span>
+            </DrawerDescription>
+          </DrawerHeader>
+
+          {/* Policy summary */}
+          <div className="px-5 pb-4">
+            {cancelDialog?.date && cancelDialog?.start_time && (
+              <div className="guest-card-surface p-3 space-y-2 text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Calendar className="h-4 w-4 shrink-0" />
+                  <span>{format(parseISO(cancelDialog.date), 'EEEE, MMM d')} at {cancelDialog.start_time.slice(0, 5)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
+                  <span>
+                    {cancelDialog.type === 'restaurant'
+                      ? `Cancellations must be made at least ${cancelDialog.guest_cancel_cutoff_minutes ?? 60} minutes before your reservation.`
+                      : `Cancellations must be made at least ${cancelDialog.guest_cancel_cutoff_hours ?? 24} hours before the activity.`}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DrawerFooter className="flex-col gap-2">
+            <Button
+              variant="destructive"
               onClick={handleCancel}
-              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={cancelActivityMutation.isPending || cancelReservationMutation.isPending}
+              className="w-full h-12 tap-target"
             >
               {(cancelActivityMutation.isPending || cancelReservationMutation.isPending) && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               {t('bookings.yesCancel')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full h-12 tap-target">
+                {t('bookings.keepBooking')}
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* Edit Booking Dialog */}
       <EditBookingDialog
