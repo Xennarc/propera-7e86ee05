@@ -166,7 +166,7 @@ export default function GuestStayFeedback() {
   // Already submitted
   if (!canSubmitData?.can_submit && canSubmitData?.reason === 'Already submitted') {
     return (
-      <div className="space-y-6">
+      <GuestPageShell className="space-y-6">
         <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card className="border-primary/20">
@@ -178,14 +178,14 @@ export default function GuestStayFeedback() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </GuestPageShell>
     );
   }
 
   // Not eligible (outside window)
   if (!canSubmitData?.can_submit) {
     return (
-      <div className="space-y-6">
+      <GuestPageShell className="space-y-6">
         <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card>
@@ -195,7 +195,7 @@ export default function GuestStayFeedback() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </GuestPageShell>
     );
   }
 
