@@ -274,7 +274,6 @@ function GuestLayoutInner({
       <div 
         className="guest-branded guest-page-bg fixed top-0 left-0 right-0 flex flex-col bg-background overflow-hidden"
         style={{ ...brandingStyles, height: 'var(--app-height, 100vh)' } as React.CSSProperties}
-        style={brandingStyles}
       >
         {/* Mobile-optimized Header with glassmorphism */}
         <header className={cn(
