@@ -162,17 +162,25 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
   const transportEnabled = hasCachedFlags 
     ? flagContext.isEnabledEffective('enable_transport_guest_booking') 
     : false;
+  const roomServiceEnabled = hasCachedFlags
+    ? flagContext.isEnabledEffective('enable_room_service')
+    : false;
 
   // Build nav items based on feature flags
   const navItems = useMemo(() => {
     const items: NavItemDef[] = [...coreNavItems];
+
+    // Add room service if enabled
+    if (roomServiceEnabled) {
+      items.push(roomServiceNavItem);
+    }
 
     // Add transport if enabled
     if (transportEnabled) {
       items.push(transportNavItem);
     }
 
-    // Add requests if enabled (shows regardless of transport status - both can coexist in nav)
+    // Add requests if enabled
     if (requestsEnabled) {
       items.push(requestsNavItem);
     }
@@ -186,7 +194,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
     }
 
     return items;
-  }, [transportEnabled, requestsEnabled, isLoyaltyEnabled]);
+  }, [transportEnabled, requestsEnabled, roomServiceEnabled, isLoyaltyEnabled]);
 
   // Show skeleton during initial load (no cached data)
   if (isLoading) {
