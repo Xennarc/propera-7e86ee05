@@ -5465,6 +5465,52 @@ export type Database = {
         }
         Relationships: []
       }
+      room_service_item_modifier_groups: {
+        Row: {
+          group_id: string
+          id: string
+          item_id: string
+          resort_id: string
+          sort_order: number
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          item_id: string
+          resort_id: string
+          sort_order?: number
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          item_id?: string
+          resort_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_item_modifier_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_item_modifier_groups_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_item_modifier_groups_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_service_menu_categories: {
         Row: {
           created_at: string
@@ -5508,6 +5554,7 @@ export type Database = {
       }
       room_service_menu_items: {
         Row: {
+          allergens: string[] | null
           category_id: string
           created_at: string
           currency: string
@@ -5517,13 +5564,17 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_available: boolean
+          is_featured: boolean
           name: string
+          prep_time_minutes: number | null
           price: number
           resort_id: string
           sort_order: number
+          tags: string[] | null
           updated_at: string
         }
         Insert: {
+          allergens?: string[] | null
           category_id: string
           created_at?: string
           currency?: string
@@ -5533,13 +5584,17 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_available?: boolean
+          is_featured?: boolean
           name: string
+          prep_time_minutes?: number | null
           price?: number
           resort_id: string
           sort_order?: number
+          tags?: string[] | null
           updated_at?: string
         }
         Update: {
+          allergens?: string[] | null
           category_id?: string
           created_at?: string
           currency?: string
@@ -5549,10 +5604,13 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_available?: boolean
+          is_featured?: boolean
           name?: string
+          prep_time_minutes?: number | null
           price?: number
           resort_id?: string
           sort_order?: number
+          tags?: string[] | null
           updated_at?: string
         }
         Relationships: [
@@ -5572,12 +5630,163 @@ export type Database = {
           },
         ]
       }
+      room_service_modifier_groups: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          max_selected: number | null
+          min_selected: number
+          name: string
+          resort_id: string
+          selection_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_selected?: number | null
+          min_selected?: number
+          name: string
+          resort_id: string
+          selection_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_selected?: number | null
+          min_selected?: number
+          name?: string
+          resort_id?: string
+          selection_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_modifier_groups_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_service_modifier_options: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_available: boolean
+          name: string
+          price_delta: number
+          resort_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_available?: boolean
+          name: string
+          price_delta?: number
+          resort_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_available?: boolean
+          name?: string
+          price_delta?: number
+          resort_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_modifier_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_modifier_options_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_service_order_item_modifiers: {
+        Row: {
+          created_at: string
+          id: string
+          modifier_option_id: string
+          name_snapshot: string
+          order_item_id: string
+          price_delta_snapshot: number
+          resort_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          modifier_option_id: string
+          name_snapshot: string
+          order_item_id: string
+          price_delta_snapshot?: number
+          resort_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          modifier_option_id?: string
+          name_snapshot?: string
+          order_item_id?: string
+          price_delta_snapshot?: number
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_order_item_modifiers_modifier_option_id_fkey"
+            columns: ["modifier_option_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_modifier_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_order_item_modifiers_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_order_item_modifiers_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_service_order_items: {
         Row: {
           created_at: string
           id: string
           item_name: string
           menu_item_id: string
+          notes: string | null
           order_id: string
           quantity: number
           resort_id: string
@@ -5589,6 +5798,7 @@ export type Database = {
           id?: string
           item_name: string
           menu_item_id: string
+          notes?: string | null
           order_id: string
           quantity?: number
           resort_id: string
@@ -5600,6 +5810,7 @@ export type Database = {
           id?: string
           item_name?: string
           menu_item_id?: string
+          notes?: string | null
           order_id?: string
           quantity?: number
           resort_id?: string
@@ -5630,57 +5841,131 @@ export type Database = {
           },
         ]
       }
+      room_service_ordering_hours: {
+        Row: {
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          resort_id: string
+          start_time: string
+        }
+        Insert: {
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          resort_id: string
+          start_time: string
+        }
+        Update: {
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          resort_id?: string
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_ordering_hours_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_service_orders: {
         Row: {
+          allergy_notes: string | null
+          assigned_runner_staff_id: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           created_at: string
+          created_by_staff_id: string | null
           currency: string
           delivered_at: string | null
+          delivery_notes: string | null
           estimated_delivery_minutes: number | null
           guest_id: string
           id: string
+          idempotency_key: string | null
+          payment_method: string
+          placed_at: string
+          promised_at: string | null
           resort_id: string
           room_number: string
+          scheduled_for: string | null
+          service_charge: number
           special_instructions: string | null
           status: string
           stay_id: string | null
+          subtotal: number
+          tax: number
           total_amount: number
           updated_at: string
+          villa_label: string | null
         }
         Insert: {
+          allergy_notes?: string | null
+          assigned_runner_staff_id?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          created_by_staff_id?: string | null
           currency?: string
           delivered_at?: string | null
+          delivery_notes?: string | null
           estimated_delivery_minutes?: number | null
           guest_id: string
           id?: string
+          idempotency_key?: string | null
+          payment_method?: string
+          placed_at?: string
+          promised_at?: string | null
           resort_id: string
           room_number: string
+          scheduled_for?: string | null
+          service_charge?: number
           special_instructions?: string | null
           status?: string
           stay_id?: string | null
+          subtotal?: number
+          tax?: number
           total_amount?: number
           updated_at?: string
+          villa_label?: string | null
         }
         Update: {
+          allergy_notes?: string | null
+          assigned_runner_staff_id?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          created_by_staff_id?: string | null
           currency?: string
           delivered_at?: string | null
+          delivery_notes?: string | null
           estimated_delivery_minutes?: number | null
           guest_id?: string
           id?: string
+          idempotency_key?: string | null
+          payment_method?: string
+          placed_at?: string
+          promised_at?: string | null
           resort_id?: string
           room_number?: string
+          scheduled_for?: string | null
+          service_charge?: number
           special_instructions?: string | null
           status?: string
           stay_id?: string | null
+          subtotal?: number
+          tax?: number
           total_amount?: number
           updated_at?: string
+          villa_label?: string | null
         }
         Relationships: [
           {
@@ -5702,6 +5987,57 @@ export type Database = {
             columns: ["stay_id"]
             isOneToOne: false
             referencedRelation: "guest_stays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_service_status_events: {
+        Row: {
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          id: string
+          message: string | null
+          new_status: string
+          old_status: string | null
+          order_id: string
+          resort_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_type: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          new_status: string
+          old_status?: string | null
+          order_id: string
+          resort_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          new_status?: string
+          old_status?: string | null
+          order_id?: string
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_service_status_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "room_service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_service_status_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
             referencedColumns: ["id"]
           },
         ]
