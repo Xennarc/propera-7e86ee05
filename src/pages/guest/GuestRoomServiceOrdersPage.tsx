@@ -15,9 +15,12 @@ import { ClipboardList, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
+  placed: { label: 'Placed', variant: 'secondary' },
   pending: { label: 'Pending', variant: 'secondary' },
   confirmed: { label: 'Confirmed', variant: 'default' },
   preparing: { label: 'Preparing', variant: 'default' },
+  ready: { label: 'Ready', variant: 'default' },
+  out_for_delivery: { label: 'On the way', variant: 'default' },
   delivering: { label: 'On the way', variant: 'default' },
   delivered: { label: 'Delivered', variant: 'outline' },
   cancelled: { label: 'Cancelled', variant: 'destructive' },
