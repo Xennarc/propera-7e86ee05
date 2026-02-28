@@ -23,6 +23,7 @@ import { GuestBottomNav } from '@/components/guest/GuestBottomNav';
 import { GuestUpdatePrompt } from '@/components/guest/GuestUpdatePrompt';
 import { GuestPWADebugOverlay } from '@/components/guest/GuestPWADebugOverlay';
 import { GuestLayoutDebugOverlay } from '@/components/guest/GuestLayoutDebugOverlay';
+import { GuestUIDebugOverlay } from '@/components/guest/GuestUIDebugOverlay';
 import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import {
