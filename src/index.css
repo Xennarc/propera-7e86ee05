@@ -1754,6 +1754,29 @@
   .guest-chip-row > * {
     scroll-snap-align: start;
     flex-shrink: 0;
+    @apply min-h-[44px]; /* Touch target compliance */
+  }
+
+  /* === Guest Typography Scale ===
+     Use inside .guest-branded to ensure consistent heading sizes across guest pages */
+  .guest-heading-lg {
+    @apply text-xl sm:text-2xl font-bold tracking-tight;
+  }
+
+  .guest-heading-md {
+    @apply text-lg sm:text-xl font-semibold tracking-tight;
+  }
+
+  .guest-heading-sm {
+    @apply text-base sm:text-lg font-semibold;
+  }
+
+  .guest-body {
+    @apply text-sm sm:text-base leading-relaxed text-muted-foreground;
+  }
+
+  .guest-caption {
+    @apply text-xs sm:text-sm text-muted-foreground;
   }
 
   /* Consistent guest card styling */
