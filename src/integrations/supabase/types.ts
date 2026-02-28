@@ -8457,6 +8457,38 @@ export type Database = {
         Returns: Json
       }
       revoke_prearrival_link: { Args: { p_link_id: string }; Returns: Json }
+      room_service_create_order_idempotent: {
+        Args: {
+          p_allergy_notes?: string
+          p_delivery_notes?: string
+          p_guest_id: string
+          p_idempotency_key: string
+          p_items: Json
+          p_resort_id: string
+          p_scheduled_for?: string
+          p_villa_label?: string
+        }
+        Returns: Json
+      }
+      room_service_guest_cancel: {
+        Args: {
+          p_guest_id: string
+          p_order_id: string
+          p_reason?: string
+          p_resort_id: string
+        }
+        Returns: Json
+      }
+      room_service_set_status: {
+        Args: {
+          p_assigned_runner_staff_id?: string
+          p_message?: string
+          p_new_status: string
+          p_order_id: string
+          p_promised_at?: string
+        }
+        Returns: Json
+      }
       rpc_transport_assign_trip: {
         Args: {
           p_buggy_id: string
