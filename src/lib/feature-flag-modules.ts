@@ -133,7 +133,7 @@ export const MODULES: ModuleDefinition[] = [
     masterFlagKey: 'enable_room_service',
     label: 'Room Service',
     description: 'In-Villa Dining ordering and fulfilment',
-    icon: 'ClipboardList',
+    icon: 'UtensilsCrossed',
     childFlagKeys: [
       'enable_room_service_guest_ordering',
       'enable_room_service_order_tracking',

@@ -42,6 +42,7 @@ import {
   Crown,
   Globe,
   Zap,
+  UtensilsCrossed,
 } from 'lucide-react';
 import type { ModuleViewModel } from '@/lib/feature-flag-modules';
 import type { FeatureFlag } from '@/hooks/useFeatureFlags';
