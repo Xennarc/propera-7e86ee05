@@ -1595,7 +1595,7 @@
 
 /* === Guest Portal CSS Variables (outside @layer for reliable resolution) === */
 :root {
-  --guest-nav-h: 72px;
+  --guest-nav-h: 84px;
   --guest-content-max-width: 680px;
   --guest-content-max-width-lg: 920px;
   --guest-content-max-width-xl: 1100px;
