@@ -122,6 +122,7 @@ const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMember
 const StaffRoomServiceOrdersPage = lazy(() => import("./pages/staff/StaffRoomServiceOrdersPage"));
 const StaffRoomServiceOrderDetailPage = lazy(() => import("./pages/staff/StaffRoomServiceOrderDetailPage"));
 const StaffRoomServiceMenuPage = lazy(() => import("./pages/staff/StaffRoomServiceMenuPage"));
+const StaffRoomServiceMyDeliveriesPage = lazy(() => import("./pages/staff/StaffRoomServiceMyDeliveriesPage"));
 const GuestRoomServiceMenuPage = lazy(() => import("./pages/guest/GuestRoomServiceMenuPage"));
 const GuestRoomServiceCartPage = lazy(() => import("./pages/guest/GuestRoomServiceCartPage"));
 const GuestRoomServiceOrdersPage = lazy(() => import("./pages/guest/GuestRoomServiceOrdersPage"));
@@ -291,6 +292,7 @@ const App = () => (
                   <Route path="room-service/menu" element={<StaffRoomServiceMenuPage />} />
                   <Route path="room-service/orders" element={<StaffRoomServiceOrdersPage />} />
                   <Route path="room-service/orders/:orderId" element={<StaffRoomServiceOrderDetailPage />} />
+                  <Route path="room-service/my-deliveries" element={<StaffRoomServiceMyDeliveriesPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
