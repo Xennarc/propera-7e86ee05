@@ -17,18 +17,6 @@ import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { cn } from '@/lib/utils';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 
-const difficultyColors: Record<DifficultyLevel, string> = {
-  EASY: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  MODERATE: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  ADVANCED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-};
-
-const difficultyLabels: Record<DifficultyLevel, string> = {
-  EASY: 'Easy',
-  MODERATE: 'Moderate',
-  ADVANCED: 'Advanced',
-};
-
 const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
   ...coreActivityCategories.map(cat => ({ 
