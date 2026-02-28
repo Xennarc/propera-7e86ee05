@@ -27,6 +27,7 @@ import {
 import { ArrowLeft, Calendar, Clock, Users, Loader2, CheckCircle, AlertCircle, Utensils, Info } from 'lucide-react';
 import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { NumberStepper } from '@/components/ui/number-stepper';
 
 // Map server error messages to error codes
@@ -326,7 +327,7 @@ export default function GuestRestaurantBookingPage() {
   };
 
   return (
-    <>
+    <GuestPageShell>
       {/* Duplicate booking warning dialog */}
       <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
         <AlertDialogContent>
@@ -492,6 +493,6 @@ export default function GuestRestaurantBookingPage() {
         </CardContent>
       </Card>
     </div>
-    </>
+    </GuestPageShell>
   );
 }

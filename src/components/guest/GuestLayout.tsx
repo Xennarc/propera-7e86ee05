@@ -328,7 +328,7 @@ function GuestLayoutInner({
           id="main-content"
           tabIndex={-1}
           ref={mainRef} 
-          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden focus:outline-none"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain focus:outline-none"
           style={{ scrollPaddingBottom: 'var(--guest-safe-bottom)' }}
         >
           <div className="p-4 md:p-6 xl:p-8 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto animate-fade-in contain-layout">

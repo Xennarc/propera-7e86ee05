@@ -23,6 +23,7 @@ import { getActivityIcon } from '@/lib/activity-icons';
 import { getCategoryConfig, coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
 import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { cn } from '@/lib/utils';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 
 const difficultyColors: Record<DifficultyLevel, string> = {
   EASY: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
@@ -114,7 +115,7 @@ export default function GuestActivityExplorer() {
   const maxDate = guest.checkOutDate;
 
   return (
-    <div className="space-y-6">
+    <GuestPageShell className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button
@@ -346,6 +347,6 @@ export default function GuestActivityExplorer() {
           )}
         </div>
       )}
-    </div>
+    </GuestPageShell>
   );
 }

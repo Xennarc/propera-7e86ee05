@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -79,7 +80,7 @@ export default function GuestActivitySessionsPage() {
   const maxDate = guest.checkOutDate;
 
   return (
-    <div className="space-y-4">
+    <GuestPageShell className="space-y-4">
       {/* Collapsible Sticky Header */}
       <div className={cn(
         "guest-sticky-header",
@@ -265,6 +266,6 @@ export default function GuestActivitySessionsPage() {
           })}
         </div>
       )}
-    </div>
+    </GuestPageShell>
   );
 }

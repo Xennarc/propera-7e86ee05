@@ -28,6 +28,7 @@ import {
 } from '@/hooks/transport/useGuestBuggyRequests';
 import { BuggyRideCard } from '@/components/guest/buggy';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { cn } from '@/lib/utils';
 import type { BuggyRequestStatus } from '@/types/database';
 
@@ -169,6 +170,7 @@ export default function GuestMyRidesPage() {
   };
 
   return (
+    <GuestPageShell>
     <motion.div 
       className="space-y-5"
       initial={{ opacity: 0, y: 12 }}
@@ -309,8 +311,7 @@ export default function GuestMyRidesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Bottom safe area spacer */}
-      <div className="h-20 lg:h-0" />
     </motion.div>
+    </GuestPageShell>
   );
 }

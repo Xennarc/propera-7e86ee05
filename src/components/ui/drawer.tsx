@@ -51,9 +51,13 @@ const DrawerHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 );
 DrawerHeader.displayName = "DrawerHeader";
 
-const DrawerFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  // Larger padding and gap for mobile
-  <div className={cn("mt-auto flex flex-col gap-3 p-5", className)} {...props} />
+const DrawerFooter = ({ className, style, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  // Larger padding and gap for mobile, safe-area aware
+  <div 
+    className={cn("mt-auto flex flex-col gap-3 p-5", className)} 
+    style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))', ...style }}
+    {...props} 
+  />
 );
 DrawerFooter.displayName = "DrawerFooter";
 

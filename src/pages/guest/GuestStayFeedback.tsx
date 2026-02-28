@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Star, CheckCircle2, ThumbsUp, ThumbsDown, Minus, ArrowLeft } from 'lucide-react';
 import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
 import { cn } from '@/lib/utils';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 
 type RecommendResponse = 'YES' | 'NO' | 'MAYBE';
 
@@ -165,7 +166,7 @@ export default function GuestStayFeedback() {
   // Already submitted
   if (!canSubmitData?.can_submit && canSubmitData?.reason === 'Already submitted') {
     return (
-      <div className="space-y-6">
+      <GuestPageShell className="space-y-6">
         <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card className="border-primary/20">
@@ -177,14 +178,14 @@ export default function GuestStayFeedback() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </GuestPageShell>
     );
   }
 
   // Not eligible (outside window)
   if (!canSubmitData?.can_submit) {
     return (
-      <div className="space-y-6">
+      <GuestPageShell className="space-y-6">
         <MobilePageHeader title="Feedback" onBack={() => navigate('/guest')} />
 
         <Card>
@@ -194,14 +195,14 @@ export default function GuestStayFeedback() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </GuestPageShell>
     );
   }
 
   const isValid = overallRating !== null && wouldRecommend !== null;
 
   return (
-    <div className="space-y-6 pb-8">
+    <GuestPageShell className="space-y-6">
       <MobilePageHeader title="How was your stay?" onBack={() => navigate('/guest')} />
 
       <Card>
@@ -325,6 +326,6 @@ export default function GuestStayFeedback() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </GuestPageShell>
   );
 }
