@@ -162,6 +162,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       items: [
         { title: 'Restaurants', url: '/staff/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
         { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+        { title: 'Room Service Orders', url: '/staff/room-service/orders', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'], requiredFlags: ['enable_room_service'] },
       ],
     },
     {

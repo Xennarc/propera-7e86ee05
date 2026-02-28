@@ -9,6 +9,7 @@ import { memo, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
 import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
@@ -17,7 +18,7 @@ import {
   IconActivities,
   IconBookings,
 } from '@/components/icons/ProperaIcons';
-import { Bell, Lock, Car, Crown } from 'lucide-react';
+import { Bell, Lock, Car, Crown, UtensilsCrossed } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface NavItemDef {
@@ -58,6 +59,15 @@ const bookingsNavItem: NavItemDef = {
   labelKey: 'nav.bookings', 
   href: GUEST_ROUTES.BOOKINGS, 
   key: 'guest-bookings',
+};
+
+const roomServiceNavItem: NavItemDef = {
+  icon: UtensilsCrossed,
+  labelKey: 'nav.inVillaDining',
+  href: GUEST_ROUTES.ROOM_SERVICE,
+  key: 'guest-room-service',
+  restrictPrearrival: true,
+  featureFlag: 'enable_room_service',
 };
 
 const loyaltyNavItem: NavItemDef = { 
