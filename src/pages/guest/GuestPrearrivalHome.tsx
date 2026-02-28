@@ -156,7 +156,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
             </Card>
           </Link>
         </div>
-      </div>
+      </GuestPageShell>
     );
   }
 
