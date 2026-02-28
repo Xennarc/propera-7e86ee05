@@ -2083,7 +2083,7 @@
     transform: scale(0.96);
   }
   
-  /* Smooth momentum scrolling for iOS */
+  /* DEPRECATED: scroll-smooth-touch — per layout contract, do NOT use on iOS. Kept for backward compat. */
   .scroll-smooth-touch {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
@@ -2281,7 +2281,7 @@
 
   /* === Mobile Performance Optimizations === */
   
-  /* GPU-accelerated scrolling containers */
+  /* DEPRECATED: gpu-scroll — per layout contract, do NOT use on iOS guest portal. Kept for backward compat. */
   .gpu-scroll {
     transform: translateZ(0);
     -webkit-backface-visibility: hidden;
@@ -2301,7 +2301,7 @@
     contain: strict;
   }
   
-  /* Optimized touch scrolling */
+  /* DEPRECATED: touch-scroll — per layout contract, do NOT use on iOS guest portal. Kept for backward compat. */
   .touch-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
