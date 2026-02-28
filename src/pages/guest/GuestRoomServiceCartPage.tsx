@@ -46,6 +46,7 @@ export default function GuestRoomServiceCartPage() {
         p_items: items as any,
         p_delivery_notes: deliveryNotes || null,
         p_allergy_notes: allergyNotes || null,
+        p_scheduled_for: scheduledFor || null,
       });
       if (error) throw error;
       return data as any;
