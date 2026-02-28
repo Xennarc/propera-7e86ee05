@@ -8060,6 +8060,10 @@ export type Database = {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: Json
       }
+      guest_get_room_service_order_detail: {
+        Args: { p_guest_id: string; p_order_id: string; p_resort_id: string }
+        Returns: Json
+      }
       guest_get_room_service_orders: {
         Args: { p_guest_id: string; p_resort_id: string }
         Returns: Json
