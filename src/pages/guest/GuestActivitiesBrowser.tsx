@@ -16,12 +16,6 @@ import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
 import { cn } from '@/lib/utils';
 import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { coreActivityCategories, ActivityCategoryKey, getCategoryConfig } from '@/lib/activity-category-config';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 
 export default function GuestActivitiesBrowser() {
