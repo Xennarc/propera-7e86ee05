@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCategoryConfig, coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
-import { CategoryIcon } from '@/components/ui/category-badge';
+import { CategoryIcon, CategoryChip } from '@/components/ui/category-badge';
 
 const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
   { value: 'all', label: 'All' },
@@ -111,18 +111,13 @@ export default function GuestActivitySessionsPage() {
         {/* Category Chips - always visible in dedicated row */}
         <div className="guest-chip-row mt-2">
           {categories.map((cat) => (
-            <button
+            <CategoryChip
               key={cat.value}
+              category={cat.value}
+              label={cat.label}
+              isActive={selectedCategory === cat.value}
               onClick={() => setSelectedCategory(cat.value)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all tap-target border",
-                selectedCategory === cat.value 
-                  ? "bg-primary text-primary-foreground border-primary shadow-sm ring-1 ring-primary/30" 
-                  : "bg-card text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground hover:border-border"
-              )}
-            >
-              {cat.label}
-            </button>
+            />
           ))}
         </div>
       </div>
