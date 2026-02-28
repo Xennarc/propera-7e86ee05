@@ -1593,35 +1593,26 @@
   }
 }
 
+/* === Guest Portal CSS Variables (outside @layer for reliable resolution) === */
+:root {
+  --guest-nav-h: 72px;
+  --guest-content-max-width: 680px;
+  --guest-content-max-width-lg: 920px;
+  --guest-content-max-width-xl: 1100px;
+
+  --guest-bottom-nav-offset: var(--guest-nav-h);
+  --guest-safe-area-b: env(safe-area-inset-bottom, 0px);
+  --guest-fixed-base: calc(var(--guest-bottom-nav-offset) + var(--guest-safe-area-b));
+  --guest-overlay-bottom: var(--guest-bottom-nav-offset);
+
+  --guest-safe-base: calc(var(--guest-safe-area-b) + 32px);
+  --guest-overlay-h: 0px;
+  --guest-keyboard-inset: 0px;
+  --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h) + var(--guest-keyboard-inset));
+}
+
 /* === Guest Portal Specific Styles === */
 @layer components {
-  /* === Guest Portal CSS Variables === */
-  :root {
-    --guest-nav-h: 72px;
-    --guest-content-max-width: 680px;
-    --guest-content-max-width-lg: 920px;
-    --guest-content-max-width-xl: 1100px;
-
-    /* Bottom overlay stack contract:
-       --guest-bottom-nav-offset = height of the bottom nav bar
-       --guest-safe-area-b       = device safe-area inset (notch / home indicator)
-       --guest-fixed-base         = combined offset for elements that sit above nav + safe area
-       --guest-overlay-bottom     = where overlay bars position themselves (above the nav) */
-    --guest-bottom-nav-offset: var(--guest-nav-h);
-    --guest-safe-area-b: env(safe-area-inset-bottom, 0px);
-    --guest-fixed-base: calc(var(--guest-bottom-nav-offset) + var(--guest-safe-area-b));
-    --guest-overlay-bottom: var(--guest-bottom-nav-offset);
-
-    /* Layout contract: composable safe-bottom variables for page padding.
-       --guest-safe-base  = nav + safe-area + breathing room
-       --guest-overlay-h  = height of any sticky bar above the nav (set inline by GuestPageShell)
-       --guest-safe-bottom = total bottom padding */
-    --guest-safe-base: calc(var(--guest-safe-area-b) + 32px);
-    --guest-overlay-h: 0px;
-    --guest-keyboard-inset: 0px;
-    --guest-safe-bottom: calc(var(--guest-safe-base) + var(--guest-overlay-h) + var(--guest-keyboard-inset));
-  }
-
   /* Layout-contract shell class — preferred approach via GuestPageShell */
   .guest-safe-shell {
     padding-bottom: var(--guest-safe-bottom);
@@ -1701,22 +1692,34 @@
     background: hsl(var(--card) / 0.7);
   }
 
-  /* Enhanced bottom nav with premium separation */
+  /* Enhanced bottom nav with premium separation — opaque fallback for mobile Chrome */
   .guest-nav-elevated {
     @apply backdrop-blur-xl;
-    background: hsl(var(--card) / 0.92);
+    background: hsl(var(--card) / 0.97);
     box-shadow: 
       0 -1px 0 0 hsl(var(--border) / 0.15),
       0 -8px 32px -4px rgb(0 0 0 / 0.08),
       0 -2px 8px 0 rgb(0 0 0 / 0.04);
   }
 
+  @supports (backdrop-filter: blur(1px)) {
+    .guest-nav-elevated {
+      background: hsl(var(--card) / 0.92);
+    }
+  }
+
   .dark .guest-nav-elevated {
-    background: hsl(var(--card) / 0.88);
+    background: hsl(var(--card) / 0.95);
     box-shadow: 
       0 -1px 0 0 hsl(var(--border) / 0.2),
       0 -8px 32px -4px rgb(0 0 0 / 0.3),
       0 -2px 8px 0 rgb(0 0 0 / 0.15);
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .dark .guest-nav-elevated {
+      background: hsl(var(--card) / 0.88);
+    }
   }
 
   /* Nav item with enhanced active state */
