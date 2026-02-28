@@ -135,16 +135,18 @@ export default function GuestActivityExplorer() {
       </div>
 
       {/* Category Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-thin">
-        {categories.map((cat) => (
-          <CategoryChip
-            key={cat.value}
-            category={cat.value}
-            label={cat.label}
-            isActive={selectedCategory === cat.value}
-            onClick={() => setSelectedCategory(cat.value)}
-          />
-        ))}
+      <div className="relative scroll-fade-x">
+        <div className="guest-chip-row">
+          {categories.map((cat) => (
+            <CategoryChip
+              key={cat.value}
+              category={cat.value}
+              label={cat.label}
+              isActive={selectedCategory === cat.value}
+              onClick={() => setSelectedCategory(cat.value)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Date Picker */}

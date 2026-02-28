@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
