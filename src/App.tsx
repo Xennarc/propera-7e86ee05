@@ -121,6 +121,7 @@ const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMember
 // Room Service / In-Villa Dining
 const StaffRoomServiceOrdersPage = lazy(() => import("./pages/staff/StaffRoomServiceOrdersPage"));
 const StaffRoomServiceOrderDetailPage = lazy(() => import("./pages/staff/StaffRoomServiceOrderDetailPage"));
+const StaffRoomServiceMenuPage = lazy(() => import("./pages/staff/StaffRoomServiceMenuPage"));
 const GuestRoomServiceMenuPage = lazy(() => import("./pages/guest/GuestRoomServiceMenuPage"));
 const GuestRoomServiceCartPage = lazy(() => import("./pages/guest/GuestRoomServiceCartPage"));
 const GuestRoomServiceOrdersPage = lazy(() => import("./pages/guest/GuestRoomServiceOrdersPage"));
@@ -287,6 +288,7 @@ const App = () => (
                   <Route path="vendors" element={<VendorsPage />} />
                   <Route path="vendors/attention" element={<VendorAttentionPage />} />
                   <Route path="vendors/:vendorId" element={<VendorDetailPage />} />
+                  <Route path="room-service/menu" element={<StaffRoomServiceMenuPage />} />
                   <Route path="room-service/orders" element={<StaffRoomServiceOrdersPage />} />
                   <Route path="room-service/orders/:orderId" element={<StaffRoomServiceOrderDetailPage />} />
                 </Route>
