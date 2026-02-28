@@ -490,12 +490,19 @@ export default function GuestMyBookings() {
 
   const handleCancelFromSheet = useCallback(() => {
     if (!selectedBooking) return;
+    // Find original booking to get cutoff info
+    const origActivity = allActivities.find(b => b.id === selectedBooking.id);
+    const origReservation = allReservations.find(r => r.id === selectedBooking.id);
     setCancelDialog({
       type: selectedBooking.type as 'activity' | 'restaurant',
       id: selectedBooking.id,
       title: selectedBooking.title,
+      date: selectedBooking.date,
+      start_time: selectedBooking.startTime,
+      guest_cancel_cutoff_hours: origActivity?.guest_cancel_cutoff_hours,
+      guest_cancel_cutoff_minutes: origReservation?.guest_cancel_cutoff_minutes,
     });
-  }, [selectedBooking]);
+  }, [selectedBooking, allActivities, allReservations]);
 
   const handleEditFromSheet = useCallback(() => {
     if (!selectedBooking) return;

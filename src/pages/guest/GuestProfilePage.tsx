@@ -57,7 +57,7 @@ export default function GuestProfilePage() {
               <User className="h-9 w-9 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground tracking-tight">{guest.fullName}</h2>
+              <h2 className="text-xl font-bold text-foreground tracking-tight truncate">{guest.fullName}</h2>
               <p className="text-muted-foreground leading-relaxed">{t('profile.welcome', { name: firstName })}</p>
             </div>
           </div>
@@ -75,7 +75,7 @@ export default function GuestProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <p className="text-lg font-semibold text-foreground tracking-tight">
+          <p className="text-lg font-semibold text-foreground tracking-tight truncate">
             {guest.resortName || 'Your Resort'}
           </p>
         </CardContent>
