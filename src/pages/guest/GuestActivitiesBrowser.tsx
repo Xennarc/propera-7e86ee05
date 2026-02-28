@@ -150,7 +150,7 @@ export default function GuestActivitiesBrowser() {
 
       {/* Category Pills with Icons - scroll fade edges */}
       <div className="relative scroll-fade-x">
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide scroll-smooth">
+        <div className="guest-chip-row">
           {categories.map((cat) => (
             <CategoryChip
               key={cat.value}
