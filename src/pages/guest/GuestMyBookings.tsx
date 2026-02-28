@@ -326,7 +326,7 @@ export default function GuestMyBookings() {
   const allReservations = bookings?.restaurant_reservations || [];
   
   const { upcomingActivities, upcomingReservations, completedActivities, completedReservations, cancelledActivities, cancelledReservations } = useMemo(() => {
-    const dedupe = <T extends { id: string; date: string; start_time: string },>(arr: T[]): T[] => arr.filter((b, i, self) => i === self.findIndex(o => o.id === b.id));
+    const dedupe = (arr: any[]) => arr.filter((b: any, i: number, self: any[]) => i === self.findIndex((o: any) => o.id === b.id));
     
     const upAct = dedupe(allActivities
       .filter((b) => b.date >= today && (b.status === 'CONFIRMED' || b.status === 'PENDING')))
