@@ -34,7 +34,7 @@ function generateCartKey(itemId: string, modifiers: CartItemModifier[]): string 
 
 function loadCart(): CartItem[] {
   try {
-    const raw = sessionStorage.getItem(CART_KEY);
+    const raw = localStorage.getItem(CART_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -42,13 +42,15 @@ function loadCart(): CartItem[] {
 }
 
 function persistCart(items: CartItem[]) {
-  sessionStorage.setItem(CART_KEY, JSON.stringify(items));
+  localStorage.setItem(CART_KEY, JSON.stringify(items));
 }
 
 export function clearRoomServiceCart() {
-  sessionStorage.removeItem(CART_KEY);
+  localStorage.removeItem(CART_KEY);
   // Also clear legacy cart
+  localStorage.removeItem('rs_cart');
   sessionStorage.removeItem('rs_cart');
+  sessionStorage.removeItem(CART_KEY);
 }
 
 export function useRoomServiceCart() {

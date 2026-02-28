@@ -14,8 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingBag, Minus, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Minus, Plus, Trash2, ArrowLeft, CalendarClock } from 'lucide-react';
 import { useRoomServiceCart, clearRoomServiceCart } from '@/hooks/useRoomServiceCart';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export default function GuestRoomServiceCartPage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function GuestRoomServiceCartPage() {
   const { cart, updateQuantity, removeFromCart, subtotal, clearCart } = useRoomServiceCart();
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [allergyNotes, setAllergyNotes] = useState('');
+  const [scheduledFor, setScheduledFor] = useState<string | null>(null);
 
   const currency = cart[0]?.menuItem.currency || 'USD';
 
