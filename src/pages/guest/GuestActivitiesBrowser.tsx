@@ -34,6 +34,16 @@ export default function GuestActivitiesBrowser() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
+
+  // Track scroll for header collapse
+  useEffect(() => {
+    const mainEl = document.querySelector('main');
+    if (!mainEl) return;
+    const handleScroll = () => setIsHeaderCompact(mainEl.scrollTop > 60);
+    mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    return () => mainEl.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const categories: Array<{ value: ActivityCategoryKey | 'all'; label: string }> = [
     { value: 'all', label: t('activities.allCategories') },
@@ -103,27 +113,50 @@ export default function GuestActivitiesBrowser() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
-      <MobilePageHeader
-        title={t('activities.title')}
-        subtitle={t('activities.subtitle')}
-        showBack={false}
-        actions={
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground transition-colors tap-target flex items-center justify-center h-10 w-10">
-                  <Info className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="max-w-[250px]">
-                <p>{t('activities.noActivitiesDescription')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        }
-      />
+      {/* Collapsible Sticky Header */}
+      <div className={cn(
+        "guest-sticky-header",
+        isHeaderCompact && "is-compact"
+      )}>
+        <div className={cn(
+          "transition-all duration-200",
+          isHeaderCompact ? "flex items-center justify-between" : "mb-3"
+        )}>
+          <div>
+            <h1 className={cn(
+              "font-bold text-foreground transition-all",
+              isHeaderCompact ? "text-base" : "text-xl"
+            )}>
+              {isHeaderCompact ? t('activities.title') : t('activities.title')}
+            </h1>
+            {!isHeaderCompact && (
+              <p className="text-sm text-muted-foreground mt-0.5">{t('activities.subtitle')}</p>
+            )}
+          </div>
+          {isHeaderCompact && (
+            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+              {format(new Date(selectedDate), 'EEE, MMM d')}
+            </span>
+          )}
+        </div>
 
-      {/* Search Input with focus glow and animated clear */}
+        {/* Category Chips */}
+        <div className="relative scroll-fade-x">
+          <div className="guest-chip-row mt-2">
+            {categories.map((cat) => (
+              <CategoryChip
+                key={cat.value}
+                category={cat.value}
+                label={cat.label}
+                isActive={selectedCategory === cat.value}
+                onClick={() => setSelectedCategory(cat.value)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Search Input */}
       <div className="relative group">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <Input
@@ -132,7 +165,6 @@ export default function GuestActivitiesBrowser() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10 pr-10 h-11 tap-target focus-visible:ring-primary/30 focus-visible:ring-offset-0 focus-visible:shadow-md focus-visible:shadow-primary/10"
         />
-        {/* Animated clear button */}
         <AnimatePresence>
           {searchQuery && (
             <motion.button
@@ -146,21 +178,6 @@ export default function GuestActivitiesBrowser() {
             </motion.button>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* Category Pills with Icons - scroll fade edges */}
-      <div className="relative scroll-fade-x">
-        <div className="guest-chip-row">
-          {categories.map((cat) => (
-            <CategoryChip
-              key={cat.value}
-              category={cat.value}
-              label={cat.label}
-              isActive={selectedCategory === cat.value}
-              onClick={() => setSelectedCategory(cat.value)}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Date Picker with Month Navigation */}
