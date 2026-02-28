@@ -442,45 +442,62 @@ export default function ResortGuestLogin() {
             <CardDescription>Use your room number and last name to view your schedule and make bookings.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="flex items-center h-5">Room Number</Label>
+                  <Label htmlFor="login-room" className="flex items-center h-5">Room Number</Label>
                   <Input 
+                    id="login-room"
                     placeholder="e.g., 101" 
                     value={formData.roomNumber} 
                     onChange={(e) => setFormData({ ...formData, roomNumber: e.target.value })} 
                     className="font-mono"
-                    aria-label="Room number"
+                    autoComplete="off"
+                    aria-invalid={!!error || undefined}
+                    onFocus={(e) => {
+                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
+                  <Label htmlFor="login-lastname" className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     Last Name
                   </Label>
                   <Input 
+                    id="login-lastname"
                     placeholder="Smith" 
                     value={formData.lastName} 
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    aria-label="Last name"
+                    autoComplete="family-name"
+                    autoCapitalize="words"
+                    aria-invalid={!!error || undefined}
+                    onFocus={(e) => {
+                      setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                    }}
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="login-pin" className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                   PIN Code
                 </Label>
                 <Input 
+                  id="login-pin"
                   type="password" 
                   inputMode="numeric" 
+                  pattern="[0-9]*"
                   maxLength={6} 
                   placeholder="Enter PIN" 
                   value={formData.pin} 
                   onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })} 
                   className="text-center tracking-widest font-mono"
-                  aria-label="PIN code"
+                  autoComplete="one-time-code"
+                  aria-invalid={!!error || undefined}
+                  onFocus={(e) => {
+                    setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+                  }}
                 />
               </div>
               
@@ -492,14 +509,15 @@ export default function ResortGuestLogin() {
               )}
               
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" role="alert">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
               
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold rounded-xl glow-lime"
+                className="w-full h-12 text-base font-semibold rounded-xl glow-lime tap-target"
                 style={branding.login_primary_color ? { 
                   backgroundColor: branding.login_primary_color,
                   borderColor: branding.login_primary_color 

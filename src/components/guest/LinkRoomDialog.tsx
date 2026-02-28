@@ -122,10 +122,13 @@ export function LinkRoomDialog({
                 id="pin"
                 type="password"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="Enter PIN"
                 value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 maxLength={6}
+                autoComplete="one-time-code"
+                aria-invalid={!!error || undefined}
               />
               <p className="text-xs text-muted-foreground">
                 The other guest can find their PIN in their profile settings.
