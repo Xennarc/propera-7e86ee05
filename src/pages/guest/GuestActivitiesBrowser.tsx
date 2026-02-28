@@ -2,22 +2,19 @@ import { useState, useEffect } from 'react';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Users, ChevronRight, Sparkles, HelpCircle, Info, Search, X } from 'lucide-react';
+import { Calendar, ChevronRight, Sparkles, HelpCircle, Search, X } from 'lucide-react';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
 import { GuestActivitiesLoading } from '@/components/guest/GuestLoadingSkeleton';
 import { GuestEmptyState } from '@/components/guest/GuestEmptyState';
-import { GuestSectionHeader } from '@/components/guest/GuestSectionHeader';
 import { cn } from '@/lib/utils';
-import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
-import { CategoryBadge, CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
+import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { coreActivityCategories, ActivityCategoryKey, getCategoryConfig } from '@/lib/activity-category-config';
 import {
   Tooltip,

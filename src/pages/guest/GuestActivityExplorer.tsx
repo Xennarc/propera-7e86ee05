@@ -4,22 +4,14 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { useGuestAuth } from '@/contexts/GuestAuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, DifficultyLevel } from '@/types/database';
+import { Activity } from '@/types/database';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { GuestDatePicker } from '@/components/ui/guest-date-picker';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Search, Clock, ChevronRight, Waves, ArrowLeft, Users, Calendar, MapPin, Sparkles } from 'lucide-react';
-import { getActivityIcon } from '@/lib/activity-icons';
+import { Search, Clock, ChevronRight, ArrowLeft, Users, Calendar } from 'lucide-react';
 import { getCategoryConfig, coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
 import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { cn } from '@/lib/utils';
