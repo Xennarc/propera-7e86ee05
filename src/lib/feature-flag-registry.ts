@@ -281,6 +281,17 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     scope: 'global',
   },
 
+  // Room Service / In-Villa Dining Module
+  {
+    key: 'enable_room_service',
+    label: 'Room Service Module',
+    description: 'Master toggle for In-Villa Dining / Room Service. Enables menu browsing, ordering, and order management.',
+    category: 'guest',
+    tier: 'professional',
+    is_dangerous: false,
+    scope: 'global',
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════
   // GUEST PORTAL FLAGS
   // ═══════════════════════════════════════════════════════════════════════════
