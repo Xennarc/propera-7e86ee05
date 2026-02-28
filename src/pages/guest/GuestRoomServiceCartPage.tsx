@@ -12,70 +12,47 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingBag, Minus, Plus, Trash2, ArrowLeft } from 'lucide-react';
-import type { CartItem } from './GuestRoomServiceMenuPage';
-
-function getCart(): CartItem[] {
-  try {
-    const raw = sessionStorage.getItem('rs_cart');
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
-function saveCart(items: CartItem[]) {
-  sessionStorage.setItem('rs_cart', JSON.stringify(items));
-}
-function clearCart() {
-  sessionStorage.removeItem('rs_cart');
-}
+import { useRoomServiceCart, clearRoomServiceCart } from '@/hooks/useRoomServiceCart';
 
 export default function GuestRoomServiceCartPage() {
   const navigate = useNavigate();
   const { guest } = useGuestAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [cart, setCart] = useState<CartItem[]>(getCart);
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const { cart, updateQuantity, removeFromCart, subtotal, clearCart } = useRoomServiceCart();
+  const [deliveryNotes, setDeliveryNotes] = useState('');
+  const [allergyNotes, setAllergyNotes] = useState('');
 
-  const total = useMemo(() => cart.reduce((s, i) => s + Number(i.menuItem.price) * i.quantity, 0), [cart]);
   const currency = cart[0]?.menuItem.currency || 'USD';
-
-  const updateQty = (id: string, delta: number) => {
-    setCart(prev => {
-      const next = prev.map(c => {
-        if (c.menuItem.id !== id) return c;
-        const newQty = c.quantity + delta;
-        return newQty <= 0 ? null : { ...c, quantity: newQty };
-      }).filter(Boolean) as CartItem[];
-      saveCart(next);
-      return next;
-    });
-  };
 
   const placeOrder = useMutation({
     mutationFn: async () => {
       if (!guest) throw new Error('Not logged in');
       const items = cart.map(c => ({
-        menu_item_id: c.menuItem.id,
-        quantity: c.quantity,
-        special_requests: c.specialRequests || null,
+        item_id: c.menuItem.id,
+        qty: c.quantity,
+        notes: c.notes || null,
+        modifiers: c.modifiers.map(m => m.id),
       }));
-      const { data, error } = await supabase.rpc('guest_place_room_service_order', {
+      const { data, error } = await supabase.rpc('room_service_create_order_idempotent', {
         p_resort_id: guest.resortId,
         p_guest_id: guest.guestId,
-        p_room_number: guest.roomNumber || '',
+        p_idempotency_key: crypto.randomUUID(),
         p_items: items as any,
-        p_special_instructions: specialInstructions || null,
-        p_stay_id: null,
+        p_delivery_notes: deliveryNotes || null,
+        p_allergy_notes: allergyNotes || null,
       });
       if (error) throw error;
-      return data as string;
+      return data as any;
     },
-    onSuccess: (orderId) => {
+    onSuccess: (result) => {
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['room-service-orders'] });
       toast({ title: 'Order placed', description: 'Your order is on its way.' });
-      navigate(guestPath('ROOM_SERVICE_ORDER_DETAIL', { orderId }));
+      navigate(guestPath('ROOM_SERVICE_ORDER_DETAIL', { orderId: result.order_id }));
     },
     onError: () => {
       toast({ title: 'Error', description: 'Could not place your order. Please try again.', variant: 'destructive' });
@@ -104,54 +81,118 @@ export default function GuestRoomServiceCartPage() {
           <h1 className="text-lg font-bold text-foreground">Review Order</h1>
         </div>
 
-        <div className="space-y-4 pb-32">
-          {cart.map(item => (
-            <Card key={item.menuItem.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-foreground text-sm">{item.menuItem.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {currency} {Number(item.menuItem.price).toFixed(2)} each
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQty(item.menuItem.id, -1)}>
-                    {item.quantity === 1 ? <Trash2 className="h-3.5 w-3.5 text-destructive" /> : <Minus className="h-3.5 w-3.5" />}
-                  </Button>
-                  <span className="text-sm font-medium w-5 text-center">{item.quantity}</span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQty(item.menuItem.id, 1)}>
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                <span className="text-sm font-semibold text-foreground whitespace-nowrap w-16 text-right">
-                  {currency} {(Number(item.menuItem.price) * item.quantity).toFixed(2)}
-                </span>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-3 pb-32">
+          {cart.map(item => {
+            const modExtra = item.modifiers.reduce((s, m) => s + m.price_delta, 0);
+            const linePrice = (item.menuItem.price + modExtra) * item.quantity;
+            return (
+              <Card key={item.cartKey}>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground text-sm">{item.menuItem.name}</h3>
+                      {item.modifiers.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {item.modifiers.map(m => m.name).join(', ')}
+                        </p>
+                      )}
+                      {item.notes && (
+                        <p className="text-[11px] text-muted-foreground/70 mt-0.5 italic">
+                          "{item.notes}"
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {currency} {(item.menuItem.price + modExtra).toFixed(2)} each
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() =>
+                          item.quantity === 1
+                            ? removeFromCart(item.cartKey)
+                            : updateQuantity(item.cartKey, -1)
+                        }
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        ) : (
+                          <Minus className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <span className="text-sm font-medium w-5 text-center">
+                        {item.quantity}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => updateQuantity(item.cartKey, 1)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground whitespace-nowrap w-16 text-right">
+                      {currency} {linePrice.toFixed(2)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Special instructions</label>
-            <Textarea
-              value={specialInstructions}
-              onChange={e => setSpecialInstructions(e.target.value)}
-              placeholder="Allergies, preferences, delivery time..."
-              className="resize-none"
-              rows={3}
-            />
+          {/* Notes */}
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-foreground">Delivery notes</label>
+              <Textarea
+                value={deliveryNotes}
+                onChange={e => setDeliveryNotes(e.target.value)}
+                placeholder="e.g. Ring doorbell, leave at door..."
+                className="resize-none text-base mt-1"
+                rows={2}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground">Allergy notes</label>
+              <Textarea
+                value={allergyNotes}
+                onChange={e => setAllergyNotes(e.target.value)}
+                placeholder="e.g. Nut allergy, gluten free..."
+                className="resize-none text-base mt-1"
+                rows={2}
+              />
+            </div>
           </div>
 
+          {/* Total */}
           <Card>
-            <CardContent className="p-4 flex items-center justify-between">
-              <span className="font-medium text-foreground">Total</span>
-              <span className="text-lg font-bold text-primary">{currency} {total.toFixed(2)}</span>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Subtotal</span>
+                <span className="text-sm text-foreground">{currency} {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-sm text-muted-foreground">Service charge</span>
+                <span className="text-sm text-foreground">{currency} 0.00</span>
+              </div>
+              <div className="border-t border-border mt-2 pt-2 flex items-center justify-between">
+                <span className="font-semibold text-foreground">Total</span>
+                <span className="text-lg font-bold text-primary">{currency} {subtotal.toFixed(2)}</span>
+              </div>
+              <Badge variant="outline" className="mt-2 text-[11px]">
+                Charged to room
+              </Badge>
             </CardContent>
           </Card>
         </div>
 
+        {/* Fixed bottom actions */}
         <div className="fixed bottom-[calc(var(--guest-nav-h,68px)+env(safe-area-inset-bottom,0px)+12px)] left-0 right-0 px-4 z-30 space-y-2">
           <Button
-            className="w-full max-w-lg mx-auto h-12 rounded-2xl shadow-lg"
+            className="w-full max-w-lg mx-auto h-12 rounded-2xl shadow-lg text-base font-semibold"
             onClick={() => placeOrder.mutate()}
             disabled={placeOrder.isPending}
           >
