@@ -20,6 +20,7 @@ export type NotificationType =
   | 'TRANSPORT_ARRIVED'
   | 'TRANSPORT_COMPLETED'
   | 'TRANSPORT_CANCELLED'
+  | 'ROOM_SERVICE_ORDER_PLACED'
   | 'GENERAL';
 
 export interface Notification {

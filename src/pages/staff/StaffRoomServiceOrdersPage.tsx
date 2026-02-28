@@ -3,9 +3,10 @@
  *
  * Status-segmented tabs with quick actions, allergy badges,
  * realtime via useRealtimeSubscription, RPC-based status transitions.
+ * Includes SLA aging indicators and new-order toast notifications.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { useResortScope } from '@/hooks/sync/useResortScope';
@@ -28,8 +29,9 @@ import {
   PackageCheck,
   Truck,
   XCircle,
+  Timer,
 } from 'lucide-react';
-import { format, parseISO, formatDistanceToNow } from 'date-fns';
+import { format, parseISO, formatDistanceToNow, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { FeatureGate } from '@/components/FeatureGate';
 
@@ -67,6 +69,14 @@ interface OrderRow {
   room_service_order_items: { id: string }[];
 }
 
+/** Returns age badge color class based on minutes since placed */
+function getAgeBadge(minutes: number): { label: string; className: string } | null {
+  if (minutes < 5) return null; // Too fresh, no badge
+  if (minutes < 15) return { label: `${minutes}m`, className: 'bg-muted text-muted-foreground' };
+  if (minutes < 30) return { label: `${minutes}m`, className: 'bg-accent text-accent-foreground' };
+  return { label: `${minutes}m`, className: 'bg-destructive/15 text-destructive' };
+}
+
 function StaffRoomServiceOrdersContent() {
   const navigate = useNavigate();
   const { currentResort } = useResort();
@@ -74,6 +84,10 @@ function StaffRoomServiceOrdersContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('placed');
+
+  // Track known order IDs to detect new orders for toast
+  const knownOrderIds = useRef<Set<string>>(new Set());
+  const initialLoadDone = useRef(false);
 
   const queryKey = ['staff-rs-orders', resortId];
 
@@ -92,6 +106,29 @@ function StaffRoomServiceOrdersContent() {
     enabled: !!currentResort?.id,
     staleTime: 10_000,
   });
+
+  // Detect new placed orders and show toast
+  useEffect(() => {
+    if (!orders) return;
+    
+    if (!initialLoadDone.current) {
+      // Seed known IDs on first load — no toast
+      orders.forEach(o => knownOrderIds.current.add(o.id));
+      initialLoadDone.current = true;
+      return;
+    }
+
+    for (const order of orders) {
+      if (!knownOrderIds.current.has(order.id) && order.status === 'placed') {
+        const villa = order.villa_label || order.room_number;
+        toast({
+          title: '🍽️ New room service order',
+          description: `${villa} just placed an order`,
+        });
+      }
+      knownOrderIds.current.add(order.id);
+    }
+  }, [orders, toast]);
 
   // Realtime
   useRealtimeSubscription({
@@ -233,6 +270,10 @@ function StaffRoomServiceOrdersContent() {
                 const action = QUICK_ACTIONS[order.status];
                 const placedTime = order.placed_at || order.created_at;
 
+                // SLA age indicator
+                const ageMinutes = differenceInMinutes(new Date(), parseISO(placedTime));
+                const ageBadge = tab !== 'done' ? getAgeBadge(ageMinutes) : null;
+
                 return (
                   <Card
                     key={order.id}
@@ -260,6 +301,15 @@ function StaffRoomServiceOrdersContent() {
                                 <AlertTriangle className="h-2.5 w-2.5" />
                                 Allergy
                               </Badge>
+                            )}
+                            {ageBadge && (
+                              <span className={cn(
+                                'inline-flex items-center gap-0.5 text-[9px] font-medium px-1.5 py-0 rounded-full',
+                                ageBadge.className,
+                              )}>
+                                <Timer className="h-2.5 w-2.5" />
+                                {ageBadge.label}
+                              </span>
                             )}
                           </div>
 
