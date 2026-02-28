@@ -107,7 +107,8 @@ export function RoomServiceItemsTab() {
         const { error } = await supabase.from('room_service_menu_items').update(rest).eq('id', id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('room_service_menu_items').insert({ ...payload, resort_id: resortId! });
+        const row = { ...payload, resort_id: resortId! } as any;
+        const { error } = await supabase.from('room_service_menu_items').insert(row);
         if (error) throw error;
       }
     },
