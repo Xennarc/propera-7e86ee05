@@ -705,11 +705,11 @@ export default function GuestMyBookings() {
               <button
                 key={tab.value}
                 onClick={() => setFilter(tab.value as FilterType)}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all tap-target",
+                 className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all tap-target border",
                   isActive 
-                    ? "bg-primary text-primary-foreground shadow-sm" 
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm border-primary ring-1 ring-primary/20" 
+                    : "bg-card text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground hover:border-border"
                 )}
               >
                 <Icon className="h-4 w-4" />
