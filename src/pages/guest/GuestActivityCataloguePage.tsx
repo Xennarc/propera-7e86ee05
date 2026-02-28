@@ -25,6 +25,7 @@ import {
 import { getCategoryConfig, coreActivityCategories, ActivityCategoryKey } from '@/lib/activity-category-config';
 import { CategoryChip, CategoryIcon } from '@/components/ui/category-badge';
 import { cn } from '@/lib/utils';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 
 const difficultyColors: Record<DifficultyLevel, string> = {
   EASY: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -168,7 +169,7 @@ export default function GuestActivityCataloguePage() {
   };
 
   return (
-    <div className="space-y-5">
+    <GuestPageShell className="space-y-5">
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold text-foreground">Explore Activities</h1>
@@ -451,6 +452,6 @@ export default function GuestActivityCataloguePage() {
           )}
         </>
       )}
-    </div>
+    </GuestPageShell>
   );
 }

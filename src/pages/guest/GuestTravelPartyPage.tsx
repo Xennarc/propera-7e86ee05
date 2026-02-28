@@ -28,6 +28,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { AddPartyMemberDialog } from '@/components/guest/AddPartyMemberDialog';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { LinkRoomDialog } from '@/components/guest/LinkRoomDialog';
 import { cn } from '@/lib/utils';
 import { MobilePageHeader } from '@/components/guest/MobilePageHeader';
@@ -76,7 +77,7 @@ export default function GuestTravelPartyPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <GuestPageShell className="space-y-4">
       {/* Header */}
       <MobilePageHeader 
         title={travelParty?.name || 'Your Travel Party'}
@@ -246,6 +247,6 @@ export default function GuestTravelPartyPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </GuestPageShell>
   );
 }
