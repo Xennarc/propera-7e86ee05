@@ -350,6 +350,9 @@ function GuestLayoutInner({
         {/* Layout Debug Overlay - only shown with ?debugLayout=1 */}
         <GuestLayoutDebugOverlay />
 
+        {/* UI Debug Overlay - only shown with ?uiDebug=1 */}
+        <GuestUIDebugOverlay />
+
         {/* PWA Debug Overlay - only shown with ?pwaDebug=1 */}
         <GuestPWADebugOverlay />
       </div>
