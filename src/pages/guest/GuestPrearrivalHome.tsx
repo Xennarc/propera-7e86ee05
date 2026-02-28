@@ -166,7 +166,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <GuestPageShell className="space-y-6">
       {/* Welcome Banner */}
       <Card className="guest-hero border-0 shadow-guest-card overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
         <CardContent className="p-5 relative z-10">
@@ -287,7 +287,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
           initialStep={wizardStep}
         />
       </FeatureVisible>
-    </div>
+    </GuestPageShell>
   );
 }
 
