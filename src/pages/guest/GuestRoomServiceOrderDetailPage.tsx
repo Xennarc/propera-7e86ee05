@@ -44,20 +44,18 @@ export default function GuestRoomServiceOrderDetailPage() {
   const { data: order, isLoading, refetch } = useQuery({
     queryKey: ['room-service-order', orderId],
     queryFn: async () => {
-      // Fetch from the orders list RPC and find the specific order
       const { data, error } = await supabase.rpc('guest_get_room_service_orders', {
-        p_resort_id: guest!.resort_id,
-        p_guest_id: guest!.id,
+        p_resort_id: guest!.resortId,
+        p_guest_id: guest!.guestId,
       });
       if (error) throw error;
-      const orders = (data as OrderDetail[]) || [];
+      const orders = (data as unknown as OrderDetail[]) || [];
       return orders.find(o => o.id === orderId) || null;
     },
-    enabled: !!guest?.resort_id && !!guest?.id && !!orderId,
+    enabled: !!guest?.resortId && !!guest?.guestId && !!orderId,
     staleTime: 15_000,
   });
 
-  // Realtime subscription for order status updates
   useEffect(() => {
     if (!orderId) return;
     const channel = supabase
@@ -76,120 +74,121 @@ export default function GuestRoomServiceOrderDetailPage() {
   const isCancelled = order?.status === 'cancelled';
 
   return (
-    <GuestPageShell
-      title="Order Details"
-      icon={<UtensilsCrossed className="h-5 w-5" />}
-    >
-      {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-32 w-full rounded-xl" />
-          <Skeleton className="h-24 w-full rounded-xl" />
+    <GuestPageShell>
+      <div className="px-1">
+        <div className="flex items-center gap-2 mb-4">
+          <UtensilsCrossed className="h-5 w-5 text-primary" />
+          <h1 className="text-lg font-bold text-foreground">Order Details</h1>
         </div>
-      ) : !order ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-muted-foreground">Order not found.</p>
-        </div>
-      ) : (
-        <div className="space-y-6 pb-8">
-          {/* Status tracker */}
-          {!isCancelled ? (
-            <Card>
-              <CardContent className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {order.estimated_delivery_minutes
-                      ? `Estimated ${order.estimated_delivery_minutes} min`
-                      : 'Preparing your order'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {steps.map((step, idx) => {
-                    const isComplete = idx <= currentStepIndex;
-                    const isCurrent = idx === currentStepIndex;
-                    const Icon = step.icon;
-                    return (
-                      <div key={step.key} className="flex-1 flex flex-col items-center gap-1.5">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                          isComplete ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-                          isCurrent && 'ring-2 ring-primary/30'
-                        )}>
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <span className={cn(
-                          "text-[10px] text-center leading-tight",
-                          isComplete ? 'text-primary font-medium' : 'text-muted-foreground'
-                        )}>{step.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-destructive/30">
-              <CardContent className="p-4 flex items-center gap-3">
-                <XCircle className="h-5 w-5 text-destructive" />
-                <span className="text-sm text-destructive font-medium">This order was cancelled</span>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Items */}
-          <Card>
-            <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-foreground">Items</h3>
-              {order.items.map((item, idx) => (
-                <div key={item.id}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{item.quantity}×</span>
-                      <span className="text-sm text-foreground">{item.item_name}</span>
-                    </div>
-                    <span className="text-sm text-foreground">{order.currency} {(Number(item.unit_price) * item.quantity).toFixed(2)}</span>
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
+        ) : !order ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-muted-foreground">Order not found.</p>
+          </div>
+        ) : (
+          <div className="space-y-6 pb-8">
+            {!isCancelled ? (
+              <Card>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {order.estimated_delivery_minutes
+                        ? `Estimated ${order.estimated_delivery_minutes} min`
+                        : 'Preparing your order'}
+                    </span>
                   </div>
-                  {item.special_requests && (
-                    <p className="text-xs text-muted-foreground ml-6 mt-0.5">"{item.special_requests}"</p>
-                  )}
-                  {idx < order.items.length - 1 && <Separator className="mt-2" />}
-                </div>
-              ))}
-              <Separator />
-              <div className="flex items-center justify-between pt-1">
-                <span className="font-medium text-foreground">Total</span>
-                <span className="font-bold text-primary">{order.currency} {Number(order.total_amount).toFixed(2)}</span>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex items-center gap-1">
+                    {steps.map((step, idx) => {
+                      const isComplete = idx <= currentStepIndex;
+                      const isCurrent = idx === currentStepIndex;
+                      const Icon = step.icon;
+                      return (
+                        <div key={step.key} className="flex-1 flex flex-col items-center gap-1.5">
+                          <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
+                            isComplete ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                            isCurrent && 'ring-2 ring-primary/30'
+                          )}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <span className={cn(
+                            "text-[10px] text-center leading-tight",
+                            isComplete ? 'text-primary font-medium' : 'text-muted-foreground'
+                          )}>{step.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-destructive/30">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  <span className="text-sm text-destructive font-medium">This order was cancelled</span>
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Details */}
-          <Card>
-            <CardContent className="p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Room</span>
-                <span className="text-foreground font-medium">{order.room_number}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Placed</span>
-                <span className="text-foreground">{format(parseISO(order.created_at), 'MMM d, h:mm a')}</span>
-              </div>
-              {order.delivered_at && (
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Items</h3>
+                {order.items.map((item, idx) => (
+                  <div key={item.id}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{item.quantity}×</span>
+                        <span className="text-sm text-foreground">{item.item_name}</span>
+                      </div>
+                      <span className="text-sm text-foreground">{order.currency} {(Number(item.unit_price) * item.quantity).toFixed(2)}</span>
+                    </div>
+                    {item.special_requests && (
+                      <p className="text-xs text-muted-foreground ml-6 mt-0.5">"{item.special_requests}"</p>
+                    )}
+                    {idx < order.items.length - 1 && <Separator className="mt-2" />}
+                  </div>
+                ))}
+                <Separator />
+                <div className="flex items-center justify-between pt-1">
+                  <span className="font-medium text-foreground">Total</span>
+                  <span className="font-bold text-primary">{order.currency} {Number(order.total_amount).toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Delivered</span>
-                  <span className="text-foreground">{format(parseISO(order.delivered_at), 'h:mm a')}</span>
+                  <span className="text-muted-foreground">Room</span>
+                  <span className="text-foreground font-medium">{order.room_number}</span>
                 </div>
-              )}
-              {order.special_instructions && (
-                <div>
-                  <span className="text-muted-foreground">Notes</span>
-                  <p className="text-foreground mt-0.5">"{order.special_instructions}"</p>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Placed</span>
+                  <span className="text-foreground">{format(parseISO(order.created_at), 'MMM d, h:mm a')}</span>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                {order.delivered_at && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivered</span>
+                    <span className="text-foreground">{format(parseISO(order.delivered_at), 'h:mm a')}</span>
+                  </div>
+                )}
+                {order.special_instructions && (
+                  <div>
+                    <span className="text-muted-foreground">Notes</span>
+                    <p className="text-foreground mt-0.5">"{order.special_instructions}"</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
     </GuestPageShell>
   );
 }
