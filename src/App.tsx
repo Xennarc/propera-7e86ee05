@@ -118,6 +118,14 @@ const LoyaltyProgramSettingsPage = lazy(() => import("./pages/loyalty/LoyaltyPro
 const LoyaltyTiersPage = lazy(() => import("./pages/loyalty/LoyaltyTiersPage"));
 const LoyaltyMemberDetailPage = lazy(() => import("./pages/loyalty/LoyaltyMemberDetailPage"));
 
+// Room Service / In-Villa Dining
+const StaffRoomServiceOrdersPage = lazy(() => import("./pages/staff/StaffRoomServiceOrdersPage"));
+const StaffRoomServiceOrderDetailPage = lazy(() => import("./pages/staff/StaffRoomServiceOrderDetailPage"));
+const GuestRoomServiceMenuPage = lazy(() => import("./pages/guest/GuestRoomServiceMenuPage"));
+const GuestRoomServiceCartPage = lazy(() => import("./pages/guest/GuestRoomServiceCartPage"));
+const GuestRoomServiceOrdersPage = lazy(() => import("./pages/guest/GuestRoomServiceOrdersPage"));
+const GuestRoomServiceOrderDetailPage = lazy(() => import("./pages/guest/GuestRoomServiceOrderDetailPage"));
+
 // Vendor pages
 const VendorsPage = lazy(() => import("./pages/vendors/VendorsPage"));
 const VendorAttentionPage = lazy(() => import("./pages/vendors/VendorAttentionPage"));
@@ -279,6 +287,8 @@ const App = () => (
                   <Route path="vendors" element={<VendorsPage />} />
                   <Route path="vendors/attention" element={<VendorAttentionPage />} />
                   <Route path="vendors/:vendorId" element={<VendorDetailPage />} />
+                  <Route path="room-service/orders" element={<StaffRoomServiceOrdersPage />} />
+                  <Route path="room-service/orders/:orderId" element={<StaffRoomServiceOrderDetailPage />} />
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
@@ -369,6 +379,10 @@ const App = () => (
                   <Route path="requests/my" element={<GuestMyRequestsPage />} />
                   <Route path="buggy" element={<GuestBuggyRequestPage />} />
                   <Route path="my-rides" element={<GuestMyRidesPage />} />
+                  <Route path="room-service" element={<GuestRoomServiceMenuPage />} />
+                  <Route path="room-service/cart" element={<GuestRoomServiceCartPage />} />
+                  <Route path="room-service/orders" element={<GuestRoomServiceOrdersPage />} />
+                  <Route path="room-service/orders/:orderId" element={<GuestRoomServiceOrderDetailPage />} />
                   <Route path="*" element={<GuestNotFound />} />
                 </Route>
                 

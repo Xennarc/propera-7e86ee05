@@ -49,7 +49,8 @@
     "logout": "Logout",
     "notifications": "Notifications",
     "loyalty": "Rewards",
-    "ride": "Ride"
+    "ride": "Ride",
+    "inVillaDining": "Dining"
   },
   "home": {
     "goodMorning": "Good morning",

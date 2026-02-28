@@ -17,7 +17,7 @@ import {
   IconActivities,
   IconBookings,
 } from '@/components/icons/ProperaIcons';
-import { Bell, Lock, Car, Crown } from 'lucide-react';
+import { Bell, Lock, Car, Crown, UtensilsCrossed } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface NavItemDef {
@@ -58,6 +58,15 @@ const bookingsNavItem: NavItemDef = {
   labelKey: 'nav.bookings', 
   href: GUEST_ROUTES.BOOKINGS, 
   key: 'guest-bookings',
+};
+
+const roomServiceNavItem: NavItemDef = {
+  icon: UtensilsCrossed,
+  labelKey: 'nav.inVillaDining',
+  href: GUEST_ROUTES.ROOM_SERVICE,
+  key: 'guest-room-service',
+  restrictPrearrival: true,
+  featureFlag: 'enable_room_service',
 };
 
 const loyaltyNavItem: NavItemDef = { 
@@ -153,17 +162,25 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
   const transportEnabled = hasCachedFlags 
     ? flagContext.isEnabledEffective('enable_transport_guest_booking') 
     : false;
+  const roomServiceEnabled = hasCachedFlags
+    ? flagContext.isEnabledEffective('enable_room_service')
+    : false;
 
   // Build nav items based on feature flags
   const navItems = useMemo(() => {
     const items: NavItemDef[] = [...coreNavItems];
+
+    // Add room service if enabled
+    if (roomServiceEnabled) {
+      items.push(roomServiceNavItem);
+    }
 
     // Add transport if enabled
     if (transportEnabled) {
       items.push(transportNavItem);
     }
 
-    // Add requests if enabled (shows regardless of transport status - both can coexist in nav)
+    // Add requests if enabled
     if (requestsEnabled) {
       items.push(requestsNavItem);
     }
@@ -177,7 +194,7 @@ export function GuestBottomNav({ isLoyaltyEnabled = false }: GuestBottomNavProps
     }
 
     return items;
-  }, [transportEnabled, requestsEnabled, isLoyaltyEnabled]);
+  }, [transportEnabled, requestsEnabled, roomServiceEnabled, isLoyaltyEnabled]);
 
   // Show skeleton during initial load (no cached data)
   if (isLoading) {
