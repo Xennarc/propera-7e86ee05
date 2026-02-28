@@ -267,7 +267,7 @@ function GuestLayoutInner({
     <GuestAccessGate resortName={guest?.resortName}>
       <SkipLink />
       <div 
-        className="guest-branded guest-page-bg fixed inset-0 flex flex-col bg-background overflow-hidden"
+        className="guest-branded guest-page-bg fixed left-0 right-0 top-0 h-[100dvh] flex flex-col bg-background overflow-hidden"
         style={brandingStyles}
       >
         {/* Mobile-optimized Header with glassmorphism */}
