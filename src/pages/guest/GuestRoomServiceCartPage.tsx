@@ -146,24 +146,69 @@ export default function GuestRoomServiceCartPage() {
             );
           })}
 
+          {/* Schedule delivery */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">Schedule delivery</span>
+                </div>
+                {scheduledFor ? (
+                  <Button variant="ghost" size="sm" onClick={() => setScheduledFor(null)} className="text-xs text-muted-foreground">
+                    Clear
+                  </Button>
+                ) : null}
+              </div>
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {[
+                  { label: 'ASAP', value: null },
+                  { label: 'In 30 min', value: 30 },
+                  { label: 'In 1 hour', value: 60 },
+                  { label: 'In 2 hours', value: 120 },
+                ].map(opt => {
+                  const isSelected = opt.value === null ? !scheduledFor : false;
+                  const optValue = opt.value ? new Date(Date.now() + opt.value * 60_000).toISOString() : null;
+                  const isThisSelected = opt.value === null ? !scheduledFor : scheduledFor === optValue;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setScheduledFor(opt.value ? new Date(Date.now() + opt.value * 60_000).toISOString() : null)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        (opt.value === null && !scheduledFor)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Notes */}
           <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                ⚠️ Allergy notes
+              </label>
+              <Textarea
+                value={allergyNotes}
+                onChange={e => setAllergyNotes(e.target.value)}
+                placeholder="e.g. Nut allergy, gluten free..."
+                className="resize-none text-base mt-1 border-destructive/20 focus-visible:border-destructive/40"
+                rows={2}
+              />
+            </div>
             <div>
               <label className="text-sm font-medium text-foreground">Delivery notes</label>
               <Textarea
                 value={deliveryNotes}
                 onChange={e => setDeliveryNotes(e.target.value)}
-                placeholder="e.g. Ring doorbell, leave at door..."
-                className="resize-none text-base mt-1"
-                rows={2}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Allergy notes</label>
-              <Textarea
-                value={allergyNotes}
-                onChange={e => setAllergyNotes(e.target.value)}
-                placeholder="e.g. Nut allergy, gluten free..."
+                placeholder="e.g. Ring doorbell, leave at door, extra cutlery..."
                 className="resize-none text-base mt-1"
                 rows={2}
               />
