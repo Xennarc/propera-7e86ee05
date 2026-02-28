@@ -682,7 +682,7 @@ export default function GuestMyBookings() {
 
       {/* Quick Filter Tabs */}
       {!isEmpty && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+        <div className="guest-chip-row">
           {[
             { value: 'all', label: t('bookings.all'), icon: IconBookings, count: totalUpcoming },
             { value: 'activities', label: t('bookings.filterActivities'), icon: IconActivities, count: upcomingActivities.length },

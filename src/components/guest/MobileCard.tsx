@@ -27,7 +27,7 @@ export const MobileCard = forwardRef<HTMLDivElement, MobileCardProps>(
         ref={ref as any}
         onClick={onClick}
         className={cn(
-          "w-full text-left rounded-xl border border-border/50 bg-card overflow-hidden",
+          "w-full text-left guest-card overflow-hidden",
           "transition-all duration-150",
           onClick && "cursor-pointer active:scale-[0.98] hover:shadow-soft hover:border-border/80 tap-target",
           muted && "opacity-60",
