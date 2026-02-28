@@ -1646,8 +1646,7 @@
 
   /* === Premium Guest Page Background === */
   .guest-page-bg {
-    position: relative;
-    min-height: 100vh;
+    /* Sizing handled by fixed inset-0 in Tailwind; no min-height needed */
   }
 
   .guest-page-bg::before {
