@@ -20,6 +20,7 @@ import { IconActivities, IconRestaurants } from '@/components/icons/ProperaIcons
 import { Button } from '@/components/ui/button';
 import { ErrorState } from '@/components/ui/error-state';
 import type { ActiveStay } from '@/hooks/useActiveStay';
+import { GuestPageShell } from '@/components/guest/GuestPageShell';
 
 interface GuestPrearrivalHomeProps {
   activeStay?: ActiveStay | null;
@@ -104,7 +105,7 @@ function GuestPrearrivalHomeContent({ activeStay }: GuestPrearrivalHomeProps) {
   // If pre-arrival form is disabled, still show basic countdown + booking access
   if (!settings?.is_enabled) {
     return (
-      <div className="space-y-6">
+      <GuestPageShell className="space-y-6">
         {/* Welcome Banner (simplified) */}
         <Card className="guest-hero border-0 shadow-guest-card overflow-hidden bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
           <CardContent className="p-5 relative z-10">
