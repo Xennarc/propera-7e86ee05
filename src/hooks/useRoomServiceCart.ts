@@ -1,6 +1,6 @@
 /**
  * Room Service cart state management.
- * Uses sessionStorage for persistence across page navigations.
+ * Uses localStorage for persistence across page navigations.
  * Supports modifiers and per-item notes.
  */
 

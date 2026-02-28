@@ -2,7 +2,7 @@
  * Guest In-Villa Dining — Cart / Order Review
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { GUEST_ROUTES, guestPath } from '@/routes/guestRoutes';
@@ -27,6 +27,8 @@ export default function GuestRoomServiceCartPage() {
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [allergyNotes, setAllergyNotes] = useState('');
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+  // Stable idempotency key: generated once per cart session to prevent double-submit
+  const idempotencyKeyRef = useRef(crypto.randomUUID());
 
   const currency = cart[0]?.menuItem.currency || 'USD';
 
@@ -39,10 +41,10 @@ export default function GuestRoomServiceCartPage() {
         notes: c.notes || null,
         modifiers: c.modifiers.map(m => m.id),
       }));
-      const { data, error } = await supabase.rpc('room_service_create_order_idempotent', {
+      const { data, error } = await supabase.rpc('room_service_create_order_idempotent' as any, {
         p_resort_id: guest.resortId,
         p_guest_id: guest.guestId,
-        p_idempotency_key: crypto.randomUUID(),
+        p_idempotency_key: idempotencyKeyRef.current,
         p_items: items as any,
         p_delivery_notes: deliveryNotes || null,
         p_allergy_notes: allergyNotes || null,
@@ -51,7 +53,9 @@ export default function GuestRoomServiceCartPage() {
       if (error) throw error;
       return data as any;
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
+      // Reset idempotency key for next order
+      idempotencyKeyRef.current = crypto.randomUUID();
       clearCart();
       queryClient.invalidateQueries({ queryKey: ['room-service-orders'] });
       toast({ title: 'Order placed', description: 'Your order is on its way.' });
