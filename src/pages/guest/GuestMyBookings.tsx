@@ -14,15 +14,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import {
   Collapsible,
   CollapsibleContent,
@@ -73,6 +72,11 @@ export default function GuestMyBookings() {
     type: 'activity' | 'restaurant';
     id: string;
     title: string;
+    date?: string;
+    start_time?: string;
+    guest_can_cancel?: boolean;
+    guest_cancel_cutoff_hours?: number;
+    guest_cancel_cutoff_minutes?: number;
   } | null>(null);
   const [editDialog, setEditDialog] = useState<{
     id: string;
