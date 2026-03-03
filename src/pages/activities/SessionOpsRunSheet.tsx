@@ -47,11 +47,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoveSessionSheet } from '@/components/activities/ops/MoveSessionSheet';
-import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
-import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
+import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
+import { useSessionBookingReadiness } from '@/hooks/useActivityBookingReadiness';
+import { parseActivityRequirements, type ActivityRequirements } from '@/lib/activity-requirements';
 import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
