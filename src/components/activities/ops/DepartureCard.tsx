@@ -3,7 +3,7 @@
  * Mobile-first: radius 16, padding 16, min-height 104.
  */
 import { useNavigate } from 'react-router-dom';
-import { OpsStatusChip, OpsStatus } from './OpsStatusChip';
+import { StatusChip } from '@/components/ui/status-chip';
 import { Users, Clock, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +16,7 @@ import {
 export interface DepartureCardData {
   sessionId: string;
   activityName: string;
-  status: OpsStatus;
+  status: string;
   startTime: string; // HH:mm
   endTime: string;
   date: string; // YYYY-MM-DD
@@ -33,15 +33,13 @@ export function DepartureCard({ data }: DepartureCardProps) {
   const navigate = useNavigate();
 
   return (
-    <div
-      className="rounded-2xl border border-border/40 bg-card p-4 min-h-[104px] flex flex-col gap-2.5 shadow-soft"
-    >
+    <div className="ops-surface min-h-[104px] flex flex-col gap-2.5">
       {/* Header: name + chip */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold text-foreground truncate flex-1">
           {data.activityName}
         </h3>
-        <OpsStatusChip status={data.status} />
+        <StatusChip status={data.status} />
       </div>
 
       {/* Meta row */}
