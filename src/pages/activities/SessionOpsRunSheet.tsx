@@ -513,6 +513,16 @@ export default function SessionOpsRunSheet() {
                   </button>
                 ))}
               </div>
+              {/* Readiness summary */}
+              {guestRows.length > 0 && (
+                <div className="flex items-center gap-3 text-xs font-medium">
+                  <span className="text-success">{readinessCounts.ready} Ready</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className={readinessCounts.missing > 0 ? 'text-warning' : 'text-muted-foreground'}>
+                    {readinessCounts.missing} Missing
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Guest list */}
@@ -540,6 +550,7 @@ export default function SessionOpsRunSheet() {
                     key={g.bookingId}
                     data={g}
                     checkInOpen={checkInOpen}
+                    requirements={activityRequirements}
                     onMarkArrived={canEdit ? markArrived : undefined}
                     onMoveSession={canEdit ? (id) => setMoveBookingId(id) : undefined}
                     onCancel={canEdit ? (id) => setCancelBookingId(id) : undefined}
