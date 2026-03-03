@@ -452,17 +452,11 @@ export default function GuestActivityBookingPage() {
                   : "You can find this in 'My Bookings' at any time."}
             </p>
             
-            {/* Prepare card for eligible activities */}
-            {guest && ['DIVE', 'WATERSPORT', 'EXCURSION'].includes(session.category) && bookingResult.bookingId && (
-              <PrepareCard
-                bookingId={bookingResult.bookingId}
-                guestId={guest.guestId}
-                resortId={guest.resortId}
-                activityName={session.activity_name}
-                category={session.category}
-                variant="full"
-                className="mb-4"
-              />
+            {/* PrepareCard will be available in My Bookings after navigating */}
+            {['DIVE', 'WATERSPORT', 'EXCURSION'].includes(session.category) && (
+              <p className="text-sm text-primary font-medium mb-4">
+                ✨ Complete your preparation steps in My Bookings
+              </p>
             )}
             
             <div className="space-y-2">
