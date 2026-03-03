@@ -650,6 +650,23 @@ function SessionOpsRunSheetContent() {
             {/* Equipment assignment */}
             <EquipmentAssignmentCard sessionId={session.id} resortId={session.resort_id} equipmentConflicts={conflicts?.conflicting_equipment} />
 
+            {/* Pickup plan (only for activities that require pickup) */}
+            {activityRequirements.requires_pickup && (
+              <PickupPlanCard
+                sessionId={session.id}
+                resortId={session.resort_id}
+                activityName={session.activity.name}
+                sessionTime={session.start_time.slice(0, 5)}
+                guests={activeBookings.map(b => ({
+                  bookingId: b.id,
+                  guestId: b.guest_id,
+                  guestName: b.guest.full_name,
+                  roomNumber: b.room_number,
+                  partySize: b.num_adults + b.num_children,
+                }))}
+              />
+            )}
+
             {/* Legacy assets panel */}
             <SessionAssetsPanel
               sessionId={session.id}
