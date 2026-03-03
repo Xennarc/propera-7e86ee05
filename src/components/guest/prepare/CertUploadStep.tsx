@@ -75,6 +75,7 @@ export function CertUploadStep({ bookingId, resortId, guestId, onComplete, onBac
           updates: {
             cert_status: 'uploaded' as any,
             cert_media_path: path,
+            cert_verification_status: 'unverified' as any,
           },
         },
         {
