@@ -82,6 +82,7 @@ export type Database = {
           min_capacity: number | null
           name: string
           provider_type: Database["public"]["Enums"]["provider_type"]
+          requirements_json: Json | null
           requires_approval: boolean
           resort_id: string
           short_description: string | null
@@ -118,6 +119,7 @@ export type Database = {
           min_capacity?: number | null
           name: string
           provider_type?: Database["public"]["Enums"]["provider_type"]
+          requirements_json?: Json | null
           requires_approval?: boolean
           resort_id: string
           short_description?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           min_capacity?: number | null
           name?: string
           provider_type?: Database["public"]["Enums"]["provider_type"]
+          requirements_json?: Json | null
           requires_approval?: boolean
           resort_id?: string
           short_description?: string | null
