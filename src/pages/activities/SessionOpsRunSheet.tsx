@@ -47,11 +47,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoveSessionSheet } from '@/components/activities/ops/MoveSessionSheet';
-import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
-import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
+import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
+import { useSessionBookingReadiness } from '@/hooks/useActivityBookingReadiness';
+import { parseActivityRequirements, type ActivityRequirements } from '@/lib/activity-requirements';
 import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -94,9 +95,18 @@ export default function SessionOpsRunSheet() {
   const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all');
   const [manifestSearch, setManifestSearch] = useState('');
 
-  // DB-backed readiness
+  // DB-backed readiness (new status-based model)
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
-  const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
+  const { data: readinessMap = {} } = useSessionBookingReadiness(sessionId, bookingIds);
+
+  // Activity requirements (parsed once session loads)
+  const activityRequirements: ActivityRequirements = useMemo(() => {
+    if (!session?.activity) return parseActivityRequirements(null);
+    return parseActivityRequirements(
+      session.activity.requirements_json,
+      session.activity.category,
+    );
+  }, [session?.activity]);
 
   // Real session events
   const { data: sessionEvents = [] } = useSessionEvents(sessionId);
@@ -236,19 +246,46 @@ export default function SessionOpsRunSheet() {
         partySize: paxCount(b),
         isVip: b.guest.is_vip,
         bookingStatus: b.status,
-        waiver: dbR ? dbR.waiver_signed : null,
-        medical: null,
-        cert: dbR ? dbR.cert_verified : null,
-        gear: dbR ? (dbR.sizes_confirmed && dbR.gear_confirmed) : null,
+        waiver: dbR ? statusToReadinessState(dbR.waiver_status) : null,
+        medical: dbR ? statusToReadinessState(dbR.medical_status) : null,
+        cert: dbR ? statusToReadinessState(dbR.cert_status) : null,
+        gear: dbR ? statusToReadinessState(dbR.gear_status) : null,
+        waiverStatus: (dbR?.waiver_status ?? 'unknown') as ReadinessStatus,
+        medicalStatus: (dbR?.medical_status ?? 'unknown') as ReadinessStatus,
+        certStatus: (dbR?.cert_status ?? 'unknown') as ReadinessStatus,
+        gearStatus: (dbR?.gear_status ?? 'unknown') as ReadinessStatus,
       };
     });
   }, [activeBookings, readinessMap]);
+
+  /** Count guests whose required readiness is all complete vs missing something */
+  const readinessCounts = useMemo(() => {
+    let ready = 0;
+    let missing = 0;
+    for (const g of guestRows) {
+      const allDone =
+        isReadinessComplete(g.waiverStatus, activityRequirements.requires_waiver) &&
+        isReadinessComplete(g.medicalStatus, activityRequirements.requires_medical) &&
+        isReadinessComplete(g.certStatus, activityRequirements.requires_cert) &&
+        isReadinessComplete(g.gearStatus, activityRequirements.requires_gear);
+      if (allDone) ready++;
+      else missing++;
+    }
+    return { ready, missing };
+  }, [guestRows, activityRequirements]);
 
   const filteredGuests = useMemo(() => {
     let result = guestRows;
 
     if (manifestFilter === 'missing') {
-      result = result.filter(g => g.waiver === false || g.cert === false || g.gear === false || g.medical === false);
+      result = result.filter(g => {
+        return (
+          !isReadinessComplete(g.waiverStatus, activityRequirements.requires_waiver) ||
+          !isReadinessComplete(g.medicalStatus, activityRequirements.requires_medical) ||
+          !isReadinessComplete(g.certStatus, activityRequirements.requires_cert) ||
+          !isReadinessComplete(g.gearStatus, activityRequirements.requires_gear)
+        );
+      });
     } else if (manifestFilter === 'arrived') {
       result = result.filter(g => g.bookingStatus === 'COMPLETED');
     } else if (manifestFilter === 'not_arrived') {
@@ -261,7 +298,7 @@ export default function SessionOpsRunSheet() {
     }
 
     return result;
-  }, [guestRows, manifestFilter, manifestSearch]);
+  }, [guestRows, manifestFilter, manifestSearch, activityRequirements]);
 
   // ── Derived state from real session status ──────────────────────────
 
@@ -476,6 +513,16 @@ export default function SessionOpsRunSheet() {
                   </button>
                 ))}
               </div>
+              {/* Readiness summary */}
+              {guestRows.length > 0 && (
+                <div className="flex items-center gap-3 text-xs font-medium">
+                  <span className="text-success">{readinessCounts.ready} Ready</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className={readinessCounts.missing > 0 ? 'text-warning' : 'text-muted-foreground'}>
+                    {readinessCounts.missing} Missing
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Guest list */}
@@ -503,6 +550,7 @@ export default function SessionOpsRunSheet() {
                     key={g.bookingId}
                     data={g}
                     checkInOpen={checkInOpen}
+                    requirements={activityRequirements}
                     onMarkArrived={canEdit ? markArrived : undefined}
                     onMoveSession={canEdit ? (id) => setMoveBookingId(id) : undefined}
                     onCancel={canEdit ? (id) => setCancelBookingId(id) : undefined}

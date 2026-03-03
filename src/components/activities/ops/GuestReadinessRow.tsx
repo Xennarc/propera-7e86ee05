@@ -1,6 +1,7 @@
 /**
  * GuestReadinessRow – Guest card for the manifest tab.
  * Radius 14, padding 12, min-height 72.
+ * Now supports activity requirements to hide irrelevant readiness icons.
  */
 import { OpsStatusChip, OpsStatus } from './OpsStatusChip';
 import { Button } from '@/components/ui/button';
@@ -20,16 +21,31 @@ import {
   Eye,
   MoreVertical,
   AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { ActivityRequirements } from '@/lib/activity-requirements';
 
 type ReadinessState = true | false | null; // done | missing | unknown
+
+/** Extended: 'review' maps to false but gets a distinct icon */
+export type ReadinessStatus = 'unknown' | 'complete' | 'uploaded' | 'not_required' | 'missing' | 'review';
 
 /** Map status-string values from activity_booking_readiness → boolean|null */
 export function statusToReadinessState(status: string | undefined): ReadinessState {
   if (!status || status === 'unknown') return null;
   if (status === 'complete' || status === 'uploaded' || status === 'not_required') return true;
   return false; // 'missing', 'review'
+}
+
+/** Check if a specific readiness requirement is fulfilled given activity requirements */
+export function isReadinessComplete(
+  status: string | undefined,
+  isRequired: boolean,
+): boolean {
+  if (!isRequired) return true; // not required = always complete
+  if (!status || status === 'unknown' || status === 'missing' || status === 'review') return false;
+  return true; // complete, uploaded, not_required
 }
 
 export interface GuestReadinessData {
@@ -43,41 +59,69 @@ export interface GuestReadinessData {
   medical: ReadinessState;
   cert: ReadinessState;
   gear: ReadinessState;
+  /** Raw status strings for richer icon display */
+  waiverStatus?: ReadinessStatus;
+  medicalStatus?: ReadinessStatus;
+  certStatus?: ReadinessStatus;
+  gearStatus?: ReadinessStatus;
 }
 
 interface GuestReadinessRowProps {
   data: GuestReadinessData;
   checkInOpen: boolean;
+  /** Activity requirements – icons for non-required items are hidden */
+  requirements?: ActivityRequirements;
   onMarkArrived?: (bookingId: string) => void;
   onMoveSession?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
 }
 
 const READINESS_ICONS = [
-  { key: 'waiver' as const, label: 'Waiver', Icon: ShieldCheck },
-  { key: 'medical' as const, label: 'Medical', Icon: HeartPulse },
-  { key: 'cert' as const, label: 'Cert', Icon: Award },
-  { key: 'gear' as const, label: 'Gear', Icon: Ruler },
+  { key: 'waiver' as const, reqKey: 'requires_waiver' as const, label: 'Waiver', Icon: ShieldCheck },
+  { key: 'medical' as const, reqKey: 'requires_medical' as const, label: 'Medical', Icon: HeartPulse },
+  { key: 'cert' as const, reqKey: 'requires_cert' as const, label: 'Cert', Icon: Award },
+  { key: 'gear' as const, reqKey: 'requires_gear' as const, label: 'Gear', Icon: Ruler },
 ];
 
-function ReadinessIcon({ state, Icon, label }: { state: ReadinessState; Icon: typeof ShieldCheck; label: string }) {
+function ReadinessIcon({ state, rawStatus, Icon, label }: { state: ReadinessState; rawStatus?: ReadinessStatus; Icon: typeof ShieldCheck; label: string }) {
+  const isReview = rawStatus === 'review';
   return (
     <span
-      title={`${label}: ${state === null ? 'Unknown' : state ? 'Done' : 'Missing'}`}
+      title={`${label}: ${state === null ? 'Unknown' : isReview ? 'Needs Review' : state ? 'Done' : 'Missing'}`}
       className={cn(
         'flex items-center justify-center h-7 w-7 rounded-md',
         state === true && 'bg-success/15 text-success',
-        state === false && 'bg-warning/15 text-warning',
+        state === false && !isReview && 'bg-warning/15 text-warning',
+        state === false && isReview && 'bg-amber-500/15 text-amber-600',
         state === null && 'bg-muted/60 text-muted-foreground/50',
       )}
     >
-      {state === null ? <HelpCircle className="h-3.5 w-3.5" /> : state === false ? <AlertTriangle className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+      {state === null ? (
+        <HelpCircle className="h-3.5 w-3.5" />
+      ) : isReview ? (
+        <AlertCircle className="h-3.5 w-3.5" />
+      ) : state === false ? (
+        <AlertTriangle className="h-3.5 w-3.5" />
+      ) : (
+        <Icon className="h-3.5 w-3.5" />
+      )}
     </span>
   );
 }
 
-export function GuestReadinessRow({ data, checkInOpen, onMarkArrived, onMoveSession, onCancel }: GuestReadinessRowProps) {
+export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArrived, onMoveSession, onCancel }: GuestReadinessRowProps) {
   const readiness = { waiver: data.waiver, medical: data.medical, cert: data.cert, gear: data.gear };
+  const rawStatuses = {
+    waiver: data.waiverStatus,
+    medical: data.medicalStatus,
+    cert: data.certStatus,
+    gear: data.gearStatus,
+  };
+
+  // Filter icons to only those required by the activity
+  const visibleIcons = requirements
+    ? READINESS_ICONS.filter(item => requirements[item.reqKey])
+    : READINESS_ICONS;
 
   return (
     <div className="rounded-[14px] border border-border/40 bg-card p-3 min-h-[72px] flex items-center gap-3">
@@ -96,12 +140,23 @@ export function GuestReadinessRow({ data, checkInOpen, onMarkArrived, onMoveSess
         </p>
       </div>
 
-      {/* Readiness grid 2x2 */}
-      <div className="grid grid-cols-2 gap-0.5 shrink-0">
-        {READINESS_ICONS.map(({ key, label, Icon }) => (
-          <ReadinessIcon key={key} state={readiness[key]} Icon={Icon} label={label} />
-        ))}
-      </div>
+      {/* Readiness grid – dynamic columns based on visible icons */}
+      {visibleIcons.length > 0 && (
+        <div className={cn(
+          'grid gap-0.5 shrink-0',
+          visibleIcons.length <= 2 ? 'grid-cols-2' : 'grid-cols-2',
+        )}>
+          {visibleIcons.map(({ key, label, Icon }) => (
+            <ReadinessIcon
+              key={key}
+              state={readiness[key]}
+              rawStatus={rawStatuses[key]}
+              Icon={Icon}
+              label={label}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Quick action */}
       {checkInOpen && data.bookingStatus === 'CONFIRMED' && onMarkArrived ? (
