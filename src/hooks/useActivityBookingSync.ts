@@ -96,6 +96,20 @@ export function useActivityBookingSync({
     }
   }, [queryClient, resortId]);
 
+  const handleReadinessChange = useCallback((payload: any) => {
+    const changedBookingId = payload.new?.booking_id || payload.old?.booking_id;
+    const changedSessionId = payload.new?.session_id || payload.old?.session_id;
+
+    if (changedBookingId) {
+      queryClient.invalidateQueries({ queryKey: ['activity-booking-readiness', changedBookingId] });
+    }
+    if (changedSessionId) {
+      queryClient.invalidateQueries({ queryKey: ['activity-booking-readiness-session', changedSessionId] });
+    }
+    // Staff ops inbox readiness
+    queryClient.invalidateQueries({ queryKey: ['ops-inbox-readiness'] });
+  }, [queryClient]);
+
   useEffect(() => {
     if (!enabled || !resortId) return;
     
@@ -129,12 +143,22 @@ export function useActivityBookingSync({
         },
         handleBookingChange
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'activity_booking_readiness',
+          filter,
+        },
+        handleReadinessChange
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [enabled, resortId, sessionId, guestId, handleBookingChange, skipLegacyChannel]);
+  }, [enabled, resortId, sessionId, guestId, handleBookingChange, handleReadinessChange, skipLegacyChannel]);
 }
 
 /**
