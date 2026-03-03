@@ -178,6 +178,83 @@ export type Database = {
           },
         ]
       }
+      activity_booking_readiness: {
+        Row: {
+          booking_id: string
+          cert_media_path: string | null
+          cert_status: string
+          created_at: string
+          gear_json: Json | null
+          gear_status: string
+          guest_id: string
+          id: string
+          medical_status: string
+          resort_id: string
+          session_id: string
+          updated_at: string
+          waiver_status: string
+        }
+        Insert: {
+          booking_id: string
+          cert_media_path?: string | null
+          cert_status?: string
+          created_at?: string
+          gear_json?: Json | null
+          gear_status?: string
+          guest_id: string
+          id?: string
+          medical_status?: string
+          resort_id: string
+          session_id: string
+          updated_at?: string
+          waiver_status?: string
+        }
+        Update: {
+          booking_id?: string
+          cert_media_path?: string | null
+          cert_status?: string
+          created_at?: string
+          gear_json?: Json | null
+          gear_status?: string
+          guest_id?: string
+          id?: string
+          medical_status?: string
+          resort_id?: string
+          session_id?: string
+          updated_at?: string
+          waiver_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_booking_readiness_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_booking_readiness_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_booking_readiness_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_booking_readiness_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_bookings: {
         Row: {
           booking_source:
