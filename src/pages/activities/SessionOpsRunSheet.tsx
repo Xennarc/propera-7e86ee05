@@ -781,6 +781,17 @@ function SessionOpsRunSheetContent() {
         />
       )}
 
+      <DepartureGateModal
+        open={departureGateOpen}
+        onOpenChange={setDepartureGateOpen}
+        blockers={departureBlockers}
+        canOverride={!!canOverrideGate}
+        overriding={transitioning}
+        onOverride={handleDepartureOverride}
+        onFixCert={(id) => setCertVerifyBookingId(id)}
+        onFixMedical={(id) => setMedicalReviewBookingId(id)}
+      />
+
       {certVerifyBookingId && session && (() => {
         const row = guestRows.find(g => g.bookingId === certVerifyBookingId);
         return row ? (
