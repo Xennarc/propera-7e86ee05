@@ -3,15 +3,17 @@
  * Route: /staff/activities/ops/day?date=YYYY-MM-DD&dept=dive
  * Read-only — no write actions.
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { useDailyOpsSheet, type OpsDepartment, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
+import { OpsFilterChips, type OpsFilter } from '@/components/activities/ops/OpsFilterChips';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -27,11 +29,11 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  List,
-  LayoutGrid,
+  ShieldAlert,
 } from 'lucide-react';
-import { format, parseISO, addDays, subDays, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, addDays, subDays, isToday, isTomorrow, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { loadOpsPrefs, saveOpsPrefs } from '@/hooks/useOpsSheetPreferences';
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -43,7 +45,7 @@ const DEPT_TABS: Array<{ key: DeptKey; label: string }> = [
   { key: 'EXCURSION', label: 'Excursions' },
 ];
 
-type SummaryFilter = 'all' | 'missing' | 'conflicts' | 'medical' | 'certs';
+const ATTENTION_CAP = 7;
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -67,6 +69,27 @@ function formatDateLabel(dateStr: string): string {
   return format(d, 'EEE, MMM d');
 }
 
+function isStartingSoon(row: OpsSessionRow, dateStr: string): boolean {
+  try {
+    const sessionStart = new Date(`${dateStr}T${row.start_time}`);
+    const now = new Date();
+    const diff = differenceInMinutes(sessionStart, now);
+    return diff >= 0 && diff <= 90;
+  } catch {
+    return false;
+  }
+}
+
+function hasAnyBlocker(row: OpsSessionRow): boolean {
+  return (
+    row.readiness.missing > 0 ||
+    row.readiness.pending_medical > 0 ||
+    row.readiness.unverified_certs > 0 ||
+    row.conflicts_count > 0 ||
+    (!row.pickup && row.readiness.missing > 0) // placeholder for pickup-needed logic
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 function MasterOpsSheetContent() {
@@ -74,14 +97,24 @@ function MasterOpsSheetContent() {
   const { currentResort } = useResort();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL state
-  const dateParam = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
-  const deptParam = (searchParams.get('dept')?.toUpperCase() || 'DIVE') as DeptKey;
+  // Load persisted prefs
+  const prefs = loadOpsPrefs();
+
+  // URL state with fallback to prefs
+  const dateParam = searchParams.get('date') || prefs.date || format(new Date(), 'yyyy-MM-dd');
+  const deptParam = (searchParams.get('dept')?.toUpperCase() || prefs.dept || 'DIVE') as DeptKey;
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [summaryFilter, setSummaryFilter] = useState<SummaryFilter>('all');
+  const [activeFilter, setActiveFilter] = useState<OpsFilter>((prefs.filter as OpsFilter) || 'all');
+  const [attentionMode, setAttentionMode] = useState(prefs.attentionMode ?? false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // Persist prefs on change
+  useEffect(() => {
+    saveOpsPrefs({ dept: deptParam, date: dateParam, filter: activeFilter, attentionMode });
+  }, [deptParam, dateParam, activeFilter, attentionMode]);
 
   const setDate = useCallback((d: string) => {
     const params = new URLSearchParams(searchParams);
@@ -109,15 +142,31 @@ function MasterOpsSheetContent() {
   const filteredRows = useMemo(() => {
     let result = rows;
 
-    // Summary filter
-    if (summaryFilter === 'missing') {
-      result = result.filter(r => r.readiness.missing > 0);
-    } else if (summaryFilter === 'conflicts') {
-      result = result.filter(r => r.conflicts_count > 0);
-    } else if (summaryFilter === 'medical') {
-      result = result.filter(r => r.readiness.pending_medical > 0);
-    } else if (summaryFilter === 'certs') {
-      result = result.filter(r => r.readiness.unverified_certs > 0);
+    // Attention mode: only sessions with blockers
+    if (attentionMode) {
+      result = result.filter(hasAnyBlocker);
+    }
+
+    // Active filter
+    switch (activeFilter) {
+      case 'starting_soon':
+        result = result.filter(r => isStartingSoon(r, dateParam));
+        break;
+      case 'missing':
+        result = result.filter(r => r.readiness.missing > 0);
+        break;
+      case 'certs':
+        result = result.filter(r => r.readiness.unverified_certs > 0);
+        break;
+      case 'medical':
+        result = result.filter(r => r.readiness.pending_medical > 0);
+        break;
+      case 'pickup':
+        result = result.filter(r => r.pickup != null);
+        break;
+      case 'conflicts':
+        result = result.filter(r => r.conflicts_count > 0);
+        break;
     }
 
     // Search
@@ -131,24 +180,48 @@ function MasterOpsSheetContent() {
     }
 
     return result;
-  }, [rows, summaryFilter, searchQuery]);
+  }, [rows, activeFilter, attentionMode, searchQuery, dateParam]);
+
+  // Attention mode cap
+  const displayRows = useMemo(() => {
+    if (attentionMode && !showAll && filteredRows.length > ATTENTION_CAP) {
+      return filteredRows.slice(0, ATTENTION_CAP);
+    }
+    return filteredRows;
+  }, [filteredRows, attentionMode, showAll]);
+
+  const hasMore = attentionMode && !showAll && filteredRows.length > ATTENTION_CAP;
 
   // Group by time block
   const groupedRows = useMemo(() => {
     const groups = new Map<string, OpsSessionRow[]>();
-    for (const r of filteredRows) {
+    for (const r of displayRows) {
       const block = getTimeBlock(r.start_time);
       const list = groups.get(block) || [];
       list.push(r);
       groups.set(block, list);
     }
     return groups;
-  }, [filteredRows]);
+  }, [displayRows]);
+
+  // Summary pill tap handler — maps pill to filter
+  const handlePillTap = useCallback((key: string) => {
+    const filterMap: Record<string, OpsFilter> = {
+      missing: 'missing',
+      medical: 'medical',
+      certs: 'certs',
+      conflicts: 'conflicts',
+    };
+    const mapped = filterMap[key];
+    if (mapped) {
+      setActiveFilter(prev => prev === mapped ? 'all' : mapped);
+    }
+  }, []);
 
   // KPI pills
-  const kpiPills: Array<{ key: SummaryFilter; label: string; value: number; color: string }> = [
-    { key: 'all', label: 'Sessions', value: summary?.sessions ?? 0, color: 'text-foreground' },
-    { key: 'all', label: 'Guests', value: summary?.total_guests ?? 0, color: 'text-foreground' },
+  const kpiPills: Array<{ key: string; label: string; value: number; color: string }> = [
+    { key: 'sessions', label: 'Sessions', value: summary?.sessions ?? 0, color: 'text-foreground' },
+    { key: 'guests', label: 'Guests', value: summary?.total_guests ?? 0, color: 'text-foreground' },
     { key: 'missing', label: 'Missing Prep', value: summary?.missing_readiness ?? 0, color: summary?.missing_readiness ? 'text-warning' : 'text-muted-foreground' },
     { key: 'medical', label: 'Medical', value: summary?.pending_medical ?? 0, color: summary?.pending_medical ? 'text-amber-600' : 'text-muted-foreground' },
     { key: 'certs', label: 'Certs', value: summary?.unverified_certs ?? 0, color: summary?.unverified_certs ? 'text-destructive' : 'text-muted-foreground' },
@@ -243,25 +316,47 @@ function MasterOpsSheetContent() {
         />
       </div>
 
+      {/* ── B2) Attention Mode + Filter Chips ── */}
+      <div className="sticky top-[158px] z-10 bg-background border-b border-border/20">
+        {/* Attention mode toggle */}
+        <div className="flex items-center justify-between px-4 py-2">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+            <span className="text-xs font-semibold text-foreground">Attention Mode</span>
+          </div>
+          <Switch
+            checked={attentionMode}
+            onCheckedChange={(v) => { setAttentionMode(v); setShowAll(false); }}
+          />
+        </div>
+
+        {/* Filter chips */}
+        <OpsFilterChips
+          activeFilter={activeFilter}
+          onChange={setActiveFilter}
+          summary={summary}
+        />
+      </div>
+
       {/* ── C) Summary Strip ── */}
       {!isLoading && summary && (
-        <div className="sticky top-[158px] z-10 bg-background px-4 py-2 border-b border-border/20">
+        <div className="px-4 py-2 border-b border-border/20">
           <div className="flex gap-2 overflow-x-auto scrollbar-none">
-            {kpiPills.map((pill, i) => (
+            {kpiPills.map((pill) => (
               <button
                 key={`${pill.key}-${pill.label}`}
-                onClick={() => setSummaryFilter(pill.key === summaryFilter ? 'all' : pill.key)}
+                onClick={() => handlePillTap(pill.key)}
                 className={cn(
                   'shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium transition-colors whitespace-nowrap border',
-                  summaryFilter === pill.key && pill.key !== 'all'
+                  activeFilter === pill.key
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-card border-border/40 hover:bg-muted/50',
                 )}
               >
-                <span className={cn('font-bold tabular-nums', summaryFilter !== pill.key ? pill.color : '')}>
+                <span className={cn('font-bold tabular-nums', activeFilter !== pill.key ? pill.color : '')}>
                   {pill.value}
                 </span>
-                <span className={summaryFilter === pill.key && pill.key !== 'all' ? '' : 'text-muted-foreground'}>
+                <span className={activeFilter === pill.key ? '' : 'text-muted-foreground'}>
                   {pill.label}
                 </span>
               </button>
@@ -286,18 +381,22 @@ function MasterOpsSheetContent() {
               Retry
             </Button>
           </div>
-        ) : filteredRows.length === 0 ? (
+        ) : displayRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
             <ClipboardList className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">
               {rows.length === 0
                 ? 'No sessions scheduled'
-                : 'No sessions match filters'}
+                : attentionMode
+                  ? 'No sessions need attention'
+                  : 'No sessions match filters'}
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
               {rows.length === 0
                 ? `${formatDateLabel(dateParam)} · ${DEPT_TABS.find(d => d.key === deptParam)?.label ?? deptParam}`
-                : 'Try adjusting your filters'}
+                : attentionMode
+                  ? 'All sessions look good!'
+                  : 'Try adjusting your filters'}
             </p>
             {rows.length === 0 && (
               <Button
@@ -326,6 +425,20 @@ function MasterOpsSheetContent() {
                 </div>
               );
             })}
+
+            {/* Show all button for attention mode cap */}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAll(true)}
+                  className="text-xs"
+                >
+                  Show all {filteredRows.length} sessions
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
