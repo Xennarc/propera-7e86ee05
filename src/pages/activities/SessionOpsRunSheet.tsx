@@ -28,6 +28,7 @@ import {
   Ship,
   Flag,
   Search,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -87,6 +88,7 @@ export default function SessionOpsRunSheet() {
   const [session, setSession] = useState<SessionWithActivity | null>(null);
   const [bookings, setBookings] = useState<BookingWithGuest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('manifest');
   const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all');
   const [manifestSearch, setManifestSearch] = useState('');
@@ -112,6 +114,7 @@ export default function SessionOpsRunSheet() {
   const fetchData = useCallback(async () => {
     if (!sessionId || !isValidId) return;
     setLoading(true);
+    setFetchError(null);
 
     const { data: sessionData, error } = await supabase
       .from('activity_sessions')
@@ -120,8 +123,8 @@ export default function SessionOpsRunSheet() {
       .single();
 
     if (error || !sessionData) {
-      toast({ variant: 'destructive', title: 'Error', description: error?.message ?? 'Session not found' });
-      navigate('/staff/activities/sessions');
+      setFetchError(error?.message ?? 'Session not found');
+      setLoading(false);
       return;
     }
 
@@ -142,7 +145,7 @@ export default function SessionOpsRunSheet() {
 
   // ── Session lifecycle actions ────────────────────────────────────────
 
-  const logSessionEvent = async (eventType: string, fromStatus: string, toStatus: string) => {
+  const logSessionEvent = useCallback(async (eventType: string, fromStatus: string, toStatus: string) => {
     if (!session) return;
     const { data: { user } } = await supabase.auth.getUser();
     await supabase.from('session_events').insert({
@@ -153,9 +156,9 @@ export default function SessionOpsRunSheet() {
       to_status: toStatus,
       actor_user_id: user?.id ?? null,
     });
-  };
+  }, [session]);
 
-  const transitionSessionStatus = async (newStatus: 'CHECK_IN' | 'DEPARTED' | 'COMPLETED' | 'CANCELLED') => {
+  const transitionSessionStatus = useCallback(async (newStatus: 'CHECK_IN' | 'DEPARTED' | 'COMPLETED' | 'CANCELLED') => {
     if (!session) return;
     setTransitioning(true);
     const oldStatus = session.status;
@@ -178,11 +181,11 @@ export default function SessionOpsRunSheet() {
     }
     setTransitioning(false);
     setStatusConfirm(null);
-  };
+  }, [session, logSessionEvent, toast]);
 
   // ── Per-guest actions ──────────────────────────────────────────────
 
-  const markArrived = async (bookingId: string) => {
+  const markArrived = useCallback(async (bookingId: string) => {
     const { error } = await supabase
       .from('activity_bookings')
       .update({ status: 'COMPLETED' as any })
@@ -194,9 +197,9 @@ export default function SessionOpsRunSheet() {
       toast({ title: 'Checked in', description: 'Guest marked as arrived' });
       fetchData();
     }
-  };
+  }, [fetchData, toast]);
 
-  const cancelBooking = async (bookingId: string) => {
+  const cancelBooking = useCallback(async (bookingId: string) => {
     const { error } = await supabase
       .from('activity_bookings')
       .update({ status: 'CANCELLED' as any })
@@ -209,14 +212,13 @@ export default function SessionOpsRunSheet() {
       fetchData();
     }
     setCancelBookingId(null);
-  };
+  }, [fetchData, toast]);
 
-  // ── Derived ────────────────────────────────────────────────────────
+  // ── Derived (memoized) ────────────────────────────────────────────
 
-  const activeBookings = bookings.filter(b => b.status !== 'CANCELLED');
-  const confirmedPax = activeBookings.filter(b => b.status === 'CONFIRMED').reduce((s, b) => s + paxCount(b), 0);
-  const totalPax = activeBookings.reduce((s, b) => s + paxCount(b), 0);
-  const arrivedPax = activeBookings.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + paxCount(b), 0);
+  const activeBookings = useMemo(() => bookings.filter(b => b.status !== 'CANCELLED'), [bookings]);
+  const totalPax = useMemo(() => activeBookings.reduce((s, b) => s + paxCount(b), 0), [activeBookings]);
+  const arrivedPax = useMemo(() => activeBookings.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + paxCount(b), 0), [activeBookings]);
 
   // ── Manifest filtering ────────────────────────────────────────────
 
@@ -284,7 +286,7 @@ export default function SessionOpsRunSheet() {
     if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('DEPARTED') };
     if (session.status === 'DEPARTED') return { label: 'Mark Completed', icon: Flag, action: () => setStatusConfirm('COMPLETED') };
     return null;
-  }, [session, isCancelled, isCompleted]);
+  }, [session, isCancelled, isCompleted, transitionSessionStatus]);
 
   // ── Guard states ───────────────────────────────────────────────────
 
@@ -292,7 +294,7 @@ export default function SessionOpsRunSheet() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh]">
         <p className="text-muted-foreground mb-4">Invalid session ID</p>
-        <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>Back to Sessions</Button>
+        <Button variant="outline" onClick={() => navigate('/staff/activities/ops')}>Back to Ops Inbox</Button>
       </div>
     );
   }
@@ -300,8 +302,14 @@ export default function SessionOpsRunSheet() {
   if (loading) {
     return (
       <div className="flex flex-col min-h-[100dvh] bg-background">
-        <div className="sticky top-0 z-30 bg-background border-b border-border/40 h-14 flex items-center px-4">
+        <div className="sticky top-0 z-30 bg-background border-b border-border/40 h-14 flex items-center px-4 gap-2">
+          <div className="h-5 w-5 rounded bg-muted animate-pulse" />
           <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="px-4 py-3 space-y-1.5 border-b border-border/40">
+          <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-28 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-20 rounded bg-muted animate-pulse" />
         </div>
         <div className="p-4">
           <SkeletonCardList count={5} variant="row" />
@@ -310,11 +318,21 @@ export default function SessionOpsRunSheet() {
     );
   }
 
-  if (!session?.activity) {
+  // Error/retry state
+  if (fetchError || !session?.activity) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Session not found</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/staff/activities/sessions')}>Back to Sessions</Button>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-4">
+        <p className="text-muted-foreground mb-2">{fetchError ?? 'Session not found'}</p>
+        <div className="flex gap-2 mt-4">
+          <Button variant="outline" onClick={() => navigate('/staff/activities/ops')}>
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to Inbox
+          </Button>
+          <Button onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
@@ -322,12 +340,14 @@ export default function SessionOpsRunSheet() {
   const isScheduled = session.status === 'SCHEDULED';
   const canAct = isScheduled || session.status === 'CHECK_IN' || session.status === 'DEPARTED';
 
+  // ── Render ─────────────────────────────────────────────────────────
+
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background ops-content-with-bottom-strip">
-      {/* ── Sticky top bar (56px) ── */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
+    <div className={cn('flex flex-col min-h-[100dvh] bg-background', canAct && canEdit && 'ops-content-with-bottom-strip')}>
+      {/* ── Sticky top bar (56px) — no blur for iOS perf ── */}
+      <div className="sticky top-0 z-30 bg-background border-b border-border/40">
         <div className="flex items-center h-14 px-4 gap-2">
-          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navigate('/staff/activities/ops')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-base font-bold text-foreground flex-1 truncate">{session.activity.name}</h1>
@@ -341,7 +361,7 @@ export default function SessionOpsRunSheet() {
               <DropdownMenuItem onClick={() => navigate(`/staff/activities/sessions/${session.id}`)}>
                 View Session Details
               </DropdownMenuItem>
-              {canEdit && isScheduled && (
+              {canEdit && (isScheduled || session.status === 'CHECK_IN') && (
                 <DropdownMenuItem className="text-destructive" onClick={() => setStatusConfirm('CANCELLED')}>
                   Cancel Session
                 </DropdownMenuItem>
@@ -351,8 +371,8 @@ export default function SessionOpsRunSheet() {
         </div>
       </div>
 
-      {/* ── Sticky header block (~100px) ── */}
-      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm border-b border-border/40 px-4 py-3 space-y-1.5">
+      {/* ── Sticky header block (~100px) — solid bg, no blur ── */}
+      <div className="sticky top-14 z-20 bg-background border-b border-border/40 px-4 py-3 space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground truncate">{session.activity.name}</span>
           <StatusChip status={session.status} />
@@ -371,10 +391,10 @@ export default function SessionOpsRunSheet() {
       </div>
 
       {/* ── Segmented tabs (sticky, 44px) ── */}
-      <div className="sticky top-[158px] z-20 px-4">
+      <div className="sticky top-[158px] z-20 bg-background px-4">
         <SegmentedTabs
           tabs={[
-            { key: 'manifest', label: 'Manifest' },
+            { key: 'manifest', label: 'Manifest', badge: activeBookings.length || undefined },
             { key: 'setup', label: 'Setup' },
             { key: 'timeline', label: 'Timeline' },
           ]}
@@ -428,7 +448,19 @@ export default function SessionOpsRunSheet() {
               {filteredGuests.length === 0 ? (
                 <div className="flex flex-col items-center py-12 text-muted-foreground">
                   <Users className="h-8 w-8 mb-2 opacity-30" />
-                  <p className="text-sm">No guests found</p>
+                  <p className="text-sm font-medium">
+                    {activeBookings.length === 0 ? 'No guests booked' : 'No guests match filters'}
+                  </p>
+                  {activeBookings.length === 0 && (
+                    <div className="flex gap-2 mt-4">
+                      <Button variant="outline" size="sm" onClick={() => navigate(`/staff/activities/sessions/${session.id}`)}>
+                        View Session Details
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => navigate('/staff/activities/ops')}>
+                        Back to Inbox
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 filteredGuests.map(g => (
@@ -512,7 +544,7 @@ export default function SessionOpsRunSheet() {
         )}
       </BottomActionStrip>
 
-      {/* ── Dialogs (preserved from original) ── */}
+      {/* ── Dialogs ── */}
       <AlertDialog open={!!statusConfirm} onOpenChange={() => setStatusConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

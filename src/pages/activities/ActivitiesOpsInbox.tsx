@@ -11,7 +11,7 @@ import { format, addHours, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { DepartureCard, DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
-import { Search, SlidersHorizontal, WifiOff, CheckCircle2 } from 'lucide-react';
+import { Search, SlidersHorizontal, WifiOff, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -40,7 +40,7 @@ export default function ActivitiesOpsInbox() {
   const tz = currentResort?.timezone ?? 'UTC';
 
   // Fetch upcoming sessions (today + tomorrow)
-  const { data: sessions = [], isLoading, isError } = useQuery({
+  const { data: sessions = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['ops-inbox-sessions', currentResort?.id],
     queryFn: async () => {
       if (!currentResort) return [];
@@ -170,7 +170,7 @@ export default function ActivitiesOpsInbox() {
     <div className="flex flex-col min-h-[100dvh] bg-background">
       <ConnectionBanner />
       {/* ── Sticky top bar (56px) ── */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
+      <div className="sticky top-0 z-30 bg-background border-b border-border/40">
         <div className="flex items-center h-14 px-4 gap-2">
           <h1 className="text-lg font-bold text-foreground flex-1">Activities Ops</h1>
           <Button
@@ -223,9 +223,15 @@ export default function ActivitiesOpsInbox() {
       <div className="flex-1 px-4 py-4 space-y-3">
         {/* Offline banner (placeholder) */}
         {isError && (
-          <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
-            <WifiOff className="h-4 w-4 shrink-0" />
-            Unable to load sessions. Check your connection.
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <div className="flex items-center gap-2 text-xs text-destructive">
+              <WifiOff className="h-4 w-4 shrink-0" />
+              Unable to load sessions. Check your connection.
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Retry
+            </Button>
           </div>
         )}
 
