@@ -517,11 +517,15 @@ export default function SessionOpsRunSheet() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {statusConfirm === 'CANCELLED' ? 'Cancel Session' : 'Complete Session'}
+              {statusConfirm === 'CANCELLED' ? 'Cancel Session'
+                : statusConfirm === 'DEPARTED' ? 'Mark as Departed'
+                : 'Complete Session'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {statusConfirm === 'CANCELLED'
                 ? 'This will cancel the session. Active bookings may need to be handled separately.'
+                : statusConfirm === 'DEPARTED'
+                ? 'Mark this session as departed? Guests will no longer be able to check in.'
                 : 'Mark this session as completed? This action is irreversible.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -529,7 +533,7 @@ export default function SessionOpsRunSheet() {
             <AlertDialogCancel>Back</AlertDialogCancel>
             <AlertDialogAction
               className={statusConfirm === 'CANCELLED' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
-              onClick={() => statusConfirm && updateSessionStatus(statusConfirm)}
+              onClick={() => statusConfirm && transitionSessionStatus(statusConfirm as any)}
             >
               Confirm
             </AlertDialogAction>
