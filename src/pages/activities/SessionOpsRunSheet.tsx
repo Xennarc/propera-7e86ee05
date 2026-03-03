@@ -53,6 +53,7 @@ import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCa
 import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
 import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
+import { PickupPlanCard } from '@/components/activities/ops/PickupPlanCard';
 import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
 import { MedicalReviewDrawer } from '@/components/activities/ops/MedicalReviewDrawer';
 import { DepartureGateModal, type DepartureBlocker } from '@/components/activities/ops/DepartureGateModal';
