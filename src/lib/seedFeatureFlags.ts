@@ -64,7 +64,8 @@ export async function seedGlobalFeatureFlags(
       description: flag.description,
       category: flag.category,
       tier: flag.tier,
-      is_enabled: false, // Default to disabled for safety
+      // Default ON for activities_ops (safe module), OFF for everything else
+      is_enabled: flag.key === 'enable_activities_ops' ? true : false,
       is_dangerous: flag.is_dangerous,
       scope: flag.scope,
       resort_id: null, // Global flags have no resort_id
