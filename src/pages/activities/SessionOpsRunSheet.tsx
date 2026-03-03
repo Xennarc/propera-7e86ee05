@@ -299,24 +299,6 @@ export default function SessionOpsRunSheet() {
 
     return result;
   }, [guestRows, manifestFilter, manifestSearch, activityRequirements]);
-  const filteredGuests = useMemo(() => {
-    let result = guestRows;
-
-    if (manifestFilter === 'missing') {
-      result = result.filter(g => g.waiver === false || g.cert === false || g.gear === false || g.medical === false);
-    } else if (manifestFilter === 'arrived') {
-      result = result.filter(g => g.bookingStatus === 'COMPLETED');
-    } else if (manifestFilter === 'not_arrived') {
-      result = result.filter(g => g.bookingStatus !== 'COMPLETED');
-    }
-
-    if (manifestSearch.trim()) {
-      const q = manifestSearch.toLowerCase();
-      result = result.filter(g => g.guestName.toLowerCase().includes(q) || g.roomNumber.includes(q));
-    }
-
-    return result;
-  }, [guestRows, manifestFilter, manifestSearch]);
 
   // ── Derived state from real session status ──────────────────────────
 
