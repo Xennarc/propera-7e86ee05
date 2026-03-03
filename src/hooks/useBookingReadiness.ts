@@ -99,9 +99,16 @@ export function useUpdateReadiness() {
       bookingId: string;
       updates: Partial<BookingReadiness>;
     }) => {
+      // Strip app-level types to match DB types
+      const { id, resort_id, booking_id, guest_id, created_at, ...rest } = updates as any;
+      const dbUpdates = { ...rest, updated_at: new Date().toISOString() };
+      // Ensure sizes_data is JSON-compatible
+      if (dbUpdates.sizes_data) {
+        dbUpdates.sizes_data = JSON.parse(JSON.stringify(dbUpdates.sizes_data));
+      }
       const { data, error } = await supabase
         .from('booking_readiness')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(dbUpdates)
         .eq('booking_id', bookingId)
         .select()
         .single();
