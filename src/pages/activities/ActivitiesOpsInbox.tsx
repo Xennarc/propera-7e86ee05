@@ -3,11 +3,11 @@
  * Route: /staff/activities/ops
  */
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useQuery } from '@tanstack/react-query';
-import { format, addHours, addDays, parseISO, isToday, isTomorrow } from 'date-fns';
+import { format, addHours, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { DepartureCard, DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
