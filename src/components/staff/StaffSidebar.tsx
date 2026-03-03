@@ -50,6 +50,7 @@ import {
   Palette,
   Car,
   CircleUser,
+  ClipboardList,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
