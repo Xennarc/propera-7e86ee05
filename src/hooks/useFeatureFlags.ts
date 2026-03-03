@@ -54,6 +54,8 @@ const MODULE_KEYS = new Set([
   'enable_reports',
   'enable_loyalty',
   'enable_guest_portal',
+  'enable_activities',
+  'enable_room_service',
 ]);
 
 /**
