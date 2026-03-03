@@ -63,6 +63,7 @@ export default function GuestActivityBookingPage() {
   const [notes, setNotes] = useState('');
   const [bookingResult, setBookingResult] = useState<{
     success: boolean;
+    bookingId?: string;
     requiresApproval?: boolean;
     isPrearrival?: boolean;
     error?: string;
