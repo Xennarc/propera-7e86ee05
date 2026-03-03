@@ -9,6 +9,7 @@ import { BookingDetailsQuickActions } from './BookingDetailsQuickActions';
 import { BookingDetailsInfo } from './BookingDetailsInfo';
 import { BookingDetailsPolicies } from './BookingDetailsPolicies';
 import { BookingDetailsTimeline } from './BookingDetailsTimeline';
+import { GuestBookingStatusTracker } from '@/components/guest/GuestBookingStatusTracker';
 import type { BookingDisplayModel, BookingDetailsExtended } from '@/types/booking-display';
 
 interface BookingDetailsSheetProps {
@@ -66,6 +67,14 @@ function BookingDetailsContent({
 
   return (
     <div className="space-y-6 pb-8">
+      {/* Live Status Tracker (for activity bookings) */}
+      {booking.type === 'activity' && (
+        <>
+          <GuestBookingStatusTracker booking={booking} />
+          <Separator />
+        </>
+      )}
+
       {/* Hero Section */}
       <BookingDetailsHero booking={booking} />
 
@@ -94,8 +103,10 @@ function BookingDetailsContent({
       {/* Policies */}
       <BookingDetailsPolicies booking={booking} extendedDetails={extendedDetails} />
 
-      {/* Timeline */}
-      <BookingDetailsTimeline booking={booking} />
+      {/* Timeline (fallback for restaurant bookings) */}
+      {booking.type !== 'activity' && (
+        <BookingDetailsTimeline booking={booking} />
+      )}
     </div>
   );
 }
