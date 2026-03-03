@@ -8165,6 +8165,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_daily_ops_sheet: {
+        Args: { p_date: string; p_department?: string; p_resort_id: string }
+        Returns: Json
+      }
       get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
       get_effective_feature_flags: {
         Args: { _guest_id?: string; _resort_id: string }
