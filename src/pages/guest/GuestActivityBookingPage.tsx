@@ -28,6 +28,7 @@ import { useTravelParty } from '@/hooks/useTravelParty';
 import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils';
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
+import { PrepareCard } from '@/components/guest/PrepareCard';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
@@ -450,6 +451,14 @@ export default function GuestActivityBookingPage() {
                   ? "You can modify this booking anytime before your arrival."
                   : "You can find this in 'My Bookings' at any time."}
             </p>
+            
+            {/* PrepareCard will be available in My Bookings after navigating */}
+            {['DIVE', 'WATERSPORT', 'EXCURSION'].includes(session.category) && (
+              <p className="text-sm text-primary font-medium mb-4">
+                ✨ Complete your preparation steps in My Bookings
+              </p>
+            )}
+            
             <div className="space-y-2">
               <Button className="w-full" onClick={() => navigate(guestBookingsPath)}>
                 View My Bookings

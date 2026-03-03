@@ -44,6 +44,7 @@ import { useGuestActivitySync } from '@/hooks/useActivityBookingSync';
 import { GuestDebugPanel } from '@/components/guest/GuestDebugPanel';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { BookingDetailsSheet } from '@/components/guest/booking-details';
+import { PrepareCard } from '@/components/guest/PrepareCard';
 import { 
   BookingDisplayModel, 
   mapActivityToDisplayModel, 
@@ -816,15 +817,31 @@ export default function GuestMyBookings() {
                 </Card>
               ) : (
                 <div className="space-y-3">
-                  {upcomingActivities.map((booking) => (
-                    <BookingCard
-                      key={booking.id}
-                      booking={booking}
-                      type="activity"
-                      canCancel={canCancelActivity(booking)}
-                      canEdit={booking.is_own_booking && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')}
-                    />
-                  ))}
+                  {upcomingActivities.map((booking) => {
+                    const needsPrepare = booking.is_own_booking && 
+                      (booking.status === 'CONFIRMED' || booking.status === 'PENDING') &&
+                      ['DIVE', 'WATERSPORT', 'EXCURSION'].includes(booking.category);
+                    return (
+                      <div key={booking.id} className="space-y-2">
+                        <BookingCard
+                          booking={booking}
+                          type="activity"
+                          canCancel={canCancelActivity(booking)}
+                          canEdit={booking.is_own_booking && (booking.status === 'CONFIRMED' || booking.status === 'PENDING')}
+                        />
+                        {needsPrepare && guest && (
+                          <PrepareCard
+                            bookingId={booking.id}
+                            guestId={guest.guestId}
+                            resortId={guest.resortId}
+                            activityName={booking.activity_name}
+                            category={booking.category}
+                            variant="inline"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
