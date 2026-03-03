@@ -2,7 +2,7 @@
  * PickupPlanCard – Setup tab card for managing session pickup runs.
  * Shows current linked trip status, or a button to generate a new one.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -148,8 +148,8 @@ function GeneratePickupDrawer({ open, onOpenChange, sessionId, resortId, activit
   const [pickupWindowStart, setPickupWindowStart] = useState('');
 
   // Initialize pickup guests when drawer opens
-  useMemo(() => {
-    if (open && pickupGuests.length === 0 && guests.length > 0) {
+  useEffect(() => {
+    if (open && guests.length > 0) {
       setPickupGuests(guests.map(g => ({
         ...g,
         pickupLocation: `Room ${g.roomNumber}`,
@@ -164,7 +164,10 @@ function GeneratePickupDrawer({ open, onOpenChange, sessionId, resortId, activit
         setPickupWindowStart(`${String(ph).padStart(2, '0')}:${String(pm).padStart(2, '0')}`);
       }
     }
-  }, [open, guests]);
+    if (!open) {
+      setPickupGuests([]);
+    }
+  }, [open, guests, sessionTime]);
 
   const toggleGuest = (bookingId: string) => {
     setPickupGuests(prev => prev.map(g =>
@@ -220,7 +223,7 @@ function GeneratePickupDrawer({ open, onOpenChange, sessionId, resortId, activit
           </DrawerDescription>
         </DrawerHeader>
 
-        <div className="px-4 pb-6 space-y-4 overflow-y-auto">
+        <div className="px-4 pb-safe-bottom space-y-4 overflow-y-auto">
           {/* Meeting point */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Meeting point (dropoff)</label>

@@ -115,7 +115,7 @@ export function MedicalReviewDrawer({
           <DrawerDescription>{guestName}</DrawerDescription>
         </DrawerHeader>
 
-        <div className="px-4 pb-6 space-y-4 overflow-y-auto">
+        <div className="px-4 pb-safe-bottom space-y-4 overflow-y-auto">
           {/* Status */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Status:</span>
