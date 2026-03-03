@@ -182,8 +182,10 @@ export function GuestBookingStatusTracker({
   sessionStatus: propSessionStatus,
   className,
 }: GuestBookingStatusTrackerProps) {
+  const opsEnabled = useFeatureEnabled('enable_activities_ops');
+
   // Only fetch session status if not provided and is an activity booking
-  const needsFetch = booking.type === 'activity' && booking.sessionId && !propSessionStatus;
+  const needsFetch = booking.type === 'activity' && booking.sessionId && !propSessionStatus && opsEnabled;
 
   const { data: fetchedSession } = useQuery({
     queryKey: ['activity-session', booking.sessionId],
