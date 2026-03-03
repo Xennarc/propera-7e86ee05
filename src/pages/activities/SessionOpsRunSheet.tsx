@@ -49,6 +49,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoveSessionSheet } from '@/components/activities/ops/MoveSessionSheet';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
+import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCard';
+import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
+import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
