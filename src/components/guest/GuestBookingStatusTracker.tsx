@@ -339,14 +339,9 @@ export function GuestBookingStatusTracker({
         </div>
       )}
 
-      {/* Pickup placeholder (for future transport integration) */}
-      {phase === 'check_in_open' && (
-        <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5 flex items-center gap-2">
-          <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            Pickup info will appear here when available
-          </p>
-        </div>
+      {/* Pickup status */}
+      {booking.type === 'activity' && booking.sessionId && (phase === 'confirmed' || phase === 'check_in_open') && (
+        <PickupStatusInfo sessionId={booking.sessionId} />
       )}
     </div>
   );
