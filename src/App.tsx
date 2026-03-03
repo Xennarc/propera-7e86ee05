@@ -51,6 +51,7 @@ const CreateSessionWizard = lazy(() => import("./pages/activities/CreateSessionW
 const ActivitySessionDetailPage = lazy(() => import("./pages/activities/ActivitySessionDetailPage"));
 const ActivityCheatsheetPage = lazy(() => import("./pages/activities/ActivityCheatsheetPage"));
 const SessionOpsRunSheet = lazy(() => import("./pages/activities/SessionOpsRunSheet"));
+const ActivitiesOpsInbox = lazy(() => import("./pages/activities/ActivitiesOpsInbox"));
 const RestaurantsPage = lazy(() => import("./pages/restaurants/RestaurantsPage"));
 const RestaurantSlotsPage = lazy(() => import("./pages/restaurants/RestaurantSlotsPage"));
 const RestaurantSlotDetailPage = lazy(() => import("./pages/restaurants/RestaurantSlotDetailPage"));
