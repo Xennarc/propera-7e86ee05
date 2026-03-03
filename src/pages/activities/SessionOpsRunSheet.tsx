@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
 import { useSessionReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
+import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -317,6 +318,18 @@ export default function SessionOpsRunSheet() {
             Mark Completed
           </Button>
         </div>
+      )}
+
+      {/* ── Assets Panel ────────────────────────────────────────── */}
+      {session && (
+        <SessionAssetsPanel
+          sessionId={session.id}
+          resortId={session.resort_id}
+          sessionDate={session.date}
+          sessionStartTime={session.start_time}
+          sessionEndTime={session.end_time}
+          canEdit={!!canEdit}
+        />
       )}
 
       {/* ── Manifest ─────────────────────────────────────────────── */}
