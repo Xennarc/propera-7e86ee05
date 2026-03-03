@@ -53,6 +53,7 @@ import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCa
 import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
 import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
+import { PickupPlanCard } from '@/components/activities/ops/PickupPlanCard';
 import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
 import { MedicalReviewDrawer } from '@/components/activities/ops/MedicalReviewDrawer';
 import { DepartureGateModal, type DepartureBlocker } from '@/components/activities/ops/DepartureGateModal';
@@ -648,6 +649,23 @@ function SessionOpsRunSheetContent() {
 
             {/* Equipment assignment */}
             <EquipmentAssignmentCard sessionId={session.id} resortId={session.resort_id} equipmentConflicts={conflicts?.conflicting_equipment} />
+
+            {/* Pickup plan (only for activities that require pickup) */}
+            {activityRequirements.requires_pickup && (
+              <PickupPlanCard
+                sessionId={session.id}
+                resortId={session.resort_id}
+                activityName={session.activity.name}
+                sessionTime={session.start_time.slice(0, 5)}
+                guests={activeBookings.map(b => ({
+                  bookingId: b.id,
+                  guestId: b.guest_id,
+                  guestName: b.guest.full_name,
+                  roomNumber: b.room_number,
+                  partySize: b.num_adults + b.num_children,
+                }))}
+              />
+            )}
 
             {/* Legacy assets panel */}
             <SessionAssetsPanel

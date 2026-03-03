@@ -15,6 +15,8 @@ export interface ActivityRequirements {
   requires_cert_verification: boolean;
   /** Departure gate: must medical reviews be cleared before departing? */
   requires_medical_clearance: boolean;
+  /** Transport: does this activity need a pickup run? */
+  requires_pickup: boolean;
 }
 
 const DEFAULTS: ActivityRequirements = {
@@ -24,12 +26,14 @@ const DEFAULTS: ActivityRequirements = {
   requires_cert: false,
   requires_cert_verification: false,
   requires_medical_clearance: false,
+  requires_pickup: false,
 };
 
 /** Category-based overrides when requirements_json is null */
 const CATEGORY_OVERRIDES: Record<string, Partial<ActivityRequirements>> = {
-  DIVE: { requires_cert: true, requires_medical: true, requires_cert_verification: true, requires_medical_clearance: true },
-  WATERSPORT: { requires_medical: true },
+  DIVE: { requires_cert: true, requires_medical: true, requires_cert_verification: true, requires_medical_clearance: true, requires_pickup: true },
+  WATERSPORT: { requires_medical: true, requires_pickup: true },
+  EXCURSION: { requires_pickup: true },
 };
 
 export function parseActivityRequirements(
@@ -52,6 +56,7 @@ export function parseActivityRequirements(
     if (typeof r.requires_cert === 'boolean') base.requires_cert = r.requires_cert;
     if (typeof r.requires_cert_verification === 'boolean') base.requires_cert_verification = r.requires_cert_verification;
     if (typeof r.requires_medical_clearance === 'boolean') base.requires_medical_clearance = r.requires_medical_clearance;
+    if (typeof r.requires_pickup === 'boolean') base.requires_pickup = r.requires_pickup;
   }
 
   return base;
