@@ -23,6 +23,8 @@ export interface DepartureCardData {
   location?: string;
   bookedPax: number;
   capacity: number;
+  /** Resolved CTA label based on session state */
+  ctaLabel?: string;
 }
 
 interface DepartureCardProps {
@@ -61,7 +63,7 @@ export function DepartureCard({ data }: DepartureCardProps) {
           className="flex-1 h-12"
           onClick={() => navigate(`/staff/activities/sessions/${data.sessionId}/ops`)}
         >
-          Open Run Sheet
+          {data.ctaLabel ?? 'View Run Sheet'}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
