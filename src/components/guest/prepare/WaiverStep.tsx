@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, ShieldCheck, CheckCircle2, Loader2 } from 'lucide-react';
-import { useUpdateReadiness } from '@/hooks/useBookingReadiness';
+import { useUpdateActivityBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { toast } from 'sonner';
 
@@ -23,7 +23,7 @@ const WAIVER_POINTS = [
 
 export function WaiverStep({ bookingId, activityName, onComplete, onBack }: WaiverStepProps) {
   const [checks, setChecks] = useState<boolean[]>(WAIVER_POINTS.map(() => false));
-  const updateMutation = useUpdateReadiness();
+  const updateMutation = useUpdateActivityBookingReadiness();
   const allChecked = checks.every(Boolean);
 
   const toggleCheck = (idx: number) => {
@@ -34,10 +34,7 @@ export function WaiverStep({ bookingId, activityName, onComplete, onBack }: Waiv
     updateMutation.mutate(
       {
         bookingId,
-        updates: {
-          waiver_signed: true,
-          waiver_signed_at: new Date().toISOString(),
-        },
+        updates: { waiver_status: 'complete' as any },
       },
       {
         onSuccess: () => {
@@ -87,7 +84,6 @@ export function WaiverStep({ bookingId, activityName, onComplete, onBack }: Waiv
         </CardContent>
       </Card>
 
-      {/* Sticky CTA in thumb zone */}
       <StickyActionBar>
         <Button
           className="flex-1"

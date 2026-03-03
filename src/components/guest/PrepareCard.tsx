@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, ChevronRight, ShieldCheck, Ruler, Award, Loader2 } from 'lucide-react';
-import { useBookingReadiness, useEnsureReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
+import { CheckCircle2, ChevronRight, ShieldCheck, Ruler, Award, HeartPulse, Loader2 } from 'lucide-react';
+import {
+  useActivityBookingReadiness,
+  useUpdateActivityBookingReadiness,
+  ActivityBookingReadiness,
+} from '@/hooks/useActivityBookingReadiness';
+import { parseActivityRequirements, ActivityRequirements } from '@/lib/activity-requirements';
 import { WaiverStep } from './prepare/WaiverStep';
+import { MedicalStep } from './prepare/MedicalStep';
 import { SizesStep } from './prepare/SizesStep';
 import { CertUploadStep } from './prepare/CertUploadStep';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PrepareCardProps {
   bookingId: string;
@@ -15,19 +21,20 @@ interface PrepareCardProps {
   resortId: string;
   activityName: string;
   category: string;
+  requirementsJson?: unknown;
   /** Compact inline view vs full-page */
   variant?: 'inline' | 'full';
   className?: string;
 }
 
-type PrepareStepKey = 'waiver' | 'sizes' | 'cert';
+type PrepareStepKey = 'waiver' | 'medical' | 'gear' | 'cert';
 
 interface StepConfig {
   key: PrepareStepKey;
   label: string;
   icon: typeof ShieldCheck;
-  isComplete: (r: BookingReadiness | null) => boolean;
-  isRequired: (category: string) => boolean;
+  isComplete: (r: ActivityBookingReadiness | null) => boolean;
+  requirementKey: keyof ActivityRequirements;
 }
 
 const STEPS: StepConfig[] = [
@@ -35,22 +42,29 @@ const STEPS: StepConfig[] = [
     key: 'waiver',
     label: 'Sign Waiver',
     icon: ShieldCheck,
-    isComplete: (r) => !!r?.waiver_signed,
-    isRequired: () => true, // All activities need waiver
+    isComplete: (r) => r?.waiver_status === 'complete',
+    requirementKey: 'requires_waiver',
   },
   {
-    key: 'sizes',
-    label: 'Sizes & Preferences',
+    key: 'medical',
+    label: 'Medical Check',
+    icon: HeartPulse,
+    isComplete: (r) => r?.medical_status === 'complete' || r?.medical_status === 'review',
+    requirementKey: 'requires_medical',
+  },
+  {
+    key: 'gear',
+    label: 'Sizes & Gear',
     icon: Ruler,
-    isComplete: (r) => !!r?.sizes_confirmed,
-    isRequired: () => true,
+    isComplete: (r) => r?.gear_status === 'complete',
+    requirementKey: 'requires_gear',
   },
   {
     key: 'cert',
     label: 'Upload Certification',
     icon: Award,
-    isComplete: (r) => !!r?.cert_verified,
-    isRequired: (cat) => cat === 'DIVE',
+    isComplete: (r) => r?.cert_status === 'uploaded' || r?.cert_status === 'not_required',
+    requirementKey: 'requires_cert',
   },
 ];
 
@@ -60,26 +74,47 @@ export function PrepareCard({
   resortId,
   activityName,
   category,
+  requirementsJson,
   variant = 'inline',
   className,
 }: PrepareCardProps) {
-  const { data: readiness, isLoading } = useBookingReadiness(bookingId);
-  const ensureMutation = useEnsureReadiness();
+  const { data: readiness, isLoading } = useActivityBookingReadiness(bookingId);
   const [activeStep, setActiveStep] = useState<PrepareStepKey | null>(null);
 
-  // Ensure readiness row exists on mount
+  // Upsert readiness if trigger didn't create it
+  const [ensured, setEnsured] = useState(false);
   useEffect(() => {
-    if (!isLoading && !readiness) {
-      ensureMutation.mutate({ bookingId, guestId, resortId });
+    if (!isLoading && !readiness && !ensured) {
+      setEnsured(true);
+      // Fetch session_id from booking
+      supabase
+        .from('activity_bookings')
+        .select('session_id')
+        .eq('id', bookingId)
+        .single()
+        .then(({ data }) => {
+          if (data?.session_id) {
+            supabase
+              .from('activity_booking_readiness')
+              .upsert({
+                booking_id: bookingId,
+                guest_id: guestId,
+                resort_id: resortId,
+                session_id: data.session_id,
+              }, { onConflict: 'booking_id' })
+              .then(() => {});
+          }
+        });
     }
-  }, [isLoading, readiness, bookingId, guestId, resortId]);
+  }, [isLoading, readiness, ensured, bookingId, guestId, resortId]);
 
-  const applicableSteps = STEPS.filter((s) => s.isRequired(category));
+  const requirements = parseActivityRequirements(requirementsJson, category);
+  const applicableSteps = STEPS.filter((s) => requirements[s.requirementKey]);
   const completedCount = applicableSteps.filter((s) => s.isComplete(readiness ?? null)).length;
   const allComplete = completedCount === applicableSteps.length;
   const nextStep = applicableSteps.find((s) => !s.isComplete(readiness ?? null));
 
-  if (isLoading || ensureMutation.isPending) {
+  if (isLoading) {
     return (
       <Card className={cn('guest-card', className)}>
         <CardContent className="py-4 flex items-center justify-center gap-2 text-muted-foreground">
@@ -102,7 +137,14 @@ export function PrepareCard({
             onBack={() => setActiveStep(null)}
           />
         )}
-        {activeStep === 'sizes' && (
+        {activeStep === 'medical' && (
+          <MedicalStep
+            bookingId={bookingId}
+            onComplete={() => setActiveStep(null)}
+            onBack={() => setActiveStep(null)}
+          />
+        )}
+        {activeStep === 'gear' && (
           <SizesStep
             bookingId={bookingId}
             readiness={readiness}
@@ -114,6 +156,7 @@ export function PrepareCard({
           <CertUploadStep
             bookingId={bookingId}
             resortId={resortId}
+            guestId={guestId}
             onComplete={() => setActiveStep(null)}
             onBack={() => setActiveStep(null)}
           />
@@ -121,6 +164,8 @@ export function PrepareCard({
       </div>
     );
   }
+
+  if (applicableSteps.length === 0) return null;
 
   if (variant === 'inline') {
     return (
@@ -210,13 +255,16 @@ export function PrepareCard({
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-foreground">Prepare for {activityName}</h3>
-          <Badge variant={allComplete ? 'confirmed' : 'pending'} className="text-[10px]">
+          <span className={cn(
+            'text-[10px] font-semibold px-2 py-0.5 rounded-full',
+            allComplete ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'
+          )}>
             {completedCount}/{applicableSteps.length} done
-          </Badge>
+          </span>
         </div>
 
         <div className="space-y-2">
-          {applicableSteps.map((step, idx) => {
+          {applicableSteps.map((step) => {
             const complete = step.isComplete(readiness ?? null);
             const Icon = step.icon;
             return (
