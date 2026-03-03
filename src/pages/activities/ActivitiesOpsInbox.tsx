@@ -30,7 +30,7 @@ const MAX_VISIBLE = 7;
 
 export default function ActivitiesOpsInbox() {
   const { currentResort } = useResort();
-  const navigate = useNavigate();
+  
   const [filter, setFilter] = useState<TimeFilter>('now');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
