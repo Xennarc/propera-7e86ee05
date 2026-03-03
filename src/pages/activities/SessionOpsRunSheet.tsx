@@ -49,6 +49,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoveSessionSheet } from '@/components/activities/ops/MoveSessionSheet';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
+import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCard';
+import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
+import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
@@ -565,28 +568,16 @@ function SessionOpsRunSheetContent() {
         {/* ── SETUP TAB ── */}
         {activeTab === 'setup' && (
           <div className="px-4 py-4 space-y-4">
-            {/* Session info card */}
-            <Card>
-              <CardContent className="p-4 space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">Session Details</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Lead Staff</span>
-                    <span className="font-medium text-foreground">
-                      {session.lead_staff_id ? 'Assigned' : 'Unassigned'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Resource</span>
-                    <span className="font-medium text-foreground">
-                      {session.resource_id ? 'Assigned' : 'Unassigned'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Boat assignment */}
+            <BoatAssignmentCard sessionId={session.id} resortId={session.resort_id} />
 
-            {/* Assets panel (from Phase 3) */}
+            {/* Crew assignment */}
+            <CrewAssignmentCard sessionId={session.id} resortId={session.resort_id} />
+
+            {/* Equipment assignment */}
+            <EquipmentAssignmentCard sessionId={session.id} resortId={session.resort_id} />
+
+            {/* Legacy assets panel */}
             <SessionAssetsPanel
               sessionId={session.id}
               resortId={session.resort_id}
