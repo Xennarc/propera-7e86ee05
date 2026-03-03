@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
 import { useSessionReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
+import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
