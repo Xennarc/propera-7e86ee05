@@ -451,6 +451,20 @@ export default function GuestActivityBookingPage() {
                   ? "You can modify this booking anytime before your arrival."
                   : "You can find this in 'My Bookings' at any time."}
             </p>
+            
+            {/* Prepare card for eligible activities */}
+            {guest && ['DIVE', 'WATERSPORT', 'EXCURSION'].includes(session.category) && bookingResult.bookingId && (
+              <PrepareCard
+                bookingId={bookingResult.bookingId}
+                guestId={guest.guestId}
+                resortId={guest.resortId}
+                activityName={session.activity_name}
+                category={session.category}
+                variant="full"
+                className="mb-4"
+              />
+            )}
+            
             <div className="space-y-2">
               <Button className="w-full" onClick={() => navigate(guestBookingsPath)}>
                 View My Bookings
