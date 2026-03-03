@@ -55,6 +55,7 @@ import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAs
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
 import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
 import { MedicalReviewDrawer } from '@/components/activities/ops/MedicalReviewDrawer';
+import { DepartureGateModal, type DepartureBlocker } from '@/components/activities/ops/DepartureGateModal';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
@@ -131,11 +132,17 @@ function SessionOpsRunSheetContent() {
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [certVerifyBookingId, setCertVerifyBookingId] = useState<string | null>(null);
   const [medicalReviewBookingId, setMedicalReviewBookingId] = useState<string | null>(null);
+  const [departureGateOpen, setDepartureGateOpen] = useState(false);
+  const [departureBlockers, setDepartureBlockers] = useState<DepartureBlocker[]>([]);
   const [transitioning, setTransitioning] = useState(false);
 
   const canEdit =
     isSuperAdmin() ||
     (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']));
+
+  const canOverrideGate =
+    isSuperAdmin() ||
+    (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'MANAGER']));
 
   const isValidId = sessionId && isValidUUID(sessionId);
 
@@ -295,6 +302,45 @@ function SessionOpsRunSheetContent() {
     return { ready, missing };
   }, [guestRows, activityRequirements]);
 
+  // ── Departure gate check ──────────────────────────────────────────
+  const computeDepartureBlockers = useCallback((): DepartureBlocker[] => {
+    const blockers: DepartureBlocker[] = [];
+    for (const g of guestRows) {
+      if (activityRequirements.requires_cert_verification) {
+        if (g.certVerificationStatus && g.certVerificationStatus !== 'verified' && g.certVerificationStatus !== 'not_required') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'cert_unverified' });
+        }
+      }
+      if (activityRequirements.requires_medical_clearance) {
+        if (g.medicalReviewStatus === 'pending') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'medical_pending' });
+        } else if (g.medicalReviewStatus === 'requires_followup') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'medical_followup' });
+        }
+      }
+    }
+    return blockers;
+  }, [guestRows, activityRequirements]);
+
+  const handleDepartAttempt = useCallback(() => {
+    const blockers = computeDepartureBlockers();
+    if (blockers.length > 0) {
+      setDepartureBlockers(blockers);
+      setDepartureGateOpen(true);
+    } else {
+      setStatusConfirm('DEPARTED');
+    }
+  }, [computeDepartureBlockers]);
+
+  const handleDepartureOverride = useCallback(async () => {
+    if (!session) return;
+    setTransitioning(true);
+    await logSessionEvent('departure_override', session.status, 'DEPARTED');
+    await transitionSessionStatus('DEPARTED');
+    setDepartureGateOpen(false);
+    setDepartureBlockers([]);
+  }, [session, logSessionEvent, transitionSessionStatus]);
+
   const filteredGuests = useMemo(() => {
     let result = guestRows;
 
@@ -376,7 +422,7 @@ function SessionOpsRunSheetContent() {
   const primaryAction = useMemo(() => {
     if (!session || isCancelled || isCompleted) return null;
     if (session.status === 'SCHEDULED') return { label: 'Open Check-in', icon: UserCheck, action: () => transitionSessionStatus('CHECK_IN') };
-    if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('DEPARTED') };
+    if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => handleDepartAttempt() };
     if (session.status === 'DEPARTED') return { label: 'Mark Completed', icon: Flag, action: () => setStatusConfirm('COMPLETED') };
     return null;
   }, [session, isCancelled, isCompleted, transitionSessionStatus]);
@@ -734,6 +780,17 @@ function SessionOpsRunSheetContent() {
           conflicts={conflicts}
         />
       )}
+
+      <DepartureGateModal
+        open={departureGateOpen}
+        onOpenChange={setDepartureGateOpen}
+        blockers={departureBlockers}
+        canOverride={!!canOverrideGate}
+        overriding={transitioning}
+        onOverride={handleDepartureOverride}
+        onFixCert={(id) => setCertVerifyBookingId(id)}
+        onFixMedical={(id) => setMedicalReviewBookingId(id)}
+      />
 
       {certVerifyBookingId && session && (() => {
         const row = guestRows.find(g => g.bookingId === certVerifyBookingId);
