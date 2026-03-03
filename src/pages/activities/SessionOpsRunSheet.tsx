@@ -46,7 +46,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
+import { MoveSessionSheet } from '@/components/activities/ops/MoveSessionSheet';
 import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
@@ -594,7 +594,7 @@ export default function SessionOpsRunSheet() {
       </AlertDialog>
 
       {moveBookingId && session && (
-        <MoveSessionDialog
+        <MoveSessionSheet
           open={!!moveBookingId}
           onOpenChange={(open) => !open && setMoveBookingId(null)}
           bookingId={moveBookingId}
