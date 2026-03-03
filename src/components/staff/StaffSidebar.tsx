@@ -50,6 +50,7 @@ import {
   Palette,
   Car,
   CircleUser,
+  ClipboardList,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
@@ -152,7 +153,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       items: [
         { title: 'Catalogue', url: '/staff/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
         { title: 'Sessions', url: '/staff/activities/sessions', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Ops', url: '/staff/activities/ops', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
+        { title: 'Ops Inbox', url: '/staff/activities/ops', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
+        { title: 'Day Sheet', url: '/staff/activities/ops/day', icon: ClipboardList, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
         { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
       ],
     },
