@@ -290,20 +290,25 @@ export default function ActivitySessionDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Session Details</CardTitle>
-          {canEdit && session.status === 'SCHEDULED' && (
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+          <div className="flex gap-2">
+              <Button variant="default" onClick={() => navigate(`/staff/activities/sessions/${session.id}/ops`)}>
+                Ops Run Sheet
               </Button>
-              <Button variant="outline" onClick={() => setStatusConfirm('COMPLETED')}>
-                Mark Completed
-              </Button>
-              <Button variant="outline" className="text-destructive" onClick={() => setStatusConfirm('CANCELLED')}>
-                Cancel Session
-              </Button>
+              {canEdit && session.status === 'SCHEDULED' && (
+                <>
+                  <Button variant="outline" onClick={() => setEditDialogOpen(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button variant="outline" onClick={() => setStatusConfirm('COMPLETED')}>
+                    Mark Completed
+                  </Button>
+                  <Button variant="outline" className="text-destructive" onClick={() => setStatusConfirm('CANCELLED')}>
+                    Cancel Session
+                  </Button>
+                </>
+              )}
             </div>
-          )}
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">

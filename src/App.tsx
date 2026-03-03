@@ -50,6 +50,7 @@ const ActivitySessionsPage = lazy(() => import("./pages/activities/ActivitySessi
 const CreateSessionWizard = lazy(() => import("./pages/activities/CreateSessionWizard"));
 const ActivitySessionDetailPage = lazy(() => import("./pages/activities/ActivitySessionDetailPage"));
 const ActivityCheatsheetPage = lazy(() => import("./pages/activities/ActivityCheatsheetPage"));
+const SessionOpsRunSheet = lazy(() => import("./pages/activities/SessionOpsRunSheet"));
 const RestaurantsPage = lazy(() => import("./pages/restaurants/RestaurantsPage"));
 const RestaurantSlotsPage = lazy(() => import("./pages/restaurants/RestaurantSlotsPage"));
 const RestaurantSlotDetailPage = lazy(() => import("./pages/restaurants/RestaurantSlotDetailPage"));
@@ -241,6 +242,7 @@ const App = () => (
                   <Route path="activities/sessions" element={<ActivitySessionsPage />} />
                   <Route path="activities/sessions/new" element={<CreateSessionWizard />} />
                   <Route path="activities/sessions/:id" element={<ActivitySessionDetailPage />} />
+                  <Route path="activities/sessions/:sessionId/ops" element={<SessionOpsRunSheet />} />
                   <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />
