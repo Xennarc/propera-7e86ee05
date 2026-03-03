@@ -229,6 +229,9 @@ export function GuestBookingStatusTracker({
     return null;
   }, [phase, booking.date, booking.startTime]);
 
+  // If ops module is disabled, don't render the live tracker
+  if (!opsEnabled) return null;
+
   return (
     <div className={cn('space-y-3', className)}>
       {/* Status banner */}
