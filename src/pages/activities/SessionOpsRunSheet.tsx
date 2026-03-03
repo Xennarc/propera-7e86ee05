@@ -95,9 +95,18 @@ export default function SessionOpsRunSheet() {
   const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all');
   const [manifestSearch, setManifestSearch] = useState('');
 
-  // DB-backed readiness
+  // DB-backed readiness (new status-based model)
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
-  const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
+  const { data: readinessMap = {} } = useSessionBookingReadiness(sessionId, bookingIds);
+
+  // Activity requirements (parsed once session loads)
+  const activityRequirements: ActivityRequirements = useMemo(() => {
+    if (!session?.activity) return parseActivityRequirements(null);
+    return parseActivityRequirements(
+      session.activity.requirements_json,
+      session.activity.category,
+    );
+  }, [session?.activity]);
 
   // Real session events
   const { data: sessionEvents = [] } = useSessionEvents(sessionId);
