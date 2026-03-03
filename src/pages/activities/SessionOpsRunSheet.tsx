@@ -14,6 +14,10 @@ import { Activity, ActivitySession, ActivityBooking, Guest } from '@/types/datab
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { BottomActionStrip } from '@/components/ui/bottom-action-strip';
+import { StatusChip } from '@/components/ui/status-chip';
+import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import {
