@@ -28,6 +28,7 @@ import { useTravelParty } from '@/hooks/useTravelParty';
 import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils';
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
+import { PrepareCard } from '@/components/guest/PrepareCard';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
