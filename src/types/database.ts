@@ -3,7 +3,7 @@
 export type GlobalRole = 'SUPER_ADMIN' | 'STANDARD';
 export type ResortRole = 'RESORT_ADMIN' | 'MANAGER' | 'FRONT_OFFICE' | 'ACTIVITIES' | 'FNB' | 'RESERVATIONS' | 'TRANSPORT';
 export type ActivityCategory = 'DIVE' | 'EXCURSION' | 'WATERSPORT' | 'SPA' | 'OTHER';
-export type SessionStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
+export type SessionStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED' | 'CHECK_IN' | 'DEPARTED';
 export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
 export type BookingSource = 'STAFF_FRONT_DESK' | 'STAFF_DIVE' | 'STAFF_FNB' | 'GUEST_PORTAL';
 export type MealPeriod = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'EVENT';
