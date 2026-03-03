@@ -9234,7 +9234,11 @@ export type Database = {
         | "cancelled"
       buggy_trip_stop_kind: "pickup" | "dropoff" | "waypoint"
       buggy_trip_stop_status: "pending" | "arrived" | "completed" | "skipped"
-      buggy_trip_type: "pooled_custom" | "scheduled_pool" | "fixed_route_run"
+      buggy_trip_type:
+        | "pooled_custom"
+        | "scheduled_pool"
+        | "fixed_route_run"
+        | "activity_pickup"
       driver_status: "offline" | "online" | "on_trip" | "break"
       feedback_source: "GUEST_PORTAL" | "STAFF_FILLED"
       global_role: "SUPER_ADMIN" | "STANDARD"
@@ -9500,7 +9504,12 @@ export const Constants = {
       ],
       buggy_trip_stop_kind: ["pickup", "dropoff", "waypoint"],
       buggy_trip_stop_status: ["pending", "arrived", "completed", "skipped"],
-      buggy_trip_type: ["pooled_custom", "scheduled_pool", "fixed_route_run"],
+      buggy_trip_type: [
+        "pooled_custom",
+        "scheduled_pool",
+        "fixed_route_run",
+        "activity_pickup",
+      ],
       driver_status: ["offline", "online", "on_trip", "break"],
       feedback_source: ["GUEST_PORTAL", "STAFF_FILLED"],
       global_role: ["SUPER_ADMIN", "STANDARD"],
