@@ -1,7 +1,7 @@
 /**
  * CertVerificationDrawer – Staff drawer to preview, verify, or reject a cert.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +46,14 @@ export function CertVerificationDrawer({
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+
+  // Reset state when drawer opens with new booking
+  useEffect(() => {
+    if (open) {
+      setNotes(existingNotes ?? '');
+      setPreviewUrl(null);
+    }
+  }, [open, bookingId]);
 
   const loadPreview = async () => {
     if (!certMediaPath || previewUrl) return;
@@ -119,7 +127,7 @@ export function CertVerificationDrawer({
           <DrawerDescription>{guestName}</DrawerDescription>
         </DrawerHeader>
 
-        <div className="px-4 pb-6 space-y-4 overflow-y-auto">
+        <div className="px-4 pb-safe-bottom space-y-4 overflow-y-auto">
           {/* Status */}
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Status:</span>

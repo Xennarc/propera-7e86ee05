@@ -89,7 +89,7 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
             <button
               onClick={() => { setHasConditions(false); setSelectedConditions(new Set()); }}
               className={cn(
-                'rounded-xl border p-4 text-center transition-all tap-target',
+              'rounded-xl border p-4 text-center transition-all min-h-[56px]',
                 hasConditions === false
                   ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/20'
                   : 'border-border bg-card text-foreground hover:bg-muted'
@@ -101,7 +101,7 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
             <button
               onClick={() => setHasConditions(true)}
               className={cn(
-                'rounded-xl border p-4 text-center transition-all tap-target',
+                'rounded-xl border p-4 text-center transition-all min-h-[56px]',
                 hasConditions === true
                   ? 'border-warning bg-warning/10 text-warning ring-1 ring-warning/20'
                   : 'border-border bg-card text-foreground hover:bg-muted'
@@ -121,7 +121,7 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
                     key={chip.key}
                     onClick={() => toggleCondition(chip.key)}
                     className={cn(
-                      'h-9 px-3.5 rounded-full text-sm font-medium transition-all border',
+                      'h-11 min-w-[44px] px-3.5 rounded-full text-sm font-medium transition-all border',
                       selectedConditions.has(chip.key)
                         ? 'bg-warning/15 text-warning border-warning/40 ring-1 ring-warning/20'
                         : 'bg-card text-foreground border-border hover:bg-muted'

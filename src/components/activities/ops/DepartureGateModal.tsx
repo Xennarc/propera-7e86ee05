@@ -57,7 +57,9 @@ export function DepartureGateModal({
             Can't depart yet
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {blockers.length} guest{blockers.length !== 1 ? 's' : ''} ha{blockers.length !== 1 ? 've' : 's'} unresolved compliance items.
+            {blockers.length === 0
+              ? 'All compliance items resolved.'
+              : `${blockers.length} guest${blockers.length !== 1 ? 's' : ''} ha${blockers.length !== 1 ? 've' : 's'} unresolved compliance items.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 

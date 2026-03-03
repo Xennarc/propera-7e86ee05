@@ -54,7 +54,7 @@ export function ConflictsSheet({ open, onOpenChange, conflicts }: Props) {
             {all.length} conflict{all.length !== 1 ? 's' : ''} detected with overlapping sessions
           </DrawerDescription>
         </DrawerHeader>
-        <div className="px-4 pb-6 space-y-2 overflow-y-auto">
+        <div className="px-4 pb-safe-bottom space-y-2 overflow-y-auto">
           {all.map((item, i) => (
             <button
               key={i}
