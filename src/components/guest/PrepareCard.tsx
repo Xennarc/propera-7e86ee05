@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ export function PrepareCard({
   variant = 'inline',
   className,
 }: PrepareCardProps) {
+  const opsEnabled = useFeatureEnabled('enable_activities_ops');
   const { data: readiness, isLoading } = useActivityBookingReadiness(bookingId);
   const queryClient = useQueryClient();
   const [activeStep, setActiveStep] = useState<PrepareStepKey | null>(null);
@@ -113,6 +115,10 @@ export function PrepareCard({
   }, [isLoading, readiness, ensured, bookingId, guestId, resortId, queryClient]);
 
   const requirements = parseActivityRequirements(requirementsJson, category);
+
+  // If ops module disabled, don't show PrepareCard
+  if (!opsEnabled) return null;
+
   const applicableSteps = STEPS.filter((s) => requirements[s.requirementKey]);
   const completedCount = applicableSteps.filter((s) => s.isComplete(readiness ?? null)).length;
   const allComplete = completedCount === applicableSteps.length;

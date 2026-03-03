@@ -7,6 +7,7 @@
  * When session/booking rows change, React Query caches are invalidated automatically.
  */
 import { useMemo } from 'react';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, differenceInMinutes, isToday } from 'date-fns';
