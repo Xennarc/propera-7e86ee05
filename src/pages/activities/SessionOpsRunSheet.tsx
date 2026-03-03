@@ -533,8 +533,6 @@ export default function SessionOpsRunSheet() {
                       {session.resource_id ? 'Assigned' : 'Unassigned'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Vendor</span>
                     <span className="font-medium text-foreground">
                       {session.vendor_id ? 'Assigned' : 'N/A'}
                     </span>
