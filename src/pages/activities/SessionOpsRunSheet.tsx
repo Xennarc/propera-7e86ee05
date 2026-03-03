@@ -422,7 +422,7 @@ function SessionOpsRunSheetContent() {
   const primaryAction = useMemo(() => {
     if (!session || isCancelled || isCompleted) return null;
     if (session.status === 'SCHEDULED') return { label: 'Open Check-in', icon: UserCheck, action: () => transitionSessionStatus('CHECK_IN') };
-    if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('DEPARTED') };
+    if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => handleDepartAttempt() };
     if (session.status === 'DEPARTED') return { label: 'Mark Completed', icon: Flag, action: () => setStatusConfirm('COMPLETED') };
     return null;
   }, [session, isCancelled, isCompleted, transitionSessionStatus]);
