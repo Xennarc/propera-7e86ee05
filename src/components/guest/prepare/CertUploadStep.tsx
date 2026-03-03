@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Award, Camera, Upload, CheckCircle2, Loader2, FileImage, X } from 'lucide-react';
-import { useUpdateReadiness } from '@/hooks/useBookingReadiness';
+import { useUpdateActivityBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 interface CertUploadStepProps {
   bookingId: string;
   resortId: string;
+  guestId: string;
   onComplete: () => void;
   onBack: () => void;
 }
@@ -22,13 +23,13 @@ const CERT_TYPES = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-export function CertUploadStep({ bookingId, resortId, onComplete, onBack }: CertUploadStepProps) {
+export function CertUploadStep({ bookingId, resortId, guestId, onComplete, onBack }: CertUploadStepProps) {
   const [certType, setCertType] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const updateMutation = useUpdateReadiness();
+  const updateMutation = useUpdateActivityBookingReadiness();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -38,7 +39,6 @@ export function CertUploadStep({ bookingId, resortId, onComplete, onBack }: Cert
       return;
     }
     setFile(selected);
-    // Show preview for images
     if (selected.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onload = (ev) => setPreview(ev.target?.result as string);
@@ -60,10 +60,11 @@ export function CertUploadStep({ bookingId, resortId, onComplete, onBack }: Cert
 
     try {
       const ext = file.name.split('.').pop() || 'jpg';
-      const path = `${resortId}/${bookingId}/cert.${ext}`;
+      // Path: resort_id/guest_id/booking_id/cert.ext (matches storage RLS)
+      const path = `${resortId}/${guestId}/${bookingId}/cert.${ext}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('guest-certs')
+        .from('activity-certs')
         .upload(path, file, { upsert: true });
 
       if (uploadError) throw uploadError;
@@ -72,10 +73,8 @@ export function CertUploadStep({ bookingId, resortId, onComplete, onBack }: Cert
         {
           bookingId,
           updates: {
-            cert_verified: true,
-            cert_file_path: path,
-            cert_type: certType,
-            cert_verified_at: new Date().toISOString(),
+            cert_status: 'uploaded' as any,
+            cert_media_path: path,
           },
         },
         {
@@ -103,7 +102,7 @@ export function CertUploadStep({ bookingId, resortId, onComplete, onBack }: Cert
         </Button>
         <div>
           <h3 className="font-semibold text-foreground">Upload Certification</h3>
-          <p className="text-xs text-muted-foreground">Required for dive activities</p>
+          <p className="text-xs text-muted-foreground">Required for this activity</p>
         </div>
       </div>
 

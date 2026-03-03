@@ -2,19 +2,18 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Ruler, CheckCircle2, Loader2, Plus, Minus } from 'lucide-react';
-import { useUpdateReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
+import { useUpdateActivityBookingReadiness, ActivityBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface SizesStepProps {
   bookingId: string;
-  readiness: BookingReadiness | null | undefined;
+  readiness: ActivityBookingReadiness | null | undefined;
   onComplete: () => void;
   onBack: () => void;
 }
 
-// Chip-based size options
 const WETSUIT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const SHOE_SIZES = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'];
 
@@ -56,14 +55,14 @@ function Stepper({
 }
 
 export function SizesStep({ bookingId, readiness, onComplete, onBack }: SizesStepProps) {
-  const existing = (readiness?.sizes_data ?? {}) as Record<string, unknown>;
+  const existing = (readiness?.gear_json ?? {}) as Record<string, unknown>;
 
   const [wetsuitSize, setWetsuitSize] = useState<string>((existing.wetsuit_size as string) || '');
   const [shoeSize, setShoeSize] = useState<string>((existing.shoe_size as string) || '');
   const [heightCm, setHeightCm] = useState<number>((existing.height_cm as number) || 170);
   const [weightKg, setWeightKg] = useState<number>((existing.weight_kg as number) || 70);
 
-  const updateMutation = useUpdateReadiness();
+  const updateMutation = useUpdateActivityBookingReadiness();
 
   const isValid = wetsuitSize && shoeSize;
 
@@ -72,16 +71,13 @@ export function SizesStep({ bookingId, readiness, onComplete, onBack }: SizesSte
       {
         bookingId,
         updates: {
-          sizes_confirmed: true,
-          sizes_data: {
+          gear_status: 'complete' as any,
+          gear_json: {
             wetsuit_size: wetsuitSize,
             shoe_size: shoeSize,
             height_cm: heightCm,
             weight_kg: weightKg,
           },
-          sizes_confirmed_at: new Date().toISOString(),
-          gear_confirmed: true,
-          gear_confirmed_at: new Date().toISOString(),
         },
       },
       {
