@@ -460,6 +460,13 @@ function SessionOpsRunSheetContent() {
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground truncate">{session.activity.name}</span>
           <StatusChip status={session.status} />
+          {conflictCount > 0 && (
+            <button onClick={() => setConflictsSheetOpen(true)}>
+              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 cursor-pointer">
+                {conflictCount} conflict{conflictCount !== 1 ? 's' : ''}
+              </Badge>
+            </button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           {format(parseISO(session.date), 'EEE, MMM d')} · {session.start_time.slice(0, 5)}–{session.end_time.slice(0, 5)}
@@ -577,13 +584,13 @@ function SessionOpsRunSheetContent() {
         {activeTab === 'setup' && (
           <div className="px-4 py-4 space-y-4">
             {/* Boat assignment */}
-            <BoatAssignmentCard sessionId={session.id} resortId={session.resort_id} />
+            <BoatAssignmentCard sessionId={session.id} resortId={session.resort_id} boatConflicts={conflicts?.conflicting_boats} />
 
             {/* Crew assignment */}
-            <CrewAssignmentCard sessionId={session.id} resortId={session.resort_id} />
+            <CrewAssignmentCard sessionId={session.id} resortId={session.resort_id} staffConflicts={conflicts?.conflicting_staff} />
 
             {/* Equipment assignment */}
-            <EquipmentAssignmentCard sessionId={session.id} resortId={session.resort_id} />
+            <EquipmentAssignmentCard sessionId={session.id} resortId={session.resort_id} equipmentConflicts={conflicts?.conflicting_equipment} />
 
             {/* Legacy assets panel */}
             <SessionAssetsPanel
