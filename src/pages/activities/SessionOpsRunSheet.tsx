@@ -53,6 +53,7 @@ import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCa
 import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
 import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
+import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
