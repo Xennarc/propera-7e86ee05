@@ -311,6 +311,7 @@ export default function GuestActivityBookingPage() {
         queryClient.invalidateQueries({ queryKey: ['guest-room-bookings'] });
         setBookingResult({
           success: true,
+          bookingId: data.booking_id,
           requiresApproval: data.requires_approval,
           isPrearrival: data.is_prearrival || isPrearrival,
         });
@@ -453,11 +454,16 @@ export default function GuestActivityBookingPage() {
                   : "You can find this in 'My Bookings' at any time."}
             </p>
             
-            {/* PrepareCard will be available in My Bookings after navigating */}
-            {['DIVE', 'WATERSPORT', 'EXCURSION'].includes(session.category) && (
-              <p className="text-sm text-primary font-medium mb-4">
-                ✨ Complete your preparation steps in My Bookings
-              </p>
+            {/* Inline PrepareCard for immediate post-booking preparation */}
+            {bookingResult.bookingId && guest && (
+              <PrepareCard
+                bookingId={bookingResult.bookingId}
+                guestId={guest.guestId}
+                resortId={guest.resortId}
+                activityName={session.activity_name}
+                category={session.category}
+                variant="full"
+              />
             )}
             
             <div className="space-y-2">
