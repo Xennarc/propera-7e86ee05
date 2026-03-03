@@ -715,6 +715,14 @@ function SessionOpsRunSheetContent() {
           }}
         />
       )}
+
+      {conflicts && (
+        <ConflictsSheet
+          open={conflictsSheetOpen}
+          onOpenChange={setConflictsSheetOpen}
+          conflicts={conflicts}
+        />
+      )}
     </div>
   );
 }
