@@ -132,17 +132,6 @@ export default function SessionOpsRunSheet() {
     const bks = (bookingsData ?? []) as BookingWithGuest[];
     setBookings(bks);
 
-    // Initialise readiness for new bookings
-    setReadiness((prev) => {
-      const next = { ...prev };
-      bks.forEach((b) => {
-        if (!next[b.id]) {
-          next[b.id] = { waiver: null, medical: null, cert: null, gear: null };
-        }
-      });
-      return next;
-    });
-
     setLoading(false);
   }, [sessionId, isValidId]);
 
@@ -201,15 +190,8 @@ export default function SessionOpsRunSheet() {
     setCancelBookingId(null);
   };
 
-  // Readiness toggle
-  const toggleReadiness = (bookingId: string, key: ReadinessKey) => {
-    setReadiness((prev) => {
-      const cur = prev[bookingId]?.[key];
-      // cycle: null → true → false → null
-      const next = cur === null ? true : cur === true ? false : null;
-      return { ...prev, [bookingId]: { ...prev[bookingId], [key]: next } };
-    });
-  };
+  // Readiness is now DB-backed; no local toggle needed
+  // Staff can view readiness state set by guests
 
   // Row expand
   const toggleRow = (id: string) => {
