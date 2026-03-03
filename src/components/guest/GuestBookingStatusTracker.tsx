@@ -251,7 +251,7 @@ export function GuestBookingStatusTracker({
       </div>
 
       {/* Cert verification status */}
-      {booking.type === 'activity' && booking.bookingId && <CertVerificationInfo bookingId={booking.bookingId} />}
+      {booking.type === 'activity' && booking.id && <CertVerificationInfo bookingId={booking.id} />}
 
       {/* Context hint */}
       {contextHint && (
