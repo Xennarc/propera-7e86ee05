@@ -128,6 +128,7 @@ function SessionOpsRunSheetContent() {
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | 'DEPARTED' | null>(null);
   const [moveBookingId, setMoveBookingId] = useState<string | null>(null);
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const [certVerifyBookingId, setCertVerifyBookingId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
 
   const canEdit =
@@ -267,6 +268,8 @@ function SessionOpsRunSheetContent() {
         medicalStatus: (dbR?.medical_status ?? 'unknown') as ReadinessStatus,
         certStatus: (dbR?.cert_status ?? 'unknown') as ReadinessStatus,
         gearStatus: (dbR?.gear_status ?? 'unknown') as ReadinessStatus,
+        certVerificationStatus: ((dbR as any)?.cert_verification_status ?? 'not_required') as any,
+        certMediaPath: (dbR as any)?.cert_media_path ?? null,
       };
     });
   }, [activeBookings, readinessMap]);
@@ -574,6 +577,7 @@ function SessionOpsRunSheetContent() {
                     onMarkArrived={canEdit ? markArrived : undefined}
                     onMoveSession={canEdit ? (id) => setMoveBookingId(id) : undefined}
                     onCancel={canEdit ? (id) => setCancelBookingId(id) : undefined}
+                    onVerifyCert={canEdit ? (id) => setCertVerifyBookingId(id) : undefined}
                   />
                 ))
               )}
