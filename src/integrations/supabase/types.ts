@@ -8235,6 +8235,10 @@ export type Database = {
         }[]
       }
       get_security_audit_summary: { Args: never; Returns: Json }
+      get_session_conflicts: {
+        Args: { p_resort_id: string; p_session_id: string }
+        Returns: Json
+      }
       get_staff_invitation_by_token: {
         Args: { p_token: string }
         Returns: {
