@@ -185,12 +185,21 @@ export type Database = {
         Row: {
           booking_id: string
           cert_media_path: string | null
+          cert_notes: string | null
           cert_status: string
+          cert_verification_status: string
+          cert_verified_at: string | null
+          cert_verified_by: string | null
           created_at: string
           gear_json: Json | null
           gear_status: string
           guest_id: string
           id: string
+          medical_answers_json: Json | null
+          medical_notes: string | null
+          medical_review_status: string
+          medical_reviewed_at: string | null
+          medical_reviewed_by: string | null
           medical_status: string
           resort_id: string
           session_id: string
@@ -200,12 +209,21 @@ export type Database = {
         Insert: {
           booking_id: string
           cert_media_path?: string | null
+          cert_notes?: string | null
           cert_status?: string
+          cert_verification_status?: string
+          cert_verified_at?: string | null
+          cert_verified_by?: string | null
           created_at?: string
           gear_json?: Json | null
           gear_status?: string
           guest_id: string
           id?: string
+          medical_answers_json?: Json | null
+          medical_notes?: string | null
+          medical_review_status?: string
+          medical_reviewed_at?: string | null
+          medical_reviewed_by?: string | null
           medical_status?: string
           resort_id: string
           session_id: string
@@ -215,12 +233,21 @@ export type Database = {
         Update: {
           booking_id?: string
           cert_media_path?: string | null
+          cert_notes?: string | null
           cert_status?: string
+          cert_verification_status?: string
+          cert_verified_at?: string | null
+          cert_verified_by?: string | null
           created_at?: string
           gear_json?: Json | null
           gear_status?: string
           guest_id?: string
           id?: string
+          medical_answers_json?: Json | null
+          medical_notes?: string | null
+          medical_review_status?: string
+          medical_reviewed_at?: string | null
+          medical_reviewed_by?: string | null
           medical_status?: string
           resort_id?: string
           session_id?: string
@@ -3703,6 +3730,50 @@ export type Database = {
           },
         ]
       }
+      ops_assets: {
+        Row: {
+          capacity_int: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          meta_json: Json | null
+          name: string
+          resort_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          capacity_int?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meta_json?: Json | null
+          name: string
+          resort_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          capacity_int?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          meta_json?: Json | null
+          name?: string
+          resort_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ops_assets_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       permissions: {
         Row: {
           category: string
@@ -6614,9 +6685,11 @@ export type Database = {
       }
       session_asset_assignments: {
         Row: {
+          asset_id: string | null
           asset_label: string
           asset_ref_id: string | null
           asset_type: Database["public"]["Enums"]["session_asset_type"]
+          assigned_by: string | null
           created_at: string
           id: string
           notes: string | null
@@ -6626,9 +6699,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           asset_label: string
           asset_ref_id?: string | null
           asset_type: Database["public"]["Enums"]["session_asset_type"]
+          assigned_by?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -6638,9 +6713,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           asset_label?: string
           asset_ref_id?: string | null
           asset_type?: Database["public"]["Enums"]["session_asset_type"]
+          assigned_by?: string | null
           created_at?: string
           id?: string
           notes?: string | null
@@ -6650,6 +6727,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "session_asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "ops_assets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "session_asset_assignments_resort_id_fkey"
             columns: ["resort_id"]
@@ -6713,6 +6797,100 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_staff_assignments: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          resort_id: string
+          role: string
+          session_id: string
+          staff_user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          resort_id: string
+          role: string
+          session_id: string
+          staff_user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          resort_id?: string
+          role?: string
+          session_id?: string
+          staff_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_staff_assignments_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_staff_assignments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_transport_links: {
+        Row: {
+          created_at: string
+          id: string
+          link_type: string
+          resort_id: string
+          session_id: string
+          trip_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_type: string
+          resort_id: string
+          session_id: string
+          trip_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_type?: string
+          resort_id?: string
+          session_id?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_transport_links_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_transport_links_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_transport_links_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "buggy_trips"
             referencedColumns: ["id"]
           },
         ]
