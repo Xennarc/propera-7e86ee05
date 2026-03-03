@@ -92,7 +92,7 @@ export default function ActivitiesOpsInbox() {
     return sessions.map((s: any) => ({
       sessionId: s.id,
       activityName: s.activity?.name ?? 'Unknown',
-      status: s.status as OpsStatus,
+      status: s.status as string,
       startTime: s.start_time?.slice(0, 5) ?? '',
       endTime: s.end_time?.slice(0, 5) ?? '',
       date: s.date,
