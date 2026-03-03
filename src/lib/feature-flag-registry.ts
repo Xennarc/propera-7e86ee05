@@ -156,6 +156,17 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     scope: 'global',
   },
 
+  // Activities Ops Module (Session Ops + Guest Prepare)
+  {
+    key: 'enable_activities_ops',
+    label: 'Activities Ops (Session Ops + Guest Prepare)',
+    description: 'Staff Ops Inbox, Session Run Sheet, Guest Prepare wizard, and Live Status tracker for dive/watersports/excursion bookings.',
+    category: 'core',
+    tier: null,
+    is_dangerous: false,
+    scope: 'resort',
+  },
+
   // Transport Module
   {
     key: 'enable_transport',
