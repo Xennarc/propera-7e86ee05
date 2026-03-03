@@ -94,7 +94,7 @@ export function useUpdateActivityBookingReadiness() {
       bookingId: string;
       updates: Partial<Pick<ActivityBookingReadiness,
         'waiver_status' | 'medical_status' | 'cert_status' | 'gear_status' | 'gear_json' | 'cert_media_path'
-      >>;
+      >> & Record<string, unknown>;
     }) => {
       const { data, error } = await supabase
         .from('activity_booking_readiness')

@@ -14,6 +14,8 @@ import { format, parseISO, differenceInMinutes, isToday } from 'date-fns';
 import { Check, Clock, Circle, MapPin, Anchor, Flag, Ship, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusPill } from '@/components/guest/StatusPill';
+import { CertVerificationBadge } from '@/components/guest/CertVerificationBadge';
+import { useActivityBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import type { BookingDisplayModel } from '@/types/booking-display';
 
 interface GuestBookingStatusTrackerProps {
@@ -175,6 +177,18 @@ function buildTimelineSteps(
   });
 }
 
+/** Small inline component to fetch and display cert verification status */
+function CertVerificationInfo({ bookingId }: { bookingId: string }) {
+  const { data: readiness } = useActivityBookingReadiness(bookingId);
+  if (!readiness) return null;
+  return (
+    <CertVerificationBadge
+      certStatus={readiness.cert_status}
+      certVerificationStatus={(readiness as any).cert_verification_status}
+    />
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────
 
 export function GuestBookingStatusTracker({
@@ -247,6 +261,9 @@ export function GuestBookingStatusTracker({
         <StatusPill label={config.label} variant={config.pillVariant} />
         <p className="text-xs text-muted-foreground flex-1">{config.explanation}</p>
       </div>
+
+      {/* Cert verification status */}
+      {booking.type === 'activity' && booking.id && <CertVerificationInfo bookingId={booking.id} />}
 
       {/* Context hint */}
       {contextHint && (
