@@ -84,8 +84,9 @@ export default function SessionOpsRunSheet() {
   const [bookings, setBookings] = useState<BookingWithGuest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Per-booking local readiness (Phase 1: all start unknown, toggleable in-memory)
-  const [readiness, setReadiness] = useState<Record<string, ReadinessState>>({});
+  // DB-backed readiness from booking_readiness table
+  const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
+  const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
 
   // Expanded rows for progressive disclosure
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
