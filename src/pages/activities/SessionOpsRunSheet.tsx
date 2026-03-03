@@ -302,6 +302,45 @@ function SessionOpsRunSheetContent() {
     return { ready, missing };
   }, [guestRows, activityRequirements]);
 
+  // ── Departure gate check ──────────────────────────────────────────
+  const computeDepartureBlockers = useCallback((): DepartureBlocker[] => {
+    const blockers: DepartureBlocker[] = [];
+    for (const g of guestRows) {
+      if (activityRequirements.requires_cert_verification) {
+        if (g.certVerificationStatus && g.certVerificationStatus !== 'verified' && g.certVerificationStatus !== 'not_required') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'cert_unverified' });
+        }
+      }
+      if (activityRequirements.requires_medical_clearance) {
+        if (g.medicalReviewStatus === 'pending') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'medical_pending' });
+        } else if (g.medicalReviewStatus === 'requires_followup') {
+          blockers.push({ bookingId: g.bookingId, guestName: g.guestName, reason: 'medical_followup' });
+        }
+      }
+    }
+    return blockers;
+  }, [guestRows, activityRequirements]);
+
+  const handleDepartAttempt = useCallback(() => {
+    const blockers = computeDepartureBlockers();
+    if (blockers.length > 0) {
+      setDepartureBlockers(blockers);
+      setDepartureGateOpen(true);
+    } else {
+      setStatusConfirm('DEPARTED');
+    }
+  }, [computeDepartureBlockers]);
+
+  const handleDepartureOverride = useCallback(async () => {
+    if (!session) return;
+    setTransitioning(true);
+    await logSessionEvent('departure_override', session.status, 'DEPARTED');
+    await transitionSessionStatus('DEPARTED');
+    setDepartureGateOpen(false);
+    setDepartureBlockers([]);
+  }, [session, logSessionEvent, transitionSessionStatus]);
+
   const filteredGuests = useMemo(() => {
     let result = guestRows;
 
