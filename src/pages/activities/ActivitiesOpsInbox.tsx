@@ -15,6 +15,7 @@ import { Search, SlidersHorizontal, WifiOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { ConnectionBanner } from '@/components/ui/connection-banner';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 
@@ -87,18 +88,35 @@ export default function ActivitiesOpsInbox() {
     enabled: sessionIds.length > 0,
   });
 
+  // Resolve CTA label based on session state
+  const getCtaLabel = (status: string, startTime: string, date: string): string => {
+    const sessionDateTime = `${date}T${startTime}`;
+    const sessionStart = new Date(sessionDateTime);
+    const now = new Date();
+    const minutesUntil = (sessionStart.getTime() - now.getTime()) / 60000;
+
+    if (status === 'IN_PROGRESS' || status === 'CHECK_IN') return 'Open Check-in';
+    if (status === 'COMPLETED' || status === 'CANCELLED') return 'Review Session';
+    if (minutesUntil <= 120 && minutesUntil > 0) return 'Open Check-in';
+    return 'View Run Sheet';
+  };
+
   // Build card data
   const cards: DepartureCardData[] = useMemo(() => {
-    return sessions.map((s: any) => ({
-      sessionId: s.id,
-      activityName: s.activity?.name ?? 'Unknown',
-      status: s.status as string,
-      startTime: s.start_time?.slice(0, 5) ?? '',
-      endTime: s.end_time?.slice(0, 5) ?? '',
-      date: s.date,
-      bookedPax: bookingCounts[s.id] ?? 0,
-      capacity: s.capacity,
-    }));
+    return sessions.map((s: any) => {
+      const st = s.start_time?.slice(0, 5) ?? '';
+      return {
+        sessionId: s.id,
+        activityName: s.activity?.name ?? 'Unknown',
+        status: s.status as string,
+        startTime: st,
+        endTime: s.end_time?.slice(0, 5) ?? '',
+        date: s.date,
+        bookedPax: bookingCounts[s.id] ?? 0,
+        capacity: s.capacity,
+        ctaLabel: getCtaLabel(s.status, st, s.date),
+      };
+    });
   }, [sessions, bookingCounts]);
 
   // Filter
@@ -128,6 +146,21 @@ export default function ActivitiesOpsInbox() {
       result = result.filter(c => c.activityName.toLowerCase().includes(q));
     }
 
+    // Attention-based sorting: starting soon first, then sessions with bookings, then rest
+    result = [...result].sort((a, b) => {
+      const aIsToday = a.date === todayStr ? 1 : 0;
+      const bIsToday = b.date === todayStr ? 1 : 0;
+      if (aIsToday !== bIsToday) return bIsToday - aIsToday;
+
+      // Within same day, earlier start first
+      if (a.startTime !== b.startTime) return a.startTime.localeCompare(b.startTime);
+
+      // Sessions with bookings rank higher
+      const aHasBookings = a.bookedPax > 0 ? 1 : 0;
+      const bHasBookings = b.bookedPax > 0 ? 1 : 0;
+      return bHasBookings - aHasBookings;
+    });
+
     return result;
   }, [cards, filter, searchQuery, todayStr, tomorrowStr, nowTimeStr, plus2hStr]);
 
@@ -135,6 +168,7 @@ export default function ActivitiesOpsInbox() {
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background">
+      <ConnectionBanner />
       {/* ── Sticky top bar (56px) ── */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
         <div className="flex items-center h-14 px-4 gap-2">
