@@ -1,19 +1,20 @@
 /**
  * OpsSheetRowCard – Single session row in the Master Ops Sheet.
  * radius 16, padding 16, gap 12, min-height ~104.
+ * Badges are clickable deep links to the Run Sheet with filter params.
  */
 import { useNavigate } from 'react-router-dom';
 import { StatusChip } from '@/components/ui/status-chip';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Ship,
   Users,
-  MapPin,
+  Anchor,
   AlertTriangle,
   ChevronRight,
   Bus,
-  Anchor,
+  ShieldAlert,
+  Stethoscope,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { OpsSessionRow } from '@/hooks/useDailyOpsSheet';
@@ -28,9 +29,29 @@ export function OpsSheetRowCard({ row }: OpsSheetRowCardProps) {
   const hasBlockers = row.blockers.length > 0;
   const hasConflicts = row.conflicts_count > 0;
 
+  const baseUrl = `/staff/activities/sessions/${row.session_id}/ops`;
+
+  const handleCardClick = () => navigate(baseUrl);
+
+  // Deep link handlers — stop propagation so card click doesn't fire
+  const handleCertClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`${baseUrl}?manifest_filter=unverified_cert`);
+  };
+
+  const handleMedicalClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`${baseUrl}?open_medical=1`);
+  };
+
+  const handleConflictClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`${baseUrl}?open_conflicts=1`);
+  };
+
   return (
     <button
-      onClick={() => navigate(`/staff/activities/sessions/${row.session_id}/ops`)}
+      onClick={handleCardClick}
       className={cn(
         'w-full text-left rounded-2xl border border-border/40 bg-card p-4 space-y-3 transition-colors hover:bg-accent/5 min-h-[104px]',
         hasConflicts && 'border-warning/40',
@@ -124,27 +145,38 @@ export function OpsSheetRowCard({ row }: OpsSheetRowCardProps) {
           </Badge>
         )}
 
-        {/* Conflicts warning */}
+        {/* Conflicts warning — clickable deep link */}
         {hasConflicts && (
-          <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-warning/40 text-warning bg-warning/10">
+          <Badge
+            variant="outline"
+            className="text-[10px] py-0.5 px-2 gap-1 border-warning/40 text-warning bg-warning/10 cursor-pointer hover:bg-warning/20 transition-colors"
+            onClick={handleConflictClick}
+          >
             <AlertTriangle className="h-3 w-3" />
             {row.conflicts_count} conflict{row.conflicts_count !== 1 ? 's' : ''}
           </Badge>
         )}
       </div>
 
-      {/* Blockers summary */}
+      {/* Blockers summary — clickable deep links */}
       {hasBlockers && (
         <div className="flex flex-wrap gap-1.5">
-          {row.blockers.map((b, i) => (
-            <Badge
-              key={i}
-              variant="outline"
-              className="text-[10px] py-0.5 px-2 border-destructive/30 text-destructive bg-destructive/5"
-            >
-              {b.type === 'unverified_cert' ? `${b.count} unverified cert${b.count !== 1 ? 's' : ''}` : `${b.count} medical pending`}
-            </Badge>
-          ))}
+          {row.blockers.map((b, i) => {
+            const isCert = b.type === 'unverified_cert';
+            return (
+              <Badge
+                key={i}
+                variant="outline"
+                className="text-[10px] py-0.5 px-2 gap-1 border-destructive/30 text-destructive bg-destructive/5 cursor-pointer hover:bg-destructive/10 transition-colors"
+                onClick={isCert ? handleCertClick : handleMedicalClick}
+              >
+                {isCert ? <ShieldAlert className="h-3 w-3" /> : <Stethoscope className="h-3 w-3" />}
+                {isCert
+                  ? `${b.count} unverified cert${b.count !== 1 ? 's' : ''}`
+                  : `${b.count} medical pending`}
+              </Badge>
+            );
+          })}
         </div>
       )}
     </button>
