@@ -1,3 +1,10 @@
+/**
+ * SessionOpsRunSheet – Full ops run sheet with tabbed UI.
+ * Route: /staff/activities/sessions/:sessionId/ops
+ * 
+ * Preserves ALL existing logic (session status updates, booking actions, readiness, assets).
+ * Adds: sticky header, segmented tabs (Manifest/Setup/Timeline), bottom action strip.
+ */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -5,28 +12,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { Activity, ActivitySession, ActivityBooking, Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/bookings/StatusBadge';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowLeft,
   Users,
-  Clock,
-  CheckCircle2,
+  MoreVertical,
+  UserCheck,
   Ship,
   Flag,
-  UserCheck,
-  ArrowRightLeft,
-  XCircle,
-  HelpCircle,
-  ShieldCheck,
-  HeartPulse,
-  Award,
-  Ruler,
-  ChevronDown,
-  ChevronUp,
+  Search,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -38,9 +35,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
-import { useSessionReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
+import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
+import { OpsStatusChip } from '@/components/activities/ops/OpsStatusChip';
+import { GuestReadinessRow, GuestReadinessData, GuestReadinessRowSkeleton } from '@/components/activities/ops/GuestReadinessRow';
+import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
+import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -52,16 +59,6 @@ interface BookingWithGuest extends ActivityBooking {
   guest: Guest;
 }
 
-type ReadinessKey = 'waiver' | 'medical' | 'cert' | 'gear';
-
-// Readiness indicator config
-const readinessIndicators: { key: ReadinessKey; label: string; icon: typeof ShieldCheck }[] = [
-  { key: 'waiver', label: 'Waiver', icon: ShieldCheck },
-  { key: 'medical', label: 'Medical', icon: HeartPulse },
-  { key: 'cert', label: 'Cert', icon: Award },
-  { key: 'gear', label: 'Gear', icon: Ruler },
-];
-
 // ── Helpers ────────────────────────────────────────────────────────────
 
 function isValidUUID(str: string): boolean {
@@ -71,6 +68,9 @@ function isValidUUID(str: string): boolean {
 function paxCount(b: BookingWithGuest) {
   return b.num_adults + b.num_children;
 }
+
+type TabKey = 'manifest' | 'setup' | 'timeline';
+type ManifestFilter = 'all' | 'missing' | 'arrived' | 'not_arrived';
 
 // ── Component ──────────────────────────────────────────────────────────
 
@@ -84,13 +84,14 @@ export default function SessionOpsRunSheet() {
   const [session, setSession] = useState<SessionWithActivity | null>(null);
   const [bookings, setBookings] = useState<BookingWithGuest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>('manifest');
+  const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all');
+  const [manifestSearch, setManifestSearch] = useState('');
+  const [checkInOpen, setCheckInOpen] = useState(false);
 
-  // DB-backed readiness from booking_readiness table
+  // DB-backed readiness
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
   const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
-
-  // Expanded rows for progressive disclosure
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   // Dialogs
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | null>(null);
@@ -127,18 +128,14 @@ export default function SessionOpsRunSheet() {
       .from('activity_bookings')
       .select('*, guest:guests(*)')
       .eq('session_id', sessionId)
-      .in('status', ['CONFIRMED', 'PENDING'])
+      .in('status', ['CONFIRMED', 'PENDING', 'COMPLETED'])
       .order('created_at', { ascending: true });
 
-    const bks = (bookingsData ?? []) as BookingWithGuest[];
-    setBookings(bks);
-
+    setBookings((bookingsData ?? []) as BookingWithGuest[]);
     setLoading(false);
   }, [sessionId, isValidId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Session actions ────────────────────────────────────────────────
 
@@ -161,8 +158,6 @@ export default function SessionOpsRunSheet() {
   // ── Per-guest actions ──────────────────────────────────────────────
 
   const markArrived = async (bookingId: string) => {
-    // Use existing COMPLETED status to represent "arrived/checked-in" for now
-    // In Phase 2 this could be a dedicated field
     const { error } = await supabase
       .from('activity_bookings')
       .update({ status: 'COMPLETED' as any })
@@ -191,61 +186,104 @@ export default function SessionOpsRunSheet() {
     setCancelBookingId(null);
   };
 
-  // Readiness is now DB-backed; no local toggle needed
-  // Staff can view readiness state set by guests
-
-  // Row expand
-  const toggleRow = (id: string) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
   // ── Derived ────────────────────────────────────────────────────────
 
-  const confirmedPax = bookings
-    .filter((b) => b.status === 'CONFIRMED')
-    .reduce((s, b) => s + paxCount(b), 0);
-  const pendingPax = bookings
-    .filter((b) => b.status === 'PENDING')
-    .reduce((s, b) => s + paxCount(b), 0);
-  const totalPax = confirmedPax + pendingPax;
+  const activeBookings = bookings.filter(b => b.status !== 'CANCELLED');
+  const confirmedPax = activeBookings.filter(b => b.status === 'CONFIRMED').reduce((s, b) => s + paxCount(b), 0);
+  const totalPax = activeBookings.reduce((s, b) => s + paxCount(b), 0);
+  const arrivedPax = activeBookings.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + paxCount(b), 0);
+
+  // ── Manifest filtering ────────────────────────────────────────────
+
+  const guestRows: GuestReadinessData[] = useMemo(() => {
+    return activeBookings.map(b => {
+      const dbR = readinessMap[b.id];
+      return {
+        bookingId: b.id,
+        guestName: b.guest.full_name,
+        roomNumber: b.room_number,
+        partySize: paxCount(b),
+        isVip: b.guest.is_vip,
+        bookingStatus: b.status,
+        waiver: dbR ? dbR.waiver_signed : null,
+        medical: null,
+        cert: dbR ? dbR.cert_verified : null,
+        gear: dbR ? (dbR.sizes_confirmed && dbR.gear_confirmed) : null,
+      };
+    });
+  }, [activeBookings, readinessMap]);
+
+  const filteredGuests = useMemo(() => {
+    let result = guestRows;
+
+    if (manifestFilter === 'missing') {
+      result = result.filter(g => g.waiver === false || g.cert === false || g.gear === false || g.medical === false);
+    } else if (manifestFilter === 'arrived') {
+      result = result.filter(g => g.bookingStatus === 'COMPLETED');
+    } else if (manifestFilter === 'not_arrived') {
+      result = result.filter(g => g.bookingStatus !== 'COMPLETED');
+    }
+
+    if (manifestSearch.trim()) {
+      const q = manifestSearch.toLowerCase();
+      result = result.filter(g => g.guestName.toLowerCase().includes(q) || g.roomNumber.includes(q));
+    }
+
+    return result;
+  }, [guestRows, manifestFilter, manifestSearch]);
+
+  // ── Timeline nodes ─────────────────────────────────────────────────
+
+  const timelineNodes: TimelineNode[] = useMemo(() => {
+    if (!session) return [];
+    const isCompleted = session.status === 'COMPLETED';
+    const isCancelled = session.status === 'CANCELLED';
+    return [
+      { label: 'Session Created', timestamp: format(parseISO(session.created_at), 'MMM d, HH:mm'), status: 'done' },
+      { label: 'Check-in Opened', status: checkInOpen ? 'done' : isCancelled ? 'upcoming' : 'upcoming' },
+      { label: 'Departed', status: isCompleted ? 'done' : 'upcoming' },
+      { label: 'Completed', status: isCompleted ? 'done' : isCancelled ? 'upcoming' : 'upcoming' },
+    ];
+  }, [session, checkInOpen]);
+
+  // ── Primary action label ───────────────────────────────────────────
+
+  const primaryAction = useMemo(() => {
+    if (!session || session.status !== 'SCHEDULED') return null;
+    if (!checkInOpen) return { label: 'Open Check-in', icon: UserCheck, action: () => setCheckInOpen(true) };
+    return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('COMPLETED') };
+  }, [session, checkInOpen]);
 
   // ── Guard states ───────────────────────────────────────────────────
 
   if (!isValidId) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground mb-4">Invalid session ID</p>
-          <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>
-            Back to Sessions
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-muted-foreground mb-4">Invalid session ID</p>
+        <Button variant="outline" onClick={() => navigate('/staff/activities/sessions')}>Back to Sessions</Button>
+      </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      <div className="flex flex-col min-h-[100dvh] bg-background">
+        <div className="sticky top-0 z-30 bg-background border-b border-border/40 h-14 flex items-center px-4">
+          <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="p-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => <GuestReadinessRowSkeleton key={i} />)}
+        </div>
       </div>
     );
   }
 
   if (!session?.activity) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-muted-foreground">Session not found</p>
-          <Button variant="outline" className="mt-4" onClick={() => navigate('/staff/activities/sessions')}>
-            Back to Sessions
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center justify-center min-h-[50vh]">
+        <p className="text-muted-foreground">Session not found</p>
+        <Button variant="outline" className="mt-4" onClick={() => navigate('/staff/activities/sessions')}>Back to Sessions</Button>
+      </div>
     );
   }
 
@@ -254,230 +292,207 @@ export default function SessionOpsRunSheet() {
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* ── Header ───────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/staff/activities/sessions/${session.id}`)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold truncate">{session.activity.name}</h1>
-            <StatusBadge status={session.status} />
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {format(parseISO(session.date), 'EEE, MMM d')} · {session.start_time.slice(0, 5)}–{session.end_time.slice(0, 5)}
-          </p>
+    <div className="flex flex-col min-h-[100dvh] bg-background pb-[80px]">
+      {/* ── Sticky top bar (56px) ── */}
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
+        <div className="flex items-center h-14 px-4 gap-2">
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-base font-bold text-foreground flex-1 truncate">{session.activity.name}</h1>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/staff/activities/sessions/${session.id}`)}>
+                View Session Details
+              </DropdownMenuItem>
+              {canEdit && isScheduled && (
+                <DropdownMenuItem className="text-destructive" onClick={() => setStatusConfirm('CANCELLED')}>
+                  Cancel Session
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* ── Quick stats ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Capacity</p>
-              <p className="text-lg font-bold leading-none">{totalPax}/{session.capacity}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <div>
-              <p className="text-xs text-muted-foreground">Confirmed</p>
-              <p className="text-lg font-bold leading-none text-success">{confirmedPax}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-warning" />
-            <div>
-              <p className="text-xs text-muted-foreground">Pending</p>
-              <p className="text-lg font-bold leading-none text-warning">{pendingPax}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Session Actions ──────────────────────────────────────── */}
-      {canEdit && isScheduled && (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={() => {/* check-in is per-guest below */}}>
-            <UserCheck className="h-4 w-4 mr-1.5" />
-            Open Check-in
-          </Button>
-          <Button size="sm" variant="secondary" onClick={() => setStatusConfirm('COMPLETED')}>
-            <Ship className="h-4 w-4 mr-1.5" />
-            Mark Departed
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setStatusConfirm('COMPLETED')}>
-            <Flag className="h-4 w-4 mr-1.5" />
-            Mark Completed
-          </Button>
+      {/* ── Sticky header block (~100px) ── */}
+      <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm border-b border-border/40 px-4 py-3 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-foreground truncate">{session.activity.name}</span>
+          <OpsStatusChip status={session.status as any} />
         </div>
-      )}
-
-      {/* ── Assets Panel ────────────────────────────────────────── */}
-      {session && (
-        <SessionAssetsPanel
-          sessionId={session.id}
-          resortId={session.resort_id}
-          sessionDate={session.date}
-          sessionStartTime={session.start_time}
-          sessionEndTime={session.end_time}
-          canEdit={!!canEdit}
-        />
-      )}
-
-      {/* ── Manifest ─────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Manifest ({bookings.length} bookings · {totalPax} pax)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {bookings.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">No bookings for this session</div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {bookings.map((booking) => {
-                const dbR = readinessMap[booking.id];
-                const rs = {
-                  waiver: dbR ? dbR.waiver_signed : null,
-                  medical: null as boolean | null, // Phase 2+
-                  cert: dbR ? dbR.cert_verified : null,
-                  gear: dbR ? (dbR.sizes_confirmed && dbR.gear_confirmed) : null,
-                };
-                const expanded = expandedRows.has(booking.id);
-
-                return (
-                  <li key={booking.id} className="group">
-                    {/* ── Main row ── */}
-                    <button
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
-                      onClick={() => toggleRow(booking.id)}
-                    >
-                      {/* Guest info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{booking.guest.full_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Room {booking.room_number} · {paxCount(booking)} pax
-                          {booking.guest.is_vip && (
-                            <Badge variant="outline" className="ml-1.5 text-[10px] py-0 px-1 border-amber-400 text-amber-600 dark:text-amber-400">
-                              VIP
-                            </Badge>
-                          )}
-                        </p>
-                      </div>
-
-                      {/* Readiness indicators (compact) */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {readinessIndicators.map(({ key, icon: Icon }) => {
-                          const val = rs[key];
-                          return (
-                            <span
-                              key={key}
-                              className={`rounded p-0.5 ${
-                                val === true
-                                  ? 'text-success bg-success/10'
-                                  : val === false
-                                  ? 'text-destructive bg-destructive/10'
-                                  : 'text-muted-foreground/50 bg-muted/50'
-                              }`}
-                              title={`${key}: ${val === null ? 'Unknown' : val ? 'Yes' : 'No'}`}
-                            >
-                              {val === null ? (
-                                <HelpCircle className="h-3.5 w-3.5" />
-                              ) : (
-                                <Icon className="h-3.5 w-3.5" />
-                              )}
-                            </span>
-                          );
-                        })}
-                      </div>
-
-                      {/* Status */}
-                      <StatusBadge status={booking.status} />
-
-                      {/* Expand chevron */}
-                      {expanded ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-
-                    {/* ── Expanded detail drawer ── */}
-                    {expanded && (
-                      <div className="px-4 pb-4 pt-1 bg-muted/30 space-y-3 animate-fade-in">
-                         {/* Readiness display (read-only, updated by guest) */}
-                         <div>
-                           <p className="text-xs font-medium text-muted-foreground mb-1.5">Guest Readiness</p>
-                           <div className="flex flex-wrap gap-2">
-                             {readinessIndicators.map(({ key, label, icon: Icon }) => {
-                               const val = rs[key];
-                               return (
-                                 <span
-                                   key={key}
-                                   className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
-                                     val === true
-                                       ? 'border-success/40 bg-success/10 text-success'
-                                       : val === false
-                                       ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                                       : 'border-border bg-background text-muted-foreground'
-                                   }`}
-                                 >
-                                   {val === null ? <HelpCircle className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
-                                   {label}
-                                   <span className="opacity-60">
-                                     {val === null ? '?' : val ? '✓' : '✗'}
-                                   </span>
-                                 </span>
-                               );
-                             })}
-                           </div>
-                        </div>
-
-                        {/* Quick actions */}
-                        {canEdit && booking.status === 'CONFIRMED' && (
-                          <div className="flex flex-wrap gap-2">
-                            <Button size="sm" variant="success" onClick={() => markArrived(booking.id)}>
-                              <UserCheck className="h-3.5 w-3.5 mr-1" />
-                              Mark Arrived
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => setMoveBookingId(booking.id)}>
-                              <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-                              Move Session
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-destructive" onClick={() => setCancelBookingId(booking.id)}>
-                              <XCircle className="h-3.5 w-3.5 mr-1" />
-                              Cancel
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Extra info */}
-                        {booking.notes && (
-                          <p className="text-xs text-muted-foreground">
-                            <span className="font-medium">Notes:</span> {booking.notes}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+        <p className="text-xs text-muted-foreground">
+          {format(parseISO(session.date), 'EEE, MMM d')} · {session.start_time.slice(0, 5)}–{session.end_time.slice(0, 5)}
+        </p>
+        <div className="flex items-center gap-1 text-xs">
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="font-medium text-foreground">{totalPax}/{session.capacity}</span>
+          <span className="text-muted-foreground">Guests</span>
+          {arrivedPax > 0 && (
+            <span className="text-success ml-1.5">· {arrivedPax} arrived</span>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* ── Session status confirmation dialog ─────────────────── */}
+      {/* ── Segmented tabs (sticky, 44px) ── */}
+      <div className="sticky top-[158px] z-20 bg-background border-b border-border/40 px-4">
+        <div className="flex h-11">
+          {(['manifest', 'setup', 'timeline'] as TabKey[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                'flex-1 text-sm font-medium capitalize transition-colors relative',
+                activeTab === tab ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70',
+              )}
+            >
+              {tab}
+              {activeTab === tab && (
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Tab content ── */}
+      <div className="flex-1">
+        {/* ── MANIFEST TAB ── */}
+        {activeTab === 'manifest' && (
+          <div className="space-y-0">
+            {/* Sticky search */}
+            <div className="sticky top-[202px] z-10 bg-background px-4 pt-3 pb-2 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search guest…"
+                  className="pl-9 text-base h-11"
+                  value={manifestSearch}
+                  onChange={e => setManifestSearch(e.target.value)}
+                  onFocus={e => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                />
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+                {([
+                  { key: 'all' as ManifestFilter, label: 'All' },
+                  { key: 'missing' as ManifestFilter, label: 'Missing readiness' },
+                  { key: 'arrived' as ManifestFilter, label: 'Arrived' },
+                  { key: 'not_arrived' as ManifestFilter, label: 'Not arrived' },
+                ]).map(chip => (
+                  <button
+                    key={chip.key}
+                    onClick={() => setManifestFilter(chip.key)}
+                    className={cn(
+                      'shrink-0 h-8 px-3 rounded-full text-xs font-medium transition-colors whitespace-nowrap min-w-[44px]',
+                      manifestFilter === chip.key
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Guest list */}
+            <div className="px-4 pb-4 space-y-2">
+              {filteredGuests.length === 0 ? (
+                <div className="flex flex-col items-center py-12 text-muted-foreground">
+                  <Users className="h-8 w-8 mb-2 opacity-30" />
+                  <p className="text-sm">No guests found</p>
+                </div>
+              ) : (
+                filteredGuests.map(g => (
+                  <GuestReadinessRow
+                    key={g.bookingId}
+                    data={g}
+                    checkInOpen={checkInOpen}
+                    onMarkArrived={canEdit ? markArrived : undefined}
+                    onMoveSession={canEdit ? (id) => setMoveBookingId(id) : undefined}
+                    onCancel={canEdit ? (id) => setCancelBookingId(id) : undefined}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── SETUP TAB ── */}
+        {activeTab === 'setup' && (
+          <div className="px-4 py-4 space-y-4">
+            {/* Assets panel (from Phase 3) */}
+            <SessionAssetsPanel
+              sessionId={session.id}
+              resortId={session.resort_id}
+              sessionDate={session.date}
+              sessionStartTime={session.start_time}
+              sessionEndTime={session.end_time}
+              canEdit={!!canEdit}
+            />
+
+            {/* Notes section */}
+            <Card>
+              <CardContent className="p-4">
+                <details>
+                  <summary className="text-sm font-medium text-foreground cursor-pointer select-none">
+                    Session Notes
+                  </summary>
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    {session.notes ? (
+                      <p>{session.notes}</p>
+                    ) : (
+                      <p className="italic">No notes added yet.</p>
+                    )}
+                  </div>
+                </details>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ── TIMELINE TAB ── */}
+        {activeTab === 'timeline' && (
+          <div className="px-4 py-4">
+            <Card>
+              <CardContent className="p-4">
+                <SessionTimeline nodes={timelineNodes} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* ── Bottom Action Strip (fixed, 72px) ── */}
+      {canEdit && isScheduled && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border/40 px-4 py-3 safe-area-pb">
+          <div className="flex gap-2 max-w-lg mx-auto">
+            {primaryAction && (
+              <Button className="flex-1 h-12 text-base" onClick={primaryAction.action}>
+                <primaryAction.icon className="h-5 w-5 mr-2" />
+                {primaryAction.label}
+              </Button>
+            )}
+            {checkInOpen && (
+              <Button
+                variant="outline"
+                className="h-12 px-4"
+                onClick={() => setStatusConfirm('COMPLETED')}
+              >
+                <Flag className="h-4 w-4 mr-1.5" />
+                Complete
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialogs (preserved from original) ── */}
       <AlertDialog open={!!statusConfirm} onOpenChange={() => setStatusConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -502,7 +517,6 @@ export default function SessionOpsRunSheet() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Cancel booking confirmation dialog ─────────────────── */}
       <AlertDialog open={!!cancelBookingId} onOpenChange={() => setCancelBookingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -523,7 +537,6 @@ export default function SessionOpsRunSheet() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Move session dialog ────────────────────────────────── */}
       {moveBookingId && session && (
         <MoveSessionDialog
           open={!!moveBookingId}
