@@ -48,8 +48,7 @@ import {
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
 import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
-import { OpsStatusChip } from '@/components/activities/ops/OpsStatusChip';
-import { GuestReadinessRow, GuestReadinessData, GuestReadinessRowSkeleton } from '@/components/activities/ops/GuestReadinessRow';
+import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { cn } from '@/lib/utils';
 
