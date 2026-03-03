@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +39,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
+import { useSessionReadiness, BookingReadiness } from '@/hooks/useBookingReadiness';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -51,13 +52,6 @@ interface BookingWithGuest extends ActivityBooking {
 }
 
 type ReadinessKey = 'waiver' | 'medical' | 'cert' | 'gear';
-
-interface ReadinessState {
-  waiver: boolean | null; // null = unknown
-  medical: boolean | null;
-  cert: boolean | null;
-  gear: boolean | null;
-}
 
 // Readiness indicator config
 const readinessIndicators: { key: ReadinessKey; label: string; icon: typeof ShieldCheck }[] = [
