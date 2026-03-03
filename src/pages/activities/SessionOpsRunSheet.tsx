@@ -98,6 +98,9 @@ export default function SessionOpsRunSheet() {
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
   const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
 
+  // Real session events
+  const { data: sessionEvents = [] } = useSessionEvents(sessionId);
+
   // Dialogs
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | 'DEPARTED' | null>(null);
   const [moveBookingId, setMoveBookingId] = useState<string | null>(null);
