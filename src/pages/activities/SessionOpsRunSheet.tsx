@@ -14,6 +14,10 @@ import { Activity, ActivitySession, ActivityBooking, Guest } from '@/types/datab
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
+import { BottomActionStrip } from '@/components/ui/bottom-action-strip';
+import { StatusChip } from '@/components/ui/status-chip';
+import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import {
@@ -44,8 +48,7 @@ import {
 import { MoveSessionDialog } from '@/components/activities/MoveSessionDialog';
 import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
-import { OpsStatusChip } from '@/components/activities/ops/OpsStatusChip';
-import { GuestReadinessRow, GuestReadinessData, GuestReadinessRowSkeleton } from '@/components/activities/ops/GuestReadinessRow';
+import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { cn } from '@/lib/utils';
 
@@ -271,8 +274,8 @@ export default function SessionOpsRunSheet() {
         <div className="sticky top-0 z-30 bg-background border-b border-border/40 h-14 flex items-center px-4">
           <div className="h-5 w-32 rounded bg-muted animate-pulse" />
         </div>
-        <div className="p-4 space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => <GuestReadinessRowSkeleton key={i} />)}
+        <div className="p-4">
+          <SkeletonCardList count={5} variant="row" />
         </div>
       </div>
     );
@@ -292,7 +295,7 @@ export default function SessionOpsRunSheet() {
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background pb-[80px]">
+    <div className="flex flex-col min-h-[100dvh] bg-background ops-content-with-bottom-strip">
       {/* ── Sticky top bar (56px) ── */}
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/40">
         <div className="flex items-center h-14 px-4 gap-2">
@@ -324,7 +327,7 @@ export default function SessionOpsRunSheet() {
       <div className="sticky top-14 z-20 bg-background/95 backdrop-blur-sm border-b border-border/40 px-4 py-3 space-y-1.5">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground truncate">{session.activity.name}</span>
-          <OpsStatusChip status={session.status as any} />
+          <StatusChip status={session.status} />
         </div>
         <p className="text-xs text-muted-foreground">
           {format(parseISO(session.date), 'EEE, MMM d')} · {session.start_time.slice(0, 5)}–{session.end_time.slice(0, 5)}
@@ -340,24 +343,16 @@ export default function SessionOpsRunSheet() {
       </div>
 
       {/* ── Segmented tabs (sticky, 44px) ── */}
-      <div className="sticky top-[158px] z-20 bg-background border-b border-border/40 px-4">
-        <div className="flex h-11">
-          {(['manifest', 'setup', 'timeline'] as TabKey[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                'flex-1 text-sm font-medium capitalize transition-colors relative',
-                activeTab === tab ? 'text-foreground' : 'text-muted-foreground hover:text-foreground/70',
-              )}
-            >
-              {tab}
-              {activeTab === tab && (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
+      <div className="sticky top-[158px] z-20 px-4">
+        <SegmentedTabs
+          tabs={[
+            { key: 'manifest', label: 'Manifest' },
+            { key: 'setup', label: 'Setup' },
+            { key: 'timeline', label: 'Timeline' },
+          ]}
+          activeKey={activeTab}
+          onChange={(key) => setActiveTab(key as TabKey)}
+        />
       </div>
 
       {/* ── Tab content ── */}
@@ -468,29 +463,25 @@ export default function SessionOpsRunSheet() {
         )}
       </div>
 
-      {/* ── Bottom Action Strip (fixed, 72px) ── */}
-      {canEdit && isScheduled && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t border-border/40 px-4 py-3 safe-area-pb">
-          <div className="flex gap-2 max-w-lg mx-auto">
-            {primaryAction && (
-              <Button className="flex-1 h-12 text-base" onClick={primaryAction.action}>
-                <primaryAction.icon className="h-5 w-5 mr-2" />
-                {primaryAction.label}
-              </Button>
-            )}
-            {checkInOpen && (
-              <Button
-                variant="outline"
-                className="h-12 px-4"
-                onClick={() => setStatusConfirm('COMPLETED')}
-              >
-                <Flag className="h-4 w-4 mr-1.5" />
-                Complete
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
+      {/* ── Bottom Action Strip ── */}
+      <BottomActionStrip visible={!!canEdit && isScheduled}>
+        {primaryAction && (
+          <Button className="flex-1 h-12 text-base" onClick={primaryAction.action}>
+            <primaryAction.icon className="h-5 w-5 mr-2" />
+            {primaryAction.label}
+          </Button>
+        )}
+        {checkInOpen && (
+          <Button
+            variant="outline"
+            className="h-12 px-4"
+            onClick={() => setStatusConfirm('COMPLETED')}
+          >
+            <Flag className="h-4 w-4 mr-1.5" />
+            Complete
+          </Button>
+        )}
+      </BottomActionStrip>
 
       {/* ── Dialogs (preserved from original) ── */}
       <AlertDialog open={!!statusConfirm} onOpenChange={() => setStatusConfirm(null)}>

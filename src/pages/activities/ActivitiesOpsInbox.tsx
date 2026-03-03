@@ -3,14 +3,14 @@
  * Route: /staff/activities/ops
  */
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useQuery } from '@tanstack/react-query';
-import { format, addHours, addDays, parseISO, isToday, isTomorrow } from 'date-fns';
+import { format, addHours, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { DepartureCard, DepartureCardData, DepartureCardSkeleton } from '@/components/activities/ops/DepartureCard';
-import { OpsStatus } from '@/components/activities/ops/OpsStatusChip';
+import { DepartureCard, DepartureCardData } from '@/components/activities/ops/DepartureCard';
+import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { Search, SlidersHorizontal, WifiOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ const MAX_VISIBLE = 7;
 
 export default function ActivitiesOpsInbox() {
   const { currentResort } = useResort();
-  const navigate = useNavigate();
+  
   const [filter, setFilter] = useState<TimeFilter>('now');
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +92,7 @@ export default function ActivitiesOpsInbox() {
     return sessions.map((s: any) => ({
       sessionId: s.id,
       activityName: s.activity?.name ?? 'Unknown',
-      status: s.status as OpsStatus,
+      status: s.status as string,
       startTime: s.start_time?.slice(0, 5) ?? '',
       endTime: s.end_time?.slice(0, 5) ?? '',
       date: s.date,
@@ -196,11 +196,7 @@ export default function ActivitiesOpsInbox() {
         )}
 
         {/* Loading skeletons */}
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 7 }).map((_, i) => <DepartureCardSkeleton key={i} />)}
-          </div>
-        )}
+        {isLoading && <SkeletonCardList count={7} variant="card" />}
 
         {/* Empty state */}
         {!isLoading && filtered.length === 0 && (
