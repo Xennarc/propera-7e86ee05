@@ -7,6 +7,17 @@ import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+const CONDITION_CHIPS = [
+  { key: 'asthma', label: 'Asthma' },
+  { key: 'heart', label: 'Heart condition' },
+  { key: 'diabetes', label: 'Diabetes' },
+  { key: 'recent_surgery', label: 'Recent surgery' },
+  { key: 'pregnancy', label: 'Pregnancy' },
+  { key: 'back_neck', label: 'Back / Neck' },
+  { key: 'epilepsy', label: 'Epilepsy' },
+  { key: 'other', label: 'Other' },
+] as const;
+
 interface MedicalStepProps {
   bookingId: string;
   onComplete: () => void;
@@ -15,14 +26,33 @@ interface MedicalStepProps {
 
 export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps) {
   const [hasConditions, setHasConditions] = useState<boolean | null>(null);
+  const [selectedConditions, setSelectedConditions] = useState<Set<string>>(new Set());
   const updateMutation = useUpdateActivityBookingReadiness();
 
+  const toggleCondition = (key: string) => {
+    setSelectedConditions(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const handleContinue = () => {
-    const status = hasConditions ? 'review' : 'complete';
+    const isDisclosed = hasConditions && selectedConditions.size > 0;
+    const medicalStatus = isDisclosed ? 'review' : 'complete';
+    const medicalReviewStatus = isDisclosed ? 'pending' : 'not_required';
+    const answersJson = isDisclosed
+      ? Object.fromEntries([...selectedConditions].map(k => [k, true]))
+      : null;
+
     updateMutation.mutate(
       {
         bookingId,
-        updates: { medical_status: status as any },
+        updates: {
+          medical_status: medicalStatus as any,
+          medical_review_status: medicalReviewStatus,
+          medical_answers_json: answersJson,
+        },
       },
       {
         onSuccess: () => {
@@ -33,6 +63,8 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
       }
     );
   };
+
+  const canContinue = hasConditions === false || (hasConditions === true && selectedConditions.size > 0);
 
   return (
     <div className="space-y-4">
@@ -55,7 +87,7 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setHasConditions(false)}
+              onClick={() => { setHasConditions(false); setSelectedConditions(new Set()); }}
               className={cn(
                 'rounded-xl border p-4 text-center transition-all tap-target',
                 hasConditions === false
@@ -75,16 +107,34 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
                   : 'border-border bg-card text-foreground hover:bg-muted'
               )}
             >
-              <p className="text-sm font-semibold">I'll inform staff</p>
-              <p className="text-xs text-muted-foreground mt-1">On the day</p>
+              <p className="text-sm font-semibold">I have a condition</p>
+              <p className="text-xs text-muted-foreground mt-1">Select below</p>
             </button>
           </div>
 
           {hasConditions && (
-            <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-              No need to share details here — just let the activity staff know when you arrive.
-              They'll make sure everything is safe and comfortable for you.
-            </p>
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Select all that apply:</p>
+              <div className="flex flex-wrap gap-2">
+                {CONDITION_CHIPS.map(chip => (
+                  <button
+                    key={chip.key}
+                    onClick={() => toggleCondition(chip.key)}
+                    className={cn(
+                      'h-9 px-3.5 rounded-full text-sm font-medium transition-all border',
+                      selectedConditions.has(chip.key)
+                        ? 'bg-warning/15 text-warning border-warning/40 ring-1 ring-warning/20'
+                        : 'bg-card text-foreground border-border hover:bg-muted'
+                    )}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                Our team will review this before your session. No need to share more detail here.
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -93,7 +143,7 @@ export function MedicalStep({ bookingId, onComplete, onBack }: MedicalStepProps)
         <Button
           className="flex-1"
           size="lg"
-          disabled={hasConditions === null || updateMutation.isPending}
+          disabled={!canContinue || updateMutation.isPending}
           onClick={handleContinue}
         >
           {updateMutation.isPending ? (

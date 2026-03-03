@@ -11,7 +11,7 @@ import { useFeatureEnabled } from '@/components/FeatureGate';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, differenceInMinutes, isToday } from 'date-fns';
-import { Check, Clock, Circle, MapPin, Anchor, Flag, Ship, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Check, Clock, Circle, MapPin, Anchor, Flag, Ship, XCircle, AlertCircle, Loader2, HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusPill } from '@/components/guest/StatusPill';
 import { CertVerificationBadge } from '@/components/guest/CertVerificationBadge';
@@ -189,6 +189,29 @@ function CertVerificationInfo({ bookingId }: { bookingId: string }) {
   );
 }
 
+/** Small inline component to display medical review status */
+function MedicalReviewInfo({ bookingId }: { bookingId: string }) {
+  const { data: readiness } = useActivityBookingReadiness(bookingId);
+  if (!readiness) return null;
+  const reviewStatus = (readiness as any).medical_review_status;
+  if (!reviewStatus || reviewStatus === 'not_required') return null;
+
+  const config: Record<string, { label: string; className: string }> = {
+    pending: { label: 'Medical: Pending Review', className: 'bg-warning/10 text-warning border-warning/30' },
+    cleared: { label: 'Medical: Cleared ✅', className: 'bg-success/10 text-success border-success/30' },
+    requires_followup: { label: 'Medical: Follow-up Required', className: 'bg-destructive/10 text-destructive border-destructive/30' },
+  };
+  const c = config[reviewStatus];
+  if (!c) return null;
+
+  return (
+    <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium', c.className)}>
+      <HeartPulse className="h-3.5 w-3.5 shrink-0" />
+      <span>{c.label}</span>
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────
 
 export function GuestBookingStatusTracker({
@@ -264,6 +287,7 @@ export function GuestBookingStatusTracker({
 
       {/* Cert verification status */}
       {booking.type === 'activity' && booking.id && <CertVerificationInfo bookingId={booking.id} />}
+      {booking.type === 'activity' && booking.id && <MedicalReviewInfo bookingId={booking.id} />}
 
       {/* Context hint */}
       {contextHint && (
