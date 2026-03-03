@@ -533,10 +533,6 @@ export default function SessionOpsRunSheet() {
                       {session.resource_id ? 'Assigned' : 'Unassigned'}
                     </span>
                   </div>
-                    <span className="font-medium text-foreground">
-                      {session.vendor_id ? 'Assigned' : 'N/A'}
-                    </span>
-                  </div>
                 </div>
               </CardContent>
             </Card>
