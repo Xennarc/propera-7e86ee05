@@ -204,7 +204,6 @@ function GeneratePickupDrawer({ open, onOpenChange, sessionId, resortId, activit
       {
         onSuccess: () => {
           onOpenChange(false);
-          setPickupGuests([]);
         },
       }
     );

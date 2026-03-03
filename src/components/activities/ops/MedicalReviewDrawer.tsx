@@ -1,7 +1,7 @@
 /**
  * MedicalReviewDrawer – Staff drawer to review guest medical declarations.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -55,6 +55,11 @@ export function MedicalReviewDrawer({
   const qc = useQueryClient();
   const [notes, setNotes] = useState(existingNotes ?? '');
   const [loading, setLoading] = useState(false);
+
+  // Reset notes when drawer opens with new booking
+  useEffect(() => {
+    if (open) setNotes(existingNotes ?? '');
+  }, [open, bookingId]);
 
   const conditions = medicalAnswersJson
     ? Object.keys(medicalAnswersJson).filter(k => medicalAnswersJson[k])
