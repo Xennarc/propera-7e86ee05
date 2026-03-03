@@ -54,6 +54,7 @@ import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCa
 import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
 import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
+import { MedicalReviewDrawer } from '@/components/activities/ops/MedicalReviewDrawer';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
@@ -129,6 +130,7 @@ function SessionOpsRunSheetContent() {
   const [moveBookingId, setMoveBookingId] = useState<string | null>(null);
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [certVerifyBookingId, setCertVerifyBookingId] = useState<string | null>(null);
+  const [medicalReviewBookingId, setMedicalReviewBookingId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
 
   const canEdit =
@@ -270,6 +272,9 @@ function SessionOpsRunSheetContent() {
         gearStatus: (dbR?.gear_status ?? 'unknown') as ReadinessStatus,
         certVerificationStatus: ((dbR as any)?.cert_verification_status ?? 'not_required') as any,
         certMediaPath: (dbR as any)?.cert_media_path ?? null,
+        medicalReviewStatus: ((dbR as any)?.medical_review_status ?? 'not_required') as any,
+        medicalAnswersJson: (dbR as any)?.medical_answers_json ?? null,
+        medicalNotes: (dbR as any)?.medical_notes ?? null,
       };
     });
   }, [activeBookings, readinessMap]);
@@ -578,6 +583,7 @@ function SessionOpsRunSheetContent() {
                     onMoveSession={canEdit ? (id) => setMoveBookingId(id) : undefined}
                     onCancel={canEdit ? (id) => setCancelBookingId(id) : undefined}
                     onVerifyCert={canEdit ? (id) => setCertVerifyBookingId(id) : undefined}
+                    onReviewMedical={canEdit ? (id) => setMedicalReviewBookingId(id) : undefined}
                   />
                 ))
               )}
@@ -740,6 +746,22 @@ function SessionOpsRunSheetContent() {
             certMediaPath={row.certMediaPath ?? null}
             currentStatus={(row.certVerificationStatus as any) ?? 'unverified'}
             certNotes={null}
+            sessionId={session.id}
+          />
+        ) : null;
+      })()}
+
+      {medicalReviewBookingId && session && (() => {
+        const row = guestRows.find(g => g.bookingId === medicalReviewBookingId);
+        return row ? (
+          <MedicalReviewDrawer
+            open={!!medicalReviewBookingId}
+            onOpenChange={(open) => !open && setMedicalReviewBookingId(null)}
+            bookingId={medicalReviewBookingId}
+            guestName={row.guestName}
+            currentStatus={(row.medicalReviewStatus as any) ?? 'pending'}
+            medicalAnswersJson={row.medicalAnswersJson ?? null}
+            existingNotes={row.medicalNotes ?? null}
             sessionId={session.id}
           />
         ) : null;
