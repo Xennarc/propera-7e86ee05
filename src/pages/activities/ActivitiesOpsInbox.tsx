@@ -3,6 +3,7 @@
  * Route: /staff/activities/ops
  */
 import { useState, useMemo } from 'react';
+import { FeatureGate } from '@/components/FeatureGate';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
@@ -33,7 +34,7 @@ const MAX_VISIBLE = 7;
 /** Sessions starting within this many minutes are "starting soon" */
 const STARTING_SOON_MINUTES = 60;
 
-export default function ActivitiesOpsInbox() {
+function ActivitiesOpsInboxContent() {
   const { currentResort } = useResort();
   
   const [filter, setFilter] = useState<TimeFilter>('now');
@@ -334,5 +335,13 @@ export default function ActivitiesOpsInbox() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ActivitiesOpsInbox() {
+  return (
+    <FeatureGate requiredFlags={['enable_activities_ops']} mode="staff">
+      <ActivitiesOpsInboxContent />
+    </FeatureGate>
   );
 }

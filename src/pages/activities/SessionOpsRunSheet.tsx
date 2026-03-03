@@ -6,6 +6,7 @@
  * Adds: sticky header, segmented tabs (Manifest/Setup/Timeline), bottom action strip.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { FeatureGate } from '@/components/FeatureGate';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -80,7 +81,7 @@ type ManifestFilter = 'all' | 'missing' | 'arrived' | 'not_arrived';
 
 // ── Component ──────────────────────────────────────────────────────────
 
-export default function SessionOpsRunSheet() {
+function SessionOpsRunSheetContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -709,5 +710,13 @@ export default function SessionOpsRunSheet() {
         />
       )}
     </div>
+  );
+}
+
+export default function SessionOpsRunSheet() {
+  return (
+    <FeatureGate requiredFlags={['enable_activities_ops']} mode="staff">
+      <SessionOpsRunSheetContent />
+    </FeatureGate>
   );
 }

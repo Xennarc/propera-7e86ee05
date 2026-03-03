@@ -7,6 +7,7 @@
  * When session/booking rows change, React Query caches are invalidated automatically.
  */
 import { useMemo } from 'react';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO, differenceInMinutes, isToday } from 'date-fns';
@@ -181,8 +182,10 @@ export function GuestBookingStatusTracker({
   sessionStatus: propSessionStatus,
   className,
 }: GuestBookingStatusTrackerProps) {
+  const opsEnabled = useFeatureEnabled('enable_activities_ops');
+
   // Only fetch session status if not provided and is an activity booking
-  const needsFetch = booking.type === 'activity' && booking.sessionId && !propSessionStatus;
+  const needsFetch = booking.type === 'activity' && booking.sessionId && !propSessionStatus && opsEnabled;
 
   const { data: fetchedSession } = useQuery({
     queryKey: ['activity-session', booking.sessionId],
@@ -225,6 +228,9 @@ export function GuestBookingStatusTracker({
     }
     return null;
   }, [phase, booking.date, booking.startTime]);
+
+  // If ops module is disabled, don't render the live tracker
+  if (!opsEnabled) return null;
 
   return (
     <div className={cn('space-y-3', className)}>
