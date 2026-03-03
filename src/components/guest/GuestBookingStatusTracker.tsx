@@ -212,6 +212,58 @@ function MedicalReviewInfo({ bookingId }: { bookingId: string }) {
   );
 }
 
+/** Show pickup trip status if a pickup trip is linked to this session */
+function PickupStatusInfo({ sessionId }: { sessionId: string }) {
+  const { data: link } = useQuery({
+    queryKey: ['guest-session-pickup', sessionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('session_transport_links')
+        .select('trip_id')
+        .eq('session_id', sessionId)
+        .eq('link_type', 'pickup')
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 30_000,
+  });
+
+  const { data: trip } = useQuery({
+    queryKey: ['guest-pickup-trip', link?.trip_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('buggy_trips')
+        .select('id, status, notes, start_at, driver_user_id, lifecycle_state')
+        .eq('id', link!.trip_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!link?.trip_id,
+    staleTime: 5_000,
+  });
+
+  if (!trip) return null;
+
+  const statusMessages: Record<string, { text: string; className: string }> = {
+    planning: { text: 'Pickup scheduled — driver to be assigned', className: 'bg-muted/50 border-border/50 text-muted-foreground' },
+    assigned: { text: 'Driver assigned for pickup', className: 'bg-primary/5 border-primary/30 text-primary' },
+    en_route: { text: 'Driver is on the way to pick you up!', className: 'bg-primary/10 border-primary/30 text-primary' },
+    active: { text: 'Pickup in progress', className: 'bg-primary/10 border-primary/30 text-primary' },
+    completed: { text: 'Pickup complete', className: 'bg-success/10 border-success/30 text-success' },
+  };
+
+  const s = statusMessages[trip.status] ?? statusMessages.planning;
+
+  return (
+    <div className={cn('rounded-lg border p-2.5 flex items-center gap-2', s.className)}>
+      <MapPin className="h-3.5 w-3.5 shrink-0" />
+      <p className="text-xs font-medium">{s.text}</p>
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────
 
 export function GuestBookingStatusTracker({
