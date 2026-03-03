@@ -52,11 +52,14 @@ import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 import { BoatAssignmentCard } from '@/components/activities/ops/BoatAssignmentCard';
 import { CrewAssignmentCard } from '@/components/activities/ops/CrewAssignmentCard';
 import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAssignmentCard';
+import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
 import { useSessionBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import { parseActivityRequirements, type ActivityRequirements } from '@/lib/activity-requirements';
+import { useSessionConflicts, totalConflictCount } from '@/hooks/useSessionConflicts';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -114,6 +117,11 @@ function SessionOpsRunSheetContent() {
 
   // Real session events
   const { data: sessionEvents = [] } = useSessionEvents(sessionId);
+
+  // Conflicts
+  const { data: conflicts } = useSessionConflicts(session?.resort_id, sessionId);
+  const conflictCount = conflicts ? totalConflictCount(conflicts) : 0;
+  const [conflictsSheetOpen, setConflictsSheetOpen] = useState(false);
 
   // Dialogs
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | 'DEPARTED' | null>(null);
