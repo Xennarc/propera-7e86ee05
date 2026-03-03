@@ -7,7 +7,7 @@ import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { useQuery } from '@tanstack/react-query';
-import { format, addHours, addDays } from 'date-fns';
+import { format, addHours, addDays, differenceInMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { DepartureCard, DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { ConnectionBanner } from '@/components/ui/connection-banner';
+import { parseActivityRequirements } from '@/lib/activity-requirements';
+import { isReadinessComplete } from '@/components/activities/ops/GuestReadinessRow';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 
@@ -28,6 +30,8 @@ const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
 ];
 
 const MAX_VISIBLE = 7;
+/** Sessions starting within this many minutes are "starting soon" */
+const STARTING_SOON_MINUTES = 60;
 
 export default function ActivitiesOpsInbox() {
   const { currentResort } = useResort();
@@ -52,7 +56,7 @@ export default function ActivitiesOpsInbox() {
         .from('activity_sessions')
         .select(`
           id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category)
+          activity:activities(name, category, requirements_json)
         `)
         .eq('resort_id', currentResort.id)
         .in('date', [todayStr, tomorrowStr])
@@ -88,6 +92,28 @@ export default function ActivitiesOpsInbox() {
     enabled: sessionIds.length > 0,
   });
 
+  // Fetch readiness for all sessions in bulk
+  const { data: readinessBySession = {} } = useQuery({
+    queryKey: ['ops-inbox-readiness', sessionIds],
+    queryFn: async () => {
+      if (sessionIds.length === 0) return {};
+      const { data } = await supabase
+        .from('activity_booking_readiness')
+        .select('session_id, waiver_status, medical_status, cert_status, gear_status')
+        .in('session_id', sessionIds);
+
+      // Group by session_id
+      const grouped: Record<string, any[]> = {};
+      for (const r of data ?? []) {
+        if (!grouped[r.session_id]) grouped[r.session_id] = [];
+        grouped[r.session_id].push(r);
+      }
+      return grouped;
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 10_000,
+  });
+
   // Resolve CTA label based on session state
   const getCtaLabel = (status: string, startTime: string, date: string): string => {
     const sessionDateTime = `${date}T${startTime}`;
@@ -101,10 +127,32 @@ export default function ActivitiesOpsInbox() {
     return 'View Run Sheet';
   };
 
+  /** Count missing readiness for a session given its activity requirements */
+  const getMissingPrepCount = (sessionId: string, activity: any): number => {
+    const rows = readinessBySession[sessionId];
+    if (!rows || rows.length === 0) return 0;
+    const reqs = parseActivityRequirements(activity?.requirements_json, activity?.category);
+    let missing = 0;
+    for (const r of rows) {
+      const allDone =
+        isReadinessComplete(r.waiver_status, reqs.requires_waiver) &&
+        isReadinessComplete(r.medical_status, reqs.requires_medical) &&
+        isReadinessComplete(r.cert_status, reqs.requires_cert) &&
+        isReadinessComplete(r.gear_status, reqs.requires_gear);
+      if (!allDone) missing++;
+    }
+    return missing;
+  };
+
   // Build card data
   const cards: DepartureCardData[] = useMemo(() => {
+    const now = new Date();
     return sessions.map((s: any) => {
       const st = s.start_time?.slice(0, 5) ?? '';
+      const sessionStart = new Date(`${s.date}T${s.start_time}`);
+      const minutesUntil = differenceInMinutes(sessionStart, now);
+      const missingPrep = getMissingPrepCount(s.id, s.activity);
+
       return {
         sessionId: s.id,
         activityName: s.activity?.name ?? 'Unknown',
@@ -115,9 +163,11 @@ export default function ActivitiesOpsInbox() {
         bookedPax: bookingCounts[s.id] ?? 0,
         capacity: s.capacity,
         ctaLabel: getCtaLabel(s.status, st, s.date),
+        missingPrep,
+        startingSoon: minutesUntil >= 0 && minutesUntil <= STARTING_SOON_MINUTES,
       };
     });
-  }, [sessions, bookingCounts]);
+  }, [sessions, bookingCounts, readinessBySession]);
 
   // Filter
   const nowInResort = useMemo(() => toZonedTime(new Date(), tz), [tz]);
@@ -146,8 +196,29 @@ export default function ActivitiesOpsInbox() {
       result = result.filter(c => c.activityName.toLowerCase().includes(q));
     }
 
-    // Attention-based sorting: starting soon first, then sessions with bookings, then rest
+    // Attention-based sorting: missing prep + starting soon first
     result = [...result].sort((a, b) => {
+      const aMissing = (a.missingPrep ?? 0) > 0;
+      const bMissing = (b.missingPrep ?? 0) > 0;
+      const aSoon = a.startingSoon ?? false;
+      const bSoon = b.startingSoon ?? false;
+
+      // Tier 1: starting soon + missing prep
+      const aTier1 = aSoon && aMissing ? 1 : 0;
+      const bTier1 = bSoon && bMissing ? 1 : 0;
+      if (aTier1 !== bTier1) return bTier1 - aTier1;
+
+      // Tier 2: check-in open + missing prep
+      const aCheckIn = a.status === 'CHECK_IN';
+      const bCheckIn = b.status === 'CHECK_IN';
+      const aTier2 = aCheckIn && aMissing ? 1 : 0;
+      const bTier2 = bCheckIn && bMissing ? 1 : 0;
+      if (aTier2 !== bTier2) return bTier2 - aTier2;
+
+      // Tier 3: any missing prep
+      if (aMissing !== bMissing) return aMissing ? -1 : 1;
+
+      // Tier 4: today first
       const aIsToday = a.date === todayStr ? 1 : 0;
       const bIsToday = b.date === todayStr ? 1 : 0;
       if (aIsToday !== bIsToday) return bIsToday - aIsToday;

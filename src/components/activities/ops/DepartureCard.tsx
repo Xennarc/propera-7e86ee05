@@ -4,7 +4,7 @@
  */
 import { useNavigate } from 'react-router-dom';
 import { StatusChip } from '@/components/ui/status-chip';
-import { Users, Clock, MoreVertical } from 'lucide-react';
+import { Users, Clock, MoreVertical, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -25,6 +25,10 @@ export interface DepartureCardData {
   capacity: number;
   /** Resolved CTA label based on session state */
   ctaLabel?: string;
+  /** Number of guests with missing readiness prep */
+  missingPrep?: number;
+  /** Whether this session is starting soon (used for warning escalation) */
+  startingSoon?: boolean;
 }
 
 interface DepartureCardProps {
@@ -33,6 +37,8 @@ interface DepartureCardProps {
 
 export function DepartureCard({ data }: DepartureCardProps) {
   const navigate = useNavigate();
+  const hasMissing = (data.missingPrep ?? 0) > 0;
+  const showWarning = hasMissing && data.startingSoon;
 
   return (
     <div className="ops-surface min-h-[104px] flex flex-col gap-2.5">
@@ -41,7 +47,15 @@ export function DepartureCard({ data }: DepartureCardProps) {
         <h3 className="text-sm font-semibold text-foreground truncate flex-1">
           {data.activityName}
         </h3>
-        <StatusChip status={data.status} />
+        <div className="flex items-center gap-1.5">
+          {hasMissing && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/15 text-warning border border-warning/20">
+              <AlertTriangle className="h-3 w-3" />
+              {data.missingPrep} missing prep
+            </span>
+          )}
+          <StatusChip status={showWarning ? 'WARNING' : data.status} />
+        </div>
       </div>
 
       {/* Meta row */}
