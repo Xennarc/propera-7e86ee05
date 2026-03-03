@@ -55,6 +55,7 @@ import { EquipmentAssignmentCard } from '@/components/activities/ops/EquipmentAs
 import { ConflictsSheet } from '@/components/activities/ops/ConflictsSheet';
 import { CertVerificationDrawer } from '@/components/activities/ops/CertVerificationDrawer';
 import { MedicalReviewDrawer } from '@/components/activities/ops/MedicalReviewDrawer';
+import { DepartureGateModal, type DepartureBlocker } from '@/components/activities/ops/DepartureGateModal';
 import { GuestReadinessRow, GuestReadinessData, statusToReadinessState, isReadinessComplete, ReadinessStatus } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
 import { useSessionEvents } from '@/hooks/useSessionEvents';
@@ -131,11 +132,17 @@ function SessionOpsRunSheetContent() {
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
   const [certVerifyBookingId, setCertVerifyBookingId] = useState<string | null>(null);
   const [medicalReviewBookingId, setMedicalReviewBookingId] = useState<string | null>(null);
+  const [departureGateOpen, setDepartureGateOpen] = useState(false);
+  const [departureBlockers, setDepartureBlockers] = useState<DepartureBlocker[]>([]);
   const [transitioning, setTransitioning] = useState(false);
 
   const canEdit =
     isSuperAdmin() ||
     (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES']));
+
+  const canOverrideGate =
+    isSuperAdmin() ||
+    (currentResort && hasResortRole(currentResort.id, ['RESORT_ADMIN', 'MANAGER']));
 
   const isValidId = sessionId && isValidUUID(sessionId);
 
