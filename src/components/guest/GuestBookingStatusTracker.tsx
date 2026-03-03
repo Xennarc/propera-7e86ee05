@@ -233,10 +233,10 @@ export function GuestBookingStatusTracker({
         'flex items-center gap-3 rounded-xl p-3',
         phase === 'cancelled' && 'bg-destructive/5',
         phase === 'completed' && 'bg-muted/50',
-        phase === 'check_in_open' && 'bg-blue-500/5',
-        phase === 'departed' && 'bg-blue-500/5',
-        phase === 'pending' && 'bg-amber-500/5',
-        (phase === 'confirmed' || phase === 'booked') && 'bg-emerald-500/5',
+        phase === 'check_in_open' && 'bg-primary/5',
+        phase === 'departed' && 'bg-primary/5',
+        phase === 'pending' && 'bg-warning/5',
+        (phase === 'confirmed' || phase === 'booked') && 'bg-success/5',
       )}>
         <StatusPill label={config.label} variant={config.pillVariant} />
         <p className="text-xs text-muted-foreground flex-1">{config.explanation}</p>
@@ -261,7 +261,7 @@ export function GuestBookingStatusTracker({
               {/* Dot */}
               <div className={cn(
                 'absolute left-[-24px] flex h-5 w-5 items-center justify-center rounded-full border-2 bg-background',
-                step.status === 'complete' && 'border-emerald-500 bg-emerald-500',
+                step.status === 'complete' && 'border-success bg-success',
                 step.status === 'current' && 'border-primary bg-primary',
                 step.status === 'upcoming' && 'border-muted-foreground/30',
               )}>
