@@ -9,6 +9,7 @@ import { BookingDetailsQuickActions } from './BookingDetailsQuickActions';
 import { BookingDetailsInfo } from './BookingDetailsInfo';
 import { BookingDetailsPolicies } from './BookingDetailsPolicies';
 import { BookingDetailsTimeline } from './BookingDetailsTimeline';
+import { GuestBookingStatusTracker } from '@/components/guest/GuestBookingStatusTracker';
 import type { BookingDisplayModel, BookingDetailsExtended } from '@/types/booking-display';
 
 interface BookingDetailsSheetProps {
