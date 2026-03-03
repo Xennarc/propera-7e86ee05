@@ -953,6 +953,88 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_readiness: {
+        Row: {
+          booking_id: string
+          cert_file_path: string | null
+          cert_type: string | null
+          cert_verified: boolean
+          cert_verified_at: string | null
+          created_at: string
+          gear_confirmed: boolean
+          gear_confirmed_at: string | null
+          guest_id: string
+          id: string
+          resort_id: string
+          sizes_confirmed: boolean
+          sizes_confirmed_at: string | null
+          sizes_data: Json | null
+          updated_at: string
+          waiver_signed: boolean
+          waiver_signed_at: string | null
+        }
+        Insert: {
+          booking_id: string
+          cert_file_path?: string | null
+          cert_type?: string | null
+          cert_verified?: boolean
+          cert_verified_at?: string | null
+          created_at?: string
+          gear_confirmed?: boolean
+          gear_confirmed_at?: string | null
+          guest_id: string
+          id?: string
+          resort_id: string
+          sizes_confirmed?: boolean
+          sizes_confirmed_at?: string | null
+          sizes_data?: Json | null
+          updated_at?: string
+          waiver_signed?: boolean
+          waiver_signed_at?: string | null
+        }
+        Update: {
+          booking_id?: string
+          cert_file_path?: string | null
+          cert_type?: string | null
+          cert_verified?: boolean
+          cert_verified_at?: string | null
+          created_at?: string
+          gear_confirmed?: boolean
+          gear_confirmed_at?: string | null
+          guest_id?: string
+          id?: string
+          resort_id?: string
+          sizes_confirmed?: boolean
+          sizes_confirmed_at?: string | null
+          sizes_data?: Json | null
+          updated_at?: string
+          waiver_signed?: boolean
+          waiver_signed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_readiness_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "activity_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_readiness_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_readiness_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       buggies: {
         Row: {
           capacity: number
