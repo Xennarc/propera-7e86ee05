@@ -9,7 +9,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { useQuery } from '@tanstack/react-query';
 import { format, addHours, addDays, parseISO, isToday, isTomorrow } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { DepartureCard, DepartureCardData, DepartureCardSkeleton } from '@/components/activities/ops/DepartureCard';
+import { DepartureCard, DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { Search, SlidersHorizontal, WifiOff, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -196,11 +196,7 @@ export default function ActivitiesOpsInbox() {
         )}
 
         {/* Loading skeletons */}
-        {isLoading && (
-          <div className="space-y-3">
-            {Array.from({ length: 7 }).map((_, i) => <DepartureCardSkeleton key={i} />)}
-          </div>
-        )}
+        {isLoading && <SkeletonCardList count={7} variant="card" />}
 
         {/* Empty state */}
         {!isLoading && filtered.length === 0 && (
