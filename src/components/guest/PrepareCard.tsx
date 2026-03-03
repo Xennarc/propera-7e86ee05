@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ export function PrepareCard({
   className,
 }: PrepareCardProps) {
   const { data: readiness, isLoading } = useActivityBookingReadiness(bookingId);
+  const queryClient = useQueryClient();
   const [activeStep, setActiveStep] = useState<PrepareStepKey | null>(null);
 
   // Upsert readiness if trigger didn't create it
@@ -86,7 +88,6 @@ export function PrepareCard({
   useEffect(() => {
     if (!isLoading && !readiness && !ensured) {
       setEnsured(true);
-      // Fetch session_id from booking
       supabase
         .from('activity_bookings')
         .select('session_id')
@@ -102,11 +103,14 @@ export function PrepareCard({
                 resort_id: resortId,
                 session_id: data.session_id,
               }, { onConflict: 'booking_id' })
-              .then(() => {});
+              .then(() => {
+                // Invalidate so the card picks up the new row
+                queryClient.invalidateQueries({ queryKey: ['activity-booking-readiness', bookingId] });
+              });
           }
         });
     }
-  }, [isLoading, readiness, ensured, bookingId, guestId, resortId]);
+  }, [isLoading, readiness, ensured, bookingId, guestId, resortId, queryClient]);
 
   const requirements = parseActivityRequirements(requirementsJson, category);
   const applicableSteps = STEPS.filter((s) => requirements[s.requirementKey]);

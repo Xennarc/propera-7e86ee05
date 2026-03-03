@@ -40,6 +40,7 @@ export function useActivityBookingSync({
   const handleBookingChange = useCallback((payload: any) => {
     const changedSessionId = payload.new?.session_id || payload.old?.session_id;
     const changedGuestId = payload.new?.guest_id || payload.old?.guest_id;
+    const changedBookingId = payload.new?.id || payload.old?.id;
     
     // Invalidate session-specific queries
     if (changedSessionId) {
@@ -53,6 +54,10 @@ export function useActivityBookingSync({
       queryClient.invalidateQueries({ 
         queryKey: ['session-waitlist', changedSessionId] 
       });
+      // Readiness for session (staff run sheet)
+      queryClient.invalidateQueries({ 
+        queryKey: ['activity-booking-readiness-session', changedSessionId] 
+      });
     }
 
     // Invalidate guest-specific queries
@@ -65,6 +70,13 @@ export function useActivityBookingSync({
       });
     }
 
+    // Invalidate booking-specific readiness
+    if (changedBookingId) {
+      queryClient.invalidateQueries({
+        queryKey: ['activity-booking-readiness', changedBookingId]
+      });
+    }
+
     // Invalidate general session lists
     queryClient.invalidateQueries({ 
       queryKey: ['guest-available-sessions'] 
@@ -73,10 +85,13 @@ export function useActivityBookingSync({
       queryKey: ['guest-all-sessions'] 
     });
     
-    // Staff activity sessions list
+    // Staff activity sessions list + ops inbox readiness
     if (resortId) {
       queryClient.invalidateQueries({ 
         queryKey: ['activity-sessions', resortId] 
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['ops-inbox-readiness']
       });
     }
   }, [queryClient, resortId]);

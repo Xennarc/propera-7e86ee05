@@ -819,8 +819,7 @@ export default function GuestMyBookings() {
                 <div className="space-y-3">
                   {upcomingActivities.map((booking) => {
                     const needsPrepare = booking.is_own_booking && 
-                      (booking.status === 'CONFIRMED' || booking.status === 'PENDING') &&
-                      ['DIVE', 'WATERSPORT', 'EXCURSION'].includes(booking.category);
+                      (booking.status === 'CONFIRMED' || booking.status === 'PENDING');
                     return (
                       <div key={booking.id} className="space-y-2">
                         <BookingCard
