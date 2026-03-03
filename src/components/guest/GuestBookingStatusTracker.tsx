@@ -177,6 +177,18 @@ function buildTimelineSteps(
   });
 }
 
+/** Small inline component to fetch and display cert verification status */
+function CertVerificationInfo({ bookingId }: { bookingId: string }) {
+  const { data: readiness } = useActivityBookingReadiness(bookingId);
+  if (!readiness) return null;
+  return (
+    <CertVerificationBadge
+      certStatus={readiness.cert_status}
+      certVerificationStatus={(readiness as any).cert_verification_status}
+    />
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────
 
 export function GuestBookingStatusTracker({
