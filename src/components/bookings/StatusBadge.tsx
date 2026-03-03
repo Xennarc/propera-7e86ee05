@@ -15,6 +15,8 @@ const bookingStatusMap: Record<BookingStatus, { variant: 'pending' | 'confirmed'
 
 const sessionStatusMap: Record<SessionStatus, { variant: 'pending' | 'confirmed' | 'cancelled' | 'completed', label: string }> = {
   SCHEDULED: { variant: 'confirmed', label: 'Scheduled' },
+  CHECK_IN: { variant: 'pending', label: 'Check-in' },
+  DEPARTED: { variant: 'completed', label: 'Departed' },
   CANCELLED: { variant: 'cancelled', label: 'Cancelled' },
   COMPLETED: { variant: 'completed', label: 'Completed' },
 };

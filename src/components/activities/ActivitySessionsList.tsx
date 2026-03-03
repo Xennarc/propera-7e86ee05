@@ -18,7 +18,7 @@ interface Session {
   start_time: string;
   end_time: string;
   capacity: number;
-  status: 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
+  status: 'SCHEDULED' | 'CANCELLED' | 'COMPLETED' | 'CHECK_IN' | 'DEPARTED';
   confirmed_pax?: number;
 }
 

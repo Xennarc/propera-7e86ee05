@@ -6586,6 +6586,57 @@ export type Database = {
           },
         ]
       }
+      session_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          resort_id: string
+          session_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          resort_id: string
+          session_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          resort_id?: string
+          session_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_events_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_audit_logs: {
         Row: {
           action: string
@@ -8977,7 +9028,12 @@ export type Database = {
       resort_status: "ACTIVE" | "INACTIVE" | "DEMO"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
       session_asset_type: "guide" | "boat" | "equipment"
-      session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
+      session_status:
+        | "SCHEDULED"
+        | "CANCELLED"
+        | "COMPLETED"
+        | "CHECK_IN"
+        | "DEPARTED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
       subscription_tier: "ESSENTIAL" | "PROFESSIONAL" | "ELITE"
       travel_party_link_status: "pending" | "linked"
@@ -9242,7 +9298,13 @@ export const Constants = {
       resort_status: ["ACTIVE", "INACTIVE", "DEMO"],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],
       session_asset_type: ["guide", "boat", "equipment"],
-      session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
+      session_status: [
+        "SCHEDULED",
+        "CANCELLED",
+        "COMPLETED",
+        "CHECK_IN",
+        "DEPARTED",
+      ],
       slot_status: ["OPEN", "CLOSED", "FULL"],
       subscription_tier: ["ESSENTIAL", "PROFESSIONAL", "ELITE"],
       travel_party_link_status: ["pending", "linked"],

@@ -90,16 +90,16 @@ export default function SessionOpsRunSheet() {
   const [activeTab, setActiveTab] = useState<TabKey>('manifest');
   const [manifestFilter, setManifestFilter] = useState<ManifestFilter>('all');
   const [manifestSearch, setManifestSearch] = useState('');
-  const [checkInOpen, setCheckInOpen] = useState(false);
 
   // DB-backed readiness
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
   const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
 
   // Dialogs
-  const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | null>(null);
+  const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | 'DEPARTED' | null>(null);
   const [moveBookingId, setMoveBookingId] = useState<string | null>(null);
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
   const canEdit =
     isSuperAdmin() ||
@@ -140,21 +140,43 @@ export default function SessionOpsRunSheet() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Session actions ────────────────────────────────────────────────
+  // ── Session lifecycle actions ────────────────────────────────────────
 
-  const updateSessionStatus = async (status: 'CANCELLED' | 'COMPLETED') => {
+  const logSessionEvent = async (eventType: string, fromStatus: string, toStatus: string) => {
     if (!session) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from('session_events').insert({
+      session_id: session.id,
+      resort_id: session.resort_id,
+      event_type: eventType,
+      from_status: fromStatus,
+      to_status: toStatus,
+      actor_user_id: user?.id ?? null,
+    });
+  };
+
+  const transitionSessionStatus = async (newStatus: 'CHECK_IN' | 'DEPARTED' | 'COMPLETED' | 'CANCELLED') => {
+    if (!session) return;
+    setTransitioning(true);
+    const oldStatus = session.status;
+
+    // Optimistic update
+    setSession(prev => prev ? { ...prev, status: newStatus as any } : prev);
+
     const { error } = await supabase
       .from('activity_sessions')
-      .update({ status })
+      .update({ status: newStatus })
       .eq('id', session.id);
 
     if (error) {
+      // Revert optimistic update
+      setSession(prev => prev ? { ...prev, status: oldStatus } : prev);
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
-      toast({ title: 'Success', description: `Session marked as ${status.toLowerCase()}` });
-      fetchData();
+      await logSessionEvent(`status_${newStatus.toLowerCase()}`, oldStatus, newStatus);
+      toast({ title: 'Saved ✅', description: `Session ${newStatus === 'CHECK_IN' ? 'check-in opened' : `marked as ${newStatus.toLowerCase()}`}` });
     }
+    setTransitioning(false);
     setStatusConfirm(null);
   };
 
@@ -235,27 +257,34 @@ export default function SessionOpsRunSheet() {
     return result;
   }, [guestRows, manifestFilter, manifestSearch]);
 
+  // ── Derived state from real session status ──────────────────────────
+
+  const checkInOpen = session?.status === 'CHECK_IN' || session?.status === 'DEPARTED' || session?.status === 'COMPLETED';
+  const isDeparted = session?.status === 'DEPARTED' || session?.status === 'COMPLETED';
+  const isCompleted = session?.status === 'COMPLETED';
+  const isCancelled = session?.status === 'CANCELLED';
+
   // ── Timeline nodes ─────────────────────────────────────────────────
 
   const timelineNodes: TimelineNode[] = useMemo(() => {
     if (!session) return [];
-    const isCompleted = session.status === 'COMPLETED';
-    const isCancelled = session.status === 'CANCELLED';
     return [
       { label: 'Session Created', timestamp: format(parseISO(session.created_at), 'MMM d, HH:mm'), status: 'done' },
-      { label: 'Check-in Opened', status: checkInOpen ? 'done' : isCancelled ? 'upcoming' : 'upcoming' },
-      { label: 'Departed', status: isCompleted ? 'done' : 'upcoming' },
-      { label: 'Completed', status: isCompleted ? 'done' : isCancelled ? 'upcoming' : 'upcoming' },
+      { label: 'Check-in Opened', status: checkInOpen ? 'done' : 'upcoming' },
+      { label: 'Departed', status: isDeparted ? 'done' : 'upcoming' },
+      { label: 'Completed', status: isCompleted ? 'done' : 'upcoming' },
     ];
-  }, [session, checkInOpen]);
+  }, [session, checkInOpen, isDeparted, isCompleted]);
 
   // ── Primary action label ───────────────────────────────────────────
 
   const primaryAction = useMemo(() => {
-    if (!session || session.status !== 'SCHEDULED') return null;
-    if (!checkInOpen) return { label: 'Open Check-in', icon: UserCheck, action: () => setCheckInOpen(true) };
-    return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('COMPLETED') };
-  }, [session, checkInOpen]);
+    if (!session || isCancelled || isCompleted) return null;
+    if (session.status === 'SCHEDULED') return { label: 'Open Check-in', icon: UserCheck, action: () => transitionSessionStatus('CHECK_IN') };
+    if (session.status === 'CHECK_IN') return { label: 'Mark Departed', icon: Ship, action: () => setStatusConfirm('DEPARTED') };
+    if (session.status === 'DEPARTED') return { label: 'Mark Completed', icon: Flag, action: () => setStatusConfirm('COMPLETED') };
+    return null;
+  }, [session, isCancelled, isCompleted]);
 
   // ── Guard states ───────────────────────────────────────────────────
 
@@ -291,8 +320,7 @@ export default function SessionOpsRunSheet() {
   }
 
   const isScheduled = session.status === 'SCHEDULED';
-
-  // ── Render ─────────────────────────────────────────────────────────
+  const canAct = isScheduled || session.status === 'CHECK_IN' || session.status === 'DEPARTED';
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background ops-content-with-bottom-strip">
@@ -464,18 +492,19 @@ export default function SessionOpsRunSheet() {
       </div>
 
       {/* ── Bottom Action Strip ── */}
-      <BottomActionStrip visible={!!canEdit && isScheduled}>
+      <BottomActionStrip visible={!!canEdit && canAct}>
         {primaryAction && (
-          <Button className="flex-1 h-12 text-base" onClick={primaryAction.action}>
+          <Button className="flex-1 h-12 text-base" onClick={primaryAction.action} disabled={transitioning}>
             <primaryAction.icon className="h-5 w-5 mr-2" />
             {primaryAction.label}
           </Button>
         )}
-        {checkInOpen && (
+        {session.status === 'CHECK_IN' && (
           <Button
             variant="outline"
             className="h-12 px-4"
             onClick={() => setStatusConfirm('COMPLETED')}
+            disabled={transitioning}
           >
             <Flag className="h-4 w-4 mr-1.5" />
             Complete
@@ -488,11 +517,15 @@ export default function SessionOpsRunSheet() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {statusConfirm === 'CANCELLED' ? 'Cancel Session' : 'Complete Session'}
+              {statusConfirm === 'CANCELLED' ? 'Cancel Session'
+                : statusConfirm === 'DEPARTED' ? 'Mark as Departed'
+                : 'Complete Session'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {statusConfirm === 'CANCELLED'
                 ? 'This will cancel the session. Active bookings may need to be handled separately.'
+                : statusConfirm === 'DEPARTED'
+                ? 'Mark this session as departed? Guests will no longer be able to check in.'
                 : 'Mark this session as completed? This action is irreversible.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -500,7 +533,7 @@ export default function SessionOpsRunSheet() {
             <AlertDialogCancel>Back</AlertDialogCancel>
             <AlertDialogAction
               className={statusConfirm === 'CANCELLED' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
-              onClick={() => statusConfirm && updateSessionStatus(statusConfirm)}
+              onClick={() => statusConfirm && transitionSessionStatus(statusConfirm as any)}
             >
               Confirm
             </AlertDialogAction>

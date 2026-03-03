@@ -56,7 +56,7 @@ export default function ActivitiesOpsInbox() {
         `)
         .eq('resort_id', currentResort.id)
         .in('date', [todayStr, tomorrowStr])
-        .eq('status', 'SCHEDULED')
+        .in('status', ['SCHEDULED', 'CHECK_IN'])
         .order('date')
         .order('start_time');
 
