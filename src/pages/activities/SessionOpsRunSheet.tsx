@@ -516,6 +516,33 @@ export default function SessionOpsRunSheet() {
         {/* ── SETUP TAB ── */}
         {activeTab === 'setup' && (
           <div className="px-4 py-4 space-y-4">
+            {/* Session info card */}
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Session Details</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Lead Staff</span>
+                    <span className="font-medium text-foreground">
+                      {session.lead_staff_id ? 'Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Resource</span>
+                    <span className="font-medium text-foreground">
+                      {session.resource_id ? 'Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Vendor</span>
+                    <span className="font-medium text-foreground">
+                      {session.vendor_id ? 'Assigned' : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Assets panel (from Phase 3) */}
             <SessionAssetsPanel
               sessionId={session.id}
@@ -529,18 +556,14 @@ export default function SessionOpsRunSheet() {
             {/* Notes section */}
             <Card>
               <CardContent className="p-4">
-                <details>
-                  <summary className="text-sm font-medium text-foreground cursor-pointer select-none">
-                    Session Notes
-                  </summary>
-                  <div className="mt-3 text-sm text-muted-foreground">
-                    {session.notes ? (
-                      <p>{session.notes}</p>
-                    ) : (
-                      <p className="italic">No notes added yet.</p>
-                    )}
-                  </div>
-                </details>
+                <h3 className="text-sm font-semibold text-foreground mb-2">Notes</h3>
+                <div className="text-sm text-muted-foreground rounded-lg bg-muted/30 p-3 min-h-[60px]">
+                  {session.notes ? (
+                    <p className="whitespace-pre-wrap">{session.notes}</p>
+                  ) : (
+                    <p className="italic opacity-60">No notes added yet.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -548,9 +571,10 @@ export default function SessionOpsRunSheet() {
 
         {/* ── TIMELINE TAB ── */}
         {activeTab === 'timeline' && (
-          <div className="px-4 py-4">
+          <div className="px-4 py-4 space-y-3">
             <Card>
               <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Session Lifecycle</h3>
                 <SessionTimeline nodes={timelineNodes} />
               </CardContent>
             </Card>
