@@ -51,6 +51,7 @@ import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
+import { useSessionEvents } from '@/hooks/useSessionEvents';
 import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
