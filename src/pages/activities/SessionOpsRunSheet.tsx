@@ -51,6 +51,7 @@ import { useSessionReadiness } from '@/hooks/useBookingReadiness';
 import { SessionAssetsPanel } from '@/components/activities/SessionAssetsPanel';
 import { GuestReadinessRow, GuestReadinessData } from '@/components/activities/ops/GuestReadinessRow';
 import { SessionTimeline, TimelineNode } from '@/components/activities/ops/SessionTimeline';
+import { useSessionEvents } from '@/hooks/useSessionEvents';
 import { cn } from '@/lib/utils';
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -96,6 +97,9 @@ export default function SessionOpsRunSheet() {
   // DB-backed readiness
   const bookingIds = useMemo(() => bookings.map(b => b.id), [bookings]);
   const { data: readinessMap = {} } = useSessionReadiness(bookingIds);
+
+  // Real session events
+  const { data: sessionEvents = [] } = useSessionEvents(sessionId);
 
   // Dialogs
   const [statusConfirm, setStatusConfirm] = useState<'CANCELLED' | 'COMPLETED' | 'DEPARTED' | null>(null);
@@ -266,17 +270,48 @@ export default function SessionOpsRunSheet() {
   const isCompleted = session?.status === 'COMPLETED';
   const isCancelled = session?.status === 'CANCELLED';
 
-  // ── Timeline nodes ─────────────────────────────────────────────────
+  // ── Timeline nodes (merge lifecycle milestones + real events) ────────
+
+  const EVENT_LABELS: Record<string, string> = {
+    status_check_in: 'Check-in Opened',
+    status_departed: 'Departed',
+    status_completed: 'Completed',
+    status_cancelled: 'Cancelled',
+    booking_moved_out: 'Guest Moved Out',
+  };
 
   const timelineNodes: TimelineNode[] = useMemo(() => {
     if (!session) return [];
-    return [
+
+    // Start with session created
+    const nodes: TimelineNode[] = [
       { label: 'Session Created', timestamp: format(parseISO(session.created_at), 'MMM d, HH:mm'), status: 'done' },
-      { label: 'Check-in Opened', status: checkInOpen ? 'done' : 'upcoming' },
-      { label: 'Departed', status: isDeparted ? 'done' : 'upcoming' },
-      { label: 'Completed', status: isCompleted ? 'done' : 'upcoming' },
     ];
-  }, [session, checkInOpen, isDeparted, isCompleted]);
+
+    // Add real events from DB
+    for (const evt of sessionEvents) {
+      nodes.push({
+        label: EVENT_LABELS[evt.event_type] ?? evt.event_type.replace(/_/g, ' '),
+        timestamp: format(parseISO(evt.created_at), 'MMM d, HH:mm'),
+        status: 'done',
+        subtitle: evt.notes ?? undefined,
+      });
+    }
+
+    // Add upcoming milestones that haven't happened yet
+    const eventTypes = new Set(sessionEvents.map(e => e.event_type));
+    if (!eventTypes.has('status_check_in') && !checkInOpen) {
+      nodes.push({ label: 'Check-in Opened', status: isCancelled ? 'upcoming' : 'upcoming' });
+    }
+    if (!eventTypes.has('status_departed') && !isDeparted) {
+      nodes.push({ label: 'Departed', status: 'upcoming' });
+    }
+    if (!eventTypes.has('status_completed') && !isCompleted) {
+      nodes.push({ label: 'Completed', status: 'upcoming' });
+    }
+
+    return nodes;
+  }, [session, sessionEvents, checkInOpen, isDeparted, isCompleted, isCancelled]);
 
   // ── Primary action label ───────────────────────────────────────────
 
@@ -481,6 +516,27 @@ export default function SessionOpsRunSheet() {
         {/* ── SETUP TAB ── */}
         {activeTab === 'setup' && (
           <div className="px-4 py-4 space-y-4">
+            {/* Session info card */}
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Session Details</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Lead Staff</span>
+                    <span className="font-medium text-foreground">
+                      {session.lead_staff_id ? 'Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Resource</span>
+                    <span className="font-medium text-foreground">
+                      {session.resource_id ? 'Assigned' : 'Unassigned'}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Assets panel (from Phase 3) */}
             <SessionAssetsPanel
               sessionId={session.id}
@@ -494,18 +550,14 @@ export default function SessionOpsRunSheet() {
             {/* Notes section */}
             <Card>
               <CardContent className="p-4">
-                <details>
-                  <summary className="text-sm font-medium text-foreground cursor-pointer select-none">
-                    Session Notes
-                  </summary>
-                  <div className="mt-3 text-sm text-muted-foreground">
-                    {session.notes ? (
-                      <p>{session.notes}</p>
-                    ) : (
-                      <p className="italic">No notes added yet.</p>
-                    )}
-                  </div>
-                </details>
+                <h3 className="text-sm font-semibold text-foreground mb-2">Notes</h3>
+                <div className="text-sm text-muted-foreground rounded-lg bg-muted/30 p-3 min-h-[60px]">
+                  {session.notes ? (
+                    <p className="whitespace-pre-wrap">{session.notes}</p>
+                  ) : (
+                    <p className="italic opacity-60">No notes added yet.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -513,9 +565,10 @@ export default function SessionOpsRunSheet() {
 
         {/* ── TIMELINE TAB ── */}
         {activeTab === 'timeline' && (
-          <div className="px-4 py-4">
+          <div className="px-4 py-4 space-y-3">
             <Card>
               <CardContent className="p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Session Lifecycle</h3>
                 <SessionTimeline nodes={timelineNodes} />
               </CardContent>
             </Card>

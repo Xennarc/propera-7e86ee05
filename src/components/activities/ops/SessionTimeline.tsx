@@ -10,6 +10,7 @@ export type TimelineNodeStatus = 'done' | 'current' | 'upcoming';
 export interface TimelineNode {
   label: string;
   timestamp?: string;
+  subtitle?: string;
   status: TimelineNodeStatus;
 }
 
@@ -58,6 +59,9 @@ export function SessionTimeline({ nodes }: SessionTimelineProps) {
               </p>
               {node.timestamp && (
                 <p className="text-xs text-muted-foreground mt-0.5">{node.timestamp}</p>
+              )}
+              {node.subtitle && (
+                <p className="text-xs text-muted-foreground/70 mt-0.5">{node.subtitle}</p>
               )}
             </div>
           </li>
