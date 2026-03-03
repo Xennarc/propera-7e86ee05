@@ -2927,3 +2927,48 @@ select:focus,
   -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
   mask-image: linear-gradient(to right, black 85%, transparent 100%);
 }
+
+/* ========================================
+   OPS PRIMITIVES — Shared styles for
+   Activities Ops and staff ops pages
+   ======================================== */
+
+/* OpsSurface – Lightweight ops card. radius 16, padding 16, subtle border, no glass. */
+.ops-surface {
+  @apply rounded-2xl border border-border/40 bg-card p-4;
+  box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.03);
+}
+
+/* BottomActionStrip safe-area padding */
+.ops-bottom-strip {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  /* Total visual height ≈ 72px including safe area */
+}
+
+/* Content padding to avoid overlap with BottomActionStrip */
+.ops-content-with-bottom-strip {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Staff safe-area utilities (mirrors guest utilities) */
+.staff-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+.staff-safe-bottom-strip {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Safe-area bottom padding for bottom-sheet content */
+.pb-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/* Scrollbar-none utility (complements scrollbar-hide for chip rows) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
