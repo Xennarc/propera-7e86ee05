@@ -728,6 +728,22 @@ function SessionOpsRunSheetContent() {
           conflicts={conflicts}
         />
       )}
+
+      {certVerifyBookingId && session && (() => {
+        const row = guestRows.find(g => g.bookingId === certVerifyBookingId);
+        return row ? (
+          <CertVerificationDrawer
+            open={!!certVerifyBookingId}
+            onOpenChange={(open) => !open && setCertVerifyBookingId(null)}
+            bookingId={certVerifyBookingId}
+            guestName={row.guestName}
+            certMediaPath={row.certMediaPath ?? null}
+            currentStatus={(row.certVerificationStatus as any) ?? 'unverified'}
+            certNotes={null}
+            sessionId={session.id}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
