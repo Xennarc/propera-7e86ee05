@@ -2,9 +2,11 @@
  * GuestReadinessRow – Guest card for the manifest tab.
  * Radius 14, padding 12, min-height 72.
  * Now supports activity requirements to hide irrelevant readiness icons.
+ * Includes cert verification status indicator.
  */
 import { OpsStatusChip, OpsStatus } from './OpsStatusChip';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +24,12 @@ import {
   MoreVertical,
   AlertTriangle,
   AlertCircle,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ActivityRequirements } from '@/lib/activity-requirements';
+import type { CertVerificationStatus } from '@/types/ops';
 
 type ReadinessState = true | false | null; // done | missing | unknown
 
@@ -64,6 +69,9 @@ export interface GuestReadinessData {
   medicalStatus?: ReadinessStatus;
   certStatus?: ReadinessStatus;
   gearStatus?: ReadinessStatus;
+  /** Cert verification fields */
+  certVerificationStatus?: CertVerificationStatus;
+  certMediaPath?: string | null;
 }
 
 interface GuestReadinessRowProps {
@@ -74,6 +82,7 @@ interface GuestReadinessRowProps {
   onMarkArrived?: (bookingId: string) => void;
   onMoveSession?: (bookingId: string) => void;
   onCancel?: (bookingId: string) => void;
+  onVerifyCert?: (bookingId: string) => void;
 }
 
 const READINESS_ICONS = [
@@ -109,7 +118,32 @@ function ReadinessIcon({ state, rawStatus, Icon, label }: { state: ReadinessStat
   );
 }
 
-export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArrived, onMoveSession, onCancel }: GuestReadinessRowProps) {
+function CertVerificationIndicator({ status }: { status?: CertVerificationStatus }) {
+  if (!status || status === 'not_required') return null;
+  
+  if (status === 'verified') {
+    return (
+      <span title="Cert Verified" className="flex items-center justify-center h-5 w-5 rounded-full bg-success/15">
+        <CheckCircle2 className="h-3 w-3 text-success" />
+      </span>
+    );
+  }
+  if (status === 'rejected') {
+    return (
+      <span title="Cert Rejected" className="flex items-center justify-center h-5 w-5 rounded-full bg-destructive/15">
+        <AlertTriangle className="h-3 w-3 text-destructive" />
+      </span>
+    );
+  }
+  // unverified
+  return (
+    <span title="Cert Awaiting Verification" className="flex items-center justify-center h-5 w-5 rounded-full bg-warning/15">
+      <Clock className="h-3 w-3 text-warning" />
+    </span>
+  );
+}
+
+export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArrived, onMoveSession, onCancel, onVerifyCert }: GuestReadinessRowProps) {
   const readiness = { waiver: data.waiver, medical: data.medical, cert: data.cert, gear: data.gear };
   const rawStatuses = {
     waiver: data.waiverStatus,
@@ -123,6 +157,15 @@ export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArriv
     ? READINESS_ICONS.filter(item => requirements[item.reqKey])
     : READINESS_ICONS;
 
+  const showCertVerification = requirements?.requires_cert && 
+    data.certVerificationStatus && 
+    data.certVerificationStatus !== 'not_required';
+
+  const canVerifyCert = onVerifyCert && 
+    data.certVerificationStatus && 
+    ['unverified', 'rejected'].includes(data.certVerificationStatus) &&
+    (data.certStatus === 'uploaded' || data.certStatus === 'complete');
+
   return (
     <div className="rounded-[14px] border border-border/40 bg-card p-3 min-h-[72px] flex items-center gap-3">
       {/* Info */}
@@ -133,6 +176,9 @@ export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArriv
             <span className="text-[10px] font-semibold px-1 py-0 rounded border border-warning/40 text-warning bg-warning/10 leading-tight">
               VIP
             </span>
+          )}
+          {showCertVerification && (
+            <CertVerificationIndicator status={data.certVerificationStatus} />
           )}
         </div>
         <p className="text-xs text-muted-foreground">
@@ -159,7 +205,17 @@ export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArriv
       )}
 
       {/* Quick action */}
-      {checkInOpen && data.bookingStatus === 'CONFIRMED' && onMarkArrived ? (
+      {canVerifyCert ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-11 px-3 shrink-0 border-warning/40 text-warning hover:bg-warning/10"
+          onClick={() => onVerifyCert(data.bookingId)}
+        >
+          <Award className="h-4 w-4 mr-1" />
+          Verify
+        </Button>
+      ) : checkInOpen && data.bookingStatus === 'CONFIRMED' && onMarkArrived ? (
         <Button
           size="sm"
           className="h-11 px-3 shrink-0"
@@ -182,6 +238,11 @@ export function GuestReadinessRow({ data, checkInOpen, requirements, onMarkArriv
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          {onVerifyCert && data.certMediaPath && (
+            <DropdownMenuItem onClick={() => onVerifyCert(data.bookingId)}>
+              Review Certification
+            </DropdownMenuItem>
+          )}
           {onMoveSession && (
             <DropdownMenuItem onClick={() => onMoveSession(data.bookingId)}>
               Move Session
