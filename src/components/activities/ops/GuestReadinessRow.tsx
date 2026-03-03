@@ -25,6 +25,13 @@ import { cn } from '@/lib/utils';
 
 type ReadinessState = true | false | null; // done | missing | unknown
 
+/** Map status-string values from activity_booking_readiness → boolean|null */
+export function statusToReadinessState(status: string | undefined): ReadinessState {
+  if (!status || status === 'unknown') return null;
+  if (status === 'complete' || status === 'uploaded' || status === 'not_required') return true;
+  return false; // 'missing', 'review'
+}
+
 export interface GuestReadinessData {
   bookingId: string;
   guestName: string;
