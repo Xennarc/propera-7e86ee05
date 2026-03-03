@@ -320,6 +320,18 @@ export default function SessionOpsRunSheet() {
         </div>
       )}
 
+      {/* ── Assets Panel ────────────────────────────────────────── */}
+      {session && (
+        <SessionAssetsPanel
+          sessionId={session.id}
+          resortId={session.resort_id}
+          sessionDate={session.date}
+          sessionStartTime={session.start_time}
+          sessionEndTime={session.end_time}
+          canEdit={!!canEdit}
+        />
+      )}
+
       {/* ── Manifest ─────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
