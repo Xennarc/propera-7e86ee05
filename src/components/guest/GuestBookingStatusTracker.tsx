@@ -14,6 +14,8 @@ import { format, parseISO, differenceInMinutes, isToday } from 'date-fns';
 import { Check, Clock, Circle, MapPin, Anchor, Flag, Ship, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusPill } from '@/components/guest/StatusPill';
+import { CertVerificationBadge } from '@/components/guest/CertVerificationBadge';
+import { useActivityBookingReadiness } from '@/hooks/useActivityBookingReadiness';
 import type { BookingDisplayModel } from '@/types/booking-display';
 
 interface GuestBookingStatusTrackerProps {
@@ -247,6 +249,9 @@ export function GuestBookingStatusTracker({
         <StatusPill label={config.label} variant={config.pillVariant} />
         <p className="text-xs text-muted-foreground flex-1">{config.explanation}</p>
       </div>
+
+      {/* Cert verification status */}
+      {booking.type === 'activity' && booking.bookingId && <CertVerificationInfo bookingId={booking.bookingId} />}
 
       {/* Context hint */}
       {contextHint && (
