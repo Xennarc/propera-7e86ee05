@@ -1,11 +1,11 @@
 /**
- * CrewAssignmentCard – Assign guides, instructors, and captain to a session.
+ * CrewAssignmentCard – Assign guides, instructors, and captain with conflict badges.
  */
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Plus, X, Check } from 'lucide-react';
+import { Users, Plus, X, Check, AlertTriangle } from 'lucide-react';
 import {
   Drawer,
   DrawerContent,
@@ -21,11 +21,13 @@ import {
   type ResortStaffMember,
 } from '@/hooks/useSessionStaffAssignments';
 import type { StaffAssignmentRole } from '@/types/ops';
+import type { StaffConflict } from '@/hooks/useSessionConflicts';
 import { cn } from '@/lib/utils';
 
 interface Props {
   sessionId: string;
   resortId: string;
+  staffConflicts?: StaffConflict[];
 }
 
 const ROLE_CONFIG: Record<StaffAssignmentRole, { label: string; plural: string; multiSelect: boolean }> = {
@@ -35,7 +37,7 @@ const ROLE_CONFIG: Record<StaffAssignmentRole, { label: string; plural: string; 
   crew: { label: 'Crew', plural: 'Crew', multiSelect: true },
 };
 
-export function CrewAssignmentCard({ sessionId, resortId }: Props) {
+export function CrewAssignmentCard({ sessionId, resortId, staffConflicts = [] }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerRole, setPickerRole] = useState<StaffAssignmentRole>('guide');
   const { data: assignments = [] } = useSessionStaffAssignments(sessionId);
@@ -54,6 +56,15 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
   const isAssigned = (userId: string, role: StaffAssignmentRole) =>
     assignments.some(a => a.staff_user_id === userId && a.role === role);
 
+  const isStaffConflicting = (userId: string) =>
+    staffConflicts.some(c => c.staff_user_id === userId);
+
+  const getStaffConflictDetail = (userId: string) => {
+    const c = staffConflicts.find(cf => cf.staff_user_id === userId);
+    if (!c) return null;
+    return `${c.other_activity_name} ${c.other_start.slice(0, 5)}–${c.other_end.slice(0, 5)}`;
+  };
+
   const handleToggle = (staff: ResortStaffMember) => {
     const existing = assignments.find(
       a => a.staff_user_id === staff.user_id && a.role === pickerRole
@@ -62,7 +73,6 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
       removeStaff.mutate(existing.id);
     } else {
       const config = ROLE_CONFIG[pickerRole];
-      // Single-select: remove existing first
       if (!config.multiSelect) {
         const current = roleAssignments(pickerRole);
         if (current.length > 0) {
@@ -75,7 +85,7 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
               });
             },
           });
-          if (!config.multiSelect) setPickerOpen(false);
+          setPickerOpen(false);
           return;
         }
       }
@@ -113,21 +123,25 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
                       {assigned.length === 0 ? (
                         <span className="text-xs text-muted-foreground/60 italic">Unassigned</span>
                       ) : (
-                        assigned.map(a => (
-                          <Badge
-                            key={a.id}
-                            variant="secondary"
-                            className="text-xs font-medium gap-1 pr-1"
-                          >
-                            {getStaffName(a.staff_user_id)}
-                            <button
-                              onClick={() => removeStaff.mutate(a.id)}
-                              className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5"
+                        assigned.map(a => {
+                          const conflicting = isStaffConflicting(a.staff_user_id);
+                          return (
+                            <Badge
+                              key={a.id}
+                              variant={conflicting ? 'destructive' : 'secondary'}
+                              className="text-xs font-medium gap-1 pr-1"
                             >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </Badge>
-                        ))
+                              {conflicting && <AlertTriangle className="h-2.5 w-2.5" />}
+                              {getStaffName(a.staff_user_id)}
+                              <button
+                                onClick={() => removeStaff.mutate(a.id)}
+                                className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5"
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </Badge>
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -166,6 +180,8 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
             ) : (
               staffList.map(staff => {
                 const selected = isAssigned(staff.user_id, pickerRole);
+                const conflicting = isStaffConflicting(staff.user_id);
+                const conflictText = getStaffConflictDetail(staff.user_id);
                 return (
                   <button
                     key={staff.user_id}
@@ -174,12 +190,24 @@ export function CrewAssignmentCard({ sessionId, resortId }: Props) {
                       'w-full flex items-center justify-between rounded-lg border p-3 text-left transition-colors min-h-[44px]',
                       selected
                         ? 'border-primary bg-primary/5'
+                        : conflicting
+                        ? 'border-warning/40 bg-warning/5'
                         : 'border-border hover:bg-muted/50'
                     )}
                   >
                     <div>
-                      <p className="text-sm font-medium text-foreground">{staff.full_name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-foreground">{staff.full_name}</p>
+                        {conflicting && (
+                          <Badge variant="outline" className="text-[10px] border-warning/40 text-warning px-1.5 py-0">
+                            Elsewhere
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground capitalize">{staff.resort_role.replace('_', ' ').toLowerCase()}</p>
+                      {conflictText && (
+                        <p className="text-[11px] text-warning mt-0.5">{conflictText}</p>
+                      )}
                     </div>
                     {selected && <Check className="h-4 w-4 text-primary shrink-0" />}
                   </button>

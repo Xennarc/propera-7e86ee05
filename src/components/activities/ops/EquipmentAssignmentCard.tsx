@@ -1,9 +1,10 @@
 /**
- * EquipmentAssignmentCard – Assign equipment bundles with qty steppers.
+ * EquipmentAssignmentCard – Assign equipment bundles with qty steppers + conflict badges.
  */
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Plus, Minus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Package, Plus, Minus, AlertTriangle } from 'lucide-react';
 import { useOpsAssets } from '@/hooks/useOpsAssets';
 import {
   useSessionOpsAssets,
@@ -11,13 +12,15 @@ import {
   useUnassignOpsAsset,
   useUpdateOpsAssetQty,
 } from '@/hooks/useSessionOpsAssets';
+import type { EquipmentConflict } from '@/hooks/useSessionConflicts';
 
 interface Props {
   sessionId: string;
   resortId: string;
+  equipmentConflicts?: EquipmentConflict[];
 }
 
-export function EquipmentAssignmentCard({ sessionId, resortId }: Props) {
+export function EquipmentAssignmentCard({ sessionId, resortId, equipmentConflicts = [] }: Props) {
   const { data: equipment = [] } = useOpsAssets(resortId, 'equipment');
   const { data: assignments = [] } = useSessionOpsAssets(sessionId);
   const assignAsset = useAssignOpsAsset(sessionId);
@@ -26,6 +29,9 @@ export function EquipmentAssignmentCard({ sessionId, resortId }: Props) {
 
   const getAssignment = (assetId: string) =>
     assignments.find(a => a.asset_id === assetId);
+
+  const getConflict = (assetId: string) =>
+    equipmentConflicts.find(c => c.asset_id === assetId);
 
   const handleIncrement = (assetId: string, assetName: string) => {
     const existing = getAssignment(assetId);
@@ -79,10 +85,24 @@ export function EquipmentAssignmentCard({ sessionId, resortId }: Props) {
         {equipment.map(item => {
           const assignment = getAssignment(item.id);
           const qty = assignment?.quantity ?? 0;
+          const conflict = getConflict(item.id);
           return (
             <div key={item.id} className="flex items-center justify-between min-h-[40px]">
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-foreground">{item.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm text-foreground">{item.name}</p>
+                  {conflict && (
+                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning px-1.5 py-0">
+                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                      In use
+                    </Badge>
+                  )}
+                </div>
+                {conflict && (
+                  <p className="text-[11px] text-warning">
+                    {conflict.other_activity_name} ({conflict.other_qty}×)
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <Button
