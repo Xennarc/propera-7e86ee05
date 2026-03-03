@@ -244,6 +244,7 @@ const App = () => (
                   <Route path="activities/sessions/new" element={<CreateSessionWizard />} />
                   <Route path="activities/sessions/:id" element={<ActivitySessionDetailPage />} />
                   <Route path="activities/sessions/:sessionId/ops" element={<SessionOpsRunSheet />} />
+                  <Route path="activities/ops" element={<ActivitiesOpsInbox />} />
                   <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />
