@@ -29,6 +29,7 @@ import { filterUpcomingSessions, isSessionPast } from '@/lib/session-time-utils'
 import { SessionExpiredState, SessionsFilteredHint } from '@/components/guest/SessionExpiredState';
 import { useBookingCelebration } from '@/hooks/guest/useBookingCelebration';
 import { PrepareCard } from '@/components/guest/PrepareCard';
+import { GuestBookingStatusTracker } from '@/components/guest/GuestBookingStatusTracker';
 import { StickyActionBar } from '@/components/guest/StickyActionBar';
 import { GuestPageShell } from '@/components/guest/GuestPageShell';
 import { BookingSuccessCelebration } from '@/components/guest/feedback/BookingSuccessCelebration';
@@ -454,6 +455,30 @@ export default function GuestActivityBookingPage() {
                   : "You can find this in 'My Bookings' at any time."}
             </p>
             
+            {/* Live Status Tracker */}
+            {bookingResult.bookingId && (
+              <GuestBookingStatusTracker
+                booking={{
+                  id: bookingResult.bookingId,
+                  type: 'activity',
+                  title: session.activity_name,
+                  date: session.date,
+                  startTime: session.start_time,
+                  endTime: session.end_time,
+                  status: bookingResult.requiresApproval ? 'PENDING' : 'CONFIRMED',
+                  numAdults,
+                  numChildren,
+                  isOwnBooking: true,
+                  canCancel: false,
+                  canEdit: false,
+                  sessionId: selectedSessionId || undefined,
+                  createdAt: new Date().toISOString(),
+                }}
+                sessionStatus="SCHEDULED"
+                className="text-left"
+              />
+            )}
+
             {/* Inline PrepareCard for immediate post-booking preparation */}
             {bookingResult.bookingId && guest && (
               <PrepareCard
