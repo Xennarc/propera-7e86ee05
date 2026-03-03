@@ -6532,6 +6532,60 @@ export type Database = {
         }
         Relationships: []
       }
+      session_asset_assignments: {
+        Row: {
+          asset_label: string
+          asset_ref_id: string | null
+          asset_type: Database["public"]["Enums"]["session_asset_type"]
+          created_at: string
+          id: string
+          notes: string | null
+          quantity: number
+          resort_id: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_label: string
+          asset_ref_id?: string | null
+          asset_type: Database["public"]["Enums"]["session_asset_type"]
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          resort_id: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_label?: string
+          asset_ref_id?: string | null
+          asset_type?: Database["public"]["Enums"]["session_asset_type"]
+          created_at?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          resort_id?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_asset_assignments_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_asset_assignments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "activity_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_audit_logs: {
         Row: {
           action: string
@@ -8922,6 +8976,7 @@ export type Database = {
         | "TRANSPORT"
       resort_status: "ACTIVE" | "INACTIVE" | "DEMO"
       resource_type: "BOAT" | "VAN" | "CABANA" | "OTHER"
+      session_asset_type: "guide" | "boat" | "equipment"
       session_status: "SCHEDULED" | "CANCELLED" | "COMPLETED"
       slot_status: "OPEN" | "CLOSED" | "FULL"
       subscription_tier: "ESSENTIAL" | "PROFESSIONAL" | "ELITE"
@@ -9186,6 +9241,7 @@ export const Constants = {
       ],
       resort_status: ["ACTIVE", "INACTIVE", "DEMO"],
       resource_type: ["BOAT", "VAN", "CABANA", "OTHER"],
+      session_asset_type: ["guide", "boat", "equipment"],
       session_status: ["SCHEDULED", "CANCELLED", "COMPLETED"],
       slot_status: ["OPEN", "CLOSED", "FULL"],
       subscription_tier: ["ESSENTIAL", "PROFESSIONAL", "ELITE"],
