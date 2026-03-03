@@ -80,8 +80,8 @@ export function OpsSheetRowCard({ row }: OpsSheetRowCardProps) {
         )}
         {row.readiness.pending_medical > 0 && (
           <span className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-            <span className="text-amber-600 font-medium">{row.readiness.pending_medical} Review</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-warning shrink-0" />
+            <span className="text-warning font-medium">{row.readiness.pending_medical} Review</span>
           </span>
         )}
       </div>
