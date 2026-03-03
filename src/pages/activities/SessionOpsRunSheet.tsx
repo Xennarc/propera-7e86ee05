@@ -333,7 +333,13 @@ export default function SessionOpsRunSheet() {
           ) : (
             <ul className="divide-y divide-border">
               {bookings.map((booking) => {
-                const rs = readiness[booking.id] ?? { waiver: null, medical: null, cert: null, gear: null };
+                const dbR = readinessMap[booking.id];
+                const rs = {
+                  waiver: dbR ? dbR.waiver_signed : null,
+                  medical: null as boolean | null, // Phase 2+
+                  cert: dbR ? dbR.cert_verified : null,
+                  gear: dbR ? (dbR.sizes_confirmed && dbR.gear_confirmed) : null,
+                };
                 const expanded = expandedRows.has(booking.id);
 
                 return (
@@ -396,33 +402,32 @@ export default function SessionOpsRunSheet() {
                     {/* ── Expanded detail drawer ── */}
                     {expanded && (
                       <div className="px-4 pb-4 pt-1 bg-muted/30 space-y-3 animate-fade-in">
-                        {/* Readiness toggles */}
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-1.5">Readiness</p>
-                          <div className="flex flex-wrap gap-2">
-                            {readinessIndicators.map(({ key, label, icon: Icon }) => {
-                              const val = rs[key];
-                              return (
-                                <button
-                                  key={key}
-                                  onClick={() => toggleReadiness(booking.id, key)}
-                                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                                    val === true
-                                      ? 'border-success/40 bg-success/10 text-success'
-                                      : val === false
-                                      ? 'border-destructive/40 bg-destructive/10 text-destructive'
-                                      : 'border-border bg-background text-muted-foreground'
-                                  }`}
-                                >
-                                  {val === null ? <HelpCircle className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
-                                  {label}
-                                  <span className="opacity-60">
-                                    {val === null ? '?' : val ? '✓' : '✗'}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
+                         {/* Readiness display (read-only, updated by guest) */}
+                         <div>
+                           <p className="text-xs font-medium text-muted-foreground mb-1.5">Guest Readiness</p>
+                           <div className="flex flex-wrap gap-2">
+                             {readinessIndicators.map(({ key, label, icon: Icon }) => {
+                               const val = rs[key];
+                               return (
+                                 <span
+                                   key={key}
+                                   className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${
+                                     val === true
+                                       ? 'border-success/40 bg-success/10 text-success'
+                                       : val === false
+                                       ? 'border-destructive/40 bg-destructive/10 text-destructive'
+                                       : 'border-border bg-background text-muted-foreground'
+                                   }`}
+                                 >
+                                   {val === null ? <HelpCircle className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                                   {label}
+                                   <span className="opacity-60">
+                                     {val === null ? '?' : val ? '✓' : '✗'}
+                                   </span>
+                                 </span>
+                               );
+                             })}
+                           </div>
                         </div>
 
                         {/* Quick actions */}
