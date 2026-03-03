@@ -270,17 +270,48 @@ export default function SessionOpsRunSheet() {
   const isCompleted = session?.status === 'COMPLETED';
   const isCancelled = session?.status === 'CANCELLED';
 
-  // ── Timeline nodes ─────────────────────────────────────────────────
+  // ── Timeline nodes (merge lifecycle milestones + real events) ────────
+
+  const EVENT_LABELS: Record<string, string> = {
+    status_check_in: 'Check-in Opened',
+    status_departed: 'Departed',
+    status_completed: 'Completed',
+    status_cancelled: 'Cancelled',
+    booking_moved_out: 'Guest Moved Out',
+  };
 
   const timelineNodes: TimelineNode[] = useMemo(() => {
     if (!session) return [];
-    return [
+
+    // Start with session created
+    const nodes: TimelineNode[] = [
       { label: 'Session Created', timestamp: format(parseISO(session.created_at), 'MMM d, HH:mm'), status: 'done' },
-      { label: 'Check-in Opened', status: checkInOpen ? 'done' : 'upcoming' },
-      { label: 'Departed', status: isDeparted ? 'done' : 'upcoming' },
-      { label: 'Completed', status: isCompleted ? 'done' : 'upcoming' },
     ];
-  }, [session, checkInOpen, isDeparted, isCompleted]);
+
+    // Add real events from DB
+    for (const evt of sessionEvents) {
+      nodes.push({
+        label: EVENT_LABELS[evt.event_type] ?? evt.event_type.replace(/_/g, ' '),
+        timestamp: format(parseISO(evt.created_at), 'MMM d, HH:mm'),
+        status: 'done',
+        subtitle: evt.notes ?? undefined,
+      });
+    }
+
+    // Add upcoming milestones that haven't happened yet
+    const eventTypes = new Set(sessionEvents.map(e => e.event_type));
+    if (!eventTypes.has('status_check_in') && !checkInOpen) {
+      nodes.push({ label: 'Check-in Opened', status: isCancelled ? 'upcoming' : 'upcoming' });
+    }
+    if (!eventTypes.has('status_departed') && !isDeparted) {
+      nodes.push({ label: 'Departed', status: 'upcoming' });
+    }
+    if (!eventTypes.has('status_completed') && !isCompleted) {
+      nodes.push({ label: 'Completed', status: 'upcoming' });
+    }
+
+    return nodes;
+  }, [session, sessionEvents, checkInOpen, isDeparted, isCompleted, isCancelled]);
 
   // ── Primary action label ───────────────────────────────────────────
 
