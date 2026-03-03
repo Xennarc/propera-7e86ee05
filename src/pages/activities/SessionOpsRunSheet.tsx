@@ -712,3 +712,11 @@ function SessionOpsRunSheetContent() {
     </div>
   );
 }
+
+export default function SessionOpsRunSheet() {
+  return (
+    <FeatureGate requiredFlags={['enable_activities_ops']} mode="staff">
+      <SessionOpsRunSheetContent />
+    </FeatureGate>
+  );
+}
