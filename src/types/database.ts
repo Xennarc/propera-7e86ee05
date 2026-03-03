@@ -170,6 +170,7 @@ export interface Activity {
   cancellation_policy_text?: string | null;
   faq?: unknown;
   image_url?: string | null;
+  requirements_json?: unknown;
 }
 
 export interface Resource {

@@ -246,14 +246,59 @@ export default function SessionOpsRunSheet() {
         partySize: paxCount(b),
         isVip: b.guest.is_vip,
         bookingStatus: b.status,
-        waiver: dbR ? dbR.waiver_signed : null,
-        medical: null,
-        cert: dbR ? dbR.cert_verified : null,
-        gear: dbR ? (dbR.sizes_confirmed && dbR.gear_confirmed) : null,
+        waiver: dbR ? statusToReadinessState(dbR.waiver_status) : null,
+        medical: dbR ? statusToReadinessState(dbR.medical_status) : null,
+        cert: dbR ? statusToReadinessState(dbR.cert_status) : null,
+        gear: dbR ? statusToReadinessState(dbR.gear_status) : null,
+        waiverStatus: (dbR?.waiver_status ?? 'unknown') as ReadinessStatus,
+        medicalStatus: (dbR?.medical_status ?? 'unknown') as ReadinessStatus,
+        certStatus: (dbR?.cert_status ?? 'unknown') as ReadinessStatus,
+        gearStatus: (dbR?.gear_status ?? 'unknown') as ReadinessStatus,
       };
     });
   }, [activeBookings, readinessMap]);
 
+  /** Count guests whose required readiness is all complete vs missing something */
+  const readinessCounts = useMemo(() => {
+    let ready = 0;
+    let missing = 0;
+    for (const g of guestRows) {
+      const allDone =
+        isReadinessComplete(g.waiverStatus, activityRequirements.requires_waiver) &&
+        isReadinessComplete(g.medicalStatus, activityRequirements.requires_medical) &&
+        isReadinessComplete(g.certStatus, activityRequirements.requires_cert) &&
+        isReadinessComplete(g.gearStatus, activityRequirements.requires_gear);
+      if (allDone) ready++;
+      else missing++;
+    }
+    return { ready, missing };
+  }, [guestRows, activityRequirements]);
+
+  const filteredGuests = useMemo(() => {
+    let result = guestRows;
+
+    if (manifestFilter === 'missing') {
+      result = result.filter(g => {
+        return (
+          !isReadinessComplete(g.waiverStatus, activityRequirements.requires_waiver) ||
+          !isReadinessComplete(g.medicalStatus, activityRequirements.requires_medical) ||
+          !isReadinessComplete(g.certStatus, activityRequirements.requires_cert) ||
+          !isReadinessComplete(g.gearStatus, activityRequirements.requires_gear)
+        );
+      });
+    } else if (manifestFilter === 'arrived') {
+      result = result.filter(g => g.bookingStatus === 'COMPLETED');
+    } else if (manifestFilter === 'not_arrived') {
+      result = result.filter(g => g.bookingStatus !== 'COMPLETED');
+    }
+
+    if (manifestSearch.trim()) {
+      const q = manifestSearch.toLowerCase();
+      result = result.filter(g => g.guestName.toLowerCase().includes(q) || g.roomNumber.includes(q));
+    }
+
+    return result;
+  }, [guestRows, manifestFilter, manifestSearch, activityRequirements]);
   const filteredGuests = useMemo(() => {
     let result = guestRows;
 
