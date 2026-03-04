@@ -53,6 +53,7 @@ const ActivityCheatsheetPage = lazy(() => import("./pages/activities/ActivityChe
 const SessionOpsRunSheet = lazy(() => import("./pages/activities/SessionOpsRunSheet"));
 const ActivitiesOpsInbox = lazy(() => import("./pages/activities/ActivitiesOpsInbox"));
 const MasterOpsSheet = lazy(() => import("./pages/activities/MasterOpsSheet"));
+const OpsSheetPrint = lazy(() => import("./pages/activities/OpsSheetPrint"));
 const RestaurantsPage = lazy(() => import("./pages/restaurants/RestaurantsPage"));
 const RestaurantSlotsPage = lazy(() => import("./pages/restaurants/RestaurantSlotsPage"));
 const RestaurantSlotDetailPage = lazy(() => import("./pages/restaurants/RestaurantSlotDetailPage"));
@@ -247,6 +248,7 @@ const App = () => (
                   <Route path="activities/sessions/:sessionId/ops" element={<SessionOpsRunSheet />} />
                   <Route path="activities/ops" element={<ActivitiesOpsInbox />} />
                   <Route path="activities/ops/day" element={<MasterOpsSheet />} />
+                  <Route path="activities/ops/day/print" element={<OpsSheetPrint />} />
                   <Route path="activities/cheatsheet" element={<ActivityCheatsheetPage />} />
                   <Route path="restaurants" element={<RestaurantsPage />} />
                   <Route path="restaurants/slots" element={<RestaurantSlotsPage />} />

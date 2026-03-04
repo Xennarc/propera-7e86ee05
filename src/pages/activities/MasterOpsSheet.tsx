@@ -10,6 +10,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { useDailyOpsSheet, type OpsDepartment, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { OpsFilterChips, type OpsFilter } from '@/components/activities/ops/OpsFilterChips';
+import { OpsTimelineView } from '@/components/activities/ops/OpsTimelineView';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,9 @@ import {
   ChevronRight,
   X,
   ShieldAlert,
+  List,
+  Clock3,
+  Printer,
 } from 'lucide-react';
 import { format, parseISO, addDays, subDays, isToday, isTomorrow, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -110,6 +114,7 @@ function MasterOpsSheetContent() {
   const [attentionMode, setAttentionMode] = useState(prefs.attentionMode ?? false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
   // Persist prefs on change
   useEffect(() => {
@@ -244,9 +249,17 @@ function MasterOpsSheetContent() {
               <X className="h-5 w-5" />
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setSearchOpen(true)}>
-              <Search className="h-5 w-5" />
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setViewMode(v => v === 'list' ? 'timeline' : 'list')}>
+                {viewMode === 'list' ? <Clock3 className="h-5 w-5" /> : <List className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navigate(`/staff/activities/ops/day/print?date=${dateParam}&dept=${deptParam.toLowerCase()}`)}>
+                <Printer className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setSearchOpen(true)}>
+                <Search className="h-5 w-5" />
+              </Button>
+            </>
           )}
         </div>
 
@@ -409,6 +422,8 @@ function MasterOpsSheetContent() {
               </Button>
             )}
           </div>
+        ) : viewMode === 'timeline' ? (
+          <OpsTimelineView rows={displayRows} dateStr={dateParam} />
         ) : (
           <div className="px-4 py-4 space-y-6">
             {['morning', 'afternoon', 'evening'].map(block => {
