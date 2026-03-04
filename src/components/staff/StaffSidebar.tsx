@@ -51,6 +51,9 @@ import {
   Car,
   CircleUser,
   ClipboardList,
+  Waves,
+  Ship,
+  Compass,
 } from 'lucide-react';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 
@@ -155,7 +158,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
         { title: 'Catalogue', url: '/staff/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
         { title: 'Sessions', url: '/staff/activities/sessions', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
         { title: 'Ops Inbox', url: '/staff/activities/ops', icon: ClipboardList, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
-        { title: 'Day Sheet', url: '/staff/activities/ops/day', icon: Calendar, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'TRANSPORT'], requiredFlags: ['enable_activities_ops'] },
+        { title: 'Dive Ops', url: '/staff/activities/ops/day?dept=DIVE', icon: Waves, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
+        { title: 'Watersports Ops', url: '/staff/activities/ops/day?dept=WATERSPORT', icon: Ship, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'], requiredFlags: ['enable_activities_ops'] },
+        { title: 'Excursions Ops', url: '/staff/activities/ops/day?dept=EXCURSION', icon: Compass, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'TRANSPORT'], requiredFlags: ['enable_activities_ops'] },
         { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
       ],
     },
