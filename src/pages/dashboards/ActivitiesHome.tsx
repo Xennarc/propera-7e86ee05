@@ -8,11 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useResort } from '@/contexts/ResortContext';
 import { Link } from 'react-router-dom';
-import { Calendar, Users, Clock, AlertCircle, Search, Plus, Check, X, ArrowRight } from 'lucide-react';
+import { Calendar, Users, Clock, AlertCircle, Search, Plus, Check, X, ArrowRight, ClipboardList, Inbox } from 'lucide-react';
 import { TableSkeleton, RequestCardSkeleton } from '@/components/ui/dashboard-skeletons';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { format, addDays } from 'date-fns';
+import { useFeatureFlagAccessSafe } from '@/providers/FeatureFlagsProvider';
 
 type DateFilter = 'today' | 'tomorrow';
 
@@ -20,6 +21,8 @@ export default function ActivitiesHome() {
   const { currentResort } = useResort();
   const queryClient = useQueryClient();
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const flagContext = useFeatureFlagAccessSafe();
+  const opsEnabled = flagContext?.isEnabledEffective('enable_activities_ops') ?? false;
 
   const selectedDate = dateFilter === 'today'
     ? new Date().toISOString().split('T')[0]
@@ -244,6 +247,32 @@ export default function ActivitiesHome() {
           </div>
         }
       />
+
+      {/* Ops Quick Access */}
+      {opsEnabled && (
+        <Card variant="interactive" className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm text-foreground">Operations Hub</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Daily ops briefing, inbox & session management</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button size="sm" asChild className="flex-1 sm:flex-auto">
+                <Link to="/staff/activities/ops/day">
+                  <ClipboardList className="mr-1.5 h-4 w-4" />
+                  Day Sheet
+                </Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild className="flex-1 sm:flex-auto">
+                <Link to="/staff/activities/ops">
+                  <Inbox className="mr-1.5 h-4 w-4" />
+                  Ops Inbox
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-3">
