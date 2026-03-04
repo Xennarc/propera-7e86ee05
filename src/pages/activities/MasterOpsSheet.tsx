@@ -10,6 +10,7 @@ import { useResort } from '@/contexts/ResortContext';
 import { useDailyOpsSheet, type OpsDepartment, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { OpsFilterChips, type OpsFilter } from '@/components/activities/ops/OpsFilterChips';
+import { OpsTimelineView } from '@/components/activities/ops/OpsTimelineView';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,9 @@ import {
   ChevronRight,
   X,
   ShieldAlert,
+  List,
+  Clock3,
+  Printer,
 } from 'lucide-react';
 import { format, parseISO, addDays, subDays, isToday, isTomorrow, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
