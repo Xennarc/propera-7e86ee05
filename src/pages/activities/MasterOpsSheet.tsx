@@ -223,16 +223,6 @@ function MasterOpsSheetContent() {
     }
   }, []);
 
-  // KPI pills
-  const kpiPills: Array<{ key: string; label: string; value: number; color: string }> = [
-    { key: 'sessions', label: 'Sessions', value: summary?.sessions ?? 0, color: 'text-foreground' },
-    { key: 'guests', label: 'Guests', value: summary?.total_guests ?? 0, color: 'text-foreground' },
-    { key: 'missing', label: 'Missing Prep', value: summary?.missing_readiness ?? 0, color: summary?.missing_readiness ? 'text-warning' : 'text-muted-foreground' },
-    { key: 'medical', label: 'Medical', value: summary?.pending_medical ?? 0, color: summary?.pending_medical ? 'text-amber-600' : 'text-muted-foreground' },
-    { key: 'certs', label: 'Certs', value: summary?.unverified_certs ?? 0, color: summary?.unverified_certs ? 'text-destructive' : 'text-muted-foreground' },
-    { key: 'conflicts', label: 'Conflicts', value: summary?.conflicts ?? 0, color: summary?.conflicts ? 'text-destructive' : 'text-muted-foreground' },
-  ];
-
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background">
       {/* ── A) Sticky Top Bar (56px) ── */}
