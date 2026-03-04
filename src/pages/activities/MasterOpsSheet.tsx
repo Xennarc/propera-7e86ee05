@@ -114,6 +114,7 @@ function MasterOpsSheetContent() {
   const [attentionMode, setAttentionMode] = useState(prefs.attentionMode ?? false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
   // Persist prefs on change
   useEffect(() => {
