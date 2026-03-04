@@ -48,7 +48,7 @@ interface OpsFilterChipsProps {
 
 export function OpsFilterChips({ activeFilter, onChange, summary }: OpsFilterChipsProps) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-4 py-2">
+    <div className="flex gap-1.5 overflow-x-auto scrollbar-none px-4 py-2 snap-x snap-mandatory">
       {FILTERS.map((f) => {
         const isActive = activeFilter === f.key;
         const badge = f.getBadge(summary);
@@ -58,7 +58,7 @@ export function OpsFilterChips({ activeFilter, onChange, summary }: OpsFilterChi
             key={f.key}
             onClick={() => onChange(f.key === activeFilter ? 'all' : f.key)}
             className={cn(
-              'shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium transition-colors whitespace-nowrap border',
+              'shrink-0 flex items-center gap-1.5 h-10 px-3.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap border snap-start',
               isActive
                 ? `${f.color} text-primary-foreground border-transparent`
                 : 'bg-card border-border/40 text-muted-foreground hover:bg-muted/50',
