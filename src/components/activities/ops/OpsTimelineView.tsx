@@ -169,17 +169,17 @@ export function OpsTimelineView({ rows, dateStr }: OpsTimelineViewProps) {
         })}
 
         {/* "Now" line */}
-        <NowLine />
+        <NowLine pxPerMin={PX_PER_MIN} />
       </div>
     </div>
   );
 }
 
-function NowLine() {
+function NowLine({ pxPerMin }: { pxPerMin: number }) {
   const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes() - TIMELINE_START * 60;
   if (nowMin < 0 || nowMin > TOTAL_MINUTES) return null;
-  const y = nowMin * PX_PER_MIN;
+  const y = nowMin * pxPerMin;
 
   return (
     <div className="absolute left-0 right-0 z-10 pointer-events-none" style={{ top: y }}>
