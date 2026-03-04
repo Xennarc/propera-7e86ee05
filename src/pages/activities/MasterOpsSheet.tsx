@@ -422,6 +422,8 @@ function MasterOpsSheetContent() {
               </Button>
             )}
           </div>
+        ) : viewMode === 'timeline' ? (
+          <OpsTimelineView rows={displayRows} dateStr={dateParam} />
         ) : (
           <div className="px-4 py-4 space-y-6">
             {['morning', 'afternoon', 'evening'].map(block => {
