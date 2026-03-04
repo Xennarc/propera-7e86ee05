@@ -249,9 +249,17 @@ function MasterOpsSheetContent() {
               <X className="h-5 w-5" />
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setSearchOpen(true)}>
-              <Search className="h-5 w-5" />
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setViewMode(v => v === 'list' ? 'timeline' : 'list')}>
+                {viewMode === 'list' ? <Clock3 className="h-5 w-5" /> : <List className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => navigate(`/staff/activities/ops/day/print?date=${dateParam}&dept=${deptParam.toLowerCase()}`)}>
+                <Printer className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setSearchOpen(true)}>
+                <Search className="h-5 w-5" />
+              </Button>
+            </>
           )}
         </div>
 
