@@ -102,6 +102,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   // Feature flag check helper
   const checkFeatureFlags = (requiredFlags?: string[]): boolean => {
     if (!requiredFlags || requiredFlags.length === 0) return true;
+    if (isSuperAdmin()) return true; // Super Admins bypass all flag checks
     if (!flagContext || flagContext.loading) return true; // Fail open during loading
     return requiredFlags.every(flag => flagContext.isEnabledEffective(flag));
   };
@@ -243,7 +244,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       return false;
     }
     // Transport group also requires legacy transport_enabled setting (for backward compat)
-    if (group.id === 'transport' && !transportEnabled) {
+    if (group.id === 'transport' && !transportEnabled && !isSuperAdmin()) {
       return false;
     }
     // Check if any items pass visibility checks
