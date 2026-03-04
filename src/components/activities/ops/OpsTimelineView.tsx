@@ -78,7 +78,6 @@ export function OpsTimelineView({ rows, dateStr }: OpsTimelineViewProps) {
   }, [blocks]);
 
   const totalHeight = TOTAL_MINUTES * PX_PER_MIN;
-
   return (
     <div className="relative overflow-x-hidden overflow-y-auto px-4 py-2">
       <div className="relative" style={{ height: totalHeight, minWidth: 280 }}>
