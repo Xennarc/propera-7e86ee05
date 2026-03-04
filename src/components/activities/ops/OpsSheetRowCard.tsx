@@ -91,71 +91,43 @@ export function OpsSheetRowCard({ row }: OpsSheetRowCardProps) {
           </Button>
         </div>
 
-        {/* Meta: location + pax */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        {/* Meta: location + pax + readiness (merged row) */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
           {row.location && (
             <span className="flex items-center gap-1 truncate">
               <Anchor className="h-3 w-3 shrink-0" />
               {row.location}
             </span>
           )}
-          <span className="flex items-center gap-1 shrink-0 ml-auto">
+          <span className="flex items-center gap-1 shrink-0">
             <Users className="h-3 w-3" />
             <span className="font-medium text-foreground">{row.total_pax}</span>/{row.capacity}
           </span>
-        </div>
-
-        {/* Readiness line */}
-        <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 shrink-0">
             <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-            <span className="text-success font-medium">{row.readiness.ready} Ready</span>
+            <span className="text-success font-medium">{row.readiness.ready}</span>
           </span>
           {row.readiness.missing > 0 && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 shrink-0">
               <span className="h-1.5 w-1.5 rounded-full bg-warning shrink-0" />
-              <span className="text-warning font-medium">{row.readiness.missing} Missing</span>
-            </span>
-          )}
-          {row.readiness.pending_medical > 0 && (
-            <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-warning shrink-0" />
-              <span className="text-warning font-medium">{row.readiness.pending_medical} Review</span>
+              <span className="text-warning font-medium">{row.readiness.missing}</span>
             </span>
           )}
         </div>
 
-        {/* Assignment chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {row.assignments.boat ? (
-            <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-border/60">
-              <Ship className="h-3 w-3" />
-              {row.assignments.boat.name}
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-border/40 text-muted-foreground">
-              <Ship className="h-3 w-3" />
-              No boat
-            </Badge>
-          )}
-
-          {row.assignments.crew.length > 0 && (
-            <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-border/60">
-              <Users className="h-3 w-3" />
-              {row.assignments.crew.length} crew
-            </Badge>
-          )}
-
-          {row.assignments.equipment.length > 0 && (
-            <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-border/60">
-              {row.assignments.equipment.length} equip
-            </Badge>
-          )}
+        {/* Assignment summary (compact single line) */}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground flex-wrap">
+          <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-border/60">
+            <Ship className="h-3 w-3" />
+            {row.assignments.boat?.name ?? 'No boat'}
+            {row.assignments.crew.length > 0 && ` · ${row.assignments.crew.length} crew`}
+            {row.assignments.equipment.length > 0 && ` · ${row.assignments.equipment.length} equip`}
+          </Badge>
 
           {row.pickup && (
             <Badge variant="outline" className="text-[10px] py-0.5 px-2 gap-1 border-primary/40 text-primary">
               <Bus className="h-3 w-3" />
-              {row.pickup.status === 'completed' ? 'Picked up' : row.pickup.has_driver ? 'Driver assigned' : 'Pickup planned'}
+              {row.pickup.status === 'completed' ? 'Picked up' : row.pickup.has_driver ? 'Driver' : 'Pickup'}
             </Badge>
           )}
 
@@ -166,7 +138,7 @@ export function OpsSheetRowCard({ row }: OpsSheetRowCardProps) {
               onClick={handleConflictClick}
             >
               <AlertTriangle className="h-3 w-3" />
-              {row.conflicts_count} conflict{row.conflicts_count !== 1 ? 's' : ''}
+              {row.conflicts_count}
             </Badge>
           )}
         </div>

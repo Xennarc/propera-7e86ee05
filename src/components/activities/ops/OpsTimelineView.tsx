@@ -4,6 +4,7 @@
  */
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { StatusChip } from '@/components/ui/status-chip';
 import { AlertTriangle, Users, Ship } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,7 +19,8 @@ interface OpsTimelineViewProps {
 const TIMELINE_START = 6; // 6 AM
 const TIMELINE_END = 22; // 10 PM
 const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
-const PX_PER_MIN = 3; // 3px per minute → 2880px total height
+const PX_PER_MIN_DESKTOP = 3;
+const PX_PER_MIN_MOBILE = 2;
 const HOUR_MARKS = Array.from({ length: TIMELINE_END - TIMELINE_START + 1 }, (_, i) => TIMELINE_START + i);
 
 function timeToMinutes(time: string): number {
@@ -35,19 +37,21 @@ function formatHour(h: number): string {
 
 export function OpsTimelineView({ rows, dateStr }: OpsTimelineViewProps) {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const PX_PER_MIN = isMobile ? PX_PER_MIN_MOBILE : PX_PER_MIN_DESKTOP;
 
   // Position each session block
   const blocks = useMemo(() => {
     return rows.map(row => {
       const startMin = timeToMinutes(row.start_time) - TIMELINE_START * 60;
       const endMin = timeToMinutes(row.end_time) - TIMELINE_START * 60;
-      const duration = Math.max(endMin - startMin, 20); // min 20 min visual height
+      const duration = Math.max(endMin - startMin, 20);
       const top = Math.max(startMin, 0) * PX_PER_MIN;
-      const height = Math.max(duration * PX_PER_MIN, 60); // min 60px
+      const height = Math.max(duration * PX_PER_MIN, 64); // min 64px for touch
       const hasBlockers = row.blockers.length > 0 || row.conflicts_count > 0;
       return { ...row, top, height, hasBlockers };
     });
-  }, [rows]);
+  }, [rows, PX_PER_MIN]);
 
   // Detect overlaps for side-by-side layout
   const positioned = useMemo(() => {

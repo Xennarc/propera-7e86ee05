@@ -14,7 +14,7 @@ import { OpsTimelineView } from '@/components/activities/ops/OpsTimelineView';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
+
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -250,6 +250,15 @@ function MasterOpsSheetContent() {
             </Button>
           ) : (
             <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn('h-11 w-11 shrink-0', attentionMode && 'text-destructive bg-destructive/10')}
+                onClick={() => { setAttentionMode(v => !v); setShowAll(false); }}
+                title="Attention Mode"
+              >
+                <ShieldAlert className="h-5 w-5" />
+              </Button>
               <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0" onClick={() => setViewMode(v => v === 'list' ? 'timeline' : 'list')}>
                 {viewMode === 'list' ? <Clock3 className="h-5 w-5" /> : <List className="h-5 w-5" />}
               </Button>
@@ -329,21 +338,8 @@ function MasterOpsSheetContent() {
         />
       </div>
 
-      {/* ── B2) Attention Mode + Filter Chips ── */}
+      {/* ── B2) Filter Chips ── */}
       <div className="sticky top-[158px] z-10 bg-background border-b border-border/20">
-        {/* Attention mode toggle */}
-        <div className="flex items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-4 w-4 text-destructive" />
-            <span className="text-xs font-semibold text-foreground">Attention Mode</span>
-          </div>
-          <Switch
-            checked={attentionMode}
-            onCheckedChange={(v) => { setAttentionMode(v); setShowAll(false); }}
-          />
-        </div>
-
-        {/* Filter chips */}
         <OpsFilterChips
           activeFilter={activeFilter}
           onChange={setActiveFilter}
@@ -351,35 +347,8 @@ function MasterOpsSheetContent() {
         />
       </div>
 
-      {/* ── C) Summary Strip ── */}
-      {!isLoading && summary && (
-        <div className="px-4 py-2 border-b border-border/20">
-          <div className="flex gap-2 overflow-x-auto scrollbar-none">
-            {kpiPills.map((pill) => (
-              <button
-                key={`${pill.key}-${pill.label}`}
-                onClick={() => handlePillTap(pill.key)}
-                className={cn(
-                  'shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium transition-colors whitespace-nowrap border',
-                  activeFilter === pill.key
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card border-border/40 hover:bg-muted/50',
-                )}
-              >
-                <span className={cn('font-bold tabular-nums', activeFilter !== pill.key ? pill.color : '')}>
-                  {pill.value}
-                </span>
-                <span className={activeFilter === pill.key ? '' : 'text-muted-foreground'}>
-                  {pill.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── D) Main List ── */}
-      <div className="flex-1 pb-safe-bottom">
+      <div className="flex-1 pb-24">
         {isLoading ? (
           <div className="px-4 py-4 space-y-3">
             {[...Array(5)].map((_, i) => (
