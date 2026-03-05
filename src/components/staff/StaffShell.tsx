@@ -44,7 +44,14 @@ function StaffShellInner() {
   const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isDeptActive } = useDepartmentShell();
+
+  // Extract deptKey from URL when in department mode (e.g. /staff/dept/HOUSEKEEPING/planner)
+  const deptKeyFromUrl = useMemo(() => {
+    const match = location.pathname.match(/\/staff\/dept\/([^/]+)/);
+    return match?.[1] ?? undefined;
+  }, [location.pathname]);
   
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
