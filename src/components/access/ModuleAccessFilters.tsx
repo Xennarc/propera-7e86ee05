@@ -1,5 +1,4 @@
 import { SearchInput } from '@/components/ui/search-input';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export type ModuleFilter = 'all' | 'enabled' | 'restricted' | 'customized' | 'sensitive';
@@ -21,7 +20,7 @@ interface ModuleAccessFiltersProps {
 
 export function ModuleAccessFilters({ search, onSearchChange, filter, onFilterChange }: ModuleAccessFiltersProps) {
   return (
-    <div className="space-y-2 py-2">
+    <div className="space-y-2.5 py-2.5">
       <SearchInput
         value={search}
         onChange={onSearchChange}
@@ -35,10 +34,10 @@ export function ModuleAccessFilters({ search, onSearchChange, filter, onFilterCh
             type="button"
             onClick={() => onFilterChange(opt.value)}
             className={cn(
-              'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+              'inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150 min-h-[32px]',
               'hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
               filter === opt.value
-                ? 'border-primary/40 bg-primary/10 text-primary'
+                ? 'border-primary/40 bg-primary/10 text-primary shadow-sm'
                 : 'border-border/40 text-muted-foreground'
             )}
           >
