@@ -2,7 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings } from 'lucide-react';
+import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings, ShieldCheck, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -37,13 +37,21 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
     { title: 'Inbox', url: `${baseUrl}/inbox`, icon: Inbox, moduleKey: 'ops_inbox' },
   ];
 
-  // Resources sub-items — only show if user has at least one resources_* module
+  // Resources sub-items
   const hasAnyResource = hasModule('resources_assets') || hasModule('resources_shifts') || hasModule('resources_unavailability');
 
   const resourceNav: NavItem[] = [
     { title: 'Assets', url: `${baseUrl}/resources/assets`, icon: Wrench, moduleKey: 'resources_assets' },
     { title: 'Shifts', url: `${baseUrl}/resources/shifts`, icon: Wrench, moduleKey: 'resources_shifts' },
     { title: 'Unavailability', url: `${baseUrl}/resources/unavailability`, icon: Wrench, moduleKey: 'resources_unavailability' },
+  ];
+
+  // Compliance sub-items
+  const hasAnyCompliance = hasModule('compliance_verify') || hasModule('compliance_medical');
+
+  const complianceNav: NavItem[] = [
+    { title: 'Cert Verification', url: `${baseUrl}/compliance/verify`, icon: ShieldCheck, moduleKey: 'compliance_verify' },
+    { title: 'Medical Review', url: `${baseUrl}/compliance/medical`, icon: HeartPulse, moduleKey: 'compliance_medical' },
   ];
 
   // Departments the user can switch to

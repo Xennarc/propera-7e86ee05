@@ -112,6 +112,8 @@ const DeptResourcesShiftsPage = lazy(() => import("./pages/department/DeptResour
 const DeptResourcesUnavailabilityPage = lazy(() => import("./pages/department/DeptResourcesUnavailabilityPage"));
 const DeptManageAccessPage = lazy(() => import("./pages/department/DeptManageAccessPage"));
 const DeptSettingsPage = lazy(() => import("./pages/department/DeptSettingsPage"));
+const DeptComplianceVerifyPage = lazy(() => import("./pages/department/DeptComplianceVerifyPage"));
+const DeptComplianceMedicalPage = lazy(() => import("./pages/department/DeptComplianceMedicalPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
 const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
@@ -332,6 +334,8 @@ const App = () => (
                     <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
                     <Route path="manage/access" element={<DeptManageAccessPage />} />
                     <Route path="settings" element={<DeptSettingsPage />} />
+                    <Route path="compliance/verify" element={<DeptComplianceVerifyPage />} />
+                    <Route path="compliance/medical" element={<DeptComplianceMedicalPage />} />
                   </Route>
                 </Route>
                 
