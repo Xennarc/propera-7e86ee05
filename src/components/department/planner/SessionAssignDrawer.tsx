@@ -165,6 +165,9 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
     queryClient.invalidateQueries({ queryKey: ['session-conflicts'] });
     queryClient.invalidateQueries({ queryKey: ['dept-staff-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['session-booked-count'] });
+    // Refresh planner session assignment data for immediate chip/dot updates
+    queryClient.invalidateQueries({ queryKey: ['dept-planner-sessions'] });
+    queryClient.invalidateQueries({ queryKey: ['dept-planner-session-assignments'] });
   }, [queryClient]);
 
   const loadAssignments = async () => {
