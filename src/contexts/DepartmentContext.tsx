@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode } fr
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey } from '@/types/database';
+import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding } from '@/types/database';
 
 interface DepartmentContextType {
   /** All departments for the user's resort(s) */
