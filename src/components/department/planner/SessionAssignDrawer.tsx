@@ -9,6 +9,7 @@
  *   Conflict / Unavailable shown inline
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { computeCoverage, type CoverageResult } from '@/lib/ops/coverageRules';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartment } from '@/contexts/DepartmentContext';
@@ -42,6 +43,7 @@ export interface SessionInfo {
   activity_name: string;
   capacity: number;
   resort_id: string;
+  ops_rules_json?: unknown;
 }
 
 interface Props {
