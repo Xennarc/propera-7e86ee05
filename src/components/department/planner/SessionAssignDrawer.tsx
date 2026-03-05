@@ -13,6 +13,7 @@ import { computeCoverage, type CoverageResult } from '@/lib/ops/coverageRules';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartment } from '@/contexts/DepartmentContext';
+import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { useSessionConflicts, totalConflictCount } from '@/hooks/useSessionConflicts';
 import { sessionsOverlap } from '@/lib/ops/sessionsOverlap';
 import { useToast } from '@/hooks/use-toast';
@@ -99,9 +100,15 @@ const ROLE_TABS = [
 
 export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
   const { user } = useAuth();
-  const { currentDepartment, isManager } = useDepartment();
+  const { currentDepartment, hasModule } = useDepartment();
+  const { canEdit: canEditPlanner } = useCanEditPlanner();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Granular permission checks
+  const canAssignCrew = canEditPlanner && hasModule('session_run_sheet' as any);
+  const canAssignBoat = canEditPlanner && hasModule('resources_assets' as any);
+  const canAssignAnything = canAssignCrew || canAssignBoat;
 
   const resortId = currentDepartment?.resort_id;
   const deptKey = currentDepartment?.key;
