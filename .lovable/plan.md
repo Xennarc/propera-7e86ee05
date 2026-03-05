@@ -1,143 +1,81 @@
 
 
-## Performance-First Framer Motion Scroll Reveals
+## Phase 1: Module-First Permission Grouping Foundation
 
-### Current State
-
-The public pages use **two different animation systems** that need unifying:
-
-1. **CSS-based system** (`useScrollReveal` hook + `.section-reveal` / `.stagger-N` classes) -- used by 11 components: `WhyProperaCards`, `PlatformModules`, `HowItWorks`, `GlobalReady`, `HomeFinalCTA`, `MarketingSection`, `GuestJourneyFlow`, and all 5 pricing sections.
-
-2. **Framer Motion** (`whileInView`) -- used by 3 components: `HomeHero`, `PricingTeaser`, `TrustStrip`.
-
-The CSS system has no `will-change` hints on the animating containers, uses `transform: translateY(30px)` which can cause layout shift during the transition, and the stagger system relies on CSS `transition-delay` which can't be optimized by Framer Motion's layout engine.
+### What exists today
+- 68 atomic permissions in the `permissions` table across 12 categories (Identity & Access, Resort Settings, Guests & Stays, Pre-arrival, Activities, Dining, Guest Portal, Loyalty, Messaging, Reports, Billing, Integrations, Danger Zone)
+- `UserAccessDrawer` renders permissions grouped by DB `category` — a flat list with no module abstraction
+- Access page gate: `canManage` = superAdmin OR `access.users.edit`; view gate = `access.users.view` — too permissive for "Edit Access" drawer
+- No server-side RPC gate on who can modify permissions of others
 
 ### Plan
 
-Create a single, reusable Framer Motion component that replaces the CSS-based reveal system across all public pages. This gives us GPU-composited animations with `will-change`, viewport-triggered `whileInView`, and staggered children via Framer's `staggerChildren` -- all in one consistent system.
+#### 1. Create module permission mapping config (`src/config/permission-modules.ts`)
 
-### Technical Details
+A pure TypeScript config — no DB changes. Maps the 68 existing permission keys into ~16 Propera modules:
 
-#### 1. New component: `src/components/motion/ScrollReveal.tsx`
+| Module | Permission keys mapped |
+|---|---|
+| Guest Portal Management | `portal.*`, `settings.branding.edit`, `settings.public_links.manage` |
+| Activities | `activities.*`, `sessions.*`, `bookings.activity.*` |
+| Watersports | (alias subset of Activities — same keys, UI label only) |
+| Excursions | (alias subset of Activities — same keys, UI label only) |
+| Dining / In-Villa Dining | `restaurants.*`, `slots.*`, `bookings.restaurant.*` |
+| Guests & Stays | `guests.*` |
+| Pre-Arrival | `prearrival.*`, `settings.prearrival.manage` |
+| Guest Requests | `requests.*` |
+| Transport / Buggy | (no permissions yet → empty, placeholder) |
+| Housekeeping | (no permissions yet → empty, placeholder) |
+| Staff & Access | `access.users.*` (except `assign_superadmin`), `access.roles.*`, `access.permissions.*` |
+| Analytics | `reports.*` |
+| Resort Settings | `settings.resort.*`, `settings.pricing.*`, `settings.directory.manage` |
+| Billing | `billing.*` |
+| Integrations | `integrations.*` |
+| Loyalty | `loyalty.*` |
+| Messaging | `notifications.send` |
+| Admin / Security | `access.users.assign_superadmin` |
+| Danger Zone | `system.demo.convert`, `system.resort.delete` |
 
-A thin wrapper around `motion.div` that provides the fade-in-up effect:
+Each module entry has: `id`, `label`, `description`, `icon` (lucide component name), `permissionKeys[]`, `isSensitive`, `isPlatformOnly` (only visible to Super Admin), `category` (for grouping modules in UI).
 
-```tsx
-import { motion, type Variants } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
+Permissions that don't match any module go into an auto-generated "Other" bucket.
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1], // cubic-bezier for smooth decel
-      staggerChildren: 0.08,
-    },
-  },
-};
+#### 2. Module helper functions (same file)
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
+```typescript
+getModuleForPermission(key: string): ModuleConfig | null
+getModulesForPermissions(keys: string[]): ModuleConfig[]
+getEffectiveModuleAccess(userPermissions: string[], moduleId: string): 'full' | 'partial' | 'none'
+isInheritedOrCustomized(userPermissions, rolePermissions, moduleId): 'inherited' | 'customized'
+containsSensitivePermissions(moduleId): boolean
+canAdminGrantModule(adminPermissions: string[], moduleId: string): boolean
+getVisibleModules(isSuperAdmin: boolean): ModuleConfig[]
 ```
 
-- `ScrollReveal` -- container with `whileInView="visible"`, `viewport={{ once: true, margin: "-50px" }}`, and `style={{ willChange: 'opacity, transform' }}`
-- `RevealItem` -- child wrapper using `itemVariants` for stagger
-- Both respect `useAnimationPreference()` -- if reduced motion or low-power, render as plain `div` with no animation
+#### 3. Restrict "Edit Access" to Resort Admin+ (`AccessManagementPage.tsx` + `UserAccessDrawer`)
 
-#### 2. Update `MarketingSection.tsx`
+- Change the "Edit Access" dropdown item visibility: only show when user is `superAdmin` OR has `access.permissions.manage`
+- In `UserAccessDrawer`, add an early guard: if the acting user lacks `access.permissions.manage` and is not superAdmin, render a read-only view (no toggle buttons)
+- Hide Danger Zone and Admin/Security modules from non-Super-Admins in the permissions tab
 
-Replace `useScrollReveal` + CSS class toggling with `ScrollReveal` wrapper. Remove the `section-reveal` / `section-revealed` class logic. The component becomes:
+#### 4. Create `useModulePermissions` hook (`src/hooks/useModulePermissions.ts`)
 
-```tsx
-<ScrollReveal>
-  <div className={cn('mx-auto px-6 relative', sizeClasses[size])}>
-    {children}
-  </div>
-</ScrollReveal>
-```
+Wraps `useEffectivePermissions` + the module config to provide:
+- `modules`: grouped permission data for current user
+- `getModuleAccess(moduleId)`: full/partial/none
+- `visibleModules`: filtered by acting admin's authority level
+- Consumed by the drawer in Phase 2 (but usable now for any component)
 
-#### 3. Update landing page sections (6 files)
+### Files to create
+- `src/config/permission-modules.ts` — module mapping config + helpers
 
-Each section replaces its `useScrollReveal` pattern:
+### Files to create  
+- `src/hooks/useModulePermissions.ts` — hook wrapping module config with effective permissions
 
-| Component | Change |
-|-----------|--------|
-| `WhyProperaCards.tsx` | Remove `useScrollReveal`, wrap content in `ScrollReveal`, wrap each `ValueCard` in `RevealItem` instead of `stagger-N` classes |
-| `PlatformModules.tsx` | Same pattern -- `ScrollReveal` container, `RevealItem` for header + each `ModuleCard` |
-| `HowItWorks.tsx` | `ScrollReveal` container, `RevealItem` for each `StepCard` |
-| `GlobalReady.tsx` | `ScrollReveal` container, `RevealItem` for header, chips, showcases |
-| `HomeFinalCTA.tsx` | `ScrollReveal` container, `RevealItem` for h2, p, buttons, reassurance |
-| `HomeHero.tsx` | Already uses Framer Motion -- add `style={{ willChange: 'opacity, transform' }}` to each `motion.div` |
+### Files to edit
+- `src/pages/settings/AccessManagementPage.tsx` — restrict "Edit Access" dropdown to Resort Admin+ / `access.permissions.manage`
+- `src/components/access/UserAccessDrawer.tsx` — hide Danger Zone / platform-only modules from non-Super-Admins; read-only mode for non-admins
 
-#### 4. Update pricing page sections (5 files)
-
-| Component | Change |
-|-----------|--------|
-| `PricingTrustSection.tsx` | Replace `useScrollReveal` with `ScrollReveal` + `RevealItem` |
-| `PricingCTASection.tsx` | Same |
-| `PricingComparisonMatrix.tsx` | Same |
-| `PricingPlanGrid.tsx` | Same |
-| `PricingFAQSection.tsx` | Same |
-| `PricingAddonsSection.tsx` | Same |
-| `PricingTeaser.tsx` | Already uses Framer Motion -- add `will-change` style |
-| `TrustStrip.tsx` | Already uses Framer Motion -- add `will-change` style |
-
-#### 5. Update `GuestJourneyFlow.tsx`
-
-Replace `useScrollReveal` with `ScrollReveal`.
-
-#### 6. CSS cleanup in `src/index.css`
-
-Remove the now-unused CSS rules (lines ~2150-2170):
-- `.section-reveal` / `.section-revealed` opacity/transform rules
-- `.section-revealed .stagger-1` through `.stagger-7` delay rules
-
-Keep all other CSS animations (hover effects, chart-bar-grow, chip-stagger, etc.) as they serve different purposes.
-
-#### 7. No changes to `useScrollReveal.ts`
-
-The hook file stays as-is -- it may still be used by non-marketing components. If no remaining consumers exist after all updates, it can be removed in a follow-up.
-
-### Performance Guarantees
-
-- **`will-change: opacity, transform`** on every animating `motion.div` -- tells the browser to composite these elements on their own GPU layer
-- **`viewport={{ once: true }}`** -- animations fire once and Framer disconnects the IntersectionObserver, zero ongoing cost
-- **`staggerChildren: 0.08`** -- Framer batches child animations off the main thread
-- **Reduced motion / low-power** -- bypasses all animation, renders static `div` elements
-- **No layout shift** -- `y: 24` translate doesn't affect document flow (transform-only, no height/margin changes)
-- **Lazy-loaded sections** remain lazy -- `ScrollReveal` is lightweight (~200 bytes) and doesn't import framer-motion's heavy features
-
-### Files Changed
-
-| File | Type |
-|------|------|
-| `src/components/motion/ScrollReveal.tsx` | **New** |
-| `src/components/layout/MarketingSection.tsx` | Edit |
-| `src/components/landing/WhyProperaCards.tsx` | Edit |
-| `src/components/landing/PlatformModules.tsx` | Edit |
-| `src/components/landing/HowItWorks.tsx` | Edit |
-| `src/components/landing/GlobalReady.tsx` | Edit |
-| `src/components/landing/HomeFinalCTA.tsx` | Edit |
-| `src/components/landing/HomeHero.tsx` | Edit (add will-change) |
-| `src/components/landing/PricingTeaser.tsx` | Edit (add will-change) |
-| `src/components/landing/TrustStrip.tsx` | Edit (add will-change) |
-| `src/components/pricing/PricingTrustSection.tsx` | Edit |
-| `src/components/pricing/PricingCTASection.tsx` | Edit |
-| `src/components/pricing/PricingComparisonMatrix.tsx` | Edit |
-| `src/components/pricing/PricingPlanGrid.tsx` | Edit |
-| `src/components/pricing/PricingFAQSection.tsx` | Edit |
-| `src/components/pricing/PricingAddonsSection.tsx` | Edit |
-| `src/components/illustrations/GuestJourneyFlow.tsx` | Edit |
-| `src/index.css` | Edit (remove unused rules) |
-
-18 files total. No new dependencies needed (framer-motion already installed).
+### No DB changes needed
+All permission data already exists. This is a pure frontend mapping + access restriction layer.
 
