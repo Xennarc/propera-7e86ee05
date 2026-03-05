@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
+import { usePlannerState } from '@/hooks/usePlannerState';
 import { computeCoverage, type CoverageStatus } from '@/lib/ops/coverageRules';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,19 +80,24 @@ function DeptPlannerContent() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('sessions');
-  const [attentionMode, setAttentionMode] = useState(false);
+  const resortId = currentDepartment?.resort_id;
+
+  // Persistent planner state (survives navigation)
+  const plannerState = usePlannerState({
+    resortId,
+    urlDate: searchParams.get('date'),
+  });
+  const { viewMode, setViewMode, attentionMode, setAttentionMode, dateStr } = plannerState;
+
   const [showAllRisks, setShowAllRisks] = useState(false);
   const [assignDrawerOpen, setAssignDrawerOpen] = useState(false);
   const [selectedSessionForAssign, setSelectedSessionForAssign] = useState<any>(null);
 
-  const dateStr = searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd');
   const baseDate = parseISO(dateStr);
   const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(baseDate, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const resortId = currentDepartment?.resort_id;
   const category = deptKeyToCategory(deptKey);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
@@ -250,8 +256,9 @@ function DeptPlannerContent() {
   }, [attentionMode, sessionsByDate, conflictCounts]);
 
   const setWeekDate = useCallback((d: string) => {
+    plannerState.setDateStr(d);
     setSearchParams({ date: d });
-  }, [setSearchParams]);
+  }, [setSearchParams, plannerState]);
 
   const selectedDay = parseISO(dateStr);
 
