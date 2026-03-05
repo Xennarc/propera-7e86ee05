@@ -28,12 +28,12 @@ const ADDON_ITEMS = [
 
 export function PricingSwitchSection() {
   return (
-    <section className="py-16 md:py-20 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-midnight-900/20 to-background dark:via-midnight-950/40" />
+    <section className="py-12 md:py-16 relative overflow-hidden bg-card/40 dark:bg-card/20">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-midnight-900/10 to-transparent dark:via-midnight-950/20" />
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
           <RevealItem className="text-center mb-8 md:mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground mb-3">
               Make the switch painless.
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto">

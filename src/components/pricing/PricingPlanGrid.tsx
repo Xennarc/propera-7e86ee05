@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles } from 'lucide-react';
+import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles, Layers } from 'lucide-react';
 import { useState } from 'react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
@@ -77,6 +77,19 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
       
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
+          <RevealItem className="text-center mb-8 md:mb-10">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Layers className="h-4 w-4" />
+              Plans
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+              Choose your plan
+            </h2>
+            <p className="text-muted-foreground max-w-md mx-auto text-sm">
+              Simple pricing that scales with your resort. No per-user fees, ever.
+            </p>
+          </RevealItem>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {plans.map((plan, index) => {
               const config = PLAN_CONFIG[plan.id] || PLAN_CONFIG.essential;

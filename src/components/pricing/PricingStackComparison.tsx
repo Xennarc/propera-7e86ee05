@@ -33,11 +33,11 @@ function Cell({ value, variant }: { value: CellValue; variant: 'propera' | 'stac
 
 export function PricingStackComparison() {
   return (
-    <section className="py-16 md:py-20 relative overflow-hidden">
+    <section className="py-14 md:py-20 relative overflow-hidden bg-card/30 dark:bg-card/15 border-t border-border/10">
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
           <RevealItem className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+            <h2 className="text-xl md:text-2xl font-bold text-foreground mb-3">
               One platform vs a stack.
             </h2>
           </RevealItem>

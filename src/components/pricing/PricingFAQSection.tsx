@@ -20,7 +20,7 @@ interface PricingFAQSectionProps {
 
 export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
   return (
-    <section className="py-16 md:py-20 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden">
+    <section className="py-20 md:py-28 bg-gradient-to-b from-card via-card to-primary/5 dark:from-card dark:via-card dark:to-card relative overflow-hidden border-t border-border/10">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/8 dark:from-primary/4 via-transparent to-transparent" />
       <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[100px] pointer-events-none" />
       
