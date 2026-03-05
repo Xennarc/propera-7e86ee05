@@ -245,6 +245,21 @@ function DeptPlannerContent() {
     return () => { supabase.removeChannel(channel); };
   }, [resortId, queryClient]);
 
+  // Realtime: staff & asset assignment changes → refresh coverage dots
+  useEffect(() => {
+    if (!resortId) return;
+    const channel = supabase
+      .channel('dept-planner-assigns-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'session_staff_assignments', filter: `resort_id=eq.${resortId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ['dept-planner-assignments'] }); }
+      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'session_asset_assignments', filter: `resort_id=eq.${resortId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ['dept-planner-assignments'] }); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [resortId, queryClient]);
+
   const sessionsByDate = useMemo(() => {
     const grouped: Record<string, SessionSlot[]> = {};
     for (const s of sessions as any[]) {
