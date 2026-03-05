@@ -6,7 +6,7 @@ import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
 import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
 import { PricingTrustSection } from '@/components/pricing/PricingTrustSection';
-import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
+import { PricingSwitchSection } from '@/components/pricing/PricingSwitchSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
 import { PricingPromiseSection } from '@/components/pricing/PricingPromiseSection';
@@ -16,12 +16,6 @@ import { useResortSize } from '@/hooks/useResortSize';
 // ==========================================
 // STATIC CONFIGURATION (non-price content)
 // ==========================================
-
-const ONBOARDING = {
-  priceRange: '$2,500 – $7,500',
-  label: 'per resort (one-time)',
-  description: 'Includes resort setup, branding guidance, activity catalog setup, staff training, and a full test run before launch.',
-};
 
 const FAQS = [
   {
@@ -55,7 +49,7 @@ const PRICING_PAGE_SCHEMA = {
 // ==========================================
 
 export default function PricingPage() {
-  const { plans, addons } = usePricingConfig();
+  const { plans } = usePricingConfig();
   const [resortSize, setResortSize] = useResortSize();
 
   return (
@@ -72,9 +66,9 @@ export default function PricingPage() {
       <ResortSizeSelector value={resortSize} onChange={setResortSize} />
       <PricingPlanGrid plans={plans} resortSize={resortSize} />
       <PricingPromiseSection />
+      <PricingSwitchSection />
       <PricingComparisonMatrix />
       <PricingTrustSection />
-      <PricingAddonsSection addons={addons} onboarding={ONBOARDING} />
       <PricingFAQSection faqs={FAQS} />
       <PricingCTASection />
     </MarketingLayout>
