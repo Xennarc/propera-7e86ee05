@@ -49,7 +49,7 @@ const PRICING_PAGE_SCHEMA = {
 // ==========================================
 
 export default function PricingPage() {
-  const { plans, addons } = usePricingConfig();
+  const { plans } = usePricingConfig();
   const [resortSize, setResortSize] = useResortSize();
 
   return (
