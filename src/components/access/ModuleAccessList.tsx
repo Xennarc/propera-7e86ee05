@@ -1,16 +1,25 @@
-import { useMemo } from 'react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { ModuleCategoryGroup } from '@/hooks/useModulePermissions';
 import { ModuleAccessCard } from './ModuleAccessCard';
 
 interface ModuleAccessListProps {
   groups: ModuleCategoryGroup[];
   readOnly?: boolean;
+  userId?: string;
+  resortId?: string;
+  rolePermissions?: string[];
+  userOverrides?: Array<{ permission_key: string; effect: string }>;
 }
 
-export function ModuleAccessList({ groups, readOnly }: ModuleAccessListProps) {
+export function ModuleAccessList({
+  groups,
+  readOnly,
+  userId,
+  resortId,
+  rolePermissions,
+  userOverrides,
+}: ModuleAccessListProps) {
   if (groups.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-muted-foreground">
@@ -31,7 +40,15 @@ export function ModuleAccessList({ groups, readOnly }: ModuleAccessListProps) {
           <CollapsibleContent>
             <div className="space-y-1 pt-1">
               {group.modules.map(m => (
-                <ModuleAccessCard key={m.module.id} state={m} readOnly={readOnly} />
+                <ModuleAccessCard
+                  key={m.module.id}
+                  state={m}
+                  readOnly={readOnly}
+                  userId={userId}
+                  resortId={resortId}
+                  rolePermissions={rolePermissions}
+                  userOverrides={userOverrides}
+                />
               ))}
             </div>
           </CollapsibleContent>
