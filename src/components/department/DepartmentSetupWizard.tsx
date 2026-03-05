@@ -114,7 +114,6 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
   const [staffSearch, setStaffSearch] = useState('');
   const [staffLoading, setStaffLoading] = useState(false);
   const [addedMembers, setAddedMembers] = useState<AddedMember[]>([]);
-  const [addingMember, setAddingMember] = useState(false);
 
   // Step 3 state
   const [moduleState, setModuleState] = useState<Record<string, boolean>>({});
@@ -217,34 +216,20 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
     return list;
   }, [staffUsers, addedUserIds, staffSearch]);
 
-  const handleAddMember = async (user: StaffUser, role: 'staff' | 'manager') => {
+  const handleAddMember = (user: StaffUser, role: 'staff' | 'manager') => {
     if (!createdDeptId || !createdDeptKey) return;
-    setAddingMember(true);
-    try {
-      const { error } = await supabase.from('department_memberships').insert({
-        resort_id: resortId,
-        department_id: createdDeptId,
-        department_key: createdDeptKey,
-        user_id: user.id,
-        dept_role: role,
-        is_active: true,
-      });
-      if (error) throw error;
-
-      setAddedMembers((prev) => [
-        ...prev,
-        { userId: user.id, name: user.full_name ?? user.username ?? 'Unknown', role },
-      ]);
-    } catch (err: any) {
-      toast.error(err?.code === '23505' ? 'Already a member' : 'Failed to add member');
-    } finally {
-      setAddingMember(false);
+    if (addedMembers.some(m => m.userId === user.id)) {
+      toast.error('Already added');
+      return;
     }
+    setAddedMembers((prev) => [
+      ...prev,
+      { userId: user.id, name: user.full_name ?? user.username ?? 'Unknown', role },
+    ]);
   };
 
   const removeMember = (userId: string) => {
     setAddedMembers((prev) => prev.filter((m) => m.userId !== userId));
-    // Note: the DB row from the trigger still exists; we leave it for now (admin can manage later)
   };
 
   // ─── Step 3: Module Access ───
@@ -279,36 +264,54 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
   };
 
   const handleFinish = async () => {
-    if (!createdDeptId) return;
+    if (!createdDeptId || !createdDeptKey) return;
     setFinishing(true);
 
     try {
-      // For each added member, upsert module access based on the wizard config
-      for (const member of addedMembers) {
-        const enabledModules = Object.entries(moduleState);
-        for (const [moduleKey, enabled] of enabledModules) {
-          // Check if row exists (created by DB trigger)
-          const { data: existing } = await supabase
-            .from('department_module_access')
-            .select('id')
-            .eq('department_id', createdDeptId)
-            .eq('user_id', member.userId)
-            .eq('module_key', moduleKey)
-            .maybeSingle();
+      // A) Bulk insert memberships (DB trigger provisions default module access)
+      if (addedMembers.length > 0) {
+        const memberRows = addedMembers.map(m => ({
+          resort_id: resortId,
+          department_id: createdDeptId,
+          department_key: createdDeptKey,
+          user_id: m.userId,
+          dept_role: m.role,
+          is_active: true,
+        }));
 
-          if (existing) {
-            await supabase
+        const { error: memErr } = await supabase
+          .from('department_memberships')
+          .insert(memberRows);
+
+        if (memErr) throw memErr;
+
+        // B) Apply Step 3 module overrides via bulk upsert
+        //    The DB trigger already created default rows; we update to match wizard config.
+        for (const member of addedMembers) {
+          const moduleEntries = Object.entries(moduleState);
+          for (const [moduleKey, enabled] of moduleEntries) {
+            const { data: existing } = await supabase
               .from('department_module_access')
-              .update({ enabled, updated_at: new Date().toISOString() })
-              .eq('id', existing.id);
-          } else {
-            await supabase.from('department_module_access').insert({
-              resort_id: resortId,
-              department_id: createdDeptId,
-              user_id: member.userId,
-              module_key: moduleKey,
-              enabled,
-            });
+              .select('id')
+              .eq('department_id', createdDeptId)
+              .eq('user_id', member.userId)
+              .eq('module_key', moduleKey)
+              .maybeSingle();
+
+            if (existing) {
+              await supabase
+                .from('department_module_access')
+                .update({ enabled, updated_at: new Date().toISOString() })
+                .eq('id', existing.id);
+            } else {
+              await supabase.from('department_module_access').insert({
+                resort_id: resortId,
+                department_id: createdDeptId,
+                user_id: member.userId,
+                module_key: moduleKey,
+                enabled,
+              });
+            }
           }
         }
       }
@@ -320,7 +323,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
         navigate(`/staff/dept/${createdDeptKey}/planner`);
       }
     } catch (err: any) {
-      toast.error('Failed to configure module access');
+      toast.error(err?.message ?? 'Failed to complete setup');
     } finally {
       setFinishing(false);
     }
@@ -458,7 +461,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={addingMember}
+                        disabled={false}
                         onClick={() => handleAddMember(user, 'staff')}
                         className="gap-1 text-xs"
                       >
@@ -468,7 +471,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
                       <Button
                         variant="default"
                         size="sm"
-                        disabled={addingMember}
+                        disabled={false}
                         onClick={() => handleAddMember(user, 'manager')}
                         className="gap-1 text-xs"
                       >
