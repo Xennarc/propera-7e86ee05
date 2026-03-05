@@ -13,6 +13,7 @@ import { computeCoverage, type CoverageResult } from '@/lib/ops/coverageRules';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartment } from '@/contexts/DepartmentContext';
+import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { useSessionConflicts, totalConflictCount } from '@/hooks/useSessionConflicts';
 import { sessionsOverlap } from '@/lib/ops/sessionsOverlap';
 import { useToast } from '@/hooks/use-toast';
@@ -99,9 +100,15 @@ const ROLE_TABS = [
 
 export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
   const { user } = useAuth();
-  const { currentDepartment, isManager } = useDepartment();
+  const { currentDepartment, hasModule } = useDepartment();
+  const { canEdit: canEditPlanner } = useCanEditPlanner();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Granular permission checks
+  const canAssignCrew = canEditPlanner && hasModule('session_run_sheet' as any);
+  const canAssignBoat = canEditPlanner && hasModule('resources_assets' as any);
+  const canAssignAnything = canAssignCrew || canAssignBoat;
 
   const resortId = currentDepartment?.resort_id;
   const deptKey = currentDepartment?.key;
@@ -158,6 +165,9 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
     queryClient.invalidateQueries({ queryKey: ['session-conflicts'] });
     queryClient.invalidateQueries({ queryKey: ['dept-staff-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['session-booked-count'] });
+    // Refresh planner session assignment data for immediate chip/dot updates
+    queryClient.invalidateQueries({ queryKey: ['dept-planner-sessions'] });
+    queryClient.invalidateQueries({ queryKey: ['dept-planner-session-assignments'] });
   }, [queryClient]);
 
   const loadAssignments = async () => {
@@ -501,7 +511,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                 {assetAssignments.map(a => (
                   <Badge key={a.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 text-xs">
                     {a.asset_label}
-                    {isManager && (
+                    {canAssignBoat && (
                       <button
                         className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
                         onClick={() => removeAsset(a.id)}
@@ -517,7 +527,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
               </div>
 
               {/* Asset picker */}
-              {isManager && availableAssets.length > 0 && (
+              {canAssignBoat && availableAssets.length > 0 && (
                 <div className="grid gap-1 max-h-32 overflow-y-auto">
                   {availableAssets.map(asset => (
                     <button
@@ -556,7 +566,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                   <Badge key={a.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 text-xs">
                     {a.full_name}
                     <span className="text-muted-foreground capitalize">· {a.role}</span>
-                    {isManager && (
+                    {canAssignCrew && (
                       <button
                         className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
                         onClick={() => removeStaff(a.id)}
@@ -572,7 +582,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
               </div>
 
               {/* Role tabs + staff picker */}
-              {isManager && (
+              {canAssignCrew && (
                 <div className="space-y-2">
                   <SegmentedTabs
                     tabs={ROLE_TABS.map(r => ({ key: r.key, label: r.label }))}
