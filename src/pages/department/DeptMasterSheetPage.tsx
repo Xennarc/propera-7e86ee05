@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useParams, useSearchParams } from 'react-router-dom';
 import { format, parseISO, addDays, subDays, isToday } from 'date-fns';
 import { Search, CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, ShieldAlert, X } from 'lucide-react';
+import { AppToolbar, AppFilterBar, AppEmptyState, AppTimeBlock } from '@/components/ui/app-kit';
 
 function getTimeBlock(startTime: string): 'morning' | 'afternoon' | 'evening' {
   const hour = parseInt(startTime?.slice(0, 2) ?? '0', 10);
@@ -67,20 +68,13 @@ function DeptMasterSheetContent() {
   const summary = sheet?.summary;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       <DeptScopeWarningBanner />
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">{currentDepartment?.name} Ops</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isToday(parseISO(dateStr)) ? 'Today' : format(parseISO(dateStr), 'EEE, MMM d')}
-            {summary ? ` · ${summary.sessions} sessions · ${summary.total_guests} guests` : ''}
-          </p>
-        </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
+      <AppToolbar
+        title={`${currentDepartment?.name} Ops`}
+        subtitle={`${isToday(parseISO(dateStr)) ? 'Today' : format(parseISO(dateStr), 'EEE, MMM d')}${summary ? ` · ${summary.sessions} sessions · ${summary.total_guests} guests` : ''}`}
+        onRefresh={() => refetch()}
+      />
 
       {/* Date nav + search + attention */}
       <div className="flex items-center gap-2 flex-wrap">

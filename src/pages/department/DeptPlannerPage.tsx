@@ -13,6 +13,7 @@ import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarning
 import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
 import { opsEventToPlannerSession } from '@/lib/ops/ops-event-compat';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
+import { AppToolbar } from '@/components/ui/app-kit';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -394,17 +395,14 @@ function DeptPlannerContent() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       <DeptScopeWarningBanner />
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">{currentDepartment?.name} Planner</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d, yyyy')}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          {(isManager || canEditPlanner) && (
+      <AppToolbar
+        title={`${currentDepartment?.name} Planner`}
+        subtitle={`${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`}
+        onRefresh={() => refetch()}
+        actions={
+          (isManager || canEditPlanner) ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -415,7 +413,6 @@ function DeptPlannerContent() {
                     setAttentionMode(!attentionMode);
                     setShowAllRisks(false);
                     if (!attentionMode) {
-                      // Jump to today when entering attention mode
                       setWeekDate(format(new Date(), 'yyyy-MM-dd'));
                     }
                   }}
@@ -427,12 +424,9 @@ function DeptPlannerContent() {
                 {attentionMode ? 'Exit Attention Mode' : 'Attention Mode'}
               </TooltipContent>
             </Tooltip>
-          )}
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* View mode tabs */}
       <SegmentedTabs
