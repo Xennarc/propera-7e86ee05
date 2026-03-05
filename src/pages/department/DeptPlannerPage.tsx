@@ -206,11 +206,14 @@ function DeptPlannerContent() {
     for (const s of sessions as any[]) {
       const assigns = sessionAssignments[s.id];
       const booked = bookingCounts[s.id] ?? 0;
+      const conflicts = conflictCounts[s.id] ?? 0;
       const coverage = computeCoverage({
         opsRules: s.activity?.ops_rules_json,
         assignedRoles: assigns?.roles ?? {},
         assignedBoats: assigns?.boats ?? 0,
         bookedCount: booked,
+        category: s.activity?.category ?? null,
+        conflictCount: conflicts,
       });
       const slot: SessionSlot = {
         id: s.id,
