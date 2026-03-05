@@ -334,6 +334,7 @@ const App = () => (
                   <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
                   <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
                   <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
+                  <Route path="manage/access" element={<DeptManageAccessPage />} />
                 </Route>
                 
                 {/* Demo auto-login routes */}
