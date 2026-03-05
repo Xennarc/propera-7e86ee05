@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
 import { useDepartment } from '@/contexts/DepartmentContext';
+import { computeCoverage, type CoverageStatus } from '@/lib/ops/coverageRules';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -30,6 +31,8 @@ interface SessionSlot {
   activity_name: string;
   category: string;
   booked: number;
+  ops_rules_json: unknown;
+  coverageStatus: CoverageStatus;
 }
 
 /** Lightweight hook to batch-fetch conflicts for multiple sessions */
@@ -97,7 +100,7 @@ function DeptPlannerContent() {
         .from('activity_sessions')
         .select(`
           id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category)
+          activity:activities(name, category, ops_rules_json)
         `)
         .eq('resort_id', resortId)
         .gte('date', weekStartStr)
@@ -135,6 +138,34 @@ function DeptPlannerContent() {
     enabled: sessionIds.length > 0,
   });
 
+  // Fetch staff & asset assignments for coverage computation
+  const { data: sessionAssignments = {} } = useQuery({
+    queryKey: ['dept-planner-assignments', sessionIds],
+    queryFn: async () => {
+      if (sessionIds.length === 0) return {};
+      const [staffRes, assetRes] = await Promise.all([
+        supabase.from('session_staff_assignments')
+          .select('session_id, role')
+          .in('session_id', sessionIds),
+        supabase.from('session_asset_assignments')
+          .select('session_id')
+          .in('session_id', sessionIds),
+      ]);
+      const result: Record<string, { roles: Record<string, number>; boats: number }> = {};
+      for (const a of staffRes.data ?? []) {
+        if (!result[a.session_id]) result[a.session_id] = { roles: {}, boats: 0 };
+        result[a.session_id].roles[a.role] = (result[a.session_id].roles[a.role] ?? 0) + 1;
+      }
+      for (const a of assetRes.data ?? []) {
+        if (!result[a.session_id]) result[a.session_id] = { roles: {}, boats: 0 };
+        result[a.session_id].boats += 1;
+      }
+      return result;
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 30_000,
+  });
+
   const { data: conflictCounts = {} } = useMultiSessionConflicts(resortId, sessionIds);
 
   // Realtime subscriptions
@@ -163,6 +194,14 @@ function DeptPlannerContent() {
   const sessionsByDate = useMemo(() => {
     const grouped: Record<string, SessionSlot[]> = {};
     for (const s of sessions as any[]) {
+      const assigns = sessionAssignments[s.id];
+      const booked = bookingCounts[s.id] ?? 0;
+      const coverage = computeCoverage({
+        opsRules: s.activity?.ops_rules_json,
+        assignedRoles: assigns?.roles ?? {},
+        assignedBoats: assigns?.boats ?? 0,
+        bookedCount: booked,
+      });
       const slot: SessionSlot = {
         id: s.id,
         date: s.date,
@@ -172,13 +211,15 @@ function DeptPlannerContent() {
         capacity: s.capacity,
         activity_name: s.activity?.name ?? 'Unknown',
         category: s.activity?.category ?? '',
-        booked: bookingCounts[s.id] ?? 0,
+        booked,
+        ops_rules_json: s.activity?.ops_rules_json,
+        coverageStatus: coverage.status,
       };
       if (!grouped[s.date]) grouped[s.date] = [];
       grouped[s.date].push(slot);
     }
     return grouped;
-  }, [sessions, bookingCounts]);
+  }, [sessions, bookingCounts, sessionAssignments]);
 
   const setWeekDate = useCallback((d: string) => {
     setSearchParams({ date: d });
@@ -187,7 +228,7 @@ function DeptPlannerContent() {
   const selectedDay = parseISO(dateStr);
 
   const handleSessionClick = (sessionId: string) => {
-    if (viewMode === 'sessions') {
+    if (viewMode === 'sessions' && !isManager) {
       navigate(`/dept/${deptKey}/session/${sessionId}`);
     } else {
       // In lane views, open the assignment drawer
@@ -201,6 +242,7 @@ function DeptPlannerContent() {
           activity_name: session.activity?.name ?? 'Unknown',
           capacity: session.capacity,
           resort_id: resortId,
+          ops_rules_json: session.activity?.ops_rules_json,
         });
         setAssignDrawerOpen(true);
       }
@@ -339,6 +381,12 @@ function DeptPlannerContent() {
                               handleSessionClick(s.id);
                             }}
                           >
+                            <span className={cn(
+                              'inline-block h-1.5 w-1.5 rounded-full mr-1 shrink-0 translate-y-[-0.5px]',
+                              s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                              s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                              s.coverageStatus === 'red' && 'bg-destructive',
+                            )} />
                             <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
                             <span className="text-muted-foreground">{s.activity_name}</span>
                             <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
@@ -374,8 +422,16 @@ function DeptPlannerContent() {
                     onClick={() => handleSessionClick(s.id)}
                   >
                     <CardContent className="flex items-center gap-3 py-3 px-4">
-                      <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
-                        {s.start_time?.slice(0, 5)}
+                      <div className="flex items-center gap-2 w-14 shrink-0">
+                        <span className={cn(
+                          'h-2 w-2 rounded-full shrink-0',
+                          s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                          s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                          s.coverageStatus === 'red' && 'bg-destructive',
+                        )} />
+                        <span className="text-sm font-mono font-medium text-primary">
+                          {s.start_time?.slice(0, 5)}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{s.activity_name}</div>

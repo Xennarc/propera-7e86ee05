@@ -9,6 +9,7 @@
  *   Conflict / Unavailable shown inline
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { computeCoverage, type CoverageResult } from '@/lib/ops/coverageRules';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartment } from '@/contexts/DepartmentContext';
@@ -42,6 +43,7 @@ export interface SessionInfo {
   activity_name: string;
   capacity: number;
   resort_id: string;
+  ops_rules_json?: unknown;
 }
 
 interface Props {
@@ -452,6 +454,40 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                 </Badge>
               )}
             </div>
+
+            {/* Coverage details */}
+            {(() => {
+              const roleCounts: Record<string, number> = {};
+              for (const a of staffAssignments) {
+                roleCounts[a.role] = (roleCounts[a.role] ?? 0) + 1;
+              }
+              const coverage = computeCoverage({
+                opsRules: session.ops_rules_json,
+                assignedRoles: roleCounts,
+                assignedBoats: assetAssignments.length,
+                bookedCount: bookedCount,
+              });
+              if (coverage.details.length === 0) return null;
+              return (
+                <Alert
+                  variant={coverage.status === 'red' ? 'destructive' : undefined}
+                  className={cn(
+                    'text-foreground',
+                    coverage.status === 'amber' && 'border-warning/50 bg-warning/5',
+                    coverage.status === 'red' && 'border-destructive/50 bg-destructive/5',
+                  )}
+                >
+                  <AlertTriangle className={cn(
+                    'h-4 w-4',
+                    coverage.status === 'amber' && 'text-warning',
+                    coverage.status === 'red' && 'text-destructive',
+                  )} />
+                  <AlertDescription className="text-xs space-y-0.5">
+                    {coverage.details.map((d, i) => <p key={i}>{d}</p>)}
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
 
             {/* ─── BOAT SECTION ─── */}
             <div className="space-y-2">
