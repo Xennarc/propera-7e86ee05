@@ -41,6 +41,7 @@ export interface ModuleConfig {
 export type ModuleCategory =
   | 'Guest Experience'
   | 'Operations'
+  | 'Admin & Configuration'
   | 'Staff & Security'
   | 'Platform';
 
@@ -365,7 +366,7 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     ],
     isSensitive: false,
     isPlatformOnly: false,
-    category: 'Staff & Security',
+    category: 'Admin & Configuration',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'Cannot access settings', permissionKeys: [] },
       { id: 'view', label: 'View Only', description: 'Can view resort settings and pricing', permissionKeys: ['settings.resort.view', 'settings.pricing.view'] },
@@ -389,7 +390,8 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     permissionKeys: ['billing.view', 'billing.manage'],
     isSensitive: true,
     isPlatformOnly: false,
-    category: 'Staff & Security',
+    category: 'Admin & Configuration',
+    warningText: 'Controls access to financial billing data and subscription management.',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'Cannot access billing', permissionKeys: [] },
       { id: 'view', label: 'View Only', description: 'Can view billing and invoices', permissionKeys: ['billing.view'] },
@@ -406,9 +408,10 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     description: 'Third-party service connections',
     icon: 'Plug',
     permissionKeys: ['integrations.view', 'integrations.manage'],
-    isSensitive: false,
+    isSensitive: true,
     isPlatformOnly: false,
-    category: 'Staff & Security',
+    category: 'Admin & Configuration',
+    warningText: 'Manages third-party integrations that may access resort data.',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'Cannot access integrations', permissionKeys: [] },
       { id: 'view', label: 'View Only', description: 'Can view integration status', permissionKeys: ['integrations.view'] },
@@ -465,6 +468,7 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
 export const MODULE_CATEGORIES: ModuleCategory[] = [
   'Guest Experience',
   'Operations',
+  'Admin & Configuration',
   'Staff & Security',
   'Platform',
 ];
