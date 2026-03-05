@@ -242,6 +242,7 @@ function DeptPlannerContent() {
           activity_name: session.activity?.name ?? 'Unknown',
           capacity: session.capacity,
           resort_id: resortId,
+          ops_rules_json: session.activity?.ops_rules_json,
         });
         setAssignDrawerOpen(true);
       }
