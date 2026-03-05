@@ -11,8 +11,8 @@ import type { DepartmentModuleKey } from '@/types/database';
 
 interface DepartmentGuardProps {
   children: ReactNode;
-  /** Required module key for this route */
-  moduleKey: DepartmentModuleKey;
+  /** Required module key for this route. If omitted, only membership is checked. */
+  moduleKey?: DepartmentModuleKey;
   /** If true, only managers can access */
   managerOnly?: boolean;
 }
@@ -82,8 +82,8 @@ export function DepartmentGuard({ children, moduleKey, managerOnly = false }: De
     );
   }
 
-  // Module permission check
-  if (!hasModule(moduleKey)) {
+  // Module permission check (skip if no moduleKey specified)
+  if (moduleKey && !hasModule(moduleKey)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] p-4">
         <Card className="max-w-md w-full">
