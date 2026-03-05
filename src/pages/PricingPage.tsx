@@ -10,6 +10,7 @@ import { PricingSwitchSection } from '@/components/pricing/PricingSwitchSection'
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
 import { PricingPromiseSection } from '@/components/pricing/PricingPromiseSection';
+import { PricingStackComparison } from '@/components/pricing/PricingStackComparison';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { useResortSize } from '@/hooks/useResortSize';
 
@@ -19,20 +20,32 @@ import { useResortSize } from '@/hooks/useResortSize';
 
 const FAQS = [
   {
+    question: 'What counts as a guest stay?',
+    answer: "A guest stay is one room stay from check-in to check-out. If two guests share a room, it's still one stay.",
+  },
+  {
     question: 'Do you charge per staff user?',
-    answer: "No. Unlimited staff on every plan — your team can grow without extra cost.",
+    answer: 'No. Plans include unlimited staff users. Use role-based access to control permissions.',
   },
   {
-    question: 'What is a "guest stay"?',
-    answer: 'One reservation counted once per month. It keeps pricing fair as occupancy changes.',
+    question: 'Can we start small and expand to new departments?',
+    answer: "Yes. Propera is modular — add departments like spa, dive, kids club, or dining without reworking the guest experience.",
   },
   {
-    question: 'Can guests book from their phones?',
-    answer: 'Yes. Propera is mobile-first and designed for real resort conditions.',
+    question: 'Do we need integrations to get value?',
+    answer: "Not to start. You can go live with Propera's guest portal and operations tools first. Integrations can be added when you're ready.",
   },
   {
-    question: 'Can we start with one resort and expand?',
-    answer: 'Absolutely. Many groups start with one property, then roll out after seeing results.',
+    question: 'How fast can we go live?',
+    answer: 'Most resorts can go live in days, depending on menus/services setup and training.',
+  },
+  {
+    question: 'Is Propera white-label?',
+    answer: 'White-label branding is included in Elite, and available in more limited form in lower tiers depending on your needs.',
+  },
+  {
+    question: 'Can we handle low season?',
+    answer: 'Yes. Seasonal Flex lets you scale down temporarily and scale back up without losing setup.',
   },
 ];
 
@@ -67,6 +80,7 @@ export default function PricingPage() {
       <PricingPlanGrid plans={plans} resortSize={resortSize} />
       <PricingPromiseSection />
       <PricingSwitchSection />
+      <PricingStackComparison />
       <PricingComparisonMatrix />
       <PricingTrustSection />
       <PricingFAQSection faqs={FAQS} />
