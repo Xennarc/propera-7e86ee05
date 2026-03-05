@@ -563,7 +563,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                   <Badge key={a.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 text-xs">
                     {a.full_name}
                     <span className="text-muted-foreground capitalize">· {a.role}</span>
-                    {isManager && (
+                    {canAssignCrew && (
                       <button
                         className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
                         onClick={() => removeStaff(a.id)}
@@ -579,7 +579,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
               </div>
 
               {/* Role tabs + staff picker */}
-              {isManager && (
+              {canAssignCrew && (
                 <div className="space-y-2">
                   <SegmentedTabs
                     tabs={ROLE_TABS.map(r => ({ key: r.key, label: r.label }))}
