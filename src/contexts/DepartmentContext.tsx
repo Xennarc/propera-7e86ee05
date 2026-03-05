@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureEnabled } from '@/components/FeatureGate';
-import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding } from '@/types/database';
+import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding, DepartmentModule } from '@/types/database';
 import { resolveDepartmentScope, type DepartmentScope } from '@/lib/departments/department-scope';
 
 interface DepartmentContextType {
@@ -43,6 +43,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
   const [moduleAccess, setModuleAccess] = useState<DepartmentModuleAccess[]>([]);
   const [bindings, setBindings] = useState<DepartmentBinding[]>([]);
+  const [deptModules, setDeptModules] = useState<DepartmentModule[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch departments and memberships for this user
@@ -52,6 +53,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
       setMyMemberships([]);
       setModuleAccess([]);
       setBindings([]);
+      setDeptModules([]);
       setLoading(false);
       return;
     }
@@ -75,6 +77,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
         // Get unique resort IDs from memberships
         const resortIds = [...new Set(mems.map(m => m.resort_id))];
         
+        let fetchedDepts: ResortDepartment[] = [];
         if (resortIds.length > 0) {
           // Fetch departments for those resorts
           const { data: deptData } = await supabase
@@ -84,22 +87,28 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
             .eq('is_active', true);
 
           if (cancelled) return;
-          setDepartments((deptData ?? []) as ResortDepartment[]);
+          fetchedDepts = (deptData ?? []) as ResortDepartment[];
+          setDepartments(fetchedDepts);
         } else {
           setDepartments([]);
         }
 
-        // Fetch module access and bindings in parallel
-        const [accessResult, bindingsResult] = await Promise.all([
+        // Fetch module access, bindings, and dept-level modules in parallel
+        const deptIds = fetchedDepts.map(d => d.id);
+        const [accessResult, bindingsResult, deptModulesResult] = await Promise.all([
           supabase.from('department_module_access').select('*').eq('user_id', user!.id),
           resortIds.length > 0
             ? supabase.from('department_bindings').select('*').in('resort_id', resortIds).eq('is_active', true)
+            : Promise.resolve({ data: [] }),
+          deptIds.length > 0
+            ? supabase.from('department_modules').select('*').in('department_id', deptIds)
             : Promise.resolve({ data: [] }),
         ]);
 
         if (cancelled) return;
         setModuleAccess((accessResult.data ?? []) as DepartmentModuleAccess[]);
         setBindings((bindingsResult.data ?? []) as DepartmentBinding[]);
+        setDeptModules((deptModulesResult.data ?? []) as DepartmentModule[]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -124,6 +133,11 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
     return moduleAccess.filter(a => a.department_id === currentDepartment.id);
   }, [moduleAccess, currentDepartment]);
 
+  const currentDeptModules = useMemo(() => {
+    if (!currentDepartment) return [];
+    return deptModules.filter(m => m.department_id === currentDepartment.id);
+  }, [deptModules, currentDepartment]);
+
   const currentBindings = useMemo(() => {
     if (!currentDepartment) return [];
     return bindings.filter(b => b.department_id === currentDepartment.id);
@@ -142,6 +156,12 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   }, [currentMembership, isSuperAdmin]);
 
   const hasModule = (moduleKey: DepartmentModuleKey): boolean => {
+    // Department-level toggle takes priority — if explicitly disabled, block everyone except super admins
+    const deptMod = currentDeptModules.find(m => m.module_key === moduleKey);
+    if (deptMod && !deptMod.enabled) {
+      return isSuperAdmin(); // Only super admins bypass dept-level disable
+    }
+
     if (isSuperAdmin()) return true;
     // Resort admins also have full access
     if (currentDepartment) {

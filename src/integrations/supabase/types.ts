@@ -2453,6 +2453,44 @@ export type Database = {
           },
         ]
       }
+      department_modules: {
+        Row: {
+          created_at: string
+          department_id: string
+          enabled: boolean
+          id: string
+          module_key: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          enabled?: boolean
+          id?: string
+          module_key: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          enabled?: boolean
+          id?: string
+          module_key?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_modules_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "resort_departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_retention_overrides: {
         Row: {
           archive_after_days: number | null
@@ -9417,6 +9455,10 @@ export type Database = {
       }
       upsert_department_bindings: {
         Args: { p_bindings: Json; p_department_id: string }
+        Returns: Json
+      }
+      upsert_department_modules: {
+        Args: { p_department_id: string; p_modules: Json }
         Returns: Json
       }
       upsert_transport_settings_atomic: {
