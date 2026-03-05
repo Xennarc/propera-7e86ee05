@@ -122,7 +122,7 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
                       <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
                     )}
                     
-                    <CardContent className={`p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>
+                    <CardContent className={`p-5 sm:p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>
                       <div className="flex items-center gap-3 mb-3">
                         <AnimatedFeatureIcon
                           icon={Icon}
@@ -143,21 +143,23 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
                         <span className="font-medium">Recommended for:</span> {config.recommendedFor}
                       </p>
                       
-                      <div className="mb-5">
-                        <span className="text-3xl font-bold text-foreground transition-all duration-300">{displayPrice}</span>
+                      <div className="mb-5 min-h-[48px] flex items-baseline flex-wrap gap-x-2">
+                        <span className="text-3xl font-bold text-foreground transition-[opacity] duration-200" key={displayPrice}>
+                          {displayPrice}
+                        </span>
                         {plan.priceUnit && (
-                          <span className="text-sm text-muted-foreground ml-2">{plan.priceUnit}</span>
+                          <span className="text-sm text-muted-foreground">{plan.priceUnit}</span>
                         )}
                       </div>
                       
                       <Button 
                         asChild 
-                        className={`w-full rounded-full font-semibold h-11 transition-all duration-200 ${
+                        className={`w-full rounded-full font-semibold h-12 min-h-[48px] transition-all duration-200 active:scale-[0.97] ${
                           isElite 
-                            ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/30' 
+                            ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-violet-500/40' 
                             : isProfessional
-                            ? 'bg-primary text-primary-foreground glow-lime hover:-translate-y-0.5'
-                            : 'bg-card hover:bg-muted border border-border/40 dark:bg-midnight-800 dark:border-midnight-600'
+                            ? 'bg-primary text-primary-foreground glow-lime hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20'
+                            : 'bg-card hover:bg-muted border border-border/40 dark:bg-midnight-800 dark:border-midnight-600 hover:border-primary/30'
                         }`}
                         variant={isProfessional ? 'default' : isElite ? 'default' : 'secondary'}
                       >
