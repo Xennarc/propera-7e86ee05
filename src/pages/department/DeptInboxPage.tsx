@@ -6,7 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, addDays, differenceInMinutes } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
-import { deptKeyToCategory } from '@/lib/department-utils';
+import { getDepartmentActivityScope, isDepartmentUnscoped } from '@/lib/department-utils';
+import { UnscopedDepartmentBanner } from '@/components/department/UnscopedDepartmentBanner';
 import { DepartureCard, type DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +36,8 @@ function DeptInboxContent() {
 
   const resortId = currentDepartment?.resort_id;
   const tz = 'UTC';
-  const category = deptKeyToCategory(deptKey);
+  const category = getDepartmentActivityScope(currentDepartment);
+  const unscoped = isDepartmentUnscoped(currentDepartment);
 
   const { data: sessions = [], isLoading, refetch } = useQuery({
     queryKey: ['dept-ops-inbox', resortId, category],
@@ -141,6 +143,7 @@ function DeptInboxContent() {
 
   return (
     <div className="space-y-4">
+      {unscoped && <UnscopedDepartmentBanner />}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Ops Inbox</h1>

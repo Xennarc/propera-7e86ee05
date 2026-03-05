@@ -365,6 +365,8 @@ export interface ResortDepartment {
   key: string;
   name: string;
   is_active: boolean;
+  activity_scope_key: string | null;
+  scope_type: string;
   created_at: string;
 }
 

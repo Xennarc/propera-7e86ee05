@@ -4784,28 +4784,34 @@ export type Database = {
       }
       resort_departments: {
         Row: {
+          activity_scope_key: string | null
           created_at: string
           id: string
           is_active: boolean
           key: string
           name: string
           resort_id: string
+          scope_type: string
         }
         Insert: {
+          activity_scope_key?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           key: string
           name: string
           resort_id: string
+          scope_type?: string
         }
         Update: {
+          activity_scope_key?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
           key?: string
           name?: string
           resort_id?: string
+          scope_type?: string
         }
         Relationships: [
           {
