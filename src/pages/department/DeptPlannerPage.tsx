@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
 import { useDepartment } from '@/contexts/DepartmentContext';
+import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { computeCoverage, type CoverageStatus } from '@/lib/ops/coverageRules';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
