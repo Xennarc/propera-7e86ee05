@@ -2,13 +2,15 @@ import { Check, Minus } from 'lucide-react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 
 const COMPARISON_ROWS = [
-  { label: 'Guest Portal', essential: true, professional: true, elite: true },
-  { label: 'Staff Console', essential: true, professional: true, elite: true },
-  { label: 'Experiences & Activities', essential: true, professional: true, elite: true },
-  { label: 'Dining', essential: false, professional: true, elite: true },
-  { label: 'Analytics', essential: false, professional: true, elite: true },
-  { label: 'White-label options', essential: false, professional: false, elite: true },
-  { label: 'Priority support', essential: false, professional: false, elite: true },
+  { label: 'Guest Portal + Staff Console', essential: true, professional: true, elite: true },
+  { label: 'Activities, excursions & spa', essential: true, professional: true, elite: true },
+  { label: 'Pre-arrival profiles', essential: true, professional: true, elite: true },
+  { label: 'Dining reservations', essential: false, professional: true, elite: true },
+  { label: 'Room service & housekeeping', essential: false, professional: true, elite: true },
+  { label: 'Department views & scheduling', essential: false, professional: true, elite: true },
+  { label: 'Loyalty programs', essential: false, professional: false, elite: true },
+  { label: 'Advanced analytics', essential: false, professional: false, elite: true },
+  { label: 'Multi-property governance', essential: false, professional: false, elite: true },
 ];
 
 export function PricingComparisonMatrix() {
