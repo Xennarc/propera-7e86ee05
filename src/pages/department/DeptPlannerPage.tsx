@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deptKeyToCategory } from '@/lib/department-utils';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,8 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { StatusChip } from '@/components/ui/status-chip';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSessionConflicts, totalConflictCount, type SessionConflicts } from '@/hooks/useSessionConflicts';
 
 interface SessionSlot {
   id: string;
@@ -27,10 +29,45 @@ interface SessionSlot {
   booked: number;
 }
 
+/** Lightweight hook to batch-fetch conflicts for multiple sessions */
+function useMultiSessionConflicts(resortId: string | undefined, sessionIds: string[]) {
+  return useQuery({
+    queryKey: ['dept-planner-conflicts', resortId, sessionIds],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (!resortId || sessionIds.length === 0) return {};
+      // Fetch conflicts in parallel (max 20 to avoid overload)
+      const batch = sessionIds.slice(0, 20);
+      const results = await Promise.allSettled(
+        batch.map(sid =>
+          supabase.rpc('get_session_conflicts', { p_resort_id: resortId, p_session_id: sid })
+            .then(({ data }) => {
+              if (!data) return { sid, count: 0 };
+              const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+              const count =
+                (parsed.conflicting_boats?.length ?? 0) +
+                (parsed.conflicting_equipment?.length ?? 0) +
+                (parsed.conflicting_staff?.length ?? 0);
+              return { sid, count };
+            })
+        )
+      );
+      const map: Record<string, number> = {};
+      for (const r of results) {
+        if (r.status === 'fulfilled') map[r.value.sid] = r.value.count;
+      }
+      return map;
+    },
+    enabled: !!resortId && sessionIds.length > 0,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+}
+
 function DeptPlannerContent() {
   const { currentDepartment } = useDepartment();
   const { deptKey } = useParams<{ deptKey: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const dateStr = searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd');
@@ -41,9 +78,11 @@ function DeptPlannerContent() {
 
   const resortId = currentDepartment?.resort_id;
   const category = deptKeyToCategory(deptKey);
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
 
   const { data: sessions = [], isLoading, refetch } = useQuery({
-    queryKey: ['dept-planner-sessions', resortId, category, format(weekStart, 'yyyy-MM-dd'), format(weekEnd, 'yyyy-MM-dd')],
+    queryKey: ['dept-planner-sessions', resortId, category, weekStartStr, weekEndStr],
     queryFn: async () => {
       if (!resortId) return [];
       const { data, error } = await supabase
@@ -53,8 +92,8 @@ function DeptPlannerContent() {
           activity:activities(name, category)
         `)
         .eq('resort_id', resortId)
-        .gte('date', format(weekStart, 'yyyy-MM-dd'))
-        .lte('date', format(weekEnd, 'yyyy-MM-dd'))
+        .gte('date', weekStartStr)
+        .lte('date', weekEndStr)
         .order('date')
         .order('start_time');
 
@@ -88,6 +127,41 @@ function DeptPlannerContent() {
     },
     enabled: sessionIds.length > 0,
   });
+
+  // Conflicts per session
+  const { data: conflictCounts = {} } = useMultiSessionConflicts(resortId, sessionIds);
+
+  // Realtime: auto-invalidate booking counts when bookings change
+  useEffect(() => {
+    if (!resortId) return;
+    const channel = supabase
+      .channel('dept-planner-bookings-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activity_bookings', filter: `resort_id=eq.${resortId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['dept-planner-bookings'] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [resortId, queryClient]);
+
+  // Realtime: auto-invalidate sessions when sessions change
+  useEffect(() => {
+    if (!resortId) return;
+    const channel = supabase
+      .channel('dept-planner-sessions-rt')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activity_sessions', filter: `resort_id=eq.${resortId}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['dept-planner-sessions'] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [resortId, queryClient]);
 
   const sessionsByDate = useMemo(() => {
     const grouped: Record<string, SessionSlot[]> = {};
@@ -174,6 +248,7 @@ function DeptPlannerContent() {
             const daySessions = sessionsByDate[dayStr] ?? [];
             const today = isToday(day);
             const selected = isSameDay(day, selectedDay);
+            const dayConflicts = daySessions.reduce((sum, s) => sum + (conflictCounts[s.id] ?? 0), 0);
 
             return (
               <div
@@ -193,27 +268,53 @@ function DeptPlannerContent() {
                   )}>
                     {format(day, 'EEE d')}
                   </span>
-                  {daySessions.length > 0 && (
-                    <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                      {daySessions.length}
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {dayConflicts > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-warning font-medium">
+                            <AlertTriangle className="h-3 w-3" />
+                            {dayConflicts}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {dayConflicts} resource conflict{dayConflicts > 1 ? 's' : ''} – check staffing
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {daySessions.length > 0 && (
+                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                        {daySessions.length}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  {daySessions.slice(0, 4).map(s => (
-                    <div
-                      key={s.id}
-                      className="text-[11px] px-1.5 py-1 rounded bg-muted/50 truncate cursor-pointer hover:bg-muted transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/dept/${deptKey}/session/${s.id}`);
-                      }}
-                    >
-                      <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
-                      <span className="text-muted-foreground">{s.activity_name}</span>
-                      <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
-                    </div>
-                  ))}
+                  {daySessions.slice(0, 4).map(s => {
+                    const conflicts = conflictCounts[s.id] ?? 0;
+                    return (
+                      <div
+                        key={s.id}
+                        className={cn(
+                          'text-[11px] px-1.5 py-1 rounded truncate cursor-pointer transition-colors',
+                          conflicts > 0
+                            ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20'
+                            : 'bg-muted/50 hover:bg-muted'
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/dept/${deptKey}/session/${s.id}`);
+                        }}
+                      >
+                        <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
+                        <span className="text-muted-foreground">{s.activity_name}</span>
+                        <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
+                        {conflicts > 0 && (
+                          <AlertTriangle className="inline h-3 w-3 ml-1 text-warning" />
+                        )}
+                      </div>
+                    );
+                  })}
                   {daySessions.length > 4 && (
                     <div className="text-[10px] text-muted-foreground px-1.5">+{daySessions.length - 4} more</div>
                   )}
@@ -230,24 +331,45 @@ function DeptPlannerContent() {
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {format(selectedDay, 'EEEE, MMM d')} · {sessionsByDate[dateStr].length} sessions
           </div>
-          {sessionsByDate[dateStr].map(s => (
-            <Card
-              key={s.id}
-              className="cursor-pointer hover:bg-muted/30 transition-colors"
-              onClick={() => navigate(`/dept/${deptKey}/session/${s.id}`)}
-            >
-              <CardContent className="flex items-center gap-3 py-3 px-4">
-                <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
-                  {s.start_time?.slice(0, 5)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm truncate">{s.activity_name}</div>
-                  <div className="text-xs text-muted-foreground">{s.booked}/{s.capacity} booked</div>
-                </div>
-                <StatusChip status={s.status} />
-              </CardContent>
-            </Card>
-          ))}
+          {sessionsByDate[dateStr].map(s => {
+            const conflicts = conflictCounts[s.id] ?? 0;
+            return (
+              <Card
+                key={s.id}
+                className={cn(
+                  'cursor-pointer hover:bg-muted/30 transition-colors',
+                  conflicts > 0 && 'border-warning/50'
+                )}
+                onClick={() => navigate(`/dept/${deptKey}/session/${s.id}`)}
+              >
+                <CardContent className="flex items-center gap-3 py-3 px-4">
+                  <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
+                    {s.start_time?.slice(0, 5)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{s.activity_name}</div>
+                    <div className="text-xs text-muted-foreground">{s.booked}/{s.capacity} booked</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {conflicts > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-[10px] border-warning/50 text-warning gap-0.5">
+                            <AlertTriangle className="h-3 w-3" />
+                            {conflicts}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs">
+                          {conflicts} staffing/asset conflict{conflicts > 1 ? 's' : ''}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <StatusChip status={s.status} />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
