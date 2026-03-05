@@ -102,7 +102,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const inheritedCount = allModuleStates.filter(m => m.inheritance === 'inherited').length;
 
   // Last audit entry for "last changed" context
-  const lastAuditEntry = auditLog[0];
+  const lastAuditEntry = auditLog[0] as any;
   const lastChangedAt = lastAuditEntry?.created_at ?? null;
   const lastChangedBy = lastAuditEntry?.actor?.full_name || lastAuditEntry?.actor?.username || null;
 
