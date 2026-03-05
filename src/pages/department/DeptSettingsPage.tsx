@@ -250,7 +250,7 @@ function DeptSettingsContent() {
   const anyDirty = dirty || bindingsDirty || modulesDirty;
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-24 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
