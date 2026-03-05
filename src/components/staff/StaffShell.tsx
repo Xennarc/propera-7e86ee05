@@ -257,9 +257,10 @@ function StaffShellInner() {
     </FeatureFlagsProvider>
   );
 
-  // Wrap in DepartmentProvider when a department route is active
-  // so sidebar/topbar/bottom-nav can access department context
-  if (isDeptActive && deptKeyFromUrl) {
+  // Wrap in DepartmentProvider when URL indicates a department route
+  // This must be based on URL (not isDeptActive state) to be available on first render
+  // before DepartmentLayout's useEffect fires
+  if (deptKeyFromUrl) {
     return (
       <DepartmentProvider deptKeyOverride={deptKeyFromUrl}>
         {shellContent}
