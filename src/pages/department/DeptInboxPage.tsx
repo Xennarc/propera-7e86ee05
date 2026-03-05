@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
 import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
 import { opsEventToInboxCard } from '@/lib/ops/ops-event-compat';
+import { AppToolbar, AppFilterBar, AppEmptyState } from '@/components/ui/app-kit';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
@@ -167,22 +168,16 @@ function DeptInboxContent() {
   const visibleCards = showAll ? filteredCards : filteredCards.slice(0, MAX_VISIBLE);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-fade-in">
       <DeptScopeWarningBanner />
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Ops Inbox</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {currentDepartment?.name} · {filteredCards.length} session{filteredCards.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-      </div>
+      <AppToolbar
+        title="Ops Inbox"
+        subtitle={`${currentDepartment?.name} · ${filteredCards.length} session${filteredCards.length !== 1 ? 's' : ''}`}
+        onRefresh={() => refetch()}
+      />
 
       {/* Filter chips */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <AppFilterBar>
         {FILTER_CHIPS.map(chip => (
           <Button
             key={chip.key}
@@ -213,7 +208,7 @@ function DeptInboxContent() {
             <Search className="h-4 w-4" />
           </Button>
         )}
-      </div>
+      </AppFilterBar>
 
       {/* Cards */}
       {isLoading ? (
