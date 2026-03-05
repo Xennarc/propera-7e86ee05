@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ import { AccessIdentityHeader } from './AccessIdentityHeader';
 import { AccessModeSelector, AccessMode } from './AccessModeSelector';
 import { ModuleAccessFilters, ModuleFilter } from './ModuleAccessFilters';
 import { ModuleAccessList } from './ModuleAccessList';
+import { ChangeImpactSummary, AccessChange } from './ChangeImpactSummary';
 
 interface ModuleAccessDrawerProps {
   open: boolean;
@@ -70,9 +71,17 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const [activeTab, setActiveTab] = useState('access');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ModuleFilter>('all');
+  const [sessionChanges, setSessionChanges] = useState<AccessChange[]>([]);
 
   const hasOverrides = userOverrides.length > 0;
   const [accessMode, setAccessMode] = useState<AccessMode>(hasOverrides ? 'customize' : 'role-defaults');
+
+  const handleChangeRecorded = useCallback((moduleLabel: string, description: string, isSensitive: boolean) => {
+    setSessionChanges(prev => [
+      ...prev,
+      { id: `${Date.now()}-${Math.random()}`, moduleLabel, description, isSensitive },
+    ]);
+  }, []);
 
   // Derive role name from first assigned role
   const primaryRole = userRoles[0]?.role?.name ?? null;
@@ -179,10 +188,14 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                     resortId={resortId}
                     rolePermissions={rolePermissions}
                     userOverrides={userOverrides}
+                    onChangeRecorded={handleChangeRecorded}
                   />
                 </div>
               )}
             </ScrollArea>
+            {sessionChanges.length > 0 && (
+              <ChangeImpactSummary changes={sessionChanges} />
+            )}
           </TabsContent>
 
           <TabsContent value="audit" className="flex-1 min-h-0 mt-0">
