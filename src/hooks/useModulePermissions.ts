@@ -11,7 +11,11 @@ import {
   MODULE_CATEGORIES,
   ModuleConfig,
   ModuleCategory,
+  ModuleAccessLevel,
   getEffectiveModuleAccess,
+  getEffectiveAccessLevel,
+  getModuleCustomizationState,
+  getModuleOverrideCount,
   isModuleInheritedOrCustomized,
   getVisibleModules,
   getUncategorizedPermissions,
@@ -22,6 +26,9 @@ export interface ModuleAccessState {
   module: ModuleConfig;
   access: 'full' | 'partial' | 'none';
   inheritance: 'inherited' | 'customized';
+  customizationState: 'inherited' | 'customized' | 'restricted' | 'elevated';
+  overrideCount: number;
+  effectiveLevel: ModuleAccessLevel | null;
   canGrant: boolean;
 }
 
@@ -46,16 +53,14 @@ interface UseModulePermissionsResult {
 }
 
 /**
- * @param targetUserId   – the user whose modules we're inspecting (optional,
- *                         defaults to acting user)
  * @param targetPermissions – pre-resolved permission keys for the target user
- *                            (pass when you already have them, e.g. from the
- *                            drawer's own queries)
- * @param overrideKeys   – permission keys that have user-level overrides
+ * @param overrideKeys      – permission keys that have user-level overrides
+ * @param rolePermissions   – permission keys from the target user's role (for customization state)
  */
 export function useModulePermissions(
   targetPermissions?: string[],
   overrideKeys?: string[],
+  rolePermissions?: string[],
 ): UseModulePermissionsResult {
   const { isSuperAdmin } = useAuth();
   const superAdmin = isSuperAdmin();
@@ -70,6 +75,7 @@ export function useModulePermissions(
 
   const effectiveTargetPerms = targetPermissions ?? adminPermissions;
   const effectiveOverrides = overrideKeys ?? [];
+  const effectiveRolePerms = rolePermissions ?? [];
 
   const visibleModules = useMemo(
     () => getVisibleModules(superAdmin),
@@ -81,9 +87,12 @@ export function useModulePermissions(
       module: mod,
       access: getEffectiveModuleAccess(effectiveTargetPerms, mod.id),
       inheritance: isModuleInheritedOrCustomized(effectiveTargetPerms, effectiveOverrides, mod.id),
+      customizationState: getModuleCustomizationState(effectiveRolePerms, effectiveTargetPerms, effectiveOverrides, mod.id),
+      overrideCount: getModuleOverrideCount(effectiveOverrides, mod.id),
+      effectiveLevel: getEffectiveAccessLevel(effectiveTargetPerms, mod.id),
       canGrant: canAdminGrantModule(superAdmin, adminPermissions, mod.id),
     }));
-  }, [visibleModules, effectiveTargetPerms, effectiveOverrides, superAdmin, adminPermissions]);
+  }, [visibleModules, effectiveTargetPerms, effectiveOverrides, effectiveRolePerms, superAdmin, adminPermissions]);
 
   const groupedModules: ModuleCategoryGroup[] = useMemo(() => {
     return MODULE_CATEGORIES

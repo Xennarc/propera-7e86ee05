@@ -5,11 +5,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Shield, History } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useUserRoles,
   useUserOverrides,
   useUserAccessAudit,
   useEffectivePermissions,
+  useRolePermissions,
 } from '@/hooks/useEffectivePermissions';
 import { useModulePermissions, ModuleAccessState } from '@/hooks/useModulePermissions';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,9 +50,12 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const { data: userOverrides = [], isLoading: overridesLoading } = useUserOverrides(user?.id, resortId);
   const { data: auditLog = [], isLoading: auditLoading } = useUserAccessAudit(user?.id, resortId);
 
-  // Compute target user's effective permissions from roles + overrides
-  // For now we pass override keys for the module hook
+  // Compute override keys
   const overrideKeys = useMemo(() => userOverrides.map(o => o.permission_key), [userOverrides]);
+
+  // Get role permissions for the target user's primary role
+  const primaryRoleId = userRoles[0]?.role?.id ?? undefined;
+  const { data: rolePermissions = [], isLoading: rolePermsLoading } = useRolePermissions(primaryRoleId);
 
   // Get effective permissions for the target user via RPC
   const { permissions: targetPermissions, isLoading: effectiveLoading } = useTargetEffectivePermissions(user?.id, resortId);
@@ -58,7 +64,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
     groupedModules,
     modules: allModuleStates,
     isLoading: moduleLoading,
-  } = useModulePermissions(targetPermissions, overrideKeys);
+  } = useModulePermissions(targetPermissions, overrideKeys, rolePermissions);
 
   // UI state
   const [activeTab, setActiveTab] = useState('access');
@@ -81,11 +87,9 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
       .map(g => ({
         ...g,
         modules: g.modules.filter(m => {
-          // search filter
           if (q && !m.module.label.toLowerCase().includes(q) && !m.module.description.toLowerCase().includes(q)) {
             return false;
           }
-          // chip filter
           switch (filter) {
             case 'enabled': return m.access === 'full' || m.access === 'partial';
             case 'restricted': return m.access === 'none';
@@ -98,7 +102,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
       .filter(g => g.modules.length > 0);
   }, [groupedModules, search, filter]);
 
-  const isLoading = rolesLoading || overridesLoading || effectiveLoading || moduleLoading;
+  const isLoading = rolesLoading || overridesLoading || effectiveLoading || moduleLoading || rolePermsLoading;
 
   if (!user) return null;
 
@@ -171,6 +175,10 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                   <ModuleAccessList
                     groups={filteredGroups}
                     readOnly={readOnly || accessMode === 'role-defaults'}
+                    userId={user.id}
+                    resortId={resortId}
+                    rolePermissions={rolePermissions}
+                    userOverrides={userOverrides}
                   />
                 </div>
               )}
@@ -225,11 +233,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
 
 /**
  * Hook to fetch effective permissions for a *target* user (not the acting user).
- * Uses the same RPC but scoped to the target user id.
  */
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
 function useTargetEffectivePermissions(userId?: string, resortId?: string) {
   const { data = [], isLoading } = useQuery({
     queryKey: ['target-effective-permissions', userId, resortId],
