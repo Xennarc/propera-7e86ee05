@@ -53,14 +53,11 @@ function DeptInboxContent() {
     enabled: adapterEnabled,
   });
 
-  const { data: sessions = [], isLoading, refetch } = useQuery({
+  // ── Legacy pipeline (used when adapter flag is OFF) ──
+  const { data: sessions = [], isLoading: legacyLoading, refetch: legacyRefetch } = useQuery({
     queryKey: ['dept-ops-inbox', resortId, category],
     queryFn: async () => {
       if (!resortId) return [];
-      const now = new Date();
-      const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
-      const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
-
       const selectStr = category
         ? `id, date, start_time, end_time, capacity, status, activity:activities!inner(name, category)`
         : `id, date, start_time, end_time, capacity, status, activity:activities(name, category)`;
@@ -82,9 +79,12 @@ function DeptInboxContent() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!resortId,
+    enabled: !!resortId && !adapterEnabled,
     refetchInterval: 30_000,
   });
+
+  const isLoading = adapterEnabled ? adapterLoading : legacyLoading;
+  const refetch = adapterEnabled ? adapterRefetch : legacyRefetch;
 
   // Booking counts
   const sessionIds = useMemo(() => sessions.map((s: any) => s.id), [sessions]);
