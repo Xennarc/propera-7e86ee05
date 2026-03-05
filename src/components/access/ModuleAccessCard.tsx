@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { ChevronRight, Settings2, ShieldAlert, Lock } from 'lucide-react';
+import { ChevronDown, ShieldAlert, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModuleAccessState } from '@/hooks/useModulePermissions';
 import { ModuleAccessLevel } from '@/config/permission-modules';
@@ -196,57 +196,57 @@ export function ModuleAccessCard({
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div
           className={cn(
-            'rounded-lg border transition-colors',
+            'rounded-xl border transition-all duration-200',
             // Sensitive styling
-            isSensitive && !isPlatformOnly && 'border-l-2 border-l-warning',
-            isPlatformOnly && 'border-l-2 border-l-destructive',
+            isSensitive && !isPlatformOnly && 'border-l-[3px] border-l-warning',
+            isPlatformOnly && 'border-l-[3px] border-l-destructive',
             isSensitive && !isOpen && 'bg-warning/[0.02]',
             isPlatformOnly && !isOpen && 'bg-destructive/[0.02]',
-            isOpen && 'border-border bg-card shadow-sm',
-            !isOpen && !isSensitive && !isPlatformOnly && 'hover:bg-accent/30',
+            isOpen && 'border-border bg-card shadow-sm ring-1 ring-border/20',
+            !isOpen && !isSensitive && !isPlatformOnly && 'hover:bg-accent/30 hover:shadow-sm',
             !isOpen && isSensitive && !isPlatformOnly && 'hover:bg-warning/5',
             !isOpen && isPlatformOnly && 'hover:bg-destructive/5',
-            isEmpty && 'opacity-50',
+            isEmpty && 'opacity-40 pointer-events-none',
             !canGrant && !readOnly && 'opacity-60',
           )}
         >
           {/* Header */}
-          <div className="flex items-center gap-3 px-3 py-2.5">
+          <div className="flex items-center gap-3 px-4 py-3 min-h-[56px]">
             <div className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
               isPlatformOnly ? 'bg-destructive/10 text-destructive' :
               isSensitive ? 'bg-warning/10 text-warning' :
               access === 'full' ? 'bg-success/10 text-success' :
               access === 'partial' ? 'bg-warning/10 text-warning' :
               'bg-muted text-muted-foreground',
             )}>
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4.5 w-4.5" />
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium leading-tight truncate">{mod.label}</p>
                 {isSensitive && (
-                  <ShieldAlert className="h-3 w-3 text-warning shrink-0" />
+                  <ShieldAlert className="h-3.5 w-3.5 text-warning shrink-0" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground leading-snug truncate">
+              <p className="text-xs text-muted-foreground leading-snug truncate mt-0.5">
                 {effectiveLevel?.description ?? mod.description}
               </p>
               {/* Warning text for sensitive modules */}
               {isSensitive && mod.warningText && isOpen && (
-                <p className="text-[10px] text-warning mt-0.5 leading-snug">
+                <p className="text-[11px] text-warning mt-1 leading-snug">
                   {mod.warningText}
                 </p>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               {/* Authority blocked message */}
               {!canGrant && !readOnly && !isEmpty ? (
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 rounded-md px-2 py-1">
                   <Lock className="h-3 w-3" />
-                  <span>No authority</span>
+                  <span className="hidden sm:inline">No authority</span>
                 </div>
               ) : (
                 <>
@@ -257,7 +257,7 @@ export function ModuleAccessCard({
                       onValueChange={handleTierChange}
                       disabled={isDisabled}
                     >
-                      <SelectTrigger className="h-7 w-[100px] text-[11px] px-2 border-border/50">
+                      <SelectTrigger className="h-8 w-[110px] text-xs px-2.5 border-border/50 rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -269,20 +269,20 @@ export function ModuleAccessCard({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge variant={accessCfg.variant} className="text-[10px] px-1.5 py-0">
+                    <Badge variant={accessCfg.variant} className="text-[11px] px-2 py-0.5">
                       {accessCfg.label}
                     </Badge>
                   )}
 
                   {/* Customization badge */}
-                  <Badge variant={customCfg.variant} className="text-[10px] px-1.5 py-0">
+                  <Badge variant={customCfg.variant} className="text-[11px] px-2 py-0.5 hidden sm:inline-flex">
                     {customCfg.label}
                   </Badge>
 
                   {/* Override count */}
                   {overrideCount > 0 && (
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 tabular-nums">
-                      {overrideCount} {overrideCount === 1 ? 'override' : 'overrides'}
+                    <Badge variant="outline" className="text-[11px] px-2 py-0.5 tabular-nums hidden sm:inline-flex">
+                      {overrideCount}
                     </Badge>
                   )}
                 </>
@@ -292,14 +292,13 @@ export function ModuleAccessCard({
               {!isEmpty && (
                 <CollapsibleTrigger asChild>
                   <button
-                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent/50 transition-colors"
+                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-accent/50 transition-colors"
                     aria-label="Toggle advanced permissions"
                   >
-                    {isOpen ? (
-                      <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
-                    )}
+                    <ChevronDown className={cn(
+                      'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                      isOpen && 'rotate-180',
+                    )} />
                   </button>
                 </CollapsibleTrigger>
               )}
@@ -309,11 +308,11 @@ export function ModuleAccessCard({
           {/* Expanded advanced section */}
           <CollapsibleContent>
             <div className={cn(
-              'border-t px-3 py-2 space-y-0.5',
+              'border-t px-4 py-3 space-y-1',
               isSensitive && 'border-t-warning/20',
             )}>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
-                Advanced Permissions
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-2.5">
+                Granular Permissions
               </p>
               {mod.permissionKeys.map(key => {
                 const label = mod.permissionLabels[key] || key;
@@ -323,12 +322,12 @@ export function ModuleAccessCard({
                 return (
                   <div
                     key={key}
-                    className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-accent/20 transition-colors"
+                    className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-accent/20 transition-colors min-h-[44px]"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-xs truncate">{label}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-sm truncate">{label}</span>
                       {hasOverride && (
-                        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                           override
                         </Badge>
                       )}
@@ -337,7 +336,7 @@ export function ModuleAccessCard({
                       checked={isGranted}
                       onCheckedChange={() => handlePermissionToggle(key, isGranted)}
                       disabled={isDisabled}
-                      className="h-5 w-9 [&>span]:h-4 [&>span]:w-4 data-[state=checked]:[&>span]:translate-x-4"
+                      className="shrink-0"
                     />
                   </div>
                 );
