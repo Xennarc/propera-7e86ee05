@@ -316,6 +316,9 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
       queryClient.invalidateQueries({ queryKey: ['departments', resortId] });
       toast.success('Department setup complete!');
       onClose();
+      if (createdDeptKey) {
+        navigate(`/staff/dept/${createdDeptKey}/planner`);
+      }
     } catch (err: any) {
       toast.error('Failed to configure module access');
     } finally {
