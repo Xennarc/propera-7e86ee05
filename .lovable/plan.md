@@ -1,143 +1,96 @@
 
 
-## Performance-First Framer Motion Scroll Reveals
+## Phase 2: Module-First Access Management UI Shell
 
-### Current State
+### Approach
+Replace the current `UserAccessDrawer` content with a new module-first layout while keeping the old permission logic (hooks, mutations, data) intact underneath. The drawer becomes a polished, scannable admin experience.
 
-The public pages use **two different animation systems** that need unifying:
+### Architecture
 
-1. **CSS-based system** (`useScrollReveal` hook + `.section-reveal` / `.stagger-N` classes) -- used by 11 components: `WhyProperaCards`, `PlatformModules`, `HowItWorks`, `GlobalReady`, `HomeFinalCTA`, `MarketingSection`, `GuestJourneyFlow`, and all 5 pricing sections.
+**New components to create:**
 
-2. **Framer Motion** (`whileInView`) -- used by 3 components: `HomeHero`, `PricingTeaser`, `TrustStrip`.
+1. **`src/components/access/ModuleAccessDrawer.tsx`** — New top-level drawer component that replaces `UserAccessDrawer` as the primary UI. Internally still uses the same hooks (`useUserRoles`, `useUserOverrides`, `usePermissionsCatalog`, `useModulePermissions`, `useUserAccessAudit`).
 
-The CSS system has no `will-change` hints on the animating containers, uses `transform: translateY(30px)` which can cause layout shift during the transition, and the stagger system relies on CSS `transition-delay` which can't be optimized by Framer Motion's layout engine.
+2. **`src/components/access/AccessIdentityHeader.tsx`** — Identity summary: avatar/initials, full name, username, role badge, resort name, access source chips (Inherited / Custom overrides / Mixed), count of customized modules.
 
-### Plan
+3. **`src/components/access/AccessModeSelector.tsx`** — Two-mode toggle: "Use role defaults" (read-only summary) vs "Customize module access" (editable). Uses a simple radio group or segmented control.
 
-Create a single, reusable Framer Motion component that replaces the CSS-based reveal system across all public pages. This gives us GPU-composited animations with `will-change`, viewport-triggered `whileInView`, and staggered children via Framer's `staggerChildren` -- all in one consistent system.
+4. **`src/components/access/ModuleAccessList.tsx`** — The core module grid. Renders `ModuleCategoryGroup[]` from `useModulePermissions`. Each category is a collapsible section. Each module row shows: icon, name, description, access pill (Full / Partial / None), inheritance badge (Inherited / Custom / Restricted), and a chevron for future expand/collapse.
 
-### Technical Details
+5. **`src/components/access/ModuleAccessCard.tsx`** — Single module row/card: icon + label + description + access pill + inheritance state + expand placeholder.
 
-#### 1. New component: `src/components/motion/ScrollReveal.tsx`
+6. **`src/components/access/ModuleAccessFilters.tsx`** — Search bar + quick filter chips (All, Enabled, Restricted, Customized, Sensitive). Uses existing `SearchInput` component.
 
-A thin wrapper around `motion.div` that provides the fade-in-up effect:
+### Data flow
+- `ModuleAccessDrawer` receives the same props as current `UserAccessDrawer` (user, resortId, readOnly)
+- Fetches `useUserRoles`, `useUserOverrides` for the target user
+- Passes target user's effective permissions + override keys to `useModulePermissions(targetPermissions, overrideKeys)`
+- Derives access mode: if overrides exist → "Customize", else → "Use role defaults"
+- Filters modules by search query and active filter chip
+- Audit tab preserved as-is from current drawer
 
-```tsx
-import { motion, type Variants } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1], // cubic-bezier for smooth decel
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
+### UI structure inside the Sheet
+```text
+┌─────────────────────────────────────┐
+│ [Avatar] Full Name                  │
+│ @username · Resort Admin · Resort X │
+│ [Inherited] [3 customized modules]  │
+├─────────────────────────────────────┤
+│ ○ Use role defaults  ○ Customize    │
+├─────────────────────────────────────┤
+│ [Search modules...]                 │
+│ [All] [Enabled] [Restricted] [Custom│
+├─────────────────────────────────────┤
+│ ▾ Guest Experience                  │
+│   🌐 Guest Portal    [Full] Inherit │
+│   👥 Guests & Stays  [Full] Inherit │
+│   📋 Pre-Arrival     [Part] Custom  │
+│   💬 Guest Requests  [None] Restric │
+│ ▾ Operations                        │
+│   🏊 Activities      [Full] Inherit │
+│   🍽 Dining          [Full] Inherit │
+│   ...                               │
+│ ▾ Staff & Security                  │
+│   ...                               │
+│ ▾ Platform (Super Admin only)       │
+│   ...                               │
+├─────────────────────────────────────┤
+│ [Audit Log] tab at bottom           │
+└─────────────────────────────────────┘
 ```
 
-- `ScrollReveal` -- container with `whileInView="visible"`, `viewport={{ once: true, margin: "-50px" }}`, and `style={{ willChange: 'opacity, transform' }}`
-- `RevealItem` -- child wrapper using `itemVariants` for stagger
-- Both respect `useAnimationPreference()` -- if reduced motion or low-power, render as plain `div` with no animation
+### Tabs restructure
+Replace the current 3-tab layout (Roles / Permissions / Audit) with:
+- **Access** (default) — identity header + mode selector + module list (the new primary view)
+- **Audit** — preserved as-is
 
-#### 2. Update `MarketingSection.tsx`
+The Roles tab content moves into the identity header area (current role shown as badge) and the mode selector (role defaults vs customize).
 
-Replace `useScrollReveal` + CSS class toggling with `ScrollReveal` wrapper. Remove the `section-reveal` / `section-revealed` class logic. The component becomes:
+### Files to create
+- `src/components/access/ModuleAccessDrawer.tsx`
+- `src/components/access/AccessIdentityHeader.tsx`
+- `src/components/access/AccessModeSelector.tsx`
+- `src/components/access/ModuleAccessList.tsx`
+- `src/components/access/ModuleAccessCard.tsx`
+- `src/components/access/ModuleAccessFilters.tsx`
 
-```tsx
-<ScrollReveal>
-  <div className={cn('mx-auto px-6 relative', sizeClasses[size])}>
-    {children}
-  </div>
-</ScrollReveal>
-```
+### Files to edit
+- `src/pages/settings/AccessManagementPage.tsx` — swap `UserAccessDrawer` import to `ModuleAccessDrawer`
+- `src/components/access/UserAccessDrawer.tsx` — keep file intact (not deleted), no longer primary
 
-#### 3. Update landing page sections (6 files)
+### Icon resolution
+The `ModuleConfig.icon` field stores string names (e.g., `'Globe'`). Create a small icon resolver map in `ModuleAccessCard` that maps string → lucide component for the ~20 icons used.
 
-Each section replaces its `useScrollReveal` pattern:
+### Access pills (reuse Badge)
+- **Full** → `variant="success"` 
+- **Partial** → `variant="warning"`
+- **None** → `variant="secondary"`
 
-| Component | Change |
-|-----------|--------|
-| `WhyProperaCards.tsx` | Remove `useScrollReveal`, wrap content in `ScrollReveal`, wrap each `ValueCard` in `RevealItem` instead of `stagger-N` classes |
-| `PlatformModules.tsx` | Same pattern -- `ScrollReveal` container, `RevealItem` for header + each `ModuleCard` |
-| `HowItWorks.tsx` | `ScrollReveal` container, `RevealItem` for each `StepCard` |
-| `GlobalReady.tsx` | `ScrollReveal` container, `RevealItem` for header, chips, showcases |
-| `HomeFinalCTA.tsx` | `ScrollReveal` container, `RevealItem` for h2, p, buttons, reassurance |
-| `HomeHero.tsx` | Already uses Framer Motion -- add `style={{ willChange: 'opacity, transform' }}` to each `motion.div` |
+### Inheritance badges
+- **Inherited** → subtle/outline badge
+- **Custom** → info badge
+- **Restricted** → destructive-lite badge
 
-#### 4. Update pricing page sections (5 files)
-
-| Component | Change |
-|-----------|--------|
-| `PricingTrustSection.tsx` | Replace `useScrollReveal` with `ScrollReveal` + `RevealItem` |
-| `PricingCTASection.tsx` | Same |
-| `PricingComparisonMatrix.tsx` | Same |
-| `PricingPlanGrid.tsx` | Same |
-| `PricingFAQSection.tsx` | Same |
-| `PricingAddonsSection.tsx` | Same |
-| `PricingTeaser.tsx` | Already uses Framer Motion -- add `will-change` style |
-| `TrustStrip.tsx` | Already uses Framer Motion -- add `will-change` style |
-
-#### 5. Update `GuestJourneyFlow.tsx`
-
-Replace `useScrollReveal` with `ScrollReveal`.
-
-#### 6. CSS cleanup in `src/index.css`
-
-Remove the now-unused CSS rules (lines ~2150-2170):
-- `.section-reveal` / `.section-revealed` opacity/transform rules
-- `.section-revealed .stagger-1` through `.stagger-7` delay rules
-
-Keep all other CSS animations (hover effects, chart-bar-grow, chip-stagger, etc.) as they serve different purposes.
-
-#### 7. No changes to `useScrollReveal.ts`
-
-The hook file stays as-is -- it may still be used by non-marketing components. If no remaining consumers exist after all updates, it can be removed in a follow-up.
-
-### Performance Guarantees
-
-- **`will-change: opacity, transform`** on every animating `motion.div` -- tells the browser to composite these elements on their own GPU layer
-- **`viewport={{ once: true }}`** -- animations fire once and Framer disconnects the IntersectionObserver, zero ongoing cost
-- **`staggerChildren: 0.08`** -- Framer batches child animations off the main thread
-- **Reduced motion / low-power** -- bypasses all animation, renders static `div` elements
-- **No layout shift** -- `y: 24` translate doesn't affect document flow (transform-only, no height/margin changes)
-- **Lazy-loaded sections** remain lazy -- `ScrollReveal` is lightweight (~200 bytes) and doesn't import framer-motion's heavy features
-
-### Files Changed
-
-| File | Type |
-|------|------|
-| `src/components/motion/ScrollReveal.tsx` | **New** |
-| `src/components/layout/MarketingSection.tsx` | Edit |
-| `src/components/landing/WhyProperaCards.tsx` | Edit |
-| `src/components/landing/PlatformModules.tsx` | Edit |
-| `src/components/landing/HowItWorks.tsx` | Edit |
-| `src/components/landing/GlobalReady.tsx` | Edit |
-| `src/components/landing/HomeFinalCTA.tsx` | Edit |
-| `src/components/landing/HomeHero.tsx` | Edit (add will-change) |
-| `src/components/landing/PricingTeaser.tsx` | Edit (add will-change) |
-| `src/components/landing/TrustStrip.tsx` | Edit (add will-change) |
-| `src/components/pricing/PricingTrustSection.tsx` | Edit |
-| `src/components/pricing/PricingCTASection.tsx` | Edit |
-| `src/components/pricing/PricingComparisonMatrix.tsx` | Edit |
-| `src/components/pricing/PricingPlanGrid.tsx` | Edit |
-| `src/components/pricing/PricingFAQSection.tsx` | Edit |
-| `src/components/pricing/PricingAddonsSection.tsx` | Edit |
-| `src/components/illustrations/GuestJourneyFlow.tsx` | Edit |
-| `src/index.css` | Edit (remove unused rules) |
-
-18 files total. No new dependencies needed (framer-motion already installed).
+### No DB changes needed
+Pure frontend UI layer on top of existing data hooks.
 
