@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { 
   Search, 
   UserPlus, 
@@ -25,7 +26,10 @@ import {
   MoreVertical,
   Key,
   X,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -39,6 +43,8 @@ import { toast } from 'sonner';
 import { StaffInviteDialog } from '@/components/staff/StaffInviteDialog';
 import { CreateStaffAccountDialog } from '@/components/staff/CreateStaffAccountDialog';
 import { ResetPasswordDialog } from '@/components/staff/ResetPasswordDialog';
+import { StaffProfileEditDialog } from '@/components/staff/StaffProfileEditDialog';
+import { StaffProfileViewDialog } from '@/components/staff/StaffProfileViewDialog';
 import { UserAccessDrawer } from '@/components/access/UserAccessDrawer';
 import { ResortRole } from '@/types/database';
 import { cn } from '@/lib/utils';
@@ -106,6 +112,9 @@ export default function AccessManagementPage() {
   const [createAccountOpen, setCreateAccountOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [accessDrawerOpen, setAccessDrawerOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<StaffMember | null>(null);
 
   const canManage = superAdmin || hasPermission('access.users.edit');
@@ -245,6 +254,35 @@ export default function AccessManagementPage() {
   const handleOpenAccessDrawer = (member: StaffMember) => {
     setSelectedUser(member);
     setAccessDrawerOpen(true);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!selectedUser || !currentResort) return;
+
+    if (selectedUser.user_id === user?.id && selectedUser.resort_role === 'RESORT_ADMIN') {
+      const adminCount = staffMembers.filter(m => m.resort_role === 'RESORT_ADMIN').length;
+      if (adminCount <= 1) {
+        toast.error('Cannot remove yourself as the only Resort Admin');
+        setDeleteDialogOpen(false);
+        return;
+      }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('resort_memberships')
+        .delete()
+        .eq('id', selectedUser.id);
+
+      if (error) throw error;
+
+      toast.success('Staff member removed from resort');
+      setDeleteDialogOpen(false);
+      refetchStaff();
+    } catch (error) {
+      console.error('Error deleting membership:', error);
+      toast.error('Failed to remove staff member');
+    }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
@@ -388,6 +426,21 @@ export default function AccessManagementPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(member);
+                                setViewDialogOpen(true);
+                              }}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(member);
+                                setEditDialogOpen(true);
+                              }}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleOpenAccessDrawer(member)}>
                                 <Key className="h-4 w-4 mr-2" />
                                 Edit Access
@@ -400,6 +453,17 @@ export default function AccessManagementPage() {
                               >
                                 <Settings className="h-4 w-4 mr-2" />
                                 Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => {
+                                  setSelectedUser(member);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove Member
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -544,6 +608,29 @@ export default function AccessManagementPage() {
             userName={selectedUser.profile?.full_name || selectedUser.profile?.username || 'User'}
           />
 
+          <StaffProfileViewDialog
+            open={viewDialogOpen}
+            onOpenChange={setViewDialogOpen}
+            userId={selectedUser.user_id}
+            resortRole={selectedUser.resort_role}
+            department={selectedUser.department}
+            memberSince={selectedUser.created_at}
+            onEdit={() => {
+              setViewDialogOpen(false);
+              setEditDialogOpen(true);
+            }}
+          />
+
+          <StaffProfileEditDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            userId={selectedUser.user_id}
+            membershipId={selectedUser.id}
+            currentRole={selectedUser.resort_role}
+            currentDepartment={selectedUser.department}
+            onSuccess={() => refetchStaff()}
+          />
+
           <UserAccessDrawer
             open={accessDrawerOpen}
             onOpenChange={setAccessDrawerOpen}
@@ -557,6 +644,25 @@ export default function AccessManagementPage() {
           />
         </>
       )}
+
+      {/* Remove Member Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {selectedUser?.profile?.full_name || selectedUser?.profile?.username || 'this member'} from {currentResort.name}?
+              They will no longer have access to this resort's data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMember} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

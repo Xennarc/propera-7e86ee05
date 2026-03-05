@@ -396,7 +396,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink 
-                      to="/staff/settings/resort-staff"
+                      to="/staff/settings/access"
                       className={cn(
                         "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-sidebar-foreground/70 transition-all duration-200",
                         "hover:bg-sidebar-accent hover:text-sidebar-foreground"
