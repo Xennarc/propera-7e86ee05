@@ -85,7 +85,7 @@ export function DepartmentsManagerSection({ resortId }: Props) {
                 Manage operational departments that handle guest requests
               </CardDescription>
             </div>
-            <Button onClick={openCreateDialog}>
+            <Button onClick={() => setWizardOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Department
             </Button>
