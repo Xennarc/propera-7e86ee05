@@ -296,13 +296,22 @@ function DeptPlannerContent() {
     return allToday.filter(s => {
       if (s.coverageStatus === 'amber' || s.coverageStatus === 'red') return true;
       if ((conflictCounts[s.id] ?? 0) > 0) return true;
+      if (s.missingPickup) return true;
+      if (s.readinessBlockerCount > 0) return true;
       const [h, m] = (s.start_time ?? '00:00').split(':').map(Number);
       const startMin = h * 60 + m;
       if (startMin <= soonThreshold && startMin >= nowMinutes && s.booked > 0) return true;
       return false;
     }).sort((a, b) => {
-      const order = { red: 0, amber: 1, green: 2 } as const;
-      const diff = order[a.coverageStatus] - order[b.coverageStatus];
+      // Priority: red > missing pickup > readiness blockers > amber > green
+      const urgency = (s: SessionSlot) => {
+        if (s.coverageStatus === 'red') return 0;
+        if (s.missingPickup) return 1;
+        if (s.readinessBlockerCount > 0) return 2;
+        if (s.coverageStatus === 'amber') return 3;
+        return 4;
+      };
+      const diff = urgency(a) - urgency(b);
       if (diff !== 0) return diff;
       return (a.start_time ?? '').localeCompare(b.start_time ?? '');
     });
