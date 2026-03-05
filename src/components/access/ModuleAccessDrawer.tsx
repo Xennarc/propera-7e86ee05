@@ -193,6 +193,9 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                 </div>
               )}
             </ScrollArea>
+            {sessionChanges.length > 0 && (
+              <ChangeImpactSummary changes={sessionChanges} />
+            )}
           </TabsContent>
 
           <TabsContent value="audit" className="flex-1 min-h-0 mt-0">
