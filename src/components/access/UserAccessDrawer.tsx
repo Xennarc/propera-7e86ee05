@@ -194,24 +194,30 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId, readOnly:
                             </p>
                           )}
                         </div>
-                        <Button
-                          variant={isAssigned ? "destructive" : "default"}
-                          size="sm"
-                          disabled={isPending}
-                          onClick={() => handleRoleToggle(role.id, isAssigned)}
-                        >
-                          {isAssigned ? (
-                            <>
-                              <Minus className="h-4 w-4 mr-1" />
-                              Remove
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Assign
-                            </>
-                          )}
-                        </Button>
+                        {readOnly ? (
+                          <Badge variant={isAssigned ? "default" : "secondary"}>
+                            {isAssigned ? 'Assigned' : 'Not Assigned'}
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant={isAssigned ? "destructive" : "default"}
+                            size="sm"
+                            disabled={isPending}
+                            onClick={() => handleRoleToggle(role.id, isAssigned)}
+                          >
+                            {isAssigned ? (
+                              <>
+                                <Minus className="h-4 w-4 mr-1" />
+                                Remove
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Assign
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     );
                   })}
