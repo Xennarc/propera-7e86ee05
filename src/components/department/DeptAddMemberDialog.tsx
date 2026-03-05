@@ -11,6 +11,7 @@ interface Props {
   onClose: () => void;
   onAdded: () => void;
   departmentId: string;
+  departmentKey: string;
   resortId: string;
   existingUserIds: string[];
 }
@@ -21,7 +22,7 @@ interface StaffUser {
   username: string | null;
 }
 
-export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, resortId, existingUserIds }: Props) {
+export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, departmentKey, resortId, existingUserIds }: Props) {
   const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,7 +78,7 @@ export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, reso
         .insert({
           resort_id: resortId,
           department_id: departmentId,
-          department_key: '', // Legacy field — will be populated by trigger or ignored
+          department_key: departmentKey,
           user_id: user.id,
           dept_role: 'staff',
           is_active: true,
