@@ -240,6 +240,10 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId, readOnly:
                     if (!categoryPerms?.length) return null;
 
                     const isDangerZone = category === 'Danger Zone';
+                    const isPlatformCategory = category === 'Danger Zone' || category === 'Identity & Access';
+
+                    // Hide platform-critical categories from non-super-admins
+                    if (isDangerZone && !superAdmin) return null;
 
                     return (
                       <div key={category}>
@@ -292,15 +296,17 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId, readOnly:
                                   {state === 'revoke' && (
                                     <Badge variant="destructive" className="text-xs">Revoked</Badge>
                                   )}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    disabled={isPending || isRestricted}
-                                    onClick={() => handlePermissionOverride(perm.key, state)}
-                                  >
-                                    <RefreshCw className="h-3 w-3" />
-                                  </Button>
+                                  {!readOnly && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      disabled={isPending || isRestricted}
+                                      onClick={() => handlePermissionOverride(perm.key, state)}
+                                    >
+                                      <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             );
