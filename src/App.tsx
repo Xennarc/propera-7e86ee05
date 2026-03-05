@@ -103,6 +103,7 @@ const DeptSessionRunSheetPage = lazy(() => import("./pages/department/DeptSessio
 const DeptResourcesAssetsPage = lazy(() => import("./pages/department/DeptResourcesAssetsPage"));
 const DeptResourcesShiftsPage = lazy(() => import("./pages/department/DeptResourcesShiftsPage"));
 const DeptResourcesUnavailabilityPage = lazy(() => import("./pages/department/DeptResourcesUnavailabilityPage"));
+const DeptManageAccessPage = lazy(() => import("./pages/department/DeptManageAccessPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
 const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
@@ -333,6 +334,7 @@ const App = () => (
                   <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
                   <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
                   <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
+                  <Route path="manage/access" element={<DeptManageAccessPage />} />
                 </Route>
                 
                 {/* Demo auto-login routes */}
