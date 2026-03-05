@@ -37,6 +37,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   const { user, memberships, isSuperAdmin } = useAuth();
   const params = useParams<{ deptKey: string }>();
   const deptKey = deptKeyOverride ?? params.deptKey;
+  const v2Enabled = useFeatureEnabled('dept_scope_v2_enabled');
 
   const [departments, setDepartments] = useState<ResortDepartment[]>([]);
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
