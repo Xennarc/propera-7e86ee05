@@ -9,12 +9,9 @@ import { toZonedTime } from 'date-fns-tz';
 import { deptKeyToCategory } from '@/lib/department-utils';
 import { DepartureCard, type DepartureCardData } from '@/components/activities/ops/DepartureCard';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
-import { parseActivityRequirements } from '@/lib/activity-requirements';
-import { isReadinessComplete } from '@/components/activities/ops/GuestReadinessRow';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
@@ -37,7 +34,7 @@ function DeptInboxContent() {
   const [showAll, setShowAll] = useState(false);
 
   const resortId = currentDepartment?.resort_id;
-  const tz = 'UTC'; // Will use resort timezone when available
+  const tz = 'UTC';
   const category = deptKeyToCategory(deptKey);
 
   const { data: sessions = [], isLoading, refetch } = useQuery({
@@ -48,11 +45,11 @@ function DeptInboxContent() {
       const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
       const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('activity_sessions')
         .select(`
           id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category, requirements_json)
+          activity:activities(name, category)
         `)
         .eq('resort_id', resortId)
         .in('date', [todayStr, tomorrowStr])
@@ -60,12 +57,7 @@ function DeptInboxContent() {
         .order('date')
         .order('start_time');
 
-      // Filter by category when department is known
-      // Note: This uses the joined activity category. For direct filtering we query all and filter client-side.
-      const { data, error } = await query;
       if (error) throw error;
-
-      // Client-side category filter (activities join doesn't support .eq on nested)
       if (category) {
         return (data ?? []).filter((s: any) => s.activity?.category === category);
       }
@@ -95,55 +87,29 @@ function DeptInboxContent() {
     enabled: sessionIds.length > 0,
   });
 
-  // Readiness
-  const { data: readinessBySession = {} } = useQuery({
-    queryKey: ['dept-inbox-readiness', sessionIds],
-    queryFn: async () => {
-      if (sessionIds.length === 0) return {};
-      const { data } = await supabase
-        .from('activity_booking_readiness')
-        .select('session_id, waiver_status, medical_status, cert_status, gear_status')
-        .in('session_id', sessionIds);
-      const grouped: Record<string, any[]> = {};
-      for (const r of data ?? []) {
-        if (!grouped[r.session_id]) grouped[r.session_id] = [];
-        grouped[r.session_id].push(r);
-      }
-      return grouped;
-    },
-    enabled: sessionIds.length > 0,
-  });
-
-  // Build departure cards
-  const cards: DepartureCardData[] = useMemo(() => {
+  // Build departure cards matching DepartureCardData interface exactly
+  const cards = useMemo(() => {
     const now = new Date();
-    return sessions.map((s: any) => {
+    return sessions.map((s: any): DepartureCardData & { _minutesUntil: number } => {
       const activity = s.activity;
-      const reqs = parseActivityRequirements(activity?.requirements_json);
-      const readinessRows = readinessBySession[s.id] ?? [];
       const totalGuests = bookingCounts[s.id] ?? 0;
-      const readyCount = readinessRows.filter((r: any) => isReadinessComplete(r, reqs)).length;
       const sessionDateTime = new Date(`${s.date}T${s.start_time}`);
       const minutesUntil = differenceInMinutes(sessionDateTime, now);
 
       return {
         sessionId: s.id,
         activityName: activity?.name ?? 'Unknown',
-        category: activity?.category ?? '',
-        date: s.date,
+        status: s.status,
         startTime: s.start_time,
         endTime: s.end_time,
-        status: s.status,
+        date: s.date,
+        bookedPax: totalGuests,
         capacity: s.capacity,
-        totalGuests,
-        readyGuests: readyCount,
-        totalReadiness: readinessRows.length,
-        minutesUntilStart: minutesUntil,
-        isStartingSoon: minutesUntil <= STARTING_SOON_MINUTES && minutesUntil > 0,
-        requirements: reqs,
+        startingSoon: minutesUntil <= STARTING_SOON_MINUTES && minutesUntil > 0,
+        _minutesUntil: minutesUntil,
       };
     });
-  }, [sessions, bookingCounts, readinessBySession]);
+  }, [sessions, bookingCounts]);
 
   // Filter
   const filteredCards = useMemo(() => {
@@ -151,9 +117,9 @@ function DeptInboxContent() {
     let result = [...cards];
 
     if (filter === 'now') {
-      result = result.filter(c => c.minutesUntilStart <= STARTING_SOON_MINUTES);
+      result = result.filter(c => c._minutesUntil <= STARTING_SOON_MINUTES);
     } else if (filter === 'next2h') {
-      result = result.filter(c => c.minutesUntilStart <= 120);
+      result = result.filter(c => c._minutesUntil <= 120);
     } else if (filter === 'today') {
       const todayStr = format(now, 'yyyy-MM-dd');
       result = result.filter(c => c.date === todayStr);
@@ -167,8 +133,7 @@ function DeptInboxContent() {
       result = result.filter(c => c.activityName.toLowerCase().includes(q));
     }
 
-    // Sort: starting soonest first
-    result.sort((a, b) => a.minutesUntilStart - b.minutesUntilStart);
+    result.sort((a, b) => a._minutesUntil - b._minutesUntil);
     return result;
   }, [cards, filter, searchQuery]);
 
@@ -235,11 +200,7 @@ function DeptInboxContent() {
       ) : (
         <div className="space-y-2">
           {visibleCards.map(card => (
-            <DepartureCard
-              key={card.sessionId}
-              data={card}
-              onTap={() => navigate(`/dept/${deptKey}/session/${card.sessionId}`)}
-            />
+            <DepartureCard key={card.sessionId} data={card} />
           ))}
           {filteredCards.length > MAX_VISIBLE && !showAll && (
             <Button

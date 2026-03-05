@@ -224,7 +224,7 @@ function DeptPlannerContent() {
         </div>
       )}
 
-      {/* Selected day detail */}
+      {/* Selected day detail (mobile) */}
       {sessionsByDate[dateStr]?.length > 0 && (
         <div className="space-y-2 md:hidden">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -244,7 +244,7 @@ function DeptPlannerContent() {
                   <div className="font-medium text-sm truncate">{s.activity_name}</div>
                   <div className="text-xs text-muted-foreground">{s.booked}/{s.capacity} booked</div>
                 </div>
-                <StatusChip status={s.status} size="sm" />
+                <StatusChip status={s.status} />
               </CardContent>
             </Card>
           ))}

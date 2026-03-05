@@ -4,16 +4,13 @@ import { useDepartment } from '@/contexts/DepartmentContext';
 import { useDailyOpsSheet, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { deptKeyToOps } from '@/lib/department-utils';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
-import { OpsFilterChips, type OpsFilter } from '@/components/activities/ops/OpsFilterChips';
-import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { format, parseISO, addDays, subDays, isToday } from 'date-fns';
 import { Search, CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, ShieldAlert, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 function getTimeBlock(startTime: string): 'morning' | 'afternoon' | 'evening' {
   const hour = parseInt(startTime?.slice(0, 2) ?? '0', 10);
@@ -27,14 +24,12 @@ const BLOCK_LABELS = { morning: '🌅 Morning', afternoon: '☀️ Afternoon', e
 function DeptMasterSheetContent() {
   const { currentDepartment } = useDepartment();
   const { deptKey } = useParams<{ deptKey: string }>();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const dateStr = searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [attentionMode, setAttentionMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
 
   const opsDept = deptKeyToOps(deptKey);
   const resortId = currentDepartment?.resort_id;
@@ -76,11 +71,9 @@ function DeptMasterSheetContent() {
             {summary ? ` · ${summary.sessions} sessions · ${summary.total_guests} guests` : ''}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Date nav + search + attention */}
@@ -162,11 +155,7 @@ function DeptMasterSheetContent() {
                 </div>
                 <div className="space-y-2">
                   {blockRows.map(row => (
-                    <OpsSheetRowCard
-                      key={row.session_id}
-                      row={row}
-                      onTap={() => navigate(`/dept/${deptKey}/session/${row.session_id}`)}
-                    />
+                    <OpsSheetRowCard key={row.session_id} row={row} />
                   ))}
                 </div>
               </div>

@@ -1,6 +1,7 @@
 /**
- * DeptSessionRunSheetPage – Wraps the existing SessionOpsRunSheet
- * with department-level guards and navigation.
+ * DeptSessionRunSheetPage – Department-scoped session run sheet.
+ * Fetches session data filtered by department context and renders
+ * manifest + setup tabs with department-level guards.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
@@ -12,13 +13,11 @@ import { Activity, ActivitySession, ActivityBooking, Guest } from '@/types/datab
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
-import { BottomActionStrip } from '@/components/ui/bottom-action-strip';
 import { StatusChip } from '@/components/ui/status-chip';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Users, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 function DeptSessionRunSheetContent() {
   const { sessionId, deptKey } = useParams<{ sessionId: string; deptKey: string }>();
@@ -48,7 +47,6 @@ function DeptSessionRunSheetContent() {
       if (error) throw error;
       setSession(sessionData as any);
 
-      // Fetch bookings
       const { data: bookingData } = await supabase
         .from('activity_bookings')
         .select(`
@@ -109,7 +107,7 @@ function DeptSessionRunSheetContent() {
             <span>{format(parseISO(session.date), 'EEE, MMM d')}</span>
             <span>·</span>
             <span>{session.start_time?.slice(0, 5)} – {session.end_time?.slice(0, 5)}</span>
-            <StatusChip status={session.status} size="sm" />
+            <StatusChip status={session.status} />
           </div>
         </div>
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={fetchSession}>
@@ -174,7 +172,7 @@ function DeptSessionRunSheetContent() {
                       Room {booking.room_number} · {booking.num_adults}A{booking.num_children > 0 ? ` ${booking.num_children}C` : ''}
                     </div>
                   </div>
-                  <StatusChip status={booking.status} size="sm" />
+                  <StatusChip status={booking.status} />
                 </CardContent>
               </Card>
             ))
