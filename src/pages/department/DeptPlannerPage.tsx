@@ -223,6 +223,30 @@ function DeptPlannerContent() {
     return grouped;
   }, [sessions, bookingCounts, sessionAssignments]);
 
+  // Attention mode: filter today's sessions to high-risk items
+  const attentionItems = useMemo(() => {
+    if (!attentionMode) return [];
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const allToday = sessionsByDate[todayStr] ?? [];
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const soonThreshold = nowMinutes + 90;
+
+    return allToday.filter(s => {
+      if (s.coverageStatus === 'amber' || s.coverageStatus === 'red') return true;
+      if ((conflictCounts[s.id] ?? 0) > 0) return true;
+      const [h, m] = (s.start_time ?? '00:00').split(':').map(Number);
+      const startMin = h * 60 + m;
+      if (startMin <= soonThreshold && startMin >= nowMinutes && s.booked > 0) return true;
+      return false;
+    }).sort((a, b) => {
+      const order = { red: 0, amber: 1, green: 2 } as const;
+      const diff = order[a.coverageStatus] - order[b.coverageStatus];
+      if (diff !== 0) return diff;
+      return (a.start_time ?? '').localeCompare(b.start_time ?? '');
+    });
+  }, [attentionMode, sessionsByDate, conflictCounts]);
+
   const setWeekDate = useCallback((d: string) => {
     setSearchParams({ date: d });
   }, [setSearchParams]);
