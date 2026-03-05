@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DepartmentSetupWizard } from '@/components/department/DepartmentSetupWizard';
 
 interface Props {
   resortId: string;
