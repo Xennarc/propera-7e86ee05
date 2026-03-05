@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getDepartmentActivityScope } from '@/lib/department-utils';
 import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
+import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
+import { opsEventToPlannerSession } from '@/lib/ops/ops-event-compat';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

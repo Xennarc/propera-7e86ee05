@@ -4,6 +4,7 @@ import { useDepartment } from '@/contexts/DepartmentContext';
 import { useDailyOpsSheet, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { getDepartmentOpsScope } from '@/lib/department-utils';
 import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
+import { useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
