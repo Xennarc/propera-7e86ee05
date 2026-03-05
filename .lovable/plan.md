@@ -1,143 +1,105 @@
 
 
-## Performance-First Framer Motion Scroll Reveals
+## Phase 3: Module Access Controls and Expandable Overrides
 
-### Current State
+### Current state
+- `ModuleAccessCard` is a static row showing access pill + inheritance badge + a non-functional chevron
+- `ModuleAccessDrawer` passes `readOnly` but has no mutation wiring
+- Existing mutation hooks (`useSetPermissionOverride`, `useRemovePermissionOverride`) work via RPCs and are fully functional in the legacy `UserAccessDrawer`
+- Each module's `permissionKeys[]` maps to DB `permissions` rows that have `key`, `label`, `description`
 
-The public pages use **two different animation systems** that need unifying:
+### Architecture
 
-1. **CSS-based system** (`useScrollReveal` hook + `.section-reveal` / `.stagger-N` classes) -- used by 11 components: `WhyProperaCards`, `PlatformModules`, `HowItWorks`, `GlobalReady`, `HomeFinalCTA`, `MarketingSection`, `GuestJourneyFlow`, and all 5 pricing sections.
+#### 1. Add access level tiers to module config (`permission-modules.ts`)
 
-2. **Framer Motion** (`whileInView`) -- used by 3 components: `HomeHero`, `PricingTeaser`, `TrustStrip`.
+Add an `accessLevels` definition per module that maps tier names to permission key subsets:
 
-The CSS system has no `will-change` hints on the animating containers, uses `transform: translateY(30px)` which can cause layout shift during the transition, and the stagger system relies on CSS `transition-delay` which can't be optimized by Framer Motion's layout engine.
-
-### Plan
-
-Create a single, reusable Framer Motion component that replaces the CSS-based reveal system across all public pages. This gives us GPU-composited animations with `will-change`, viewport-triggered `whileInView`, and staggered children via Framer's `staggerChildren` -- all in one consistent system.
-
-### Technical Details
-
-#### 1. New component: `src/components/motion/ScrollReveal.tsx`
-
-A thin wrapper around `motion.div` that provides the fade-in-up effect:
-
-```tsx
-import { motion, type Variants } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1], // cubic-bezier for smooth decel
-      staggerChildren: 0.08,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
+```typescript
+export interface ModuleAccessLevel {
+  id: 'none' | 'view' | 'operate' | 'admin';
+  label: string;
+  description: string;  // plain-English preview
+  permissionKeys: string[];  // keys granted at this level (cumulative)
+}
 ```
 
-- `ScrollReveal` -- container with `whileInView="visible"`, `viewport={{ once: true, margin: "-50px" }}`, and `style={{ willChange: 'opacity, transform' }}`
-- `RevealItem` -- child wrapper using `itemVariants` for stagger
-- Both respect `useAnimationPreference()` -- if reduced motion or low-power, render as plain `div` with no animation
+Each module gets an `accessLevels` array. Example for Activities:
+- **No Access** → `[]`
+- **View Only** → `['activities.view', 'sessions.view', 'bookings.activity.view']`
+- **Operate** → above + `['activities.create', 'activities.edit', 'sessions.create', 'sessions.edit', 'bookings.activity.create', 'bookings.activity.edit']`
+- **Admin** → all keys including `*.delete`, `*.cancel`
 
-#### 2. Update `MarketingSection.tsx`
+Add a helper `getEffectiveAccessLevel(userPerms, moduleId)` that returns which tier best matches the user's current permissions.
 
-Replace `useScrollReveal` + CSS class toggling with `ScrollReveal` wrapper. Remove the `section-reveal` / `section-revealed` class logic. The component becomes:
+#### 2. Add human-readable per-permission labels (`permission-modules.ts`)
 
-```tsx
-<ScrollReveal>
-  <div className={cn('mx-auto px-6 relative', sizeClasses[size])}>
-    {children}
-  </div>
-</ScrollReveal>
+Add a `permissionLabels` map per module for the advanced section:
+
+```typescript
+permissionLabels: {
+  'activities.view': 'View activities',
+  'activities.create': 'Create and edit activities',
+  // ...
+}
 ```
 
-#### 3. Update landing page sections (6 files)
+This avoids a DB round-trip just to show labels in the expanded section.
 
-Each section replaces its `useScrollReveal` pattern:
+#### 3. Rewrite `ModuleAccessCard` as expandable
 
-| Component | Change |
-|-----------|--------|
-| `WhyProperaCards.tsx` | Remove `useScrollReveal`, wrap content in `ScrollReveal`, wrap each `ValueCard` in `RevealItem` instead of `stagger-N` classes |
-| `PlatformModules.tsx` | Same pattern -- `ScrollReveal` container, `RevealItem` for header + each `ModuleCard` |
-| `HowItWorks.tsx` | `ScrollReveal` container, `RevealItem` for each `StepCard` |
-| `GlobalReady.tsx` | `ScrollReveal` container, `RevealItem` for header, chips, showcases |
-| `HomeFinalCTA.tsx` | `ScrollReveal` container, `RevealItem` for h2, p, buttons, reassurance |
-| `HomeHero.tsx` | Already uses Framer Motion -- add `style={{ willChange: 'opacity, transform' }}` to each `motion.div` |
+Transform from a static row to a collapsible card:
+- **Collapsed** (default): icon, name, description, access level selector (Select dropdown: No Access / View / Operate / Admin), inheritance badge, override count chip ("2 overrides"), expand chevron
+- **Expanded**: Shows the advanced granular permission list inside the card. Each permission is a row with: label, description, and a 3-state toggle (Inherited / Grant / Deny) using the existing `useSetPermissionOverride` / `useRemovePermissionOverride` mutations
+- When `readOnly` or `!canGrant`, the selector and toggles are disabled
 
-#### 4. Update pricing page sections (5 files)
+#### 4. Wire mutations into `ModuleAccessDrawer`
 
-| Component | Change |
-|-----------|--------|
-| `PricingTrustSection.tsx` | Replace `useScrollReveal` with `ScrollReveal` + `RevealItem` |
-| `PricingCTASection.tsx` | Same |
-| `PricingComparisonMatrix.tsx` | Same |
-| `PricingPlanGrid.tsx` | Same |
-| `PricingFAQSection.tsx` | Same |
-| `PricingAddonsSection.tsx` | Same |
-| `PricingTeaser.tsx` | Already uses Framer Motion -- add `will-change` style |
-| `TrustStrip.tsx` | Already uses Framer Motion -- add `will-change` style |
+- Pass `userId` and `resortId` down to `ModuleAccessCard` via props or context
+- When the admin selects a module-level tier:
+  - Compute the diff between current overrides and the target tier's permission set
+  - Call `set_permission_override` for each key that needs granting/revoking
+  - Call `remove_permission_override` for keys that should return to role default
+- When an individual permission is toggled in advanced mode, call the single override mutation
+- Invalidate queries on success (already handled by the mutation hooks)
 
-#### 5. Update `GuestJourneyFlow.tsx`
+#### 5. Show customization state
 
-Replace `useScrollReveal` with `ScrollReveal`.
+- If zero overrides in the module → badge: "Inherited"
+- If overrides exist → badge: "Custom" + count chip: "3 overrides"
+- If overrides make access more restrictive than role default → badge includes "Restricted" variant
+- If overrides elevate beyond role default → badge: "Elevated"
 
-#### 6. CSS cleanup in `src/index.css`
+Determine this by comparing target user's role-only permissions (from `useRolePermissions` of their assigned role) against effective permissions. New helper: `getModuleCustomizationState(rolePerms, effectivePerms, overrideKeys, moduleId)` returns `'inherited' | 'customized' | 'restricted' | 'elevated'`.
 
-Remove the now-unused CSS rules (lines ~2150-2170):
-- `.section-reveal` / `.section-revealed` opacity/transform rules
-- `.section-revealed .stagger-1` through `.stagger-7` delay rules
+### Files to create
+- None (all changes are to existing files)
 
-Keep all other CSS animations (hover effects, chart-bar-grow, chip-stagger, etc.) as they serve different purposes.
+### Files to edit
 
-#### 7. No changes to `useScrollReveal.ts`
+1. **`src/config/permission-modules.ts`**
+   - Add `accessLevels` and `permissionLabels` to `ModuleConfig` interface
+   - Define access level tiers for each module
+   - Add `getEffectiveAccessLevel()` and `getModuleCustomizationState()` helpers
 
-The hook file stays as-is -- it may still be used by non-marketing components. If no remaining consumers exist after all updates, it can be removed in a follow-up.
+2. **`src/components/access/ModuleAccessCard.tsx`**
+   - Rewrite as a `Collapsible` with expanded advanced section
+   - Add access level `Select` dropdown (No Access / View / Operate / Admin)
+   - Add per-permission toggle rows in expanded state
+   - Accept `userId`, `resortId`, `rolePermissions`, `userOverrides` props
+   - Wire `useSetPermissionOverride` and `useRemovePermissionOverride`
+   - Show override count chip
 
-### Performance Guarantees
+3. **`src/components/access/ModuleAccessList.tsx`**
+   - Pass through new props (userId, resortId, rolePermissions, userOverrides) to each card
 
-- **`will-change: opacity, transform`** on every animating `motion.div` -- tells the browser to composite these elements on their own GPU layer
-- **`viewport={{ once: true }}`** -- animations fire once and Framer disconnects the IntersectionObserver, zero ongoing cost
-- **`staggerChildren: 0.08`** -- Framer batches child animations off the main thread
-- **Reduced motion / low-power** -- bypasses all animation, renders static `div` elements
-- **No layout shift** -- `y: 24` translate doesn't affect document flow (transform-only, no height/margin changes)
-- **Lazy-loaded sections** remain lazy -- `ScrollReveal` is lightweight (~200 bytes) and doesn't import framer-motion's heavy features
+4. **`src/components/access/ModuleAccessDrawer.tsx`**
+   - Fetch role permissions for the target user's primary role via `useRolePermissions`
+   - Pass rolePermissions and userOverrides down to `ModuleAccessList`
+   - Invalidate `target-effective-permissions` query key on override changes
 
-### Files Changed
+5. **`src/hooks/useModulePermissions.ts`**
+   - Update `ModuleAccessState` to include `customizationState` and `overrideCount`
 
-| File | Type |
-|------|------|
-| `src/components/motion/ScrollReveal.tsx` | **New** |
-| `src/components/layout/MarketingSection.tsx` | Edit |
-| `src/components/landing/WhyProperaCards.tsx` | Edit |
-| `src/components/landing/PlatformModules.tsx` | Edit |
-| `src/components/landing/HowItWorks.tsx` | Edit |
-| `src/components/landing/GlobalReady.tsx` | Edit |
-| `src/components/landing/HomeFinalCTA.tsx` | Edit |
-| `src/components/landing/HomeHero.tsx` | Edit (add will-change) |
-| `src/components/landing/PricingTeaser.tsx` | Edit (add will-change) |
-| `src/components/landing/TrustStrip.tsx` | Edit (add will-change) |
-| `src/components/pricing/PricingTrustSection.tsx` | Edit |
-| `src/components/pricing/PricingCTASection.tsx` | Edit |
-| `src/components/pricing/PricingComparisonMatrix.tsx` | Edit |
-| `src/components/pricing/PricingPlanGrid.tsx` | Edit |
-| `src/components/pricing/PricingFAQSection.tsx` | Edit |
-| `src/components/pricing/PricingAddonsSection.tsx` | Edit |
-| `src/components/illustrations/GuestJourneyFlow.tsx` | Edit |
-| `src/index.css` | Edit (remove unused rules) |
-
-18 files total. No new dependencies needed (framer-motion already installed).
+### No DB changes needed
+All mutations use existing RPCs (`set_permission_override`, `remove_permission_override`).
 
