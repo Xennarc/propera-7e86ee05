@@ -26,7 +26,8 @@ import {
   useUserOverrides, 
   usePermissionsCatalog,
   useUserAccessAudit,
-  useRolePermissions
+  useRolePermissions,
+  useEffectivePermissions
 } from '@/hooks/useEffectivePermissions';
 import { 
   useAssignRole, 
@@ -36,6 +37,7 @@ import {
 } from '@/hooks/useAccessManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Permission, PERMISSION_CATEGORIES, AUDIT_ACTION_LABELS } from '@/types/rbac';
+import { getVisibleModules } from '@/config/permission-modules';
 import { cn } from '@/lib/utils';
 
 interface UserAccessDrawerProps {
