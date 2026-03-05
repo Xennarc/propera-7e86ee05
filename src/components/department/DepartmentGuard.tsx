@@ -19,7 +19,7 @@ interface DepartmentGuardProps {
 
 export function DepartmentGuard({ children, moduleKey, managerOnly = false }: DepartmentGuardProps) {
   const { deptKey } = useParams<{ deptKey: string }>();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isSuperAdmin } = useAuth();
   const { currentDepartment, currentMembership, hasModule, isManager, loading } = useDepartment();
 
   if (authLoading || loading) {
