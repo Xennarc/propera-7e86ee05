@@ -431,7 +431,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
 
         if (memErr) throw memErr;
 
-        // 3) Apply module overrides (DB trigger already created defaults; upsert to match wizard config)
+        // 5) Apply module overrides (DB trigger already created defaults; upsert to match wizard config)
         const moduleOverrides: Array<{
           resort_id: string;
           department_id: string;
