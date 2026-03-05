@@ -5,18 +5,12 @@ import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
 import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
-import { PricingTrustSection } from '@/components/pricing/PricingTrustSection';
 import { PricingSwitchSection } from '@/components/pricing/PricingSwitchSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
-import { PricingPromiseSection } from '@/components/pricing/PricingPromiseSection';
 import { PricingStackComparison } from '@/components/pricing/PricingStackComparison';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 import { useResortSize } from '@/hooks/useResortSize';
-
-// ==========================================
-// STATIC CONFIGURATION (non-price content)
-// ==========================================
 
 const FAQS = [
   {
@@ -57,10 +51,6 @@ const PRICING_PAGE_SCHEMA = {
   url: 'https://propera.cc/pricing',
 };
 
-// ==========================================
-// COMPONENT
-// ==========================================
-
 export default function PricingPage() {
   const { plans } = usePricingConfig();
   const [resortSize, setResortSize] = useResortSize();
@@ -78,11 +68,9 @@ export default function PricingPage() {
       <PricingHeroSection />
       <ResortSizeSelector value={resortSize} onChange={setResortSize} />
       <PricingPlanGrid plans={plans} resortSize={resortSize} />
-      <PricingPromiseSection />
       <PricingSwitchSection />
-      <PricingStackComparison />
       <PricingComparisonMatrix />
-      <PricingTrustSection />
+      <PricingStackComparison />
       <PricingFAQSection faqs={FAQS} />
       <PricingCTASection />
     </MarketingLayout>

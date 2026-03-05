@@ -1,4 +1,5 @@
 import { HelpCircle, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Accordion,
@@ -59,10 +60,10 @@ export function PricingFAQSection({ faqs }: PricingFAQSectionProps) {
                 Tell us your resort size and departments — we'll recommend the best fit.
               </p>
               <Button asChild size="sm" className="bg-primary text-primary-foreground rounded-full font-semibold glow-lime">
-                <a href="mailto:hello@propera.io?subject=Help me choose a plan">
+                <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
+                </Link>
               </Button>
             </div>
           </RevealItem>
