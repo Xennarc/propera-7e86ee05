@@ -47,17 +47,8 @@ export function DepartmentsManagerSection({ resortId }: Props) {
     }
 
     try {
-      if (editMode) {
-        await update.mutateAsync({ id: editMode, updates: { name: formData.name } });
-        toast({ title: 'Department updated' });
-      } else {
-        if (!formData.key.trim()) {
-          toast({ variant: 'destructive', title: 'Key is required' });
-          return;
-        }
-        await create.mutateAsync({ key: formData.key, name: formData.name });
-        toast({ title: 'Department created' });
-      }
+      await update.mutateAsync({ id: editMode!, updates: { name: formData.name } });
+      toast({ title: 'Department updated' });
       setDialogOpen(false);
     } catch (err) {
       toast({ variant: 'destructive', title: 'Error', description: (err as Error).message });
