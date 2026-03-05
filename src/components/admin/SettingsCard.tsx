@@ -33,10 +33,10 @@ export function SettingsCard({
   const cardContent = (
     <Card 
       className={cn(
-        "group relative overflow-hidden transition-all duration-200",
-        "hover:shadow-md hover:-translate-y-0.5",
-        "active:translate-y-0 active:shadow-sm",
-        disabled && "opacity-50 cursor-not-allowed hover:shadow-none hover:translate-y-0",
+        "group relative overflow-hidden transition-all duration-200 border-l-2 border-l-transparent",
+        "hover:shadow-md hover:-translate-y-0.5 hover:border-l-primary",
+        "press-scale",
+        disabled && "opacity-50 cursor-not-allowed hover:shadow-none hover:translate-y-0 hover:border-l-transparent",
         className
       )}
     >

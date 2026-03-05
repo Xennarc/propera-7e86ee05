@@ -3,7 +3,6 @@ import { ChevronDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 type SectionBadge = 'admin' | 'super-admin';
 
@@ -13,9 +12,7 @@ interface SettingsSectionProps {
   icon?: LucideIcon;
   badge?: SectionBadge;
   children: React.ReactNode;
-  /** Force collapsible behavior even on desktop */
-  collapsible?: boolean;
-  /** Default open state for collapsible */
+  itemCount?: number;
   defaultOpen?: boolean;
   className?: string;
 }
@@ -36,14 +33,11 @@ export function SettingsSection({
   icon: Icon,
   badge,
   children,
-  collapsible = false,
+  itemCount,
   defaultOpen = true,
   className,
 }: SettingsSectionProps) {
-  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = React.useState(defaultOpen);
-  
-  const shouldCollapse = collapsible || isMobile;
 
   const headerContent = (
     <div className="flex items-center gap-3">
@@ -63,6 +57,11 @@ export function SettingsSection({
           <h2 className="text-base font-semibold text-foreground tracking-tight">
             {title}
           </h2>
+          {typeof itemCount === 'number' && (
+            <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md tabular-nums">
+              {itemCount}
+            </span>
+          )}
           {badge && (
             <span className={cn(
               "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded shrink-0",
@@ -81,39 +80,30 @@ export function SettingsSection({
     </div>
   );
 
-  if (shouldCollapse) {
-    return (
-      <Collapsible
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        className={cn("space-y-4", className)}
-      >
-        <CollapsibleTrigger className="w-full text-left group">
-          <div className="flex items-center justify-between py-2">
-            {headerContent}
-            <ChevronDown 
-              className={cn(
-                "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0 ml-2",
-                isOpen && "rotate-180"
-              )} 
-            />
-          </div>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3">
-          {children}
-        </CollapsibleContent>
-      </Collapsible>
-    );
-  }
-
   return (
-    <section className={cn("space-y-4", className)}>
-      <div className="py-2">
-        {headerContent}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {children}
-      </div>
-    </section>
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className={cn("space-y-3", className)}
+    >
+      <CollapsibleTrigger className="w-full text-left group">
+        <div className="flex items-center justify-between py-2">
+          {headerContent}
+          <ChevronDown 
+            className={cn(
+              "h-5 w-5 text-muted-foreground transition-transform duration-200 shrink-0 ml-2",
+              isOpen && "rotate-180"
+            )} 
+          />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="rounded-xl border border-border/50 bg-card/50 p-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {children}
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
