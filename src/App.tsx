@@ -93,6 +93,16 @@ const DriverHomePage = lazy(() => import("./pages/driver/DriverHomePage"));
 const DriverTripRunnerPage = lazy(() => import("./pages/driver/DriverTripRunnerPage"));
 const DriverHistoryPage = lazy(() => import("./pages/driver/DriverHistoryPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
+
+// Department Portal
+const DepartmentShell = lazy(() => import("./components/department/DepartmentShell"));
+const DeptPlannerPage = lazy(() => import("./pages/department/DeptPlannerPage"));
+const DeptMasterSheetPage = lazy(() => import("./pages/department/DeptMasterSheetPage"));
+const DeptInboxPage = lazy(() => import("./pages/department/DeptInboxPage"));
+const DeptSessionRunSheetPage = lazy(() => import("./pages/department/DeptSessionRunSheetPage"));
+const DeptResourcesAssetsPage = lazy(() => import("./pages/department/DeptResourcesAssetsPage"));
+const DeptResourcesShiftsPage = lazy(() => import("./pages/department/DeptResourcesShiftsPage"));
+const DeptResourcesUnavailabilityPage = lazy(() => import("./pages/department/DeptResourcesUnavailabilityPage"));
 const ResortBrandingPage = lazy(() => import("./pages/settings/ResortBrandingPage"));
 const ResortPricingPage = lazy(() => import("./pages/settings/ResortPricingPage"));
 const SubscriptionTiersPage = lazy(() => import("./pages/settings/SubscriptionTiersPage"));
@@ -311,6 +321,18 @@ const App = () => (
                   <Route index element={<DriverHomePage />} />
                   <Route path="trip/:tripId" element={<DriverTripRunnerPage />} />
                   <Route path="history" element={<DriverHistoryPage />} />
+                </Route>
+                
+{/* Department Portal routes */}
+                <Route path="/dept/:deptKey" element={<DepartmentShell />}>
+                  <Route index element={<Navigate to="planner" replace />} />
+                  <Route path="planner" element={<DeptPlannerPage />} />
+                  <Route path="master" element={<DeptMasterSheetPage />} />
+                  <Route path="inbox" element={<DeptInboxPage />} />
+                  <Route path="session/:sessionId" element={<DeptSessionRunSheetPage />} />
+                  <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
+                  <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
+                  <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
                 </Route>
                 
                 {/* Demo auto-login routes */}

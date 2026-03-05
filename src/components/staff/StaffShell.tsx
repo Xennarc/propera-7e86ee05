@@ -8,6 +8,7 @@ import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
+import { useDepartmentRedirect } from '@/hooks/useDepartmentRedirect';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
@@ -111,8 +112,24 @@ export function StaffShell() {
     );
   }
 
-  // Access denied
+  // Department-only redirect: if user has no resort memberships but has department access
+  const deptRedirect = useDepartmentRedirect();
+
+  // Access denied — but check for department-only users first
   if (!permissions.hasAnyResortAccess) {
+    // If department redirect is ready, redirect them
+    if (deptRedirect.shouldRedirect && deptRedirect.redirectPath) {
+      return <Navigate to={deptRedirect.redirectPath} replace />;
+    }
+    // Still checking department access
+    if (deptRedirect.loading) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <ProperaLoader size={64} text="Checking access..." />
+        </div>
+      );
+    }
+    // No resort access AND no department access
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
