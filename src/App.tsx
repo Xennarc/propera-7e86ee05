@@ -17,10 +17,17 @@ function LegacyRedirect({ to }: { to: string }) {
   
   let targetPath = to;
   Object.entries(params).forEach(([key, value]) => {
+    if (key === '*') return; // Handle wildcard separately
     if (value) {
       targetPath = targetPath.replace(`:${key}`, value);
     }
   });
+  
+  // Append wildcard path if present
+  const wildcard = params['*'];
+  if (wildcard) {
+    targetPath = targetPath.replace(/\/$/, '') + '/' + wildcard;
+  }
   
   return <Navigate to={targetPath + location.search} replace />;
 }
