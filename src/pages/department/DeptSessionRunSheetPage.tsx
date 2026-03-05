@@ -1,7 +1,6 @@
 /**
  * DeptSessionRunSheetPage – Department-scoped session run sheet.
- * Fetches session data filtered by department context and renders
- * manifest + setup tabs with department-level guards.
+ * Live manifest with realtime booking updates and conflict warnings.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
@@ -12,12 +11,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Activity, ActivitySession, ActivityBooking, Guest } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { StatusChip } from '@/components/ui/status-chip';
 import { SkeletonCardList } from '@/components/ui/skeleton-card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
+import { useSessionConflicts, totalConflictCount } from '@/hooks/useSessionConflicts';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, Users, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Users, RefreshCw, AlertTriangle } from 'lucide-react';
 
 function DeptSessionRunSheetContent() {
   const { sessionId, deptKey } = useParams<{ sessionId: string; deptKey: string }>();
@@ -31,16 +33,19 @@ function DeptSessionRunSheetContent() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('manifest');
 
+  const resortId = currentDepartment?.resort_id;
+
+  // Conflict detection
+  const { data: conflicts } = useSessionConflicts(resortId, sessionId);
+  const conflictCount = conflicts ? totalConflictCount(conflicts) : 0;
+
   const fetchSession = useCallback(async () => {
     if (!sessionId) return;
     setLoading(true);
     try {
       const { data: sessionData, error } = await supabase
         .from('activity_sessions')
-        .select(`
-          *,
-          activity:activities(*)
-        `)
+        .select(`*, activity:activities(*)`)
         .eq('id', sessionId)
         .single();
 
@@ -49,10 +54,7 @@ function DeptSessionRunSheetContent() {
 
       const { data: bookingData } = await supabase
         .from('activity_bookings')
-        .select(`
-          *,
-          guest:guests(*)
-        `)
+        .select(`*, guest:guests(*)`)
         .eq('session_id', sessionId)
         .in('status', ['CONFIRMED', 'PENDING'])
         .order('created_at');
@@ -65,11 +67,23 @@ function DeptSessionRunSheetContent() {
     }
   }, [sessionId, toast]);
 
-  useEffect(() => {
-    fetchSession();
-  }, [fetchSession]);
+  useEffect(() => { fetchSession(); }, [fetchSession]);
 
-  const totalPax = useMemo(() => 
+  // Realtime: auto-refresh manifest when bookings change for this session
+  useEffect(() => {
+    if (!sessionId) return;
+    const channel = supabase
+      .channel(`dept-runsheet-${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activity_bookings', filter: `session_id=eq.${sessionId}` },
+        () => { fetchSession(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [sessionId, fetchSession]);
+
+  const totalPax = useMemo(() =>
     bookings.reduce((sum, b) => sum + b.num_adults + b.num_children, 0),
     [bookings]
   );
@@ -114,6 +128,35 @@ function DeptSessionRunSheetContent() {
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Conflict banner */}
+      {conflictCount > 0 && conflicts && (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-warning/50 bg-warning/5">
+          <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+          <div className="text-sm space-y-1">
+            <p className="font-medium text-warning">
+              {conflictCount} resource conflict{conflictCount > 1 ? 's' : ''} detected
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-0.5">
+              {conflicts.conflicting_staff.map((c, i) => (
+                <li key={`staff-${i}`}>
+                  <span className="font-medium">{c.name}</span> ({c.role}) also assigned to {c.other_activity_name} {c.other_start.slice(0, 5)}–{c.other_end.slice(0, 5)}
+                </li>
+              ))}
+              {conflicts.conflicting_boats.map((c, i) => (
+                <li key={`boat-${i}`}>
+                  <span className="font-medium">{c.name}</span> also used in {c.other_activity_name} {c.other_start.slice(0, 5)}–{c.other_end.slice(0, 5)}
+                </li>
+              ))}
+              {conflicts.conflicting_equipment.map((c, i) => (
+                <li key={`equip-${i}`}>
+                  <span className="font-medium">{c.name}</span> also assigned to {c.other_activity_name} {c.other_start.slice(0, 5)}–{c.other_end.slice(0, 5)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* KPI strip */}
       <div className="flex gap-3">
