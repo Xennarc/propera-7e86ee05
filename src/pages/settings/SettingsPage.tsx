@@ -128,7 +128,7 @@ export default function SettingsPage() {
       id: 'staff-access',
       title: 'Staff & Access',
       description: 'Manage your team and permissions',
-      icon: UsersRound,
+      icon: Shield,
       badge: 'admin',
       items: [
         {
