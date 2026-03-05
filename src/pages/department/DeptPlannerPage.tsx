@@ -341,7 +341,7 @@ function DeptPlannerContent() {
 
   const handleSessionClick = (sessionId: string) => {
     if (viewMode === 'sessions' && !canEditPlanner) {
-      navigate(`/dept/${deptKey}/session/${sessionId}`);
+      navigate(`/staff/dept/${deptKey}/session/${sessionId}`);
     } else {
       // In lane views, open the assignment drawer
       const session = sessions.find((s: any) => s.id === sessionId) as any;

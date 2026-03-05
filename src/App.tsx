@@ -94,8 +94,8 @@ const DriverTripRunnerPage = lazy(() => import("./pages/driver/DriverTripRunnerP
 const DriverHistoryPage = lazy(() => import("./pages/driver/DriverHistoryPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 
-// Department Portal
-const DepartmentShell = lazy(() => import("./components/department/DepartmentShell"));
+// Department Layout (nested inside StaffShell)
+const DepartmentLayout = lazy(() => import("./components/department/DepartmentLayout"));
 const DeptPlannerPage = lazy(() => import("./pages/department/DeptPlannerPage"));
 const DeptMasterSheetPage = lazy(() => import("./pages/department/DeptMasterSheetPage"));
 const DeptInboxPage = lazy(() => import("./pages/department/DeptInboxPage"));
