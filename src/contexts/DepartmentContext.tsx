@@ -37,6 +37,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   const [departments, setDepartments] = useState<ResortDepartment[]>([]);
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
   const [moduleAccess, setModuleAccess] = useState<DepartmentModuleAccess[]>([]);
+  const [bindings, setBindings] = useState<DepartmentBinding[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch departments and memberships for this user
@@ -45,6 +46,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
       setDepartments([]);
       setMyMemberships([]);
       setModuleAccess([]);
+      setBindings([]);
       setLoading(false);
       return;
     }
