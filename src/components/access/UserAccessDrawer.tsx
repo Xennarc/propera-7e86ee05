@@ -26,7 +26,8 @@ import {
   useUserOverrides, 
   usePermissionsCatalog,
   useUserAccessAudit,
-  useRolePermissions
+  useRolePermissions,
+  useEffectivePermissions
 } from '@/hooks/useEffectivePermissions';
 import { 
   useAssignRole, 
@@ -36,6 +37,7 @@ import {
 } from '@/hooks/useAccessManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Permission, PERMISSION_CATEGORIES, AUDIT_ACTION_LABELS } from '@/types/rbac';
+import { getVisibleModules } from '@/config/permission-modules';
 import { cn } from '@/lib/utils';
 
 interface UserAccessDrawerProps {
@@ -48,12 +50,19 @@ interface UserAccessDrawerProps {
     email?: string;
   } | null;
   resortId: string;
+  /** When true the drawer is view-only — no toggle buttons rendered */
+  readOnly?: boolean;
 }
 
-export function UserAccessDrawer({ open, onOpenChange, user, resortId }: UserAccessDrawerProps) {
+export function UserAccessDrawer({ open, onOpenChange, user, resortId, readOnly: readOnlyProp }: UserAccessDrawerProps) {
   const [activeTab, setActiveTab] = useState('roles');
   const { isSuperAdmin } = useAuth();
   const superAdmin = isSuperAdmin();
+
+  // Determine effective read-only: explicit prop OR lacking permissions
+  const { hasPermission } = useEffectivePermissions();
+  const canManagePerms = superAdmin || hasPermission('access.permissions.manage');
+  const readOnly = readOnlyProp ?? !canManagePerms;
 
   const { data: allRoles = [], isLoading: rolesLoading } = useRoles(resortId);
   const { data: userRoles = [], isLoading: userRolesLoading } = useUserRoles(user?.id, resortId);
@@ -185,24 +194,30 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId }: UserAcc
                             </p>
                           )}
                         </div>
-                        <Button
-                          variant={isAssigned ? "destructive" : "default"}
-                          size="sm"
-                          disabled={isPending}
-                          onClick={() => handleRoleToggle(role.id, isAssigned)}
-                        >
-                          {isAssigned ? (
-                            <>
-                              <Minus className="h-4 w-4 mr-1" />
-                              Remove
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-4 w-4 mr-1" />
-                              Assign
-                            </>
-                          )}
-                        </Button>
+                        {readOnly ? (
+                          <Badge variant={isAssigned ? "default" : "secondary"}>
+                            {isAssigned ? 'Assigned' : 'Not Assigned'}
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant={isAssigned ? "destructive" : "default"}
+                            size="sm"
+                            disabled={isPending}
+                            onClick={() => handleRoleToggle(role.id, isAssigned)}
+                          >
+                            {isAssigned ? (
+                              <>
+                                <Minus className="h-4 w-4 mr-1" />
+                                Remove
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-1" />
+                                Assign
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     );
                   })}
@@ -225,6 +240,10 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId }: UserAcc
                     if (!categoryPerms?.length) return null;
 
                     const isDangerZone = category === 'Danger Zone';
+                    const isPlatformCategory = category === 'Danger Zone' || category === 'Identity & Access';
+
+                    // Hide platform-critical categories from non-super-admins
+                    if (isDangerZone && !superAdmin) return null;
 
                     return (
                       <div key={category}>
@@ -277,15 +296,17 @@ export function UserAccessDrawer({ open, onOpenChange, user, resortId }: UserAcc
                                   {state === 'revoke' && (
                                     <Badge variant="destructive" className="text-xs">Revoked</Badge>
                                   )}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    disabled={isPending || isRestricted}
-                                    onClick={() => handlePermissionOverride(perm.key, state)}
-                                  >
-                                    <RefreshCw className="h-3 w-3" />
-                                  </Button>
+                                  {!readOnly && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      disabled={isPending || isRestricted}
+                                      onClick={() => handlePermissionOverride(perm.key, state)}
+                                    >
+                                      <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             );

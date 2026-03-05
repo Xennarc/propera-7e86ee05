@@ -118,6 +118,7 @@ export default function AccessManagementPage() {
   const [selectedUser, setSelectedUser] = useState<StaffMember | null>(null);
 
   const canManage = superAdmin || hasPermission('access.users.edit');
+  const canManagePermissions = superAdmin || hasPermission('access.permissions.manage');
 
   // Fetch staff members
   const { data: staffMembers = [], isLoading: staffLoading, refetch: refetchStaff } = useQuery({
@@ -441,10 +442,12 @@ export default function AccessManagementPage() {
                                 Edit Profile
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleOpenAccessDrawer(member)}>
-                                <Key className="h-4 w-4 mr-2" />
-                                Edit Access
-                              </DropdownMenuItem>
+                              {canManagePermissions && (
+                                <DropdownMenuItem onClick={() => handleOpenAccessDrawer(member)}>
+                                  <Key className="h-4 w-4 mr-2" />
+                                  Edit Access
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem 
                                 onClick={() => {
                                   setSelectedUser(member);
