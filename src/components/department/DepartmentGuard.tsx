@@ -34,6 +34,11 @@ export function DepartmentGuard({ children, moduleKey, managerOnly = false }: De
     return <Navigate to="/staff/auth" replace />;
   }
 
+  // Super Admins bypass all department guards
+  if (isSuperAdmin()) {
+    return <>{children}</>;
+  }
+
   // No membership in this department
   if (!currentDepartment || !currentMembership) {
     return (
