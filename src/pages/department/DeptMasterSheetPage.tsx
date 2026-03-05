@@ -77,7 +77,7 @@ function DeptMasterSheetContent() {
       />
 
       {/* Date nav + search + attention */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <AppFilterBar>
         <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDate(format(subDays(parseISO(dateStr), 1), 'yyyy-MM-dd'))}>
             <ChevronLeft className="h-4 w-4" />
@@ -130,7 +130,7 @@ function DeptMasterSheetContent() {
             <Search className="h-4 w-4" />
           </Button>
         )}
-      </div>
+      </AppFilterBar>
 
       {/* Sessions list grouped by time block */}
       {isLoading ? (
@@ -138,27 +138,20 @@ function DeptMasterSheetContent() {
           {[1, 2, 3, 4].map(i => <OpsSheetRowCardSkeleton key={i} />)}
         </div>
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <p className="text-muted-foreground text-sm">
-            {attentionMode ? 'No sessions need attention.' : 'No sessions scheduled.'}
-          </p>
-        </div>
+        <AppEmptyState
+          message={attentionMode ? 'No sessions need attention.' : 'No sessions scheduled.'}
+        />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 stagger-fade">
           {(['morning', 'afternoon', 'evening'] as const).map(block => {
             const blockRows = grouped[block];
             if (blockRows.length === 0) return null;
             return (
-              <div key={block}>
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  {BLOCK_LABELS[block]} · {blockRows.length}
-                </div>
-                <div className="space-y-2">
-                  {blockRows.map(row => (
-                    <OpsSheetRowCard key={row.session_id} row={row} />
-                  ))}
-                </div>
-              </div>
+              <AppTimeBlock key={block} label={BLOCK_LABELS[block]} count={blockRows.length}>
+                {blockRows.map(row => (
+                  <OpsSheetRowCard key={row.session_id} row={row} />
+                ))}
+              </AppTimeBlock>
             );
           })}
         </div>
