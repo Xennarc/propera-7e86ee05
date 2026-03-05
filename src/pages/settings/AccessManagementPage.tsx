@@ -608,6 +608,29 @@ export default function AccessManagementPage() {
             userName={selectedUser.profile?.full_name || selectedUser.profile?.username || 'User'}
           />
 
+          <StaffProfileViewDialog
+            open={viewDialogOpen}
+            onOpenChange={setViewDialogOpen}
+            userId={selectedUser.user_id}
+            resortRole={selectedUser.resort_role}
+            department={selectedUser.department}
+            memberSince={selectedUser.created_at}
+            onEdit={() => {
+              setViewDialogOpen(false);
+              setEditDialogOpen(true);
+            }}
+          />
+
+          <StaffProfileEditDialog
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+            userId={selectedUser.user_id}
+            membershipId={selectedUser.id}
+            currentRole={selectedUser.resort_role}
+            currentDepartment={selectedUser.department}
+            onSuccess={() => refetchStaff()}
+          />
+
           <UserAccessDrawer
             open={accessDrawerOpen}
             onOpenChange={setAccessDrawerOpen}
@@ -621,6 +644,25 @@ export default function AccessManagementPage() {
           />
         </>
       )}
+
+      {/* Remove Member Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove {selectedUser?.profile?.full_name || selectedUser?.profile?.username || 'this member'} from {currentResort.name}?
+              They will no longer have access to this resort's data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMember} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
