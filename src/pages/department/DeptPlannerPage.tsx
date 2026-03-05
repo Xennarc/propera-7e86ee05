@@ -256,8 +256,9 @@ function DeptPlannerContent() {
   }, [attentionMode, sessionsByDate, conflictCounts]);
 
   const setWeekDate = useCallback((d: string) => {
+    plannerState.setDateStr(d);
     setSearchParams({ date: d });
-  }, [setSearchParams]);
+  }, [setSearchParams, plannerState]);
 
   const selectedDay = parseISO(dateStr);
 
