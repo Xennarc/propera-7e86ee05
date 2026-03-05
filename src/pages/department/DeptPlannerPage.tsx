@@ -294,7 +294,7 @@ function DeptPlannerContent() {
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {isManager && (
+          {(isManager || canEditPlanner) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
