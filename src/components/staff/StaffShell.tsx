@@ -9,7 +9,7 @@ import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
 import { useDepartmentRedirect } from '@/hooks/useDepartmentRedirect';
-import { DepartmentShellProvider, useDepartmentShell } from '@/contexts/DepartmentShellContext';
+
 import { DepartmentProvider } from '@/contexts/DepartmentContext';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
