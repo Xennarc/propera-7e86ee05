@@ -437,7 +437,8 @@ function DeptSettingsContent() {
                         onCheckedChange={() => toggleModule(mod.key)}
                       />
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
