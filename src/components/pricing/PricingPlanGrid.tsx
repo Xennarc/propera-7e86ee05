@@ -4,6 +4,7 @@ import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles } fr
 import { useState } from 'react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
+import { type ResortSize, getBandPricing } from '@/hooks/useResortSize';
 
 interface Plan {
   id: string;
@@ -22,6 +23,7 @@ interface Plan {
 
 interface PricingPlanGridProps {
   plans: Plan[];
+  resortSize: ResortSize;
 }
 
 const PLAN_CONFIG: Record<string, { 
@@ -64,7 +66,7 @@ const PRO_HIGHLIGHTS = [
   'Insights that improve every day',
 ];
 
-export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
+export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
 
   return (
@@ -78,6 +80,10 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {plans.map((plan, index) => {
               const config = PLAN_CONFIG[plan.id] || PLAN_CONFIG.essential;
+              const band = getBandPricing(plan.id, resortSize);
+              const displayPrice = band?.price ?? plan.price;
+              const displayUsage = band?.usage ?? plan.usage;
+              const displayOverage = band?.overage ?? plan.overage;
               const Icon = config.icon;
               const isExpanded = expandedPlan === plan.id;
               const isProfessional = plan.id === 'professional';
@@ -138,7 +144,7 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                       </p>
                       
                       <div className="mb-5">
-                        <span className="text-3xl font-bold text-foreground">{plan.price}</span>
+                        <span className="text-3xl font-bold text-foreground transition-all duration-300">{displayPrice}</span>
                         {plan.priceUnit && (
                           <span className="text-sm text-muted-foreground ml-2">{plan.priceUnit}</span>
                         )}
@@ -209,11 +215,11 @@ export function PricingPlanGrid({ plans }: PricingPlanGridProps) {
                           </button>
                         )}
                         
-                        {(plan.usage || plan.overage) && (
-                          <div className="p-3 rounded-lg bg-muted/30 border border-border/20">
+                        {(displayUsage || displayOverage) && (
+                          <div className="p-3 rounded-lg bg-muted/30 border border-border/20 transition-all duration-300">
                             <p className="text-xs font-medium text-foreground mb-1">Included usage</p>
-                            {plan.usage && <p className="text-xs text-muted-foreground">{plan.usage}</p>}
-                            {plan.overage && <p className="text-xs text-muted-foreground mt-1">{plan.overage}</p>}
+                            {displayUsage && <p className="text-xs text-muted-foreground">{displayUsage}</p>}
+                            {displayOverage && <p className="text-xs text-muted-foreground mt-1">{displayOverage}</p>}
                           </div>
                         )}
                       </div>
