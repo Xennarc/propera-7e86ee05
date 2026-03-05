@@ -221,7 +221,7 @@ function DeptManageAccessContent() {
 
 export default function DeptManageAccessPage() {
   return (
-    <DepartmentGuard moduleKey="ops_planner" managerOnly>
+    <DepartmentGuard managerOnly>
       <DeptManageAccessContent />
     </DepartmentGuard>
   );

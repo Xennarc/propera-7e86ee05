@@ -124,6 +124,8 @@ export function DepartmentProvider({ children }: { children: ReactNode }) {
       const resortMembership = memberships.find(m => m.resort_id === currentDepartment.resort_id);
       if (resortMembership?.resort_role === 'RESORT_ADMIN') return true;
     }
+    // Department managers have all modules by default
+    if (isManager) return true;
     return currentModuleAccess.some(a => a.module_key === moduleKey && a.enabled);
   };
 
