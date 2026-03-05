@@ -67,7 +67,7 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   };
 
   // 1) Min role checks
-  if (rules.min_roles) {
+  if (rules?.min_roles) {
     for (const [role, minCount] of Object.entries(rules.min_roles)) {
       const assigned = input.assignedRoles[role] ?? 0;
       if (assigned < minCount) {
@@ -80,7 +80,7 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   }
 
   // 2) Pax ratio checks
-  if (rules.max_pax_per_role && input.bookedCount > 0) {
+  if (rules?.max_pax_per_role && input.bookedCount > 0) {
     for (const [role, maxPax] of Object.entries(rules.max_pax_per_role)) {
       const assigned = input.assignedRoles[role] ?? 0;
       if (assigned === 0) {
