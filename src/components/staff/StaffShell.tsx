@@ -43,6 +43,7 @@ export function StaffShell() {
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
   const permissions = usePermissions();
+  const deptRedirect = useDepartmentRedirect();
 
   // Demo instance rotation guard
   const demoGuard = useDemoInstanceGuard(currentResort?.id, 'staff');
@@ -111,9 +112,6 @@ export function StaffShell() {
       </div>
     );
   }
-
-  // Department-only redirect: if user has no resort memberships but has department access
-  const deptRedirect = useDepartmentRedirect();
 
   // Access denied — but check for department-only users first
   if (!permissions.hasAnyResortAccess) {
