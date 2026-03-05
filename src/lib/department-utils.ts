@@ -20,8 +20,16 @@ const LEGACY_CATEGORY_MAP: Record<string, string> = {
  */
 export function getDepartmentActivityScope(dept: ResortDepartment | null | undefined): string | null {
   if (!dept) return null;
-  if (dept.activity_scope_key) return dept.activity_scope_key;
-  return LEGACY_CATEGORY_MAP[dept.key.toLowerCase()] ?? null;
+  const scope = dept.activity_scope_key ?? LEGACY_CATEGORY_MAP[dept.key.toLowerCase()] ?? null;
+
+  if (!scope && import.meta.env.DEV) {
+    console.warn(
+      `[DeptScope] Resolved to NULL for deptKey="${dept.key}" (id=${dept.id}). ` +
+      `This department has no activity_scope_key and no legacy mapping.`
+    );
+  }
+
+  return scope;
 }
 
 /**

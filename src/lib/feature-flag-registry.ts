@@ -391,6 +391,28 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // DEPARTMENT / OPS REFACTOR FLAGS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    key: 'dept_scope_v2_enabled',
+    label: 'Department Scope v2',
+    description: 'Enable the v2 department scoping logic. When disabled, the legacy scope resolution is used. Roll out per-resort to validate the new scoping path safely.',
+    category: 'experimental',
+    tier: null,
+    is_dangerous: false,
+    scope: 'resort',
+  },
+  {
+    key: 'ops_events_adapter_enabled',
+    label: 'Ops Events Adapter',
+    description: 'Enable the ops events adapter layer for normalised event sourcing. When disabled, ops pages use direct table queries.',
+    category: 'experimental',
+    tier: null,
+    is_dangerous: false,
+    scope: 'resort',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // EXPERIMENTAL FLAGS
   // ═══════════════════════════════════════════════════════════════════════════
   {
