@@ -291,9 +291,35 @@ function DeptPlannerContent() {
             {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d, yyyy')}
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {isManager && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={attentionMode ? 'default' : 'ghost'}
+                  size="icon"
+                  className={cn('h-9 w-9', attentionMode && 'bg-destructive hover:bg-destructive/90')}
+                  onClick={() => {
+                    setAttentionMode(!attentionMode);
+                    setShowAllRisks(false);
+                    if (!attentionMode) {
+                      // Jump to today when entering attention mode
+                      setWeekDate(format(new Date(), 'yyyy-MM-dd'));
+                    }
+                  }}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {attentionMode ? 'Exit Attention Mode' : 'Attention Mode'}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* View mode tabs */}
