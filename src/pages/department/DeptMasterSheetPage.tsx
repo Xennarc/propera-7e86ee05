@@ -34,7 +34,6 @@ function DeptMasterSheetContent() {
 
   const opsDept = getDepartmentOpsScope(currentDepartment);
   const resortId = currentDepartment?.resort_id;
-  const resortId = currentDepartment?.resort_id;
 
   const { data: sheet, isLoading, refetch } = useDailyOpsSheet(resortId, dateStr, opsDept);
 

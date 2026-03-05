@@ -106,7 +106,7 @@ function DeptPlannerContent() {
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   const category = getDepartmentActivityScope(currentDepartment);
-  const unscoped = isDepartmentUnscoped(currentDepartment);
+  
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
 
