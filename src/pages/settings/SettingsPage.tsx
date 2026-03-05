@@ -1,9 +1,12 @@
-import { Building2, Anchor, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid, Car, Rocket } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Building2, Anchor, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid, Car, Rocket, DollarSign, Database } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
 import { TierFeature } from '@/lib/tier-features';
 import { SettingsSection, SettingsCard } from '@/components/admin';
+import { PageHeader } from '@/components/ui/page-header';
+import { SearchInput } from '@/components/ui/search-input';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface SettingsItem {
@@ -21,12 +24,14 @@ interface SettingsGroup {
   description: string;
   icon: LucideIcon;
   badge?: 'admin' | 'super-admin';
+  defaultOpen: boolean;
   items: SettingsItem[];
 }
 
 export default function SettingsPage() {
   const { isSuperAdmin, getResortRole } = useAuth();
   const { currentResort } = useResort();
+  const [search, setSearch] = useState('');
 
   const currentResortRole = currentResort ? getResortRole(currentResort.id) : null;
   const canManageResortStaff = isSuperAdmin() || currentResortRole === 'RESORT_ADMIN';
@@ -37,6 +42,7 @@ export default function SettingsPage() {
       title: 'Guest Experience',
       description: 'Configure how guests interact with your resort',
       icon: Users,
+      defaultOpen: true,
       items: [
         {
           title: 'Pre-Arrival Settings',
@@ -66,9 +72,10 @@ export default function SettingsPage() {
     },
     {
       id: 'operations',
-      title: 'Operations',
+      title: 'Operations & Modules',
       description: 'Manage day-to-day operational settings',
       icon: Settings2,
+      defaultOpen: true,
       items: [
         {
           title: 'Modules',
@@ -76,13 +83,6 @@ export default function SettingsPage() {
           icon: LayoutGrid,
           href: '/staff/settings/modules',
           visible: canManageResortStaff,
-        },
-        {
-          title: 'Dept Rollout',
-          description: 'Roll out department scope v2 and ops adapter per-resort',
-          icon: Rocket,
-          href: '/staff/settings/dept-rollout',
-          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
         },
         {
           title: 'Guest Requests',
@@ -98,6 +98,22 @@ export default function SettingsPage() {
           href: '/staff/settings/directory',
           visible: canManageResortStaff,
         },
+        {
+          title: 'Transport',
+          description: 'Configure transport service, pooling, and driver settings',
+          icon: Car,
+          href: '/staff/transport/settings',
+          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+        },
+      ],
+    },
+    {
+      id: 'finance-resources',
+      title: 'Finance & Resources',
+      description: 'Pricing, assets, and booking diagnostics',
+      icon: DollarSign,
+      defaultOpen: false,
+      items: [
         {
           title: 'Pricing & Taxes',
           description: 'Configure service charges, taxes, and pricing display',
@@ -122,21 +138,15 @@ export default function SettingsPage() {
           visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
           feature: 'settings_booking_health',
         },
-        {
-          title: 'Transport',
-          description: 'Configure transport service, pooling, and driver settings',
-          icon: Car,
-          href: '/staff/transport/settings',
-          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
-        },
       ],
     },
     {
-      id: 'staff-access',
-      title: 'Staff & Access',
-      description: 'Manage your team and permissions',
-      icon: Shield,
+      id: 'staff-data',
+      title: 'Staff & Data',
+      description: 'Manage your team, imports, and rollout',
+      icon: Database,
       badge: 'admin',
+      defaultOpen: true,
       items: [
         {
           title: 'Access Control',
@@ -153,6 +163,13 @@ export default function SettingsPage() {
           visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
           feature: 'guest_management_csv_import',
         },
+        {
+          title: 'Dept Rollout',
+          description: 'Roll out department scope v2 and ops adapter per-resort',
+          icon: Rocket,
+          href: '/staff/settings/dept-rollout',
+          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+        },
       ],
     },
     {
@@ -161,6 +178,7 @@ export default function SettingsPage() {
       description: 'Platform-wide configuration and diagnostics',
       icon: Wrench,
       badge: 'super-admin',
+      defaultOpen: false,
       items: [
         {
           title: 'Resorts',
@@ -194,35 +212,53 @@ export default function SettingsPage() {
     },
   ];
 
-  // Filter groups to only show those with visible items
-  const visibleGroups = settingsGroups
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => item.visible),
-    }))
-    .filter(group => group.items.length > 0);
+  const isSearching = search.trim().length > 0;
+  const searchLower = search.trim().toLowerCase();
+
+  const visibleGroups = useMemo(() => {
+    return settingsGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+          if (!item.visible) return false;
+          if (!isSearching) return true;
+          return (
+            item.title.toLowerCase().includes(searchLower) ||
+            item.description.toLowerCase().includes(searchLower)
+          );
+        }),
+      }))
+      .filter(group => group.items.length > 0);
+  }, [search, canManageResortStaff, currentResortRole]);
 
   const hasNoSettings = visibleGroups.length === 0;
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Configure your resort operations
-        </p>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Settings"
+        description="Configure your resort operations"
+      />
+
+      <SearchInput
+        value={search}
+        onChange={setSearch}
+        placeholder="Search settings..."
+        className="max-w-sm"
+      />
 
       {hasNoSettings ? (
         <Card>
           <CardContent className="py-8">
             <p className="text-center text-muted-foreground">
-              No settings available for your current role.
+              {isSearching
+                ? 'No settings match your search.'
+                : 'No settings available for your current role.'}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {visibleGroups.map((group) => (
             <SettingsSection
               key={group.id}
@@ -230,6 +266,8 @@ export default function SettingsPage() {
               description={group.description}
               icon={group.icon}
               badge={group.badge}
+              itemCount={group.items.length}
+              defaultOpen={isSearching ? true : group.defaultOpen}
             >
               {group.items.map((item) => (
                 <SettingsCard
