@@ -116,7 +116,7 @@ function DeptPlannerContent() {
         .from('activity_sessions')
         .select(`
           id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category, ops_rules_json)
+          activity:activities(name, category, ops_rules_json, requirements_json)
         `)
         .eq('resort_id', resortId)
         .gte('date', weekStartStr)
