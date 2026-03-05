@@ -29,15 +29,10 @@ export function DepartmentsManagerSection({ resortId }: Props) {
   const { data: departments = [], isLoading } = useDepartments(resortId);
   const { create, update, toggleActive } = useDepartmentMutations(resortId);
 
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState<string | null>(null);
   const [formData, setFormData] = useState({ key: '', name: '' });
-
-  const openCreateDialog = () => {
-    setEditMode(null);
-    setFormData({ key: '', name: '' });
-    setDialogOpen(true);
-  };
 
   const openEditDialog = (dept: { id: string; key: string; name: string }) => {
     setEditMode(dept.id);
