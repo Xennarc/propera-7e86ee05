@@ -11,7 +11,7 @@ const REASSURANCE_CHIPS = [
 
 export function PricingCTASection() {
   return (
-    <section className="relative overflow-hidden">
+    <section className="relative overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
       <div className="py-20 md:py-28 cta-spotlight atlas-texture">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/12 dark:from-primary/8 via-background to-teal-400/12 dark:to-teal-400/6" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/15 dark:bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
@@ -31,13 +31,13 @@ export function PricingCTASection() {
             </RevealItem>
             
             <RevealItem className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 px-8 glow-lime group hover:-translate-y-0.5 transition-all">
+              <Button asChild size="lg" className="bg-primary text-primary-foreground rounded-full font-semibold h-12 min-h-[48px] px-8 glow-lime group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-[0.97] w-full sm:w-auto">
                 <Link to="/book-demo">
                   Book a demo
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full font-semibold h-12 px-8 border-border/50 hover:border-primary/30">
+              <Button asChild variant="outline" size="lg" className="rounded-full font-semibold h-12 min-h-[48px] px-8 border-border/50 hover:border-primary/30 active:scale-[0.97] transition-all w-full sm:w-auto">
                 <a href="mailto:hello@propera.io?subject=Sales Inquiry">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Contact sales
