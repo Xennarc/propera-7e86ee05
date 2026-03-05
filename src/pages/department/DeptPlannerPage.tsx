@@ -10,6 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getDepartmentActivityScope } from '@/lib/department-utils';
 import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
+import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
+import { opsEventToPlannerSession } from '@/lib/ops/ops-event-compat';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,6 +88,7 @@ function DeptPlannerContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+  const adapterEnabled = useOpsAdapterEnabled();
 
   const resortId = currentDepartment?.resort_id;
 
@@ -110,7 +113,15 @@ function DeptPlannerContent() {
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
 
-  const { data: sessions = [], isLoading, refetch } = useQuery({
+  // ── Adapter pipeline (flag gated) ──
+  const { data: adapterEvents = [] } = useOpsEvents({
+    resortId,
+    dateRange: { start: weekStartStr, end: weekEndStr },
+    enabled: adapterEnabled,
+  });
+
+  // ── Legacy pipeline ──
+  const { data: legacySessions = [], isLoading, refetch } = useQuery({
     queryKey: ['dept-planner-sessions', resortId, category, weekStartStr, weekEndStr],
     queryFn: async () => {
       if (!resortId) return [];
@@ -135,9 +146,19 @@ function DeptPlannerContent() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!resortId,
+    enabled: !!resortId && !adapterEnabled,
     staleTime: 30_000,
   });
+
+  // Merge: adapter data mapped to legacy shape, or legacy sessions directly
+  const sessions = useMemo(() => {
+    if (adapterEnabled) {
+      return adapterEvents
+        .filter(e => e.source_type === 'activity_session')
+        .map(e => opsEventToPlannerSession(e));
+    }
+    return legacySessions;
+  }, [adapterEnabled, adapterEvents, legacySessions]);
 
   const sessionIds = useMemo(() => sessions.map((s: any) => s.id), [sessions]);
   const { data: bookingCounts = {} } = useQuery({

@@ -4,6 +4,7 @@ import { useDepartment } from '@/contexts/DepartmentContext';
 import { useDailyOpsSheet, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
 import { getDepartmentOpsScope } from '@/lib/department-utils';
 import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
+import { useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ function DeptMasterSheetContent() {
   const { currentDepartment } = useDepartment();
   const { deptKey } = useParams<{ deptKey: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const adapterEnabled = useOpsAdapterEnabled();
 
   const dateStr = searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd');
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,6 +37,9 @@ function DeptMasterSheetContent() {
   const opsDept = getDepartmentOpsScope(currentDepartment);
   const resortId = currentDepartment?.resort_id;
 
+  // Master Sheet uses a dedicated RPC for rich aggregated data.
+  // When adapter flag is enabled, future work will replace this with
+  // adapter-based enrichment. For now the RPC remains the source of truth.
   const { data: sheet, isLoading, refetch } = useDailyOpsSheet(resortId, dateStr, opsDept);
 
   const setDate = useCallback((d: string) => {

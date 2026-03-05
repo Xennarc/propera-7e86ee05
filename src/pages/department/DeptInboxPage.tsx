@@ -13,6 +13,8 @@ import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
+import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
+import { opsEventToInboxCard } from '@/lib/ops/ops-event-compat';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
@@ -33,19 +35,29 @@ function DeptInboxContent() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const adapterEnabled = useOpsAdapterEnabled();
 
   const resortId = currentDepartment?.resort_id;
   const tz = 'UTC';
   const category = getDepartmentActivityScope(currentDepartment);
 
-  const { data: sessions = [], isLoading, refetch } = useQuery({
+  // Adapter date range for inbox: today + tomorrow
+  const now = new Date();
+  const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
+  const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
+
+  // ── Adapter pipeline (flag gated) ──
+  const { data: adapterEvents = [], isLoading: adapterLoading, refetch: adapterRefetch } = useOpsEvents({
+    resortId,
+    dateRange: { start: todayStr, end: tomorrowStr },
+    enabled: adapterEnabled,
+  });
+
+  // ── Legacy pipeline (used when adapter flag is OFF) ──
+  const { data: sessions = [], isLoading: legacyLoading, refetch: legacyRefetch } = useQuery({
     queryKey: ['dept-ops-inbox', resortId, category],
     queryFn: async () => {
       if (!resortId) return [];
-      const now = new Date();
-      const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
-      const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
-
       const selectStr = category
         ? `id, date, start_time, end_time, capacity, status, activity:activities!inner(name, category)`
         : `id, date, start_time, end_time, capacity, status, activity:activities(name, category)`;
@@ -67,12 +79,15 @@ function DeptInboxContent() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!resortId,
+    enabled: !!resortId && !adapterEnabled,
     refetchInterval: 30_000,
   });
 
-  // Booking counts
-  const sessionIds = useMemo(() => sessions.map((s: any) => s.id), [sessions]);
+  const isLoading = adapterEnabled ? adapterLoading : legacyLoading;
+  const refetch = adapterEnabled ? adapterRefetch : legacyRefetch;
+
+  // Booking counts (only for legacy pipeline)
+  const sessionIds = useMemo(() => adapterEnabled ? [] : sessions.map((s: any) => s.id), [sessions, adapterEnabled]);
   const { data: bookingCounts = {} } = useQuery({
     queryKey: ['dept-inbox-booking-counts', sessionIds],
     queryFn: async () => {
@@ -91,8 +106,16 @@ function DeptInboxContent() {
     enabled: sessionIds.length > 0,
   });
 
-  // Build departure cards matching DepartureCardData interface exactly
+  // Build departure cards — adapter or legacy pipeline
   const cards = useMemo(() => {
+    if (adapterEnabled) {
+      // Adapter pipeline: map OpsEvent → DepartureCardData
+      return adapterEvents
+        .filter(e => e.source_type === 'activity_session')
+        .map(e => opsEventToInboxCard(e));
+    }
+
+    // Legacy pipeline
     const now = new Date();
     return sessions.map((s: any): DepartureCardData & { _minutesUntil: number } => {
       const activity = s.activity;
@@ -113,7 +136,7 @@ function DeptInboxContent() {
         _minutesUntil: minutesUntil,
       };
     });
-  }, [sessions, bookingCounts]);
+  }, [adapterEnabled, adapterEvents, sessions, bookingCounts]);
 
   // Filter
   const filteredCards = useMemo(() => {
