@@ -58,9 +58,11 @@ export default function LandingPage() {
       <Suspense fallback={<SectionFallback />}>
         <PlatformModules />
       </Suspense>
-      <Suspense fallback={<SectionFallback />}>
-        <HowItWorks />
-      </Suspense>
+      <div className="bg-card/20">
+        <Suspense fallback={<SectionFallback />}>
+          <HowItWorks />
+        </Suspense>
+      </div>
       <Suspense fallback={<SectionFallback />}>
         <GlobalReady />
       </Suspense>

@@ -44,13 +44,13 @@ export function HomeHero() {
 
   return (
     <section className="relative min-h-[90vh] md:min-h-screen flex items-center pt-16 md:pt-20 pb-12 md:pb-16 overflow-hidden bg-background">
-      {/* Midnight gradient base */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background to-midnight-900/50 dark:to-midnight-950" />
+      {/* Animated gradient mesh — visible on all viewports */}
+      <div className="hero-gradient-mesh" />
       
-      {/* === Ocean Glow Blobs (visible on mobile) === */}
-      <div className="ocean-blob ocean-blob-1 absolute top-[15%] right-[-10%] md:right-[-5%] w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[800px] md:h-[800px] rounded-full blur-[80px] md:blur-[150px] bg-teal-400/10 dark:bg-teal-400/12" />
-      <div className="ocean-blob ocean-blob-2 absolute bottom-[5%] left-[-10%] w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[70px] md:blur-[120px] bg-blurple-500/8 dark:bg-blurple-500/10" />
-      <div className="ocean-blob ocean-blob-3 absolute top-[45%] left-[25%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] md:w-[300px] md:h-[300px] rounded-full blur-[50px] md:blur-[100px] bg-lime-400/5 dark:bg-lime-400/7" />
+      {/* === Ocean Glow Blobs (secondary depth layer) === */}
+      <div className="ocean-blob ocean-blob-1 absolute top-[15%] right-[-10%] md:right-[-5%] w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[800px] md:h-[800px] rounded-full blur-[80px] md:blur-[150px] bg-teal-400/8 dark:bg-teal-400/10" />
+      <div className="ocean-blob ocean-blob-2 absolute bottom-[5%] left-[-10%] w-[240px] h-[240px] sm:w-[300px] sm:h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-[70px] md:blur-[120px] bg-blurple-500/6 dark:bg-blurple-500/8" />
+      <div className="ocean-blob ocean-blob-3 absolute top-[45%] left-[25%] w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] md:w-[300px] md:h-[300px] rounded-full blur-[50px] md:blur-[100px] bg-lime-400/4 dark:bg-lime-400/5" />
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12 lg:gap-16 items-center text-center md:text-left">

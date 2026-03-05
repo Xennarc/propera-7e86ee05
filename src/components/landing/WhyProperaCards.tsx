@@ -66,12 +66,12 @@ const ValueCard = memo(function ValueCard({
 
 export function WhyProperaCards() {
   return (
-    <section className="py-24 relative overflow-hidden">
+    <section className="py-24 relative overflow-hidden bg-card/30">
       <div className="container relative mx-auto px-4">
         <ScrollReveal>
           <RevealItem className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12 lg:mb-16">
             <div className="text-center lg:text-left">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
                 Designed for real resort days.
               </h2>
               <p className="text-muted-foreground max-w-xl">
