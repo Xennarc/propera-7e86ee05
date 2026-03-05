@@ -101,7 +101,7 @@ function DeptSessionRunSheetContent() {
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <p className="text-muted-foreground">Session not found.</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate(`/dept/${deptKey}/planner`)}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate(`/staff/dept/${deptKey}/planner`)}>
           Back to Planner
         </Button>
       </div>

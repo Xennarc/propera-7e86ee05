@@ -8,7 +8,7 @@ export function DepartmentBottomNav() {
   const location = useLocation();
   const { hasModule } = useDepartment();
 
-  const baseUrl = `/dept/${deptKey}`;
+  const baseUrl = `/staff/dept/${deptKey}`;
   const hasAnyResource = hasModule('resources_assets') || hasModule('resources_shifts') || hasModule('resources_unavailability');
 
   const items = [

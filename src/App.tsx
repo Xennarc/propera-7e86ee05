@@ -17,10 +17,17 @@ function LegacyRedirect({ to }: { to: string }) {
   
   let targetPath = to;
   Object.entries(params).forEach(([key, value]) => {
+    if (key === '*') return; // Handle wildcard separately
     if (value) {
       targetPath = targetPath.replace(`:${key}`, value);
     }
   });
+  
+  // Append wildcard path if present
+  const wildcard = params['*'];
+  if (wildcard) {
+    targetPath = targetPath.replace(/\/$/, '') + '/' + wildcard;
+  }
   
   return <Navigate to={targetPath + location.search} replace />;
 }
@@ -94,8 +101,8 @@ const DriverTripRunnerPage = lazy(() => import("./pages/driver/DriverTripRunnerP
 const DriverHistoryPage = lazy(() => import("./pages/driver/DriverHistoryPage"));
 const ResortPublicLinksPage = lazy(() => import("./pages/settings/ResortPublicLinksPage"));
 
-// Department Portal
-const DepartmentShell = lazy(() => import("./components/department/DepartmentShell"));
+// Department Layout (nested inside StaffShell)
+const DepartmentLayout = lazy(() => import("./components/department/DepartmentLayout"));
 const DeptPlannerPage = lazy(() => import("./pages/department/DeptPlannerPage"));
 const DeptMasterSheetPage = lazy(() => import("./pages/department/DeptMasterSheetPage"));
 const DeptInboxPage = lazy(() => import("./pages/department/DeptInboxPage"));
@@ -312,6 +319,18 @@ const App = () => (
                   <Route path="room-service/orders" element={<StaffRoomServiceOrdersPage />} />
                   <Route path="room-service/orders/:orderId" element={<StaffRoomServiceOrderDetailPage />} />
                   <Route path="room-service/my-deliveries" element={<StaffRoomServiceMyDeliveriesPage />} />
+                  {/* Department routes nested inside StaffShell */}
+                  <Route path="dept/:deptKey" element={<DepartmentLayout />}>
+                    <Route index element={<Navigate to="planner" replace />} />
+                    <Route path="planner" element={<DeptPlannerPage />} />
+                    <Route path="master" element={<DeptMasterSheetPage />} />
+                    <Route path="inbox" element={<DeptInboxPage />} />
+                    <Route path="session/:sessionId" element={<DeptSessionRunSheetPage />} />
+                    <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
+                    <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
+                    <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
+                    <Route path="manage/access" element={<DeptManageAccessPage />} />
+                  </Route>
                 </Route>
                 
                 {/* Staff invitation acceptance (public) */}
@@ -324,18 +343,8 @@ const App = () => (
                   <Route path="history" element={<DriverHistoryPage />} />
                 </Route>
                 
-{/* Department Portal routes */}
-                <Route path="/dept/:deptKey" element={<DepartmentShell />}>
-                  <Route index element={<Navigate to="planner" replace />} />
-                  <Route path="planner" element={<DeptPlannerPage />} />
-                  <Route path="master" element={<DeptMasterSheetPage />} />
-                  <Route path="inbox" element={<DeptInboxPage />} />
-                  <Route path="session/:sessionId" element={<DeptSessionRunSheetPage />} />
-                  <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
-                  <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
-                  <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
-                  <Route path="manage/access" element={<DeptManageAccessPage />} />
-                </Route>
+{/* Legacy department portal redirects */}
+                <Route path="/dept/:deptKey/*" element={<LegacyRedirect to="/staff/dept/:deptKey" />} />
                 
                 {/* Demo auto-login routes */}
                 <Route path="/demo/login" element={<DemoLoginPage />} />

@@ -29,7 +29,7 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
   const { currentDepartment, myMemberships, departments, hasModule, isManager } = useDepartment();
   const { signOut, profile } = useAuth();
 
-  const baseUrl = `/dept/${deptKey}`;
+  const baseUrl = `/staff/dept/${deptKey}`;
 
   const primaryNav: NavItem[] = [
     { title: 'Planner', url: `${baseUrl}/planner`, icon: CalendarDays, moduleKey: 'ops_planner' },
@@ -72,7 +72,7 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
               {switchableDepts.map(dept => (
                 <DropdownMenuItem key={dept.id} asChild>
                   <Link
-                    to={`/dept/${dept.key}/planner`}
+                    to={`/staff/dept/${dept.key}/planner`}
                     onClick={onNavigate}
                     className={cn(dept.key === deptKey && 'font-semibold')}
                   >
