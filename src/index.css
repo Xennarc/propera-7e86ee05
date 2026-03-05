@@ -2963,6 +2963,38 @@ select:focus,
   .ocean-blob-3 { animation: ocean-drift-3 12s ease-in-out infinite; }
 }
 
+/* ========================================
+   HERO GRADIENT MESH — animated on all viewports
+   ======================================== */
+.hero-gradient-mesh {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 60% at 20% 40%, hsl(var(--primary) / 0.12), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 30%, hsl(175 60% 50% / 0.10), transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 80%, hsl(245 50% 55% / 0.08), transparent 50%),
+    radial-gradient(ellipse 90% 40% at 60% 10%, hsl(var(--primary) / 0.06), transparent 70%);
+  background-size: 300% 300%;
+  animation: gradient-drift 20s ease-in-out infinite;
+  pointer-events: none;
+  will-change: background-position;
+}
+
+.dark .hero-gradient-mesh {
+  background: 
+    radial-gradient(ellipse 80% 60% at 20% 40%, hsl(var(--primary) / 0.15), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 30%, hsl(175 60% 40% / 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 80%, hsl(245 50% 45% / 0.10), transparent 50%),
+    radial-gradient(ellipse 90% 40% at 60% 10%, hsl(var(--primary) / 0.08), transparent 70%);
+  background-size: 300% 300%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient-mesh {
+    animation: none !important;
+  }
+}
+
 /* Floating animation for phone mockup */
 @keyframes hero-float {
   0%, 100% { transform: translateY(0); }
