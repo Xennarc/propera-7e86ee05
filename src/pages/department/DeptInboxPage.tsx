@@ -13,6 +13,12 @@ import { SkeletonCardList } from '@/components/ui/skeleton-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
+import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
+import { opsEventToInboxCard } from '@/lib/ops/ops-event-compat';
+import { SkeletonCardList } from '@/components/ui/skeleton-card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
@@ -33,10 +39,23 @@ function DeptInboxContent() {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const adapterEnabled = useOpsAdapterEnabled();
 
   const resortId = currentDepartment?.resort_id;
   const tz = 'UTC';
   const category = getDepartmentActivityScope(currentDepartment);
+
+  // Adapter date range for inbox: today + tomorrow
+  const now = new Date();
+  const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
+  const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
+
+  // ── Adapter pipeline (flag gated) ──
+  const { data: adapterEvents = [], isLoading: adapterLoading, refetch: adapterRefetch } = useOpsEvents({
+    resortId,
+    dateRange: { start: todayStr, end: tomorrowStr },
+    enabled: adapterEnabled,
+  });
 
   const { data: sessions = [], isLoading, refetch } = useQuery({
     queryKey: ['dept-ops-inbox', resortId, category],
