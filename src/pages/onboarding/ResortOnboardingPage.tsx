@@ -677,7 +677,7 @@ export default function ResortOnboardingPage() {
                     <Button variant="outline" onClick={() => setInviteDialogOpen(true)}>
                       Invite Staff Member
                     </Button>
-                    <Button variant="outline" onClick={() => navigate('/staff/settings/resort-staff')}>
+                    <Button variant="outline" onClick={() => navigate('/staff/settings/access')}>
                       View Team
                     </Button>
                     <Button onClick={() => handleStepComplete('staff', 4)}>
