@@ -211,6 +211,7 @@ function DeptManageAccessContent() {
         onClose={() => setAddDialogOpen(false)}
         onAdded={handleMemberAdded}
         departmentId={currentDepartment!.id}
+        departmentKey={currentDepartment!.key}
         resortId={currentDepartment!.resort_id}
         existingUserIds={members.map(m => m.user_id)}
       />
