@@ -133,6 +133,11 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
     return moduleAccess.filter(a => a.department_id === currentDepartment.id);
   }, [moduleAccess, currentDepartment]);
 
+  const currentDeptModules = useMemo(() => {
+    if (!currentDepartment) return [];
+    return deptModules.filter(m => m.department_id === currentDepartment.id);
+  }, [deptModules, currentDepartment]);
+
   const currentBindings = useMemo(() => {
     if (!currentDepartment) return [];
     return bindings.filter(b => b.department_id === currentDepartment.id);
@@ -151,6 +156,12 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   }, [currentMembership, isSuperAdmin]);
 
   const hasModule = (moduleKey: DepartmentModuleKey): boolean => {
+    // Department-level toggle takes priority — if explicitly disabled, block everyone except super admins
+    const deptMod = currentDeptModules.find(m => m.module_key === moduleKey);
+    if (deptMod && !deptMod.enabled) {
+      return isSuperAdmin(); // Only super admins bypass dept-level disable
+    }
+
     if (isSuperAdmin()) return true;
     // Resort admins also have full access
     if (currentDepartment) {
