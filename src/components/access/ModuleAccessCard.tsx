@@ -95,7 +95,7 @@ export function ModuleAccessCard({
         setOverride.mutate({ userId, resortId, permissionKey: key, effect: 'grant' });
       } else if (!wantGranted && roleHas) {
         // Need to deny via override
-        setOverride.mutate({ userId, resortId, permissionKey: key, effect: 'deny' });
+        setOverride.mutate({ userId, resortId, permissionKey: key, effect: 'revoke' });
       } else {
         // !wantGranted && !roleHas — remove any grant override
         if (overrideMap.has(key)) {
@@ -113,7 +113,7 @@ export function ModuleAccessCard({
       const roleHas = rolePermSet.has(key);
       if (roleHas) {
         // Must explicitly deny
-        setOverride.mutate({ userId, resortId, permissionKey: key, effect: 'deny' });
+        setOverride.mutate({ userId, resortId, permissionKey: key, effect: 'revoke' });
       } else {
         // Was granted via override, remove it
         if (overrideMap.has(key)) {
