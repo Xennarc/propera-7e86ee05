@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Navigate, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AccountDisabledScreen } from '@/components/auth/AccountDisabledScreen';
 import { useResort } from '@/contexts/ResortContext';
@@ -9,7 +9,8 @@ import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
 import { useDepartmentRedirect } from '@/hooks/useDepartmentRedirect';
-import { DepartmentShellProvider, useDepartmentShell } from '@/contexts/DepartmentShellContext';
+
+import { DepartmentProvider } from '@/contexts/DepartmentContext';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
@@ -43,7 +44,13 @@ function StaffShellInner() {
   const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { isDeptActive } = useDepartmentShell();
+  const location = useLocation();
+  // Derive department mode directly from URL (synchronous, no useEffect delay)
+  const deptKeyFromUrl = useMemo(() => {
+    const match = location.pathname.match(/\/staff\/dept\/([^/]+)/);
+    return match?.[1] ?? undefined;
+  }, [location.pathname]);
+  const isDeptActive = !!deptKeyFromUrl;
   
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
@@ -162,7 +169,7 @@ function StaffShellInner() {
   const sidebarWidth = isDeptActive ? 'lg:w-56' : 'lg:w-64';
   const sidebarPl = isDeptActive ? 'lg:pl-56' : 'lg:pl-64';
 
-  return (
+  const shellContent = (
     <FeatureFlagsProvider resortId={currentResort?.id}>
       <TooltipProvider>
         <DemoRefreshedModal
@@ -248,12 +255,21 @@ function StaffShellInner() {
       </TooltipProvider>
     </FeatureFlagsProvider>
   );
+
+  // Wrap in DepartmentProvider when URL indicates a department route
+  // This must be based on URL (not isDeptActive state) to be available on first render
+  // before DepartmentLayout's useEffect fires
+  if (deptKeyFromUrl) {
+    return (
+      <DepartmentProvider deptKeyOverride={deptKeyFromUrl}>
+        {shellContent}
+      </DepartmentProvider>
+    );
+  }
+
+  return shellContent;
 }
 
 export function StaffShell() {
-  return (
-    <DepartmentShellProvider>
-      <StaffShellInner />
-    </DepartmentShellProvider>
-  );
+  return <StaffShellInner />;
 }
