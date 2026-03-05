@@ -1,143 +1,45 @@
 
 
-## Performance-First Framer Motion Scroll Reveals
+## Improve Homepage Visual Hierarchy + Hero Gradient Animation
 
-### Current State
+### Current Issues
+- The hero background uses static ocean-glow blobs with subtle drift — no visible gradient animation on mobile (blobs are small and low-opacity)
+- Below-fold sections (WhyProperaCards, PlatformModules, etc.) all have similar padding and no visual differentiation
+- No animated gradient visible across all viewports — the `gradient-drift` keyframe exists but is only used on the `.marketing-canvas::after` (a fixed background layer), not the hero itself
 
-The public pages use **two different animation systems** that need unifying:
+### Changes
 
-1. **CSS-based system** (`useScrollReveal` hook + `.section-reveal` / `.stagger-N` classes) -- used by 11 components: `WhyProperaCards`, `PlatformModules`, `HowItWorks`, `GlobalReady`, `HomeFinalCTA`, `MarketingSection`, `GuestJourneyFlow`, and all 5 pricing sections.
+**1. Hero — Add a full-viewport animated gradient mesh**
 
-2. **Framer Motion** (`whileInView`) -- used by 3 components: `HomeHero`, `PricingTeaser`, `TrustStrip`.
+Replace the current static `bg-gradient-to-b` base + small ocean blobs with a single animated gradient overlay that's visible on all viewports:
 
-The CSS system has no `will-change` hints on the animating containers, uses `transform: translateY(30px)` which can cause layout shift during the transition, and the stagger system relies on CSS `transition-delay` which can't be optimized by Framer Motion's layout engine.
+- Add a new CSS class `hero-gradient-mesh` in `src/index.css` that uses a multi-stop radial/conic gradient with `background-size: 300% 300%` and the existing `gradient-drift` keyframe (slowed to ~20s for premium feel)
+- Colors: primary lime at low opacity, teal, and blurple — matching existing palette
+- Visible on mobile because it's a full `absolute inset-0` layer, not positioned blobs that get clipped
+- Keep the ocean blobs as a secondary layer on top for depth on larger screens
+- Respect `prefers-reduced-motion` by disabling animation
 
-### Plan
+**In `HomeHero.tsx`**: Replace the static gradient div with the new `hero-gradient-mesh` class. Keep ocean blobs but reduce their opacity slightly so the gradient shows through.
 
-Create a single, reusable Framer Motion component that replaces the CSS-based reveal system across all public pages. This gives us GPU-composited animations with `will-change`, viewport-triggered `whileInView`, and staggered children via Framer's `staggerChildren` -- all in one consistent system.
+**2. Homepage section rhythm — alternate surfaces and tighten spacing**
 
-### Technical Details
+In `LandingPage.tsx`, wrap alternating lazy-loaded sections with subtle background differentiation:
 
-#### 1. New component: `src/components/motion/ScrollReveal.tsx`
+- `WhyProperaCards`: Add `bg-card/30` surface background  
+- `PlatformModules`: Keep transparent (contrast with above)
+- `HowItWorks`: Add `bg-card/20` surface
+- Remaining sections: Keep current styling
 
-A thin wrapper around `motion.div` that provides the fade-in-up effect:
+**3. WhyProperaCards — reduce heading size for hierarchy**
 
-```tsx
-import { motion, type Variants } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
+The `WhyProperaCards` heading is `text-3xl md:text-4xl` — same scale as the hero. Reduce to `text-2xl md:text-3xl` to establish the hero as the dominant element.
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1], // cubic-bezier for smooth decel
-      staggerChildren: 0.08,
-    },
-  },
-};
+### Files to modify
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
-```
-
-- `ScrollReveal` -- container with `whileInView="visible"`, `viewport={{ once: true, margin: "-50px" }}`, and `style={{ willChange: 'opacity, transform' }}`
-- `RevealItem` -- child wrapper using `itemVariants` for stagger
-- Both respect `useAnimationPreference()` -- if reduced motion or low-power, render as plain `div` with no animation
-
-#### 2. Update `MarketingSection.tsx`
-
-Replace `useScrollReveal` + CSS class toggling with `ScrollReveal` wrapper. Remove the `section-reveal` / `section-revealed` class logic. The component becomes:
-
-```tsx
-<ScrollReveal>
-  <div className={cn('mx-auto px-6 relative', sizeClasses[size])}>
-    {children}
-  </div>
-</ScrollReveal>
-```
-
-#### 3. Update landing page sections (6 files)
-
-Each section replaces its `useScrollReveal` pattern:
-
-| Component | Change |
-|-----------|--------|
-| `WhyProperaCards.tsx` | Remove `useScrollReveal`, wrap content in `ScrollReveal`, wrap each `ValueCard` in `RevealItem` instead of `stagger-N` classes |
-| `PlatformModules.tsx` | Same pattern -- `ScrollReveal` container, `RevealItem` for header + each `ModuleCard` |
-| `HowItWorks.tsx` | `ScrollReveal` container, `RevealItem` for each `StepCard` |
-| `GlobalReady.tsx` | `ScrollReveal` container, `RevealItem` for header, chips, showcases |
-| `HomeFinalCTA.tsx` | `ScrollReveal` container, `RevealItem` for h2, p, buttons, reassurance |
-| `HomeHero.tsx` | Already uses Framer Motion -- add `style={{ willChange: 'opacity, transform' }}` to each `motion.div` |
-
-#### 4. Update pricing page sections (5 files)
-
-| Component | Change |
-|-----------|--------|
-| `PricingTrustSection.tsx` | Replace `useScrollReveal` with `ScrollReveal` + `RevealItem` |
-| `PricingCTASection.tsx` | Same |
-| `PricingComparisonMatrix.tsx` | Same |
-| `PricingPlanGrid.tsx` | Same |
-| `PricingFAQSection.tsx` | Same |
-| `PricingAddonsSection.tsx` | Same |
-| `PricingTeaser.tsx` | Already uses Framer Motion -- add `will-change` style |
-| `TrustStrip.tsx` | Already uses Framer Motion -- add `will-change` style |
-
-#### 5. Update `GuestJourneyFlow.tsx`
-
-Replace `useScrollReveal` with `ScrollReveal`.
-
-#### 6. CSS cleanup in `src/index.css`
-
-Remove the now-unused CSS rules (lines ~2150-2170):
-- `.section-reveal` / `.section-revealed` opacity/transform rules
-- `.section-revealed .stagger-1` through `.stagger-7` delay rules
-
-Keep all other CSS animations (hover effects, chart-bar-grow, chip-stagger, etc.) as they serve different purposes.
-
-#### 7. No changes to `useScrollReveal.ts`
-
-The hook file stays as-is -- it may still be used by non-marketing components. If no remaining consumers exist after all updates, it can be removed in a follow-up.
-
-### Performance Guarantees
-
-- **`will-change: opacity, transform`** on every animating `motion.div` -- tells the browser to composite these elements on their own GPU layer
-- **`viewport={{ once: true }}`** -- animations fire once and Framer disconnects the IntersectionObserver, zero ongoing cost
-- **`staggerChildren: 0.08`** -- Framer batches child animations off the main thread
-- **Reduced motion / low-power** -- bypasses all animation, renders static `div` elements
-- **No layout shift** -- `y: 24` translate doesn't affect document flow (transform-only, no height/margin changes)
-- **Lazy-loaded sections** remain lazy -- `ScrollReveal` is lightweight (~200 bytes) and doesn't import framer-motion's heavy features
-
-### Files Changed
-
-| File | Type |
-|------|------|
-| `src/components/motion/ScrollReveal.tsx` | **New** |
-| `src/components/layout/MarketingSection.tsx` | Edit |
-| `src/components/landing/WhyProperaCards.tsx` | Edit |
-| `src/components/landing/PlatformModules.tsx` | Edit |
-| `src/components/landing/HowItWorks.tsx` | Edit |
-| `src/components/landing/GlobalReady.tsx` | Edit |
-| `src/components/landing/HomeFinalCTA.tsx` | Edit |
-| `src/components/landing/HomeHero.tsx` | Edit (add will-change) |
-| `src/components/landing/PricingTeaser.tsx` | Edit (add will-change) |
-| `src/components/landing/TrustStrip.tsx` | Edit (add will-change) |
-| `src/components/pricing/PricingTrustSection.tsx` | Edit |
-| `src/components/pricing/PricingCTASection.tsx` | Edit |
-| `src/components/pricing/PricingComparisonMatrix.tsx` | Edit |
-| `src/components/pricing/PricingPlanGrid.tsx` | Edit |
-| `src/components/pricing/PricingFAQSection.tsx` | Edit |
-| `src/components/pricing/PricingAddonsSection.tsx` | Edit |
-| `src/components/illustrations/GuestJourneyFlow.tsx` | Edit |
-| `src/index.css` | Edit (remove unused rules) |
-
-18 files total. No new dependencies needed (framer-motion already installed).
+| File | Change |
+|------|--------|
+| `src/index.css` | Add `hero-gradient-mesh` keyframe + class (~20 lines) |
+| `src/components/landing/HomeHero.tsx` | Replace static gradient base with `hero-gradient-mesh`, reduce ocean blob opacity |
+| `src/components/landing/WhyProperaCards.tsx` | Reduce heading scale, add `bg-card/30` wrapper |
+| `src/pages/LandingPage.tsx` | Add alternating `bg-card/20` wrappers on select sections |
 
