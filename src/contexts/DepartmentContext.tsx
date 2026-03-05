@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureEnabled } from '@/components/FeatureGate';
-import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding } from '@/types/database';
+import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding, DepartmentModule } from '@/types/database';
 import { resolveDepartmentScope, type DepartmentScope } from '@/lib/departments/department-scope';
 
 interface DepartmentContextType {
@@ -43,6 +43,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
   const [moduleAccess, setModuleAccess] = useState<DepartmentModuleAccess[]>([]);
   const [bindings, setBindings] = useState<DepartmentBinding[]>([]);
+  const [deptModules, setDeptModules] = useState<DepartmentModule[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch departments and memberships for this user
@@ -52,6 +53,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
       setMyMemberships([]);
       setModuleAccess([]);
       setBindings([]);
+      setDeptModules([]);
       setLoading(false);
       return;
     }
@@ -89,17 +91,22 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
           setDepartments([]);
         }
 
-        // Fetch module access and bindings in parallel
-        const [accessResult, bindingsResult] = await Promise.all([
+        // Fetch module access, bindings, and dept-level modules in parallel
+        const deptIds = (deptData ?? []).map((d: any) => d.id);
+        const [accessResult, bindingsResult, deptModulesResult] = await Promise.all([
           supabase.from('department_module_access').select('*').eq('user_id', user!.id),
           resortIds.length > 0
             ? supabase.from('department_bindings').select('*').in('resort_id', resortIds).eq('is_active', true)
+            : Promise.resolve({ data: [] }),
+          deptIds.length > 0
+            ? supabase.from('department_modules').select('*').in('department_id', deptIds)
             : Promise.resolve({ data: [] }),
         ]);
 
         if (cancelled) return;
         setModuleAccess((accessResult.data ?? []) as DepartmentModuleAccess[]);
         setBindings((bindingsResult.data ?? []) as DepartmentBinding[]);
+        setDeptModules((deptModulesResult.data ?? []) as DepartmentModule[]);
       } finally {
         if (!cancelled) setLoading(false);
       }
