@@ -55,7 +55,7 @@ export function DepartmentGuard({ children, moduleKey, managerOnly = false }: De
           </CardHeader>
           <CardContent className="flex justify-center">
             <Button variant="outline" asChild>
-              <Link to={`/dept/${deptKey || ''}/planner`}>Back to Planner</Link>
+              <Link to={`/staff/dept/${deptKey || ''}/planner`}>Back to Planner</Link>
             </Button>
           </CardContent>
         </Card>
@@ -79,7 +79,7 @@ export function DepartmentGuard({ children, moduleKey, managerOnly = false }: De
           </CardHeader>
           <CardContent className="flex justify-center">
             <Button variant="outline" asChild>
-              <Link to={`/dept/${deptKey}/planner`}>Back to Planner</Link>
+              <Link to={`/staff/dept/${deptKey}/planner`}>Back to Planner</Link>
             </Button>
           </CardContent>
         </Card>
@@ -103,7 +103,7 @@ export function DepartmentGuard({ children, moduleKey, managerOnly = false }: De
           </CardHeader>
           <CardContent className="flex justify-center">
             <Button variant="outline" asChild>
-              <Link to={`/dept/${deptKey}/planner`}>Back to Planner</Link>
+              <Link to={`/staff/dept/${deptKey}/planner`}>Back to Planner</Link>
             </Button>
           </CardContent>
         </Card>

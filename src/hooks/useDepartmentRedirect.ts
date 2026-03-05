@@ -69,7 +69,7 @@ export function useDepartmentRedirect(): DeptRedirectResult {
 
   return {
     shouldRedirect,
-    redirectPath: deptKey ? `/dept/${deptKey}/planner` : null,
+    redirectPath: deptKey ? `/staff/dept/${deptKey}/planner` : null,
     loading: !checked && !!user && !authLoading && !userDataLoading,
   };
 }

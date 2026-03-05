@@ -9,6 +9,7 @@ import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
 import { useDepartmentRedirect } from '@/hooks/useDepartmentRedirect';
+import { DepartmentShellProvider, useDepartmentShell } from '@/contexts/DepartmentShellContext';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
@@ -18,6 +19,9 @@ import { StaffCommandBar, useStaffCommandBar } from './StaffCommandBar';
 import { StaffDebugPanel } from './StaffDebugPanel';
 import { StaffDebugConsole } from './StaffDebugConsole';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { DepartmentSidebar } from '@/components/department/DepartmentSidebar';
+import { DepartmentBottomNav } from '@/components/department/DepartmentBottomNav';
+import { DepartmentTopbar } from '@/components/department/DepartmentTopbar';
 import { ProperaLoader } from '@/components/icons/ProperaLogo';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
@@ -32,13 +36,14 @@ import { cn } from '@/lib/utils';
 import { SkipLink } from '@/components/a11y/SkipLink';
 import { DemoRefreshedModal } from '@/components/demo/DemoRefreshedModal';
 
-export function StaffShell() {
+function StaffShellInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { open: commandBarOpen, setOpen: setCommandBarOpen } = useStaffCommandBar();
   const { isDebugMode, showDebugPanel } = useStaffDebugMode();
   const { isKeyboardOpen } = useKeyboardInset();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { isDeptActive } = useDepartmentShell();
   
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
@@ -115,7 +120,7 @@ export function StaffShell() {
 
   // Access denied — but check for department-only users first
   if (!permissions.hasAnyResortAccess) {
-    // If department redirect is ready, redirect them
+    // Department-only users: redirect them to their department
     if (deptRedirect.shouldRedirect && deptRedirect.redirectPath) {
       return <Navigate to={deptRedirect.redirectPath} replace />;
     }
@@ -153,6 +158,10 @@ export function StaffShell() {
     );
   }
 
+  // Determine which sidebar/nav to render based on department mode
+  const sidebarWidth = isDeptActive ? 'lg:w-56' : 'lg:w-64';
+  const sidebarPl = isDeptActive ? 'lg:pl-56' : 'lg:pl-64';
+
   return (
     <FeatureFlagsProvider resortId={currentResort?.id}>
       <TooltipProvider>
@@ -169,24 +178,31 @@ export function StaffShell() {
         
         <SkipLink />
         <div className="flex min-h-screen w-full bg-background">
-          {/* Desktop Sidebar - with gradient stroke */}
-          <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar">
-            <StaffSidebar />
+          {/* Desktop Sidebar - swaps between staff and dept */}
+          <aside className={cn("hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 border-r border-border/30 bg-sidebar", sidebarWidth)}>
+            {isDeptActive ? <DepartmentSidebar /> : <StaffSidebar />}
           </aside>
 
           {/* Mobile Sidebar */}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="p-0 w-[280px]">
-              <StaffSidebar onNavigate={() => setMobileMenuOpen(false)} />
+            <SheetContent side="left" className={cn("p-0", isDeptActive ? "w-[260px]" : "w-[280px]")}>
+              {isDeptActive
+                ? <DepartmentSidebar onNavigate={() => setMobileMenuOpen(false)} />
+                : <StaffSidebar onNavigate={() => setMobileMenuOpen(false)} />
+              }
             </SheetContent>
           </Sheet>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col lg:pl-64">
-            <StaffTopbar
-              onMenuClick={() => setMobileMenuOpen(true)}
-              onCommandBarOpen={() => setCommandBarOpen(true)}
-            />
+          <div className={cn("flex-1 flex flex-col", sidebarPl)}>
+            {isDeptActive ? (
+              <DepartmentTopbar onMenuClick={() => setMobileMenuOpen(true)} />
+            ) : (
+              <StaffTopbar
+                onMenuClick={() => setMobileMenuOpen(true)}
+                onCommandBarOpen={() => setCommandBarOpen(true)}
+              />
+            )}
 
             <main 
               id="main-content"
@@ -196,7 +212,12 @@ export function StaffShell() {
               isKeyboardOpen ? "pb-4" : "pb-24 lg:pb-0"
             )}>
               {/* Improved padding scale: tighter on mobile, generous on desktop */}
-              <div className="p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 max-w-[1400px] mx-auto">
+              <div className={cn(
+                "max-w-[1400px] mx-auto",
+                isDeptActive
+                  ? "p-3 sm:p-4 md:p-6 lg:p-8"
+                  : "p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10"
+              )}>
                 <ErrorBoundary
                   fallback={<RouteErrorFallback />}
                   onReset={() => window.location.reload()}
@@ -206,15 +227,17 @@ export function StaffShell() {
               </div>
             </main>
 
-            {/* Mobile Bottom Navigation */}
-            <MobileBottomNav />
+            {/* Mobile Bottom Navigation - swaps between staff and dept */}
+            {isDeptActive ? <DepartmentBottomNav /> : <MobileBottomNav />}
           </div>
 
-          {/* Command Bar */}
-          <StaffCommandBar
-            open={commandBarOpen}
-            onOpenChange={setCommandBarOpen}
-          />
+          {/* Command Bar (only in staff mode) */}
+          {!isDeptActive && (
+            <StaffCommandBar
+              open={commandBarOpen}
+              onOpenChange={setCommandBarOpen}
+            />
+          )}
 
           {/* Debug Panel (legacy) */}
           {showDebugPanel && <StaffDebugPanel />}
@@ -224,5 +247,13 @@ export function StaffShell() {
         </div>
       </TooltipProvider>
     </FeatureFlagsProvider>
+  );
+}
+
+export function StaffShell() {
+  return (
+    <DepartmentShellProvider>
+      <StaffShellInner />
+    </DepartmentShellProvider>
   );
 }
