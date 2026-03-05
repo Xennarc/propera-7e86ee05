@@ -139,6 +139,28 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
             ))}
           </div>
         )}
+        {/* Compliance section */}
+        {hasAnyCompliance && (
+          <div className="pt-4">
+            <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compliance</div>
+            {complianceNav.filter(item => hasModule(item.moduleKey)).map(item => (
+              <Link
+                key={item.url}
+                to={item.url}
+                onClick={onNavigate}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
+                  isActive(item.url)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <item.icon className="h-4.5 w-4.5 shrink-0" />
+                {item.title}
+              </Link>
+            ))}
+          </div>
+        )}
         {/* Manager section */}
         {isManager && (
           <div className="pt-4">
