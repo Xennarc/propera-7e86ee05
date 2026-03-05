@@ -2,8 +2,8 @@ import { useState, useMemo, useCallback } from 'react';
 import { DepartmentGuard } from '@/components/department/DepartmentGuard';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useDailyOpsSheet, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
-import { getDepartmentOpsScope, isDepartmentUnscoped } from '@/lib/department-utils';
-import { UnscopedDepartmentBanner } from '@/components/department/UnscopedDepartmentBanner';
+import { getDepartmentOpsScope } from '@/lib/department-utils';
+import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ function DeptMasterSheetContent() {
   const [attentionMode, setAttentionMode] = useState(false);
 
   const opsDept = getDepartmentOpsScope(currentDepartment);
-  const unscoped = isDepartmentUnscoped(currentDepartment);
+  const resortId = currentDepartment?.resort_id;
   const resortId = currentDepartment?.resort_id;
 
   const { data: sheet, isLoading, refetch } = useDailyOpsSheet(resortId, dateStr, opsDept);
@@ -64,7 +64,7 @@ function DeptMasterSheetContent() {
 
   return (
     <div className="space-y-4">
-      {unscoped && <UnscopedDepartmentBanner />}
+      <DeptScopeWarningBanner />
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">{currentDepartment?.name} Ops</h1>

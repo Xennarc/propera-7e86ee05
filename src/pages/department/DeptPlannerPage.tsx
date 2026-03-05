@@ -8,8 +8,8 @@ import { parseActivityRequirements } from '@/lib/activity-requirements';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getDepartmentActivityScope, isDepartmentUnscoped } from '@/lib/department-utils';
-import { UnscopedDepartmentBanner } from '@/components/department/UnscopedDepartmentBanner';
+import { getDepartmentActivityScope } from '@/lib/department-utils';
+import { DeptScopeWarningBanner } from '@/components/department/DeptScopeWarningBanner';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -374,7 +374,7 @@ function DeptPlannerContent() {
 
   return (
     <div className="space-y-4">
-      {unscoped && <UnscopedDepartmentBanner />}
+      <DeptScopeWarningBanner />
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">{currentDepartment?.name} Planner</h1>
