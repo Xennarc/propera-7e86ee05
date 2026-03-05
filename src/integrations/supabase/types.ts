@@ -82,6 +82,7 @@ export type Database = {
           max_pax_per_booking: number
           min_capacity: number | null
           name: string
+          ops_rules_json: Json | null
           provider_type: Database["public"]["Enums"]["provider_type"]
           requirements_json: Json | null
           requires_approval: boolean
@@ -120,6 +121,7 @@ export type Database = {
           max_pax_per_booking?: number
           min_capacity?: number | null
           name: string
+          ops_rules_json?: Json | null
           provider_type?: Database["public"]["Enums"]["provider_type"]
           requirements_json?: Json | null
           requires_approval?: boolean
@@ -158,6 +160,7 @@ export type Database = {
           max_pax_per_booking?: number
           min_capacity?: number | null
           name?: string
+          ops_rules_json?: Json | null
           provider_type?: Database["public"]["Enums"]["provider_type"]
           requirements_json?: Json | null
           requires_approval?: boolean

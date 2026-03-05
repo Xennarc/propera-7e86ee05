@@ -1,0 +1,1 @@
+ALTER TABLE public.activities ADD COLUMN IF NOT EXISTS ops_rules_json jsonb DEFAULT NULL;
