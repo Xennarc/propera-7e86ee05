@@ -214,12 +214,10 @@ function DeptInboxContent() {
       {isLoading ? (
         <SkeletonCardList count={4} />
       ) : visibleCards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <CheckCircle2 className="h-8 w-8 text-muted-foreground mb-3" />
-          <p className="text-muted-foreground text-sm">
-            {filter === 'now' ? 'Nothing starting right now.' : 'No sessions match this filter.'}
-          </p>
-        </div>
+        <AppEmptyState
+          icon={CheckCircle2}
+          message={filter === 'now' ? 'Nothing starting right now.' : 'No sessions match this filter.'}
+        />
       ) : (
         <div className="space-y-2">
           {visibleCards.map(card => (
