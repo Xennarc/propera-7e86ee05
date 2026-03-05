@@ -114,24 +114,26 @@ function DeptPlannerContent() {
     queryKey: ['dept-planner-sessions', resortId, category, weekStartStr, weekEndStr],
     queryFn: async () => {
       if (!resortId) return [];
-      const { data, error } = await supabase
+      const selectStr = category
+        ? `id, date, start_time, end_time, capacity, status, activity:activities!inner(name, category, ops_rules_json, requirements_json)`
+        : `id, date, start_time, end_time, capacity, status, activity:activities(name, category, ops_rules_json, requirements_json)`;
+
+      let query = supabase
         .from('activity_sessions')
-        .select(`
-          id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category, ops_rules_json, requirements_json)
-        `)
+        .select(selectStr)
         .eq('resort_id', resortId)
         .gte('date', weekStartStr)
         .lte('date', weekEndStr)
         .order('date')
         .order('start_time');
 
-      if (error) throw error;
-      let filtered = data ?? [];
       if (category) {
-        filtered = filtered.filter((s: any) => s.activity?.category === category);
+        query = query.eq('activity.category', category);
       }
-      return filtered;
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data ?? [];
     },
     enabled: !!resortId,
     staleTime: 30_000,

@@ -47,22 +47,25 @@ function DeptInboxContent() {
       const todayStr = format(toZonedTime(now, tz), 'yyyy-MM-dd');
       const tomorrowStr = format(addDays(toZonedTime(now, tz), 1), 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
+      const selectStr = category
+        ? `id, date, start_time, end_time, capacity, status, activity:activities!inner(name, category)`
+        : `id, date, start_time, end_time, capacity, status, activity:activities(name, category)`;
+
+      let query = supabase
         .from('activity_sessions')
-        .select(`
-          id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category)
-        `)
+        .select(selectStr)
         .eq('resort_id', resortId)
         .in('date', [todayStr, tomorrowStr])
         .in('status', ['SCHEDULED', 'CHECK_IN'])
         .order('date')
         .order('start_time');
 
-      if (error) throw error;
       if (category) {
-        return (data ?? []).filter((s: any) => s.activity?.category === category);
+        query = query.eq('activity.category', category);
       }
+
+      const { data, error } = await query;
+      if (error) throw error;
       return data ?? [];
     },
     enabled: !!resortId,
