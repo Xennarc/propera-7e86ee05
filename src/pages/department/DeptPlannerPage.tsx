@@ -251,12 +251,15 @@ function DeptPlannerContent() {
       const assigns = sessionAssignments[s.id];
       const booked = bookingCounts[s.id] ?? 0;
       const conflicts = conflictCounts[s.id] ?? 0;
+      const actCategory = s.activity?.category ?? '';
+      const reqJson = s.activity?.requirements_json;
+      const actReqs = parseActivityRequirements(reqJson, actCategory);
       const coverage = computeCoverage({
         opsRules: s.activity?.ops_rules_json,
         assignedRoles: assigns?.roles ?? {},
         assignedBoats: assigns?.boats ?? 0,
         bookedCount: booked,
-        category: s.activity?.category ?? null,
+        category: actCategory || null,
         conflictCount: conflicts,
       });
       const slot: SessionSlot = {
@@ -267,16 +270,19 @@ function DeptPlannerContent() {
         status: s.status,
         capacity: s.capacity,
         activity_name: s.activity?.name ?? 'Unknown',
-        category: s.activity?.category ?? '',
+        category: actCategory,
         booked,
         ops_rules_json: s.activity?.ops_rules_json,
+        requirements_json: reqJson,
         coverageStatus: coverage.status,
+        missingPickup: actReqs.requires_pickup && !transportLinkedSessions.has(s.id),
+        readinessBlockerCount: readinessBlockers[s.id] ?? 0,
       };
       if (!grouped[s.date]) grouped[s.date] = [];
       grouped[s.date].push(slot);
     }
     return grouped;
-  }, [sessions, bookingCounts, sessionAssignments]);
+  }, [sessions, bookingCounts, sessionAssignments, conflictCounts, transportLinkedSessions, readinessBlockers]);
 
   // Attention mode: filter today's sessions to high-risk items
   const attentionItems = useMemo(() => {
