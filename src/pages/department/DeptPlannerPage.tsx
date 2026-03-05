@@ -380,6 +380,12 @@ function DeptPlannerContent() {
                               handleSessionClick(s.id);
                             }}
                           >
+                            <span className={cn(
+                              'inline-block h-1.5 w-1.5 rounded-full mr-1 shrink-0 translate-y-[-0.5px]',
+                              s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                              s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                              s.coverageStatus === 'red' && 'bg-destructive',
+                            )} />
                             <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
                             <span className="text-muted-foreground">{s.activity_name}</span>
                             <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
