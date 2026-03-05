@@ -426,6 +426,21 @@ export default function AccessManagementPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(member);
+                                setViewDialogOpen(true);
+                              }}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(member);
+                                setEditDialogOpen(true);
+                              }}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit Profile
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleOpenAccessDrawer(member)}>
                                 <Key className="h-4 w-4 mr-2" />
                                 Edit Access
@@ -438,6 +453,17 @@ export default function AccessManagementPage() {
                               >
                                 <Settings className="h-4 w-4 mr-2" />
                                 Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => {
+                                  setSelectedUser(member);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Remove Member
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
