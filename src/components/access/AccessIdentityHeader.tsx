@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Shield, User } from 'lucide-react';
+import { Shield, User, Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface AccessIdentityHeaderProps {
@@ -14,6 +15,10 @@ interface AccessIdentityHeaderProps {
   roleName?: string;
   customizedCount: number;
   hasOverrides: boolean;
+  totalModules?: number;
+  inheritedCount?: number;
+  lastChangedAt?: string | null;
+  lastChangedBy?: string | null;
 }
 
 export function AccessIdentityHeader({
@@ -22,6 +27,10 @@ export function AccessIdentityHeader({
   roleName,
   customizedCount,
   hasOverrides,
+  totalModules = 0,
+  inheritedCount = 0,
+  lastChangedAt,
+  lastChangedBy,
 }: AccessIdentityHeaderProps) {
   const displayName = user.full_name || user.username || user.email || 'Unknown';
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -57,7 +66,22 @@ export function AccessIdentityHeader({
               Inherited from role
             </Badge>
           )}
+          {totalModules > 0 && inheritedCount === totalModules && (
+            <Badge variant="success" className="text-xs">
+              100% role defaults
+            </Badge>
+          )}
         </div>
+        {/* Last changed context */}
+        {lastChangedAt && (
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1">
+            <Clock className="h-3 w-3" />
+            <span>
+              Last modified {formatDistanceToNow(new Date(lastChangedAt), { addSuffix: true })}
+              {lastChangedBy && ` by ${lastChangedBy}`}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
