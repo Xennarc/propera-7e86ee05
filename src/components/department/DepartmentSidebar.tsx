@@ -2,7 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users } from 'lucide-react';
+import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
