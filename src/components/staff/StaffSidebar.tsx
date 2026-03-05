@@ -261,14 +261,6 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     return group.items.some(item => isItemVisible(item));
   };
 
-  // Debug: log Activities group visibility for troubleshooting
-  useEffect(() => {
-    const activitiesGroup = navGroups.find(g => g.id === 'activities');
-    if (activitiesGroup) {
-      const visible = activitiesGroup.items.filter(isItemVisible).map(i => i.title);
-      console.log('[Sidebar] Activities visible items:', visible, '| isSuperAdmin:', isSuperAdmin());
-    }
-  }, [isSuperAdmin(), currentRole, flagContext?.loading]);
 
 
   const isGroupActive = (group: NavGroup) => {
