@@ -86,8 +86,8 @@ function DeptInboxContent() {
   const isLoading = adapterEnabled ? adapterLoading : legacyLoading;
   const refetch = adapterEnabled ? adapterRefetch : legacyRefetch;
 
-  // Booking counts
-  const sessionIds = useMemo(() => sessions.map((s: any) => s.id), [sessions]);
+  // Booking counts (only for legacy pipeline)
+  const sessionIds = useMemo(() => adapterEnabled ? [] : sessions.map((s: any) => s.id), [sessions, adapterEnabled]);
   const { data: bookingCounts = {} } = useQuery({
     queryKey: ['dept-inbox-booking-counts', sessionIds],
     queryFn: async () => {
@@ -106,8 +106,16 @@ function DeptInboxContent() {
     enabled: sessionIds.length > 0,
   });
 
-  // Build departure cards matching DepartureCardData interface exactly
+  // Build departure cards — adapter or legacy pipeline
   const cards = useMemo(() => {
+    if (adapterEnabled) {
+      // Adapter pipeline: map OpsEvent → DepartureCardData
+      return adapterEvents
+        .filter(e => e.source_type === 'activity_session')
+        .map(e => opsEventToInboxCard(e));
+    }
+
+    // Legacy pipeline
     const now = new Date();
     return sessions.map((s: any): DepartureCardData & { _minutesUntil: number } => {
       const activity = s.activity;
@@ -128,7 +136,7 @@ function DeptInboxContent() {
         _minutesUntil: minutesUntil,
       };
     });
-  }, [sessions, bookingCounts]);
+  }, [adapterEnabled, adapterEvents, sessions, bookingCounts]);
 
   // Filter
   const filteredCards = useMemo(() => {
