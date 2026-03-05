@@ -323,6 +323,18 @@ const App = () => (
                   <Route path="history" element={<DriverHistoryPage />} />
                 </Route>
                 
+{/* Department Portal routes */}
+                <Route path="/dept/:deptKey" element={<DepartmentShell />}>
+                  <Route index element={<Navigate to="planner" replace />} />
+                  <Route path="planner" element={<DeptPlannerPage />} />
+                  <Route path="master" element={<DeptMasterSheetPage />} />
+                  <Route path="inbox" element={<DeptInboxPage />} />
+                  <Route path="session/:sessionId" element={<DeptSessionRunSheetPage />} />
+                  <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
+                  <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
+                  <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
+                </Route>
+                
                 {/* Demo auto-login routes */}
                 <Route path="/demo/login" element={<DemoLoginPage />} />
                 <Route path="/staff/demo-login" element={<DemoAutoLoginPage />} />
