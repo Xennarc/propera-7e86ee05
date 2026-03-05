@@ -184,6 +184,44 @@ function DeptPlannerContent() {
 
   const { data: conflictCounts = {} } = useMultiSessionConflicts(resortId, sessionIds);
 
+  // Transport links — check which sessions have a pickup linked
+  const { data: transportLinkedSessions = new Set<string>() } = useQuery({
+    queryKey: ['dept-planner-transport-links', sessionIds],
+    queryFn: async () => {
+      if (sessionIds.length === 0) return new Set<string>();
+      const { data } = await supabase
+        .from('session_transport_links')
+        .select('session_id')
+        .in('session_id', sessionIds)
+        .eq('link_type', 'pickup');
+      return new Set((data ?? []).map((r: any) => r.session_id));
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 30_000,
+  });
+
+  // Readiness blockers — unverified certs + pending/followup medical per session
+  const { data: readinessBlockers = {} } = useQuery({
+    queryKey: ['dept-planner-readiness-blockers', sessionIds],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (sessionIds.length === 0) return {};
+      const { data } = await supabase
+        .from('activity_booking_readiness')
+        .select('session_id, cert_verification_status, medical_review_status')
+        .in('session_id', sessionIds);
+      const counts: Record<string, number> = {};
+      for (const r of data ?? []) {
+        let blockers = 0;
+        if (r.cert_verification_status === 'unverified' || r.cert_verification_status === 'rejected') blockers++;
+        if (r.medical_review_status === 'pending' || r.medical_review_status === 'requires_followup') blockers++;
+        if (blockers > 0) counts[r.session_id] = (counts[r.session_id] ?? 0) + blockers;
+      }
+      return counts;
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 30_000,
+  });
+
   // Realtime subscriptions
   useEffect(() => {
     if (!resortId) return;
