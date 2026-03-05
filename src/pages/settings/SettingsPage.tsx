@@ -1,4 +1,4 @@
-import { Building2, Anchor, UsersRound, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid } from 'lucide-react';
+import { Building2, Anchor, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid, Car } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
@@ -115,6 +115,13 @@ export default function SettingsPage() {
           visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
           feature: 'settings_booking_health',
         },
+        {
+          title: 'Transport',
+          description: 'Configure transport service, pooling, and driver settings',
+          icon: Car,
+          href: '/staff/transport/settings',
+          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
+        },
       ],
     },
     {
@@ -125,12 +132,11 @@ export default function SettingsPage() {
       badge: 'admin',
       items: [
         {
-          title: 'Resort Staff',
-          description: 'Manage staff members and their roles for this resort',
-          icon: UsersRound,
-          href: '/staff/settings/resort-staff',
+          title: 'Access Control',
+          description: 'Manage staff roles, permissions, and access levels',
+          icon: Shield,
+          href: '/staff/settings/access',
           visible: canManageResortStaff,
-          feature: 'settings_staff_management',
         },
         {
           title: 'Guest Import',

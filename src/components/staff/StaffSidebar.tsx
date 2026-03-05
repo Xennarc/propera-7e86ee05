@@ -224,11 +224,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
     title: 'Admin',
     icon: Cog,
     items: [
-      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: UserCog, roles: ['RESORT_ADMIN'], tierFeature: 'settings_staff_management' },
-      { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: PlaneTakeoff, roles: ['RESORT_ADMIN'], tierFeature: 'pre_arrival_links' },
-      { title: 'Branding', url: '/staff/settings/branding', icon: Paintbrush, roles: ['RESORT_ADMIN'], tierFeature: 'guest_portal_branding' },
-      { title: 'Settings', url: '/staff/settings', icon: SlidersHorizontal, roles: ['RESORT_ADMIN'] },
       { title: 'Access Control', url: '/staff/settings/access', icon: Shield, roles: ['RESORT_ADMIN'] },
+      { title: 'Settings', url: '/staff/settings', icon: SlidersHorizontal, roles: ['RESORT_ADMIN'] },
     ],
   };
 
