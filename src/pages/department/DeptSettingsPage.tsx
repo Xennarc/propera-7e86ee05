@@ -410,21 +410,27 @@ function DeptSettingsContent() {
 
           <Separator />
 
-          {/* Module toggles by group */}
-          {MODULE_GROUPS.map(group => {
+          {/* Module toggles by group — driven from registry */}
+          {REGISTRY_GROUPS.filter(g => g.key !== 'manage').map(group => {
             const groupModules = ALL_DEPARTMENT_MODULES.filter(m => m.group === group.key);
             return (
               <div key={group.key} className="space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{group.label}</p>
                 <div className="space-y-1">
-                  {groupModules.map(mod => (
+                  {groupModules.map(mod => {
+                    const registryEntry = getModuleEntry(mod.key);
+                    const Icon = registryEntry?.icon;
+                    return (
                     <div
                       key={mod.key}
                       className="flex items-center justify-between rounded-md border p-2.5"
                     >
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium">{mod.label}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{mod.description}</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium">{registryEntry?.label ?? mod.label}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{registryEntry?.description ?? mod.description}</p>
+                        </div>
                       </div>
                       <Switch
                         checked={moduleToggles[mod.key] ?? true}
