@@ -8,7 +8,8 @@ import { parseActivityRequirements } from '@/lib/activity-requirements';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { deptKeyToCategory } from '@/lib/department-utils';
+import { getDepartmentActivityScope, isDepartmentUnscoped } from '@/lib/department-utils';
+import { UnscopedDepartmentBanner } from '@/components/department/UnscopedDepartmentBanner';
 import { format, parseISO, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -104,7 +105,8 @@ function DeptPlannerContent() {
   const weekEnd = endOfWeek(baseDate, { weekStartsOn: 1 });
   const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-  const category = deptKeyToCategory(deptKey);
+  const category = getDepartmentActivityScope(currentDepartment);
+  const unscoped = isDepartmentUnscoped(currentDepartment);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
 
