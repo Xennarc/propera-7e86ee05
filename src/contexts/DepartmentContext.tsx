@@ -27,9 +27,10 @@ interface DepartmentContextType {
 
 const DepartmentContext = createContext<DepartmentContextType | undefined>(undefined);
 
-export function DepartmentProvider({ children }: { children: ReactNode }) {
+export function DepartmentProvider({ children, deptKeyOverride }: { children: ReactNode; deptKeyOverride?: string }) {
   const { user, memberships, isSuperAdmin } = useAuth();
-  const { deptKey } = useParams<{ deptKey: string }>();
+  const params = useParams<{ deptKey: string }>();
+  const deptKey = deptKeyOverride ?? params.deptKey;
 
   const [departments, setDepartments] = useState<ResortDepartment[]>([]);
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
