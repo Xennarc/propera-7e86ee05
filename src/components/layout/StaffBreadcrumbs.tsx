@@ -35,7 +35,7 @@ const routeLabels: Record<string, string> = {
   'directory': 'Directory',
   'resorts': 'Resorts',
   'subscriptions': 'Subscriptions',
-  'access': 'Access Management',
+  
   'superadmin': 'Super Admin',
   'new': 'New',
   'sales': 'Sales Performance',
