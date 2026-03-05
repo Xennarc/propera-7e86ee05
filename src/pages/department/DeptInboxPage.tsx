@@ -15,10 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
 import { useOpsEvents, useOpsAdapterEnabled } from '@/hooks/useOpsEvents';
 import { opsEventToInboxCard } from '@/lib/ops/ops-event-compat';
-import { SkeletonCardList } from '@/components/ui/skeleton-card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search, RefreshCw, CheckCircle2, X } from 'lucide-react';
 
 type TimeFilter = 'now' | 'next2h' | 'today' | 'tomorrow' | 'all';
 const FILTER_CHIPS: { key: TimeFilter; label: string }[] = [
