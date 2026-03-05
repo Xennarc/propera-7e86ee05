@@ -342,6 +342,57 @@ export interface RestaurantClosure {
 }
 
 // ============================================================================
+// Department Module Types
+// ============================================================================
+
+export type DeptRole = 'LINE' | 'SUPERVISOR' | 'MANAGER' | 'staff' | 'manager';
+
+export type DepartmentModuleKey =
+  | 'ops_planner'
+  | 'master_ops_sheet'
+  | 'ops_inbox'
+  | 'session_run_sheet'
+  | 'resources_assets'
+  | 'resources_shifts'
+  | 'resources_unavailability'
+  | 'pickup_runs'
+  | 'compliance_verify'
+  | 'compliance_medical';
+
+export interface ResortDepartment {
+  id: string;
+  resort_id: string;
+  key: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DepartmentMembership {
+  id: string;
+  resort_id: string;
+  department_id: string | null;
+  department_key: string;
+  user_id: string;
+  dept_role: DeptRole;
+  is_active: boolean;
+  created_at: string;
+  // Joined fields
+  department?: ResortDepartment;
+  profile?: Profile;
+}
+
+export interface DepartmentModuleAccess {
+  id: string;
+  resort_id: string;
+  department_id: string;
+  user_id: string;
+  module_key: DepartmentModuleKey;
+  enabled: boolean;
+  updated_at: string;
+}
+
+// ============================================================================
 // Transport/Buggy Module Types
 // ============================================================================
 
