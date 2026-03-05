@@ -11,11 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { StatusChip } from '@/components/ui/status-chip';
 import { Calendar } from '@/components/ui/calendar';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSessionConflicts, totalConflictCount, type SessionConflicts } from '@/hooks/useSessionConflicts';
+import { StaffLanesView } from '@/components/department/planner/StaffLanesView';
+import { AssetLanesView } from '@/components/department/planner/AssetLanesView';
+import { SessionAssignDrawer } from '@/components/department/planner/SessionAssignDrawer';
 
 interface SessionSlot {
   id: string;
@@ -35,7 +38,6 @@ function useMultiSessionConflicts(resortId: string | undefined, sessionIds: stri
     queryKey: ['dept-planner-conflicts', resortId, sessionIds],
     queryFn: async (): Promise<Record<string, number>> => {
       if (!resortId || sessionIds.length === 0) return {};
-      // Fetch conflicts in parallel (max 20 to avoid overload)
       const batch = sessionIds.slice(0, 20);
       const results = await Promise.allSettled(
         batch.map(sid =>
@@ -63,12 +65,18 @@ function useMultiSessionConflicts(resortId: string | undefined, sessionIds: stri
   });
 }
 
+type ViewMode = 'sessions' | 'staff' | 'boats';
+
 function DeptPlannerContent() {
-  const { currentDepartment } = useDepartment();
+  const { currentDepartment, isManager } = useDepartment();
   const { deptKey } = useParams<{ deptKey: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const [viewMode, setViewMode] = useState<ViewMode>('sessions');
+  const [assignDrawerOpen, setAssignDrawerOpen] = useState(false);
+  const [selectedSessionForAssign, setSelectedSessionForAssign] = useState<any>(null);
 
   const dateStr = searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd');
   const baseDate = parseISO(dateStr);
@@ -108,7 +116,6 @@ function DeptPlannerContent() {
     staleTime: 30_000,
   });
 
-  // Booking counts per session
   const sessionIds = useMemo(() => sessions.map((s: any) => s.id), [sessions]);
   const { data: bookingCounts = {} } = useQuery({
     queryKey: ['dept-planner-bookings', sessionIds],
@@ -128,36 +135,26 @@ function DeptPlannerContent() {
     enabled: sessionIds.length > 0,
   });
 
-  // Conflicts per session
   const { data: conflictCounts = {} } = useMultiSessionConflicts(resortId, sessionIds);
 
-  // Realtime: auto-invalidate booking counts when bookings change
+  // Realtime subscriptions
   useEffect(() => {
     if (!resortId) return;
     const channel = supabase
       .channel('dept-planner-bookings-rt')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'activity_bookings', filter: `resort_id=eq.${resortId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['dept-planner-bookings'] });
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_bookings', filter: `resort_id=eq.${resortId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ['dept-planner-bookings'] }); }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [resortId, queryClient]);
 
-  // Realtime: auto-invalidate sessions when sessions change
   useEffect(() => {
     if (!resortId) return;
     const channel = supabase
       .channel('dept-planner-sessions-rt')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'activity_sessions', filter: `resort_id=eq.${resortId}` },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['dept-planner-sessions'] });
-        }
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_sessions', filter: `resort_id=eq.${resortId}` },
+        () => { queryClient.invalidateQueries({ queryKey: ['dept-planner-sessions'] }); }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -189,6 +186,33 @@ function DeptPlannerContent() {
 
   const selectedDay = parseISO(dateStr);
 
+  const handleSessionClick = (sessionId: string) => {
+    if (viewMode === 'sessions') {
+      navigate(`/dept/${deptKey}/session/${sessionId}`);
+    } else {
+      // In lane views, open the assignment drawer
+      const session = sessions.find((s: any) => s.id === sessionId) as any;
+      if (session) {
+        setSelectedSessionForAssign({
+          id: session.id,
+          date: session.date,
+          start_time: session.start_time,
+          end_time: session.end_time,
+          activity_name: session.activity?.name ?? 'Unknown',
+          capacity: session.capacity,
+          resort_id: resortId,
+        });
+        setAssignDrawerOpen(true);
+      }
+    }
+  };
+
+  const viewTabs = [
+    { key: 'sessions' as const, label: 'Sessions' },
+    { key: 'staff' as const, label: 'Staff' },
+    { key: 'boats' as const, label: 'Boats' },
+  ];
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -203,6 +227,13 @@ function DeptPlannerContent() {
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* View mode tabs */}
+      <SegmentedTabs
+        tabs={viewTabs}
+        activeKey={viewMode}
+        onChange={(k) => setViewMode(k as ViewMode)}
+      />
 
       {/* Week nav */}
       <div className="flex items-center gap-2">
@@ -234,144 +265,183 @@ function DeptPlannerContent() {
         </Button>
       </div>
 
-      {/* Week grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
-          {weekDays.map(d => (
-            <div key={d.toISOString()} className="h-32 bg-muted rounded-lg animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
-          {weekDays.map(day => {
-            const dayStr = format(day, 'yyyy-MM-dd');
-            const daySessions = sessionsByDate[dayStr] ?? [];
-            const today = isToday(day);
-            const selected = isSameDay(day, selectedDay);
-            const dayConflicts = daySessions.reduce((sum, s) => sum + (conflictCounts[s.id] ?? 0), 0);
+      {/* SESSIONS view (weekly grid) */}
+      {viewMode === 'sessions' && (
+        <>
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
+              {weekDays.map(d => (
+                <div key={d.toISOString()} className="h-32 bg-muted rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
+              {weekDays.map(day => {
+                const dayStr = format(day, 'yyyy-MM-dd');
+                const daySessions = sessionsByDate[dayStr] ?? [];
+                const today = isToday(day);
+                const selected = isSameDay(day, selectedDay);
+                const dayConflicts = daySessions.reduce((sum, s) => sum + (conflictCounts[s.id] ?? 0), 0);
 
-            return (
-              <div
-                key={dayStr}
-                className={cn(
-                  'rounded-xl border p-2 min-h-[100px] transition-colors cursor-pointer',
-                  today && 'border-primary/50 bg-primary/5',
-                  selected && !today && 'border-primary/30',
-                  !today && !selected && 'border-border/50'
-                )}
-                onClick={() => setWeekDate(dayStr)}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={cn(
-                    'text-xs font-semibold',
-                    today ? 'text-primary' : 'text-muted-foreground'
-                  )}>
-                    {format(day, 'EEE d')}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {dayConflicts > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-0.5 text-[10px] text-warning font-medium">
-                            <AlertTriangle className="h-3 w-3" />
-                            {dayConflicts}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          {dayConflicts} resource conflict{dayConflicts > 1 ? 's' : ''} – check staffing
-                        </TooltipContent>
-                      </Tooltip>
+                return (
+                  <div
+                    key={dayStr}
+                    className={cn(
+                      'rounded-xl border p-2 min-h-[100px] transition-colors cursor-pointer',
+                      today && 'border-primary/50 bg-primary/5',
+                      selected && !today && 'border-primary/30',
+                      !today && !selected && 'border-border/50'
                     )}
-                    {daySessions.length > 0 && (
-                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
-                        {daySessions.length}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  {daySessions.slice(0, 4).map(s => {
-                    const conflicts = conflictCounts[s.id] ?? 0;
-                    return (
-                      <div
-                        key={s.id}
-                        className={cn(
-                          'text-[11px] px-1.5 py-1 rounded truncate cursor-pointer transition-colors',
-                          conflicts > 0
-                            ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20'
-                            : 'bg-muted/50 hover:bg-muted'
+                    onClick={() => setWeekDate(dayStr)}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={cn(
+                        'text-xs font-semibold',
+                        today ? 'text-primary' : 'text-muted-foreground'
+                      )}>
+                        {format(day, 'EEE d')}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {dayConflicts > 0 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-0.5 text-[10px] text-warning font-medium">
+                                <AlertTriangle className="h-3 w-3" />
+                                {dayConflicts}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {dayConflicts} resource conflict{dayConflicts > 1 ? 's' : ''}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/dept/${deptKey}/session/${s.id}`);
-                        }}
-                      >
-                        <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
-                        <span className="text-muted-foreground">{s.activity_name}</span>
-                        <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
-                        {conflicts > 0 && (
-                          <AlertTriangle className="inline h-3 w-3 ml-1 text-warning" />
+                        {daySessions.length > 0 && (
+                          <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                            {daySessions.length}
+                          </Badge>
                         )}
                       </div>
-                    );
-                  })}
-                  {daySessions.length > 4 && (
-                    <div className="text-[10px] text-muted-foreground px-1.5">+{daySessions.length - 4} more</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    </div>
+                    <div className="space-y-1">
+                      {daySessions.slice(0, 4).map(s => {
+                        const conflicts = conflictCounts[s.id] ?? 0;
+                        return (
+                          <div
+                            key={s.id}
+                            className={cn(
+                              'text-[11px] px-1.5 py-1 rounded truncate cursor-pointer transition-colors',
+                              conflicts > 0
+                                ? 'bg-warning/10 border border-warning/30 hover:bg-warning/20'
+                                : 'bg-muted/50 hover:bg-muted'
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSessionClick(s.id);
+                            }}
+                          >
+                            <span className="font-medium">{s.start_time?.slice(0, 5)}</span>{' '}
+                            <span className="text-muted-foreground">{s.activity_name}</span>
+                            <span className="ml-1 text-muted-foreground">{s.booked}/{s.capacity}</span>
+                            {conflicts > 0 && <AlertTriangle className="inline h-3 w-3 ml-1 text-warning" />}
+                          </div>
+                        );
+                      })}
+                      {daySessions.length > 4 && (
+                        <div className="text-[10px] text-muted-foreground px-1.5">+{daySessions.length - 4} more</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-      {/* Selected day detail (mobile) */}
-      {sessionsByDate[dateStr]?.length > 0 && (
-        <div className="space-y-2 md:hidden">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {format(selectedDay, 'EEEE, MMM d')} · {sessionsByDate[dateStr].length} sessions
-          </div>
-          {sessionsByDate[dateStr].map(s => {
-            const conflicts = conflictCounts[s.id] ?? 0;
-            return (
-              <Card
-                key={s.id}
-                className={cn(
-                  'cursor-pointer hover:bg-muted/30 transition-colors',
-                  conflicts > 0 && 'border-warning/50'
-                )}
-                onClick={() => navigate(`/dept/${deptKey}/session/${s.id}`)}
-              >
-                <CardContent className="flex items-center gap-3 py-3 px-4">
-                  <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
-                    {s.start_time?.slice(0, 5)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{s.activity_name}</div>
-                    <div className="text-xs text-muted-foreground">{s.booked}/{s.capacity} booked</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {conflicts > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+          {/* Selected day detail (mobile) */}
+          {sessionsByDate[dateStr]?.length > 0 && (
+            <div className="space-y-2 md:hidden">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {format(selectedDay, 'EEEE, MMM d')} · {sessionsByDate[dateStr].length} sessions
+              </div>
+              {sessionsByDate[dateStr].map(s => {
+                const conflicts = conflictCounts[s.id] ?? 0;
+                return (
+                  <Card
+                    key={s.id}
+                    className={cn(
+                      'cursor-pointer hover:bg-muted/30 transition-colors',
+                      conflicts > 0 && 'border-warning/50'
+                    )}
+                    onClick={() => handleSessionClick(s.id)}
+                  >
+                    <CardContent className="flex items-center gap-3 py-3 px-4">
+                      <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
+                        {s.start_time?.slice(0, 5)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{s.activity_name}</div>
+                        <div className="text-xs text-muted-foreground">{s.booked}/{s.capacity} booked</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {conflicts > 0 && (
                           <Badge variant="outline" className="text-[10px] border-warning/50 text-warning gap-0.5">
                             <AlertTriangle className="h-3 w-3" />
                             {conflicts}
                           </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs">
-                          {conflicts} staffing/asset conflict{conflicts > 1 ? 's' : ''}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    <StatusChip status={s.status} />
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                        )}
+                        <StatusChip status={s.status} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* STAFF LANES view */}
+      {viewMode === 'staff' && resortId && deptKey && (
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            {format(selectedDay, 'EEEE, MMM d')} — Staff Schedule
+          </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <StaffLanesView
+                resortId={resortId}
+                deptKey={deptKey}
+                date={dateStr}
+                onSessionClick={handleSessionClick}
+              />
+            </div>
+          </div>
         </div>
       )}
+
+      {/* BOAT/ASSET LANES view */}
+      {viewMode === 'boats' && resortId && (
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            {format(selectedDay, 'EEEE, MMM d')} — Asset Schedule
+          </div>
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <AssetLanesView
+                resortId={resortId}
+                date={dateStr}
+                onSessionClick={handleSessionClick}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Session assignment drawer */}
+      <SessionAssignDrawer
+        open={assignDrawerOpen}
+        onOpenChange={setAssignDrawerOpen}
+        session={selectedSessionForAssign}
+      />
     </div>
   );
 }
