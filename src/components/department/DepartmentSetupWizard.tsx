@@ -28,6 +28,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { DepartmentModuleKey } from '@/types/database';
 
@@ -98,6 +99,7 @@ interface Props {
 
 export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   // Step 1 state
@@ -314,6 +316,9 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
       queryClient.invalidateQueries({ queryKey: ['departments', resortId] });
       toast.success('Department setup complete!');
       onClose();
+      if (createdDeptKey) {
+        navigate(`/staff/dept/${createdDeptKey}/planner`);
+      }
     } catch (err: any) {
       toast.error('Failed to configure module access');
     } finally {
