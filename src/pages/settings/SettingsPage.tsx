@@ -1,4 +1,4 @@
-import { Building2, Anchor, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid, Car } from 'lucide-react';
+import { Building2, Anchor, Shield, Bug, HeartPulse, FileSpreadsheet, Link as LinkIcon, Palette, Calculator, Phone, Plane, Sparkles, MessageSquare, Users, Settings2, Wrench, LayoutGrid, Car, Rocket } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
@@ -76,6 +76,13 @@ export default function SettingsPage() {
           icon: LayoutGrid,
           href: '/staff/settings/modules',
           visible: canManageResortStaff,
+        },
+        {
+          title: 'Dept Rollout',
+          description: 'Roll out department scope v2 and ops adapter per-resort',
+          icon: Rocket,
+          href: '/staff/settings/dept-rollout',
+          visible: isSuperAdmin() || currentResortRole === 'RESORT_ADMIN',
         },
         {
           title: 'Guest Requests',
