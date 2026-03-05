@@ -17,12 +17,6 @@ import { useResortSize } from '@/hooks/useResortSize';
 // STATIC CONFIGURATION (non-price content)
 // ==========================================
 
-const ONBOARDING = {
-  priceRange: '$2,500 – $7,500',
-  label: 'per resort (one-time)',
-  description: 'Includes resort setup, branding guidance, activity catalog setup, staff training, and a full test run before launch.',
-};
-
 const FAQS = [
   {
     question: 'Do you charge per staff user?',
