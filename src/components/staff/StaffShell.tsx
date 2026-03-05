@@ -45,13 +45,12 @@ function StaffShellInner() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isDeptActive } = useDepartmentShell();
-
-  // Extract deptKey from URL when in department mode (e.g. /staff/dept/HOUSEKEEPING/planner)
+  // Derive department mode directly from URL (synchronous, no useEffect delay)
   const deptKeyFromUrl = useMemo(() => {
     const match = location.pathname.match(/\/staff\/dept\/([^/]+)/);
     return match?.[1] ?? undefined;
   }, [location.pathname]);
+  const isDeptActive = !!deptKeyFromUrl;
   
   const { user, profile, loading, userDataLoading, isAccountDisabled, signOut } = useAuth();
   const { currentResort, loading: resortLoading } = useResort();
