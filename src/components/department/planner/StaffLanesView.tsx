@@ -1,15 +1,17 @@
 /**
  * StaffLanesView – Shows staff members as rows with shift backgrounds
  * and session assignment blocks overlaid.
- * Managers can drag-to-create, resize, move, and delete shifts.
+ * Managers can drag-to-create, resize, move, duplicate and delete shifts.
+ * Mobile: long-press on empty lane opens create sheet.
  */
 import { useMemo, useRef, useCallback, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertTriangle, Clock, GripVertical } from 'lucide-react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShiftEditor, timeToPercent, type DraftShift } from './useShiftEditor';
 import { ShiftEditModal } from './ShiftEditModal';
@@ -26,9 +28,10 @@ const HOUR_END = 20;
 const TOTAL_HOURS = HOUR_END - HOUR_START;
 
 export function StaffLanesView({ resortId, deptKey, date, onSessionClick }: Props) {
-  const { isManager, hasModule } = useDepartment();
+  const { canEdit: canEditPlanner } = useCanEditPlanner();
+  const { hasModule } = useDepartment();
   const { user } = useAuth();
-  const canEdit = isManager && hasModule('resources_shifts' as any);
+  const canEdit = canEditPlanner && hasModule('resources_shifts' as any);
 
   // Get department members
   const { data: members = [] } = useQuery({
@@ -151,7 +154,7 @@ export function StaffLanesView({ resortId, deptKey, date, onSessionClick }: Prop
 
       {canEdit && (
         <p className="text-[10px] text-muted-foreground pt-2 text-center">
-          Drag on empty lane to create shift · Drag edges to resize · Drag block to move
+          Drag on empty lane to create shift · Long-press on mobile · Tap shift to edit
         </p>
       )}
     </div>
@@ -179,6 +182,9 @@ function StaffLane({
 }: StaffLaneProps) {
   const laneRef = useRef<HTMLDivElement>(null);
   const [editShiftId, setEditShiftId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const editor = useShiftEditor({
     resortId, deptKey, date,
@@ -187,21 +193,49 @@ function StaffLane({
     shifts: allShifts,
   });
 
-  const { draft, showModal, handlePointerDown, handlePointerMove, handlePointerUp, saveNewShift, deleteShift, cancelDraft, getOverlapWarnings } = editor;
+  const { draft, showModal, handlePointerDown, handlePointerMove, handlePointerUp, saveNewShift, deleteShift, duplicateShift, openCreateModal, cancelDraft, getOverlapWarnings } = editor;
 
   // Only show draft for this user
   const activeDraft = draft?.userId === member.id ? draft : null;
 
+  // --- Long-press support (mobile fallback) ---
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!canEdit) return;
+    // Only trigger on empty lane (not shift blocks)
+    if ((e.target as HTMLElement).closest('[data-shift-block]')) return;
+    longPressTriggeredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      // Vibrate if available
+      navigator.vibrate?.(30);
+      openCreateModal();
+    }, 500);
+  }, [canEdit, openCreateModal]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  const handleTouchMove = useCallback(() => {
+    // Cancel long-press if finger moves
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
   const onLanePointerDown = useCallback((e: React.PointerEvent) => {
     if (!canEdit || !laneRef.current) return;
-    // Only start create if clicking on the lane background (not a shift block)
+    if (longPressTriggeredRef.current) return; // Don't start drag if long-press fired
     if ((e.target as HTMLElement).closest('[data-shift-block]')) return;
     handlePointerDown(e, laneRef.current, 'create');
   }, [canEdit, handlePointerDown]);
 
   const onShiftPointerDown = useCallback((e: React.PointerEvent, shiftId: string, startTime: string, endTime: string) => {
     if (!canEdit || !laneRef.current) return;
-    // Determine if near edge (resize) or center (move)
     const el = e.currentTarget as HTMLElement;
     const rect = el.getBoundingClientRect();
     const relX = e.clientX - rect.left;
@@ -241,6 +275,9 @@ function StaffLane({
           onPointerDown={onLanePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchMove}
         >
           {/* Shift backgrounds */}
           {userShifts.map(shift => {
@@ -363,10 +400,14 @@ function StaffLane({
           onSave={async (s, e) => {
             await supabase.from('staff_shifts').update({ start_time: s, end_time: e }).eq('id', editShift.id);
             setEditShiftId(null);
-            editor.cancelDraft();
+            queryClient.invalidateQueries({ queryKey: ['dept-staff-shifts'] });
           }}
           onDelete={async () => {
             await deleteShift(editShift.id);
+            setEditShiftId(null);
+          }}
+          onDuplicate={async () => {
+            await duplicateShift(editShift.id);
             setEditShiftId(null);
           }}
           onCancel={() => setEditShiftId(null)}
