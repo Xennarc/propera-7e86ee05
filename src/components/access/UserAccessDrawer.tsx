@@ -48,12 +48,19 @@ interface UserAccessDrawerProps {
     email?: string;
   } | null;
   resortId: string;
+  /** When true the drawer is view-only — no toggle buttons rendered */
+  readOnly?: boolean;
 }
 
-export function UserAccessDrawer({ open, onOpenChange, user, resortId }: UserAccessDrawerProps) {
+export function UserAccessDrawer({ open, onOpenChange, user, resortId, readOnly: readOnlyProp }: UserAccessDrawerProps) {
   const [activeTab, setActiveTab] = useState('roles');
   const { isSuperAdmin } = useAuth();
   const superAdmin = isSuperAdmin();
+
+  // Determine effective read-only: explicit prop OR lacking permissions
+  const { hasPermission } = useEffectivePermissions();
+  const canManagePerms = superAdmin || hasPermission('access.permissions.manage');
+  const readOnly = readOnlyProp ?? !canManagePerms;
 
   const { data: allRoles = [], isLoading: rolesLoading } = useRoles(resortId);
   const { data: userRoles = [], isLoading: userRolesLoading } = useUserRoles(user?.id, resortId);
