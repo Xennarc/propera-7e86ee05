@@ -68,6 +68,7 @@ export default function PricingPage() {
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, PRICING_PAGE_SCHEMA]}
       />
 
+      <PricingHeroSection />
       <ResortSizeSelector value={resortSize} onChange={setResortSize} />
       <PricingPlanGrid plans={plans} resortSize={resortSize} />
       <PricingPromiseSection />
