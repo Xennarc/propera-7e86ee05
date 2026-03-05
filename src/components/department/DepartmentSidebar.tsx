@@ -2,7 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings } from 'lucide-react';
+import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings, ShieldCheck, HeartPulse } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -37,13 +37,21 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
     { title: 'Inbox', url: `${baseUrl}/inbox`, icon: Inbox, moduleKey: 'ops_inbox' },
   ];
 
-  // Resources sub-items — only show if user has at least one resources_* module
+  // Resources sub-items
   const hasAnyResource = hasModule('resources_assets') || hasModule('resources_shifts') || hasModule('resources_unavailability');
 
   const resourceNav: NavItem[] = [
     { title: 'Assets', url: `${baseUrl}/resources/assets`, icon: Wrench, moduleKey: 'resources_assets' },
     { title: 'Shifts', url: `${baseUrl}/resources/shifts`, icon: Wrench, moduleKey: 'resources_shifts' },
     { title: 'Unavailability', url: `${baseUrl}/resources/unavailability`, icon: Wrench, moduleKey: 'resources_unavailability' },
+  ];
+
+  // Compliance sub-items
+  const hasAnyCompliance = hasModule('compliance_verify') || hasModule('compliance_medical');
+
+  const complianceNav: NavItem[] = [
+    { title: 'Cert Verification', url: `${baseUrl}/compliance/verify`, icon: ShieldCheck, moduleKey: 'compliance_verify' },
+    { title: 'Medical Review', url: `${baseUrl}/compliance/medical`, icon: HeartPulse, moduleKey: 'compliance_medical' },
   ];
 
   // Departments the user can switch to
@@ -114,6 +122,28 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
           <div className="pt-4">
             <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resources</div>
             {resourceNav.filter(item => hasModule(item.moduleKey)).map(item => (
+              <Link
+                key={item.url}
+                to={item.url}
+                onClick={onNavigate}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
+                  isActive(item.url)
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
+              >
+                <item.icon className="h-4.5 w-4.5 shrink-0" />
+                {item.title}
+              </Link>
+            ))}
+          </div>
+        )}
+        {/* Compliance section */}
+        {hasAnyCompliance && (
+          <div className="pt-4">
+            <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compliance</div>
+            {complianceNav.filter(item => hasModule(item.moduleKey)).map(item => (
               <Link
                 key={item.url}
                 to={item.url}
