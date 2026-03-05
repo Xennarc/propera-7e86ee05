@@ -228,7 +228,7 @@ function DeptPlannerContent() {
   const selectedDay = parseISO(dateStr);
 
   const handleSessionClick = (sessionId: string) => {
-    if (viewMode === 'sessions') {
+    if (viewMode === 'sessions' && !isManager) {
       navigate(`/dept/${deptKey}/session/${sessionId}`);
     } else {
       // In lane views, open the assignment drawer
