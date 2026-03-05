@@ -45,7 +45,7 @@ import { CreateStaffAccountDialog } from '@/components/staff/CreateStaffAccountD
 import { ResetPasswordDialog } from '@/components/staff/ResetPasswordDialog';
 import { StaffProfileEditDialog } from '@/components/staff/StaffProfileEditDialog';
 import { StaffProfileViewDialog } from '@/components/staff/StaffProfileViewDialog';
-import { UserAccessDrawer } from '@/components/access/UserAccessDrawer';
+import { ModuleAccessDrawer } from '@/components/access/ModuleAccessDrawer';
 import { ResortRole } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -634,7 +634,7 @@ export default function AccessManagementPage() {
             onSuccess={() => refetchStaff()}
           />
 
-          <UserAccessDrawer
+          <ModuleAccessDrawer
             open={accessDrawerOpen}
             onOpenChange={setAccessDrawerOpen}
             user={selectedUser.profile ? {
