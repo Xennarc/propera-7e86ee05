@@ -400,6 +400,8 @@ function DeptPlannerContent() {
                   assignedRoles: assigns?.roles ?? {},
                   assignedBoats: assigns?.boats ?? 0,
                   bookedCount: s.booked,
+                  category: s.category ?? null,
+                  conflictCount: conflicts,
                 });
 
                 return (
