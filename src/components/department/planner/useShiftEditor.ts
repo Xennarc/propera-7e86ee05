@@ -219,6 +219,46 @@ export function useShiftEditor({ resortId, deptKey, date, userId, canEdit, shift
     invalidateShifts();
   }, [toast, invalidateShifts]);
 
+  /** Duplicate a shift to the next day (same times, same user) */
+  const duplicateShift = useCallback(async (shiftId: string, targetDate?: string) => {
+    const source = shifts.find(s => s.id === shiftId);
+    if (!source) return;
+
+    // Default to next day
+    const nextDate = targetDate ?? (() => {
+      const d = new Date(source.shift_date + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().slice(0, 10);
+    })();
+
+    const { error } = await supabase.from('staff_shifts').insert({
+      resort_id: source.resort_id,
+      department_key: source.department_key,
+      user_id: source.user_id,
+      shift_date: nextDate,
+      start_time: source.start_time,
+      end_time: source.end_time,
+    });
+
+    if (error) {
+      toast({ title: 'Failed to duplicate shift', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Shift duplicated', description: `Copied to ${nextDate}` });
+    }
+    invalidateShifts();
+  }, [shifts, toast, invalidateShifts]);
+
+  /** Open create modal with preset times (for mobile long-press) */
+  const openCreateModal = useCallback((startTime?: string, endTime?: string) => {
+    setDraft({
+      userId,
+      startTime: startTime ?? '08:00',
+      endTime: endTime ?? '12:00',
+      mode: 'create',
+    });
+    setShowModal(true);
+  }, [userId]);
+
   const cancelDraft = useCallback(() => {
     setDraft(null);
     setShowModal(false);
@@ -234,6 +274,8 @@ export function useShiftEditor({ resortId, deptKey, date, userId, canEdit, shift
     handlePointerUp,
     saveNewShift,
     deleteShift,
+    duplicateShift,
+    openCreateModal,
     cancelDraft,
     getOverlapWarnings,
     timeToPercent,
