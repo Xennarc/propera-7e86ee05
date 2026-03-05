@@ -2,7 +2,7 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { useDepartment } from '@/contexts/DepartmentContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { CalendarDays, LayoutList, Inbox, Wrench, ChevronDown, LogOut, Users, Settings, ShieldCheck, HeartPulse } from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,17 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getSidebarGroups, type ModuleRegistryEntry } from '@/lib/departments/module-registry';
 import type { DepartmentModuleKey } from '@/types/database';
 
 interface DepartmentSidebarProps {
   onNavigate?: () => void;
-}
-
-interface NavItem {
-  title: string;
-  url: string;
-  icon: React.ElementType;
-  moduleKey: DepartmentModuleKey;
 }
 
 export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
@@ -31,35 +25,21 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
 
   const baseUrl = `/staff/dept/${deptKey}`;
 
-  const primaryNav: NavItem[] = [
-    { title: 'Planner', url: `${baseUrl}/planner`, icon: CalendarDays, moduleKey: 'ops_planner' },
-    { title: 'Master Sheet', url: `${baseUrl}/master`, icon: LayoutList, moduleKey: 'master_ops_sheet' },
-    { title: 'Inbox', url: `${baseUrl}/inbox`, icon: Inbox, moduleKey: 'ops_inbox' },
-  ];
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
-  // Resources sub-items
-  const hasAnyResource = hasModule('resources_assets') || hasModule('resources_shifts') || hasModule('resources_unavailability');
+  const isModuleVisible = (entry: ModuleRegistryEntry): boolean => {
+    if (entry.requiresManager && !isManager) return false;
+    if (entry.isToggleable) return hasModule(entry.key as DepartmentModuleKey);
+    return true;
+  };
 
-  const resourceNav: NavItem[] = [
-    { title: 'Assets', url: `${baseUrl}/resources/assets`, icon: Wrench, moduleKey: 'resources_assets' },
-    { title: 'Shifts', url: `${baseUrl}/resources/shifts`, icon: Wrench, moduleKey: 'resources_shifts' },
-    { title: 'Unavailability', url: `${baseUrl}/resources/unavailability`, icon: Wrench, moduleKey: 'resources_unavailability' },
-  ];
-
-  // Compliance sub-items
-  const hasAnyCompliance = hasModule('compliance_verify') || hasModule('compliance_medical');
-
-  const complianceNav: NavItem[] = [
-    { title: 'Cert Verification', url: `${baseUrl}/compliance/verify`, icon: ShieldCheck, moduleKey: 'compliance_verify' },
-    { title: 'Medical Review', url: `${baseUrl}/compliance/medical`, icon: HeartPulse, moduleKey: 'compliance_medical' },
-  ];
+  // Group resources under a single section — check if any resource is visible
+  const sidebarGroups = getSidebarGroups();
 
   // Departments the user can switch to
   const switchableDepts = departments.filter(d =>
     myMemberships.some(m => m.department_id === d.id)
   );
-
-  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
     <div className="flex flex-col h-full">
@@ -98,101 +78,45 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
         )}
       </div>
 
-      {/* Primary nav */}
+      {/* Registry-driven nav */}
       <nav className="flex-1 p-3 space-y-1">
-        {primaryNav.filter(item => hasModule(item.moduleKey)).map(item => (
-          <Link
-            key={item.url}
-            to={item.url}
-            onClick={onNavigate}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
-              isActive(item.url)
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-            )}
-          >
-            <item.icon className="h-4.5 w-4.5 shrink-0" />
-            {item.title}
-          </Link>
-        ))}
+        {sidebarGroups.map((group, gi) => {
+          const visibleModules = group.modules.filter(isModuleVisible);
+          if (visibleModules.length === 0) return null;
 
-        {/* Resources section */}
-        {hasAnyResource && (
-          <div className="pt-4">
-            <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resources</div>
-            {resourceNav.filter(item => hasModule(item.moduleKey)).map(item => (
-              <Link
-                key={item.url}
-                to={item.url}
-                onClick={onNavigate}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
-                  isActive(item.url)
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="h-4.5 w-4.5 shrink-0" />
-                {item.title}
-              </Link>
-            ))}
-          </div>
-        )}
-        {/* Compliance section */}
-        {hasAnyCompliance && (
-          <div className="pt-4">
-            <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Compliance</div>
-            {complianceNav.filter(item => hasModule(item.moduleKey)).map(item => (
-              <Link
-                key={item.url}
-                to={item.url}
-                onClick={onNavigate}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
-                  isActive(item.url)
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <item.icon className="h-4.5 w-4.5 shrink-0" />
-                {item.title}
-              </Link>
-            ))}
-          </div>
-        )}
-        {/* Manager section */}
-        {isManager && (
-          <div className="pt-4">
-            <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</div>
-            <Link
-              to={`${baseUrl}/manage/access`}
-              onClick={onNavigate}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
-                isActive(`${baseUrl}/manage/access`)
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          // Operations group renders flat (no section header for first group)
+          const showHeader = gi > 0;
+
+          return (
+            <div key={group.key} className={cn(showHeader && 'pt-4')}>
+              {showHeader && (
+                <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {group.label}
+                </div>
               )}
-            >
-              <Users className="h-4.5 w-4.5 shrink-0" />
-              Manage Access
-            </Link>
-            <Link
-              to={`${baseUrl}/settings`}
-              onClick={onNavigate}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
-                isActive(`${baseUrl}/settings`)
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              )}
-            >
-              <Settings className="h-4.5 w-4.5 shrink-0" />
-              Settings
-            </Link>
-          </div>
-        )}
+              {visibleModules.map(entry => {
+                const url = `${baseUrl}/${entry.routeSegment}`;
+                const Icon = entry.icon;
+                return (
+                  <Link
+                    key={entry.key}
+                    to={url}
+                    onClick={onNavigate}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
+                      isActive(url)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="h-4.5 w-4.5 shrink-0" />
+                    {entry.label}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Footer */}

@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Settings, AlertTriangle, Save, Layers, PackageCheck, Sparkles, Eye } from 'lucide-react';
 import type { DepartmentModuleKey } from '@/types/database';
 import { ALL_DEPARTMENT_MODULES, MODULE_GROUPS, DEPARTMENT_TEMPLATES, type DeptTemplate } from '@/lib/departments/module-definitions';
+import { getToggleableModules, REGISTRY_GROUPS, getModuleEntry } from '@/lib/departments/module-registry';
 
 const ACTIVITY_CATEGORIES = [
   { value: 'DIVE', label: 'Dive' },
