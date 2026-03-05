@@ -905,6 +905,60 @@ export type Database = {
           },
         ]
       }
+      asset_unavailability: {
+        Row: {
+          asset_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string | null
+          id: string
+          reason: string | null
+          resort_id: string
+          start_time: string | null
+          unavailable_date: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          reason?: string | null
+          resort_id: string
+          start_time?: string | null
+          unavailable_date: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          reason?: string | null
+          resort_id?: string
+          start_time?: string | null
+          unavailable_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_unavailability_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "ops_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_unavailability_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -7090,6 +7144,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "staff_invitations_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_key: string
+          end_time: string
+          id: string
+          notes: string | null
+          resort_id: string
+          shift_date: string
+          start_time: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_key: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          resort_id: string
+          shift_date: string
+          start_time: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_key?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          resort_id?: string
+          shift_date?: string
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_shifts_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
