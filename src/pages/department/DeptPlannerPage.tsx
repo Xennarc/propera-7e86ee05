@@ -421,8 +421,16 @@ function DeptPlannerContent() {
                     onClick={() => handleSessionClick(s.id)}
                   >
                     <CardContent className="flex items-center gap-3 py-3 px-4">
-                      <div className="text-sm font-mono font-medium text-primary w-12 shrink-0">
-                        {s.start_time?.slice(0, 5)}
+                      <div className="flex items-center gap-2 w-14 shrink-0">
+                        <span className={cn(
+                          'h-2 w-2 rounded-full shrink-0',
+                          s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                          s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                          s.coverageStatus === 'red' && 'bg-destructive',
+                        )} />
+                        <span className="text-sm font-mono font-medium text-primary">
+                          {s.start_time?.slice(0, 5)}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">{s.activity_name}</div>
