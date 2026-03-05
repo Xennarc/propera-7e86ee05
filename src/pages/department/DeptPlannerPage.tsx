@@ -15,7 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffLanesView } from '@/components/department/planner/StaffLanesView';
 import { AssetLanesView } from '@/components/department/planner/AssetLanesView';
@@ -78,6 +78,8 @@ function DeptPlannerContent() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('sessions');
+  const [attentionMode, setAttentionMode] = useState(false);
+  const [showAllRisks, setShowAllRisks] = useState(false);
   const [assignDrawerOpen, setAssignDrawerOpen] = useState(false);
   const [selectedSessionForAssign, setSelectedSessionForAssign] = useState<any>(null);
 
@@ -221,6 +223,30 @@ function DeptPlannerContent() {
     return grouped;
   }, [sessions, bookingCounts, sessionAssignments]);
 
+  // Attention mode: filter today's sessions to high-risk items
+  const attentionItems = useMemo(() => {
+    if (!attentionMode) return [];
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const allToday = sessionsByDate[todayStr] ?? [];
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const soonThreshold = nowMinutes + 90;
+
+    return allToday.filter(s => {
+      if (s.coverageStatus === 'amber' || s.coverageStatus === 'red') return true;
+      if ((conflictCounts[s.id] ?? 0) > 0) return true;
+      const [h, m] = (s.start_time ?? '00:00').split(':').map(Number);
+      const startMin = h * 60 + m;
+      if (startMin <= soonThreshold && startMin >= nowMinutes && s.booked > 0) return true;
+      return false;
+    }).sort((a, b) => {
+      const order = { red: 0, amber: 1, green: 2 } as const;
+      const diff = order[a.coverageStatus] - order[b.coverageStatus];
+      if (diff !== 0) return diff;
+      return (a.start_time ?? '').localeCompare(b.start_time ?? '');
+    });
+  }, [attentionMode, sessionsByDate, conflictCounts]);
+
   const setWeekDate = useCallback((d: string) => {
     setSearchParams({ date: d });
   }, [setSearchParams]);
@@ -265,9 +291,35 @@ function DeptPlannerContent() {
             {format(weekStart, 'MMM d')} – {format(weekEnd, 'MMM d, yyyy')}
           </p>
         </div>
-        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {isManager && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={attentionMode ? 'default' : 'ghost'}
+                  size="icon"
+                  className={cn('h-9 w-9', attentionMode && 'bg-destructive hover:bg-destructive/90')}
+                  onClick={() => {
+                    setAttentionMode(!attentionMode);
+                    setShowAllRisks(false);
+                    if (!attentionMode) {
+                      // Jump to today when entering attention mode
+                      setWeekDate(format(new Date(), 'yyyy-MM-dd'));
+                    }
+                  }}
+                >
+                  <ShieldAlert className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {attentionMode ? 'Exit Attention Mode' : 'Attention Mode'}
+              </TooltipContent>
+            </Tooltip>
+          )}
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* View mode tabs */}
@@ -307,8 +359,104 @@ function DeptPlannerContent() {
         </Button>
       </div>
 
+      {/* ─── ATTENTION MODE ─── */}
+      {attentionMode && viewMode === 'sessions' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+            <span className="text-sm font-semibold">Attention Required</span>
+            <Badge variant="outline" className="text-[10px]">
+              {attentionItems.length} item{attentionItems.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+
+          {attentionItems.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center py-8">
+                <span className="text-2xl mb-2">✅</span>
+                <p className="text-sm font-medium">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No issues found for today.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {(showAllRisks ? attentionItems : attentionItems.slice(0, 7)).map(s => {
+                const conflicts = conflictCounts[s.id] ?? 0;
+                const assigns = sessionAssignments[s.id];
+                const coverage = computeCoverage({
+                  opsRules: s.ops_rules_json,
+                  assignedRoles: assigns?.roles ?? {},
+                  assignedBoats: assigns?.boats ?? 0,
+                  bookedCount: s.booked,
+                });
+
+                return (
+                  <Card
+                    key={s.id}
+                    className={cn(
+                      'cursor-pointer hover:bg-muted/30 transition-colors',
+                      s.coverageStatus === 'red' && 'border-destructive/50',
+                      s.coverageStatus === 'amber' && 'border-warning/50',
+                    )}
+                    onClick={() => handleSessionClick(s.id)}
+                  >
+                    <CardContent className="py-3 px-4 space-y-1.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn(
+                            'h-2.5 w-2.5 rounded-full shrink-0',
+                            s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                            s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                            s.coverageStatus === 'red' && 'bg-destructive',
+                          )} />
+                          <span className="text-sm font-mono font-medium text-primary">
+                            {s.start_time?.slice(0, 5)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm truncate block">{s.activity_name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs text-muted-foreground">{s.booked}/{s.capacity}</span>
+                          {conflicts > 0 && (
+                            <Badge variant="outline" className="text-[9px] border-warning/50 text-warning gap-0.5 py-0">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              {conflicts}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {coverage.details.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground pl-[22px] space-y-0.5">
+                          {coverage.details.map((d, i) => (
+                            <p key={i} className={cn(
+                              s.coverageStatus === 'red' && 'text-destructive',
+                              s.coverageStatus === 'amber' && 'text-warning',
+                            )}>• {d}</p>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              {!showAllRisks && attentionItems.length > 7 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => setShowAllRisks(true)}
+                >
+                  Show all {attentionItems.length} risks
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* SESSIONS view (weekly grid) */}
-      {viewMode === 'sessions' && (
+      {viewMode === 'sessions' && !attentionMode && (
         <>
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
