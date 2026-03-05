@@ -442,7 +442,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
                     isGroupActive(adminGroup) && 'text-sidebar-foreground'
                   )}
                 >
-                  <Settings className="h-5 w-5 shrink-0" />
+                  <Cog className="h-5 w-5 shrink-0" />
                   {!collapsed && (
                     <>
                       <span className="flex-1 text-left">Admin</span>
