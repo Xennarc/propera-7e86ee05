@@ -148,6 +148,19 @@ export function DepartmentSidebar({ onNavigate }: DepartmentSidebarProps) {
               <Users className="h-4.5 w-4.5 shrink-0" />
               Manage Access
             </Link>
+            <Link
+              to={`${baseUrl}/settings`}
+              onClick={onNavigate}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]',
+                isActive(`${baseUrl}/settings`)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              )}
+            >
+              <Settings className="h-4.5 w-4.5 shrink-0" />
+              Settings
+            </Link>
           </div>
         )}
       </nav>
