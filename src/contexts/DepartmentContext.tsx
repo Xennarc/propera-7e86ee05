@@ -129,6 +129,12 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
     return bindings.filter(b => b.department_id === currentDepartment.id);
   }, [bindings, currentDepartment]);
 
+  const scope = useMemo(() => resolveDepartmentScope({
+    department: currentDepartment,
+    bindings: currentBindings,
+    v2Enabled,
+  }), [currentDepartment, currentBindings, v2Enabled]);
+
   const isManager = useMemo(() => {
     if (isSuperAdmin()) return true;
     if (!currentMembership) return false;
@@ -162,6 +168,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
         currentMembership,
         moduleAccess: currentModuleAccess,
         bindings: currentBindings,
+        scope,
         hasModule,
         isManager,
         isDeptOnly,
