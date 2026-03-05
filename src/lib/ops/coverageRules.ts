@@ -98,8 +98,14 @@ export function computeCoverage(input: CoverageInput): CoverageResult {
   }
 
   // 3) Boat requirement
-  if (rules.requires_boat && input.assignedBoats === 0) {
+  if (rules?.requires_boat && input.assignedBoats === 0) {
     details.push('No boat assigned');
+    escalate('red');
+  }
+
+  // 4) Hard conflicts escalate to red
+  if (input.conflictCount && input.conflictCount > 0) {
+    details.push(`${input.conflictCount} resource conflict${input.conflictCount > 1 ? 's' : ''}`);
     escalate('red');
   }
 
