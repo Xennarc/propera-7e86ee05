@@ -103,7 +103,7 @@ export function useShiftEditor({ resortId, deptKey, date, userId, canEdit, shift
     if (!canEdit) return;
     e.preventDefault();
     e.stopPropagation();
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    try { (e.target as HTMLElement).setPointerCapture?.(e.pointerId); } catch { /* iOS Safari may reject */ }
 
     const pct = clientXToPercent(e.clientX, laneEl);
     const time = percentToTime(pct);
