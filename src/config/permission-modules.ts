@@ -36,6 +36,8 @@ export interface ModuleConfig {
   accessLevels: ModuleAccessLevel[];
   /** Human-readable labels for each permission key in this module */
   permissionLabels: Record<string, string>;
+  /** Warning text shown for sensitive modules explaining impact */
+  warningText?: string;
 }
 
 export type ModuleCategory =
@@ -335,6 +337,7 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     isSensitive: true,
     isPlatformOnly: false,
     category: 'Staff & Security',
+    warningText: 'Controls who can manage staff accounts, roles, and permission assignments.',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'Cannot access staff management', permissionKeys: [] },
       { id: 'view', label: 'View Only', description: 'Can view staff and roles', permissionKeys: ['access.users.view', 'access.roles.view', 'access.permissions.view'] },
@@ -433,6 +436,7 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     isSensitive: true,
     isPlatformOnly: true,
     category: 'Platform',
+    warningText: 'Platform-level admin actions with global impact across all resorts.',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'Cannot assign super admin', permissionKeys: [] },
       { id: 'admin', label: 'Full Admin', description: 'Can assign super admin role', permissionKeys: ['access.users.assign_superadmin'] },
@@ -450,6 +454,7 @@ export const PERMISSION_MODULES: ModuleConfig[] = [
     isSensitive: true,
     isPlatformOnly: true,
     category: 'Platform',
+    warningText: 'Destructive actions that cannot be undone. Use with extreme caution.',
     accessLevels: [
       { id: 'none', label: 'No Access', description: 'No destructive actions', permissionKeys: [] },
       { id: 'admin', label: 'Full Admin', description: 'Can perform destructive platform actions', permissionKeys: ['system.demo.convert', 'system.resort.delete'] },
