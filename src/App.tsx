@@ -274,7 +274,7 @@ const App = () => (
                   <Route path="settings/users" element={<UserManagementPage />} />
                   <Route path="settings/resorts" element={<ResortsPage />} />
                   <Route path="settings/resources" element={<ResourcesPage />} />
-                  <Route path="settings/resort-staff" element={<ResortStaffPage />} />
+                  <Route path="settings/resort-staff" element={<Navigate to="/staff/settings/access" replace />} />
                   <Route path="settings/booking-health" element={<BookingHealthPage />} />
                   <Route path="settings/permissions" element={<PermissionsDebugPage />} />
                   <Route path="settings/import/guests" element={<GuestImportPage />} />

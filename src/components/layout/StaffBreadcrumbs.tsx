@@ -29,7 +29,8 @@ const routeLabels: Record<string, string> = {
   'program': 'Program Settings',
   'tiers': 'Tiers',
   'settings': 'Settings',
-  'resort-staff': 'Resort Staff',
+  'resort-staff': 'Resort Staff', // legacy redirect
+  'access': 'Access Control',
   'branding': 'Branding',
   'directory': 'Directory',
   'resorts': 'Resorts',
