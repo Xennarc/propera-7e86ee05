@@ -5,14 +5,6 @@
 import type { OpsDepartment } from '@/hooks/useDailyOpsSheet';
 import type { ResortDepartment } from '@/types/database';
 
-const DEPT_KEY_TO_OPS: Record<string, OpsDepartment> = {
-  dive: 'DIVE',
-  watersports: 'WATERSPORT',
-  excursions: 'EXCURSION',
-  spa: 'SPA',
-  other: 'OTHER',
-};
-
 const LEGACY_CATEGORY_MAP: Record<string, string> = {
   dive: 'DIVE',
   watersports: 'WATERSPORT',
@@ -20,18 +12,6 @@ const LEGACY_CATEGORY_MAP: Record<string, string> = {
   spa: 'SPA',
   other: 'OTHER',
 };
-
-/** @deprecated Use getDepartmentActivityScope instead */
-export function deptKeyToOps(deptKey: string | undefined): OpsDepartment {
-  if (!deptKey) return null;
-  return DEPT_KEY_TO_OPS[deptKey.toLowerCase()] ?? null;
-}
-
-/** @deprecated Use getDepartmentActivityScope instead */
-export function deptKeyToCategory(deptKey: string | undefined): string | null {
-  if (!deptKey) return null;
-  return LEGACY_CATEGORY_MAP[deptKey.toLowerCase()] ?? null;
-}
 
 /**
  * Data-driven activity scope resolver.
