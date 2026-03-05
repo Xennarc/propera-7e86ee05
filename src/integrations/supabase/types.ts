@@ -9338,6 +9338,15 @@ export type Database = {
           username: string
         }[]
       }
+      update_department_settings: {
+        Args: {
+          p_activity_scope_key?: string
+          p_department_id: string
+          p_is_active?: boolean
+          p_name?: string
+        }
+        Returns: Json
+      }
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
         Returns: Json
