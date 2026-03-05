@@ -171,31 +171,19 @@ export function DepartmentsManagerSection({ resortId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
+      {/* Edit Dialog (name only) */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editMode ? 'Edit Department' : 'Add Department'}</DialogTitle>
+            <DialogTitle>Edit Department</DialogTitle>
             <DialogDescription>
-              {editMode
-                ? 'Update the department name. The key cannot be changed.'
-                : 'Create a new department for handling guest requests.'}
+              Update the department name. The key cannot be changed.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Department Key</Label>
-              <Input
-                placeholder="e.g., HOUSEKEEPING"
-                value={formData.key}
-                onChange={(e) => setFormData({ ...formData, key: e.target.value.toUpperCase().replace(/\s+/g, '_') })}
-                disabled={!!editMode}
-              />
-              {!editMode && (
-                <p className="text-xs text-muted-foreground">
-                  A unique identifier. Use UPPERCASE with underscores. Cannot be changed later.
-                </p>
-              )}
+              <Input value={formData.key} disabled />
             </div>
             <div className="space-y-2">
               <Label>Department Name</Label>
@@ -210,15 +198,19 @@ export function DepartmentsManagerSection({ resortId }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={create.isPending || update.isPending}
-            >
-              {create.isPending || update.isPending ? 'Saving...' : editMode ? 'Update' : 'Create'}
+            <Button onClick={handleSubmit} disabled={update.isPending}>
+              {update.isPending ? 'Saving...' : 'Update'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Setup Wizard */}
+      <DepartmentSetupWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        resortId={resortId}
+      />
     </div>
   );
 }
