@@ -15,6 +15,8 @@ interface DepartmentContextType {
   currentMembership: DepartmentMembership | null;
   /** Module access entries for the current department */
   moduleAccess: DepartmentModuleAccess[];
+  /** Bindings for the current department (scope source of truth) */
+  bindings: DepartmentBinding[];
   /** Whether the user has access to a specific module in current dept */
   hasModule: (moduleKey: DepartmentModuleKey) => boolean;
   /** Whether the user is a manager in the current department */
