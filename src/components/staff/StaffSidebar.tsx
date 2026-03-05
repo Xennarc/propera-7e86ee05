@@ -144,8 +144,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       requiredFlags: ['enable_dashboards'],
       items: [
         { title: 'Dashboard', url: '/staff/dashboard', icon: Building2, requiredFlags: ['enable_dashboards'] },
-        { title: "Today's View", url: '/staff/today', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'todays_opportunities', requiredFlags: ['enable_dashboards'] },
-        { title: 'Team Directory', url: '/staff/team', icon: Users },
+        { title: 'Team Directory', url: '/staff/team', icon: UserRoundSearch },
       ],
     },
     {
@@ -154,7 +153,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       icon: Users,
       requiredFlags: ['enable_guests'],
       items: [
-        { title: 'All Guests', url: '/staff/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], requiredFlags: ['enable_guests'] },
+        { title: 'All Guests', url: '/staff/guests', icon: Contact, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], requiredFlags: ['enable_guests'] },
         { title: 'Pre-Arrival', url: '/staff/prearrival', icon: Plane, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'RESERVATIONS'], tierFeature: 'pre_arrival_links', requiredFlags: ['enable_prearrival'] },
         { title: 'Requests Dashboard', url: '/staff/requests-dashboard', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'FNB'], tierFeature: 'guest_management_guest_requests', badge: 'New', requiredFlags: ['enable_requests'] },
       ],
@@ -164,13 +163,11 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       title: 'Activities',
       icon: Activity,
       items: [
-        { title: 'Catalogue', url: '/staff/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Sessions', url: '/staff/activities/sessions', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+        { title: 'Catalogue', url: '/staff/activities', icon: BookOpen, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
+        { title: 'Sessions', url: '/staff/activities/sessions', icon: CalendarClock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
         { title: 'Ops Inbox', url: '/staff/activities/ops', icon: ClipboardList, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Dive Ops', url: '/staff/activities/ops/day?dept=DIVE', icon: Waves, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Watersports Ops', url: '/staff/activities/ops/day?dept=WATERSPORT', icon: Ship, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES'] },
-        { title: 'Excursions Ops', url: '/staff/activities/ops/day?dept=EXCURSION', icon: Compass, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'TRANSPORT'] },
-        { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: FileText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
+        { title: 'Day Sheet', url: '/staff/activities/ops/day', icon: LayoutList, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'ACTIVITIES', 'TRANSPORT'] },
+        { title: 'Cheat Sheet', url: '/staff/activities/cheatsheet', icon: ScrollText, roles: ['RESORT_ADMIN', 'FRONT_OFFICE', 'ACTIVITIES'], tierFeature: 'activities_cheatsheet' },
       ],
     },
     {
@@ -179,8 +176,8 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       icon: UtensilsCrossed,
       items: [
         { title: 'Restaurants', url: '/staff/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
-        { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Clock, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
-        { title: 'Room Service Orders', url: '/staff/room-service/orders', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'], requiredFlags: ['enable_room_service'] },
+        { title: 'Time Slots', url: '/staff/restaurants/slots', icon: Timer, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'] },
+        { title: 'Room Service Orders', url: '/staff/room-service/orders', icon: ConciergeBell, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE', 'FNB'], requiredFlags: ['enable_room_service'] },
       ],
     },
     {
@@ -200,7 +197,7 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
       requiredFlags: ['enable_loyalty'],
       items: [
         { title: 'Members', url: '/staff/loyalty', icon: Crown, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'loyalty_member_management', requiredFlags: ['enable_loyalty'] },
-        { title: 'Program', url: '/staff/loyalty/program', icon: Settings, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program', requiredFlags: ['enable_loyalty'] },
+        { title: 'Program', url: '/staff/loyalty/program', icon: Gift, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_program', requiredFlags: ['enable_loyalty'] },
         { title: 'Tiers', url: '/staff/loyalty/tiers', icon: Sparkles, roles: ['RESORT_ADMIN'], tierFeature: 'loyalty_tiers', requiredFlags: ['enable_loyalty', 'enable_loyalty_tiers'] },
       ],
     },
@@ -213,9 +210,9 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
         { title: 'Overview', url: '/staff/reports', icon: BarChart3, roles: ['RESORT_ADMIN', 'MANAGER'], requiredFlags: ['enable_reports'] },
         { title: 'Activities', url: '/staff/reports/activities', icon: Activity, roles: ['RESORT_ADMIN', 'MANAGER', 'ACTIVITIES'], tierFeature: 'reports_activities', requiredFlags: ['enable_reports'] },
         { title: 'Restaurants', url: '/staff/reports/restaurants', icon: UtensilsCrossed, roles: ['RESORT_ADMIN', 'MANAGER', 'FNB'], tierFeature: 'reports_restaurants', requiredFlags: ['enable_reports'] },
-        { title: 'Guests', url: '/staff/reports/guests', icon: Users, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests', requiredFlags: ['enable_reports'] },
-        { title: 'Sales', url: '/staff/reports/sales', icon: TrendingUp, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_sales_performance', requiredFlags: ['enable_reports'] },
-        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: FileText, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_cancellations', requiredFlags: ['enable_reports'] },
+        { title: 'Guests', url: '/staff/reports/guests', icon: UserCheck, roles: ['RESORT_ADMIN', 'MANAGER', 'FRONT_OFFICE'], tierFeature: 'reports_guests', requiredFlags: ['enable_reports'] },
+        { title: 'Sales', url: '/staff/reports/sales', icon: DollarSign, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_sales_performance', requiredFlags: ['enable_reports'] },
+        { title: 'Cancellations', url: '/staff/reports/cancellations', icon: Ban, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_cancellations', requiredFlags: ['enable_reports'] },
         { title: 'Stay Feedback', url: '/staff/reports/stay-feedback', icon: MessageSquare, roles: ['RESORT_ADMIN', 'MANAGER'], tierFeature: 'reports_feedback', requiredFlags: ['enable_reports'] },
       ],
     },
@@ -225,13 +222,12 @@ export function StaffSidebar({ onNavigate, collapsed = false }: StaffSidebarProp
   const adminGroup: NavGroup = {
     id: 'admin',
     title: 'Admin',
-    icon: Settings,
+    icon: Cog,
     items: [
-      { title: 'Modules', url: '/staff/settings/modules', icon: Settings, roles: ['RESORT_ADMIN'] },
-      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: Users, roles: ['RESORT_ADMIN'], tierFeature: 'settings_staff_management' },
-      { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: Plane, roles: ['RESORT_ADMIN'], tierFeature: 'pre_arrival_links' },
-      { title: 'Branding', url: '/staff/settings/branding', icon: Palette, roles: ['RESORT_ADMIN'], tierFeature: 'guest_portal_branding' },
-      { title: 'Settings', url: '/staff/settings', icon: Settings, roles: ['RESORT_ADMIN'] },
+      { title: 'Resort Staff', url: '/staff/settings/resort-staff', icon: UserCog, roles: ['RESORT_ADMIN'], tierFeature: 'settings_staff_management' },
+      { title: 'Pre-Arrival Settings', url: '/staff/settings/prearrival', icon: PlaneTakeoff, roles: ['RESORT_ADMIN'], tierFeature: 'pre_arrival_links' },
+      { title: 'Branding', url: '/staff/settings/branding', icon: Paintbrush, roles: ['RESORT_ADMIN'], tierFeature: 'guest_portal_branding' },
+      { title: 'Settings', url: '/staff/settings', icon: SlidersHorizontal, roles: ['RESORT_ADMIN'] },
       { title: 'Access Control', url: '/staff/settings/access', icon: Shield, roles: ['RESORT_ADMIN'] },
     ],
   };
