@@ -4,6 +4,7 @@ import { useDepartment } from '@/contexts/DepartmentContext';
 import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { usePlannerState } from '@/hooks/usePlannerState';
 import { computeCoverage, type CoverageStatus } from '@/lib/ops/coverageRules';
+import { parseActivityRequirements } from '@/lib/activity-requirements';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert, Truck, FileWarning } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffLanesView } from '@/components/department/planner/StaffLanesView';
 import { AssetLanesView } from '@/components/department/planner/AssetLanesView';
@@ -34,7 +35,12 @@ interface SessionSlot {
   category: string;
   booked: number;
   ops_rules_json: unknown;
+  requirements_json: unknown;
   coverageStatus: CoverageStatus;
+  /** True if activity requires pickup but no transport link exists */
+  missingPickup: boolean;
+  /** Count of unverified certs + pending/followup medical reviews */
+  readinessBlockerCount: number;
 }
 
 /** Lightweight hook to batch-fetch conflicts for multiple sessions */
