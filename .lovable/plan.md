@@ -1,143 +1,67 @@
 
 
-## Performance-First Framer Motion Scroll Reveals
+## Current Pricing Page Audit
 
-### Current State
+Here's everything on the page, in render order, with redundancy flagged:
 
-The public pages use **two different animation systems** that need unifying:
+### Section-by-section inventory
 
-1. **CSS-based system** (`useScrollReveal` hook + `.section-reveal` / `.stagger-N` classes) -- used by 11 components: `WhyProperaCards`, `PlatformModules`, `HowItWorks`, `GlobalReady`, `HomeFinalCTA`, `MarketingSection`, `GuestJourneyFlow`, and all 5 pricing sections.
+| # | Section | Component | Purpose |
+|---|---------|-----------|---------|
+| 1 | **Hero** | `PricingHeroSection` | Headline, value props, demo CTA, interactive preview |
+| 2 | **Resort Size Selector** | `ResortSizeSelector` | Band picker (≤50, 51–150, 151–300) |
+| 3 | **Plan Cards** | `PricingPlanGrid` | Essential / Professional / Elite with features, prices, CTAs |
+| 4 | **Promise** | `PricingPromiseSection` | "Designed to replace a stack" — 3 bullet points |
+| 5 | **Switch** | `PricingSwitchSection` | "Make the switch painless" — Stack-Swap Guarantee, Seasonal Flex, Go-Live Support + Add-ons list |
+| 6 | **Stack Comparison** | `PricingStackComparison` | Propera vs Traditional Stack vs Manual Ops (9-row table) |
+| 7 | **Plan Comparison Matrix** | `PricingComparisonMatrix` | Essential vs Professional vs Elite feature grid (9-row table) |
+| 8 | **Trust** | `PricingTrustSection` | "Designed for real resort days" — 3 trust cards |
+| 9 | **FAQs** | `PricingFAQSection` | 7 accordion items + "Not sure which plan?" CTA |
+| 10 | **Bottom CTA** | `PricingCTASection` | "Ready to see Propera with your resort?" + demo/sales buttons |
 
-2. **Framer Motion** (`whileInView`) -- used by 3 components: `HomeHero`, `PricingTeaser`, `TrustStrip`.
+### Redundancies identified
 
-The CSS system has no `will-change` hints on the animating containers, uses `transform: translateY(30px)` which can cause layout shift during the transition, and the stagger system relies on CSS `transition-delay` which can't be optimized by Framer Motion's layout engine.
+1. **Promise section (#4) duplicates Stack Comparison (#6) and Switch (#5).** The three Promise bullets ("one platform," "one schedule," "one experience") are essentially a summary of the Stack Comparison table rows *and* the Switch section's headline. All three sections hammer "replace your stack" — the Promise section adds nothing unique.
 
-### Plan
+2. **Trust section (#8) is generic filler.** "Operational clarity," "Guest-first experience," and "Reliable consistency" are vague brand statements already communicated by the Hero and plan cards. It sits between two high-value sections (Comparison Matrix and FAQs) and dilutes momentum.
 
-Create a single, reusable Framer Motion component that replaces the CSS-based reveal system across all public pages. This gives us GPU-composited animations with `will-change`, viewport-triggered `whileInView`, and staggered children via Framer's `staggerChildren` -- all in one consistent system.
+3. **Two comparison tables back-to-back (#6 + #7) create fatigue.** Stack Comparison (Propera vs competitors) and Plan Comparison Matrix (Essential vs Pro vs Elite) are both 9-row tables placed consecutively. They serve different purposes but feel repetitive visually.
 
-### Technical Details
+4. **Orphan components never rendered:** `PricingAddonsSection`, `PricingComparisonTable`, `PricingEliteSpotlight`, `PricingScenarioGuide` — dead code from earlier iterations.
 
-#### 1. New component: `src/components/motion/ScrollReveal.tsx`
+5. **"Seasonal Flex" mentioned in 3 places:** Switch section card, FAQ #7, and implicitly in plan features. FAQ is fine (different context), but worth noting.
 
-A thin wrapper around `motion.div` that provides the fade-in-up effect:
+6. **FAQ CTA says "Book a demo" but links to `mailto:`** — inconsistent with the Hero and Bottom CTA which link to `/book-demo`.
 
-```tsx
-import { motion, type Variants } from 'framer-motion';
-import { useAnimationPreference } from '@/hooks/useReducedMotion';
+### Plan: Remove redundancy, tighten flow
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.25, 0.1, 0.25, 1], // cubic-bezier for smooth decel
-      staggerChildren: 0.08,
-    },
-  },
-};
+**Remove these sections:**
+- `PricingPromiseSection` — its messaging is covered by the Hero tagline + Stack Comparison table
+- `PricingTrustSection` — generic; doesn't add conversion value between Comparison Matrix and FAQs
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] },
-  },
-};
-```
+**Delete orphan files:**
+- `PricingAddonsSection.tsx`
+- `PricingComparisonTable.tsx`
+- `PricingEliteSpotlight.tsx`
+- `PricingScenarioGuide.tsx`
 
-- `ScrollReveal` -- container with `whileInView="visible"`, `viewport={{ once: true, margin: "-50px" }}`, and `style={{ willChange: 'opacity, transform' }}`
-- `RevealItem` -- child wrapper using `itemVariants` for stagger
-- Both respect `useAnimationPreference()` -- if reduced motion or low-power, render as plain `div` with no animation
+**Fix FAQ CTA link:**
+- Change the "Book a demo" button in `PricingFAQSection` from `mailto:` to a `<Link to="/book-demo">` for consistency
 
-#### 2. Update `MarketingSection.tsx`
+**Reorder remaining sections for better flow:**
+1. Hero
+2. Resort Size Selector
+3. Plan Cards
+4. Switch ("Make the switch painless")
+5. Plan Comparison Matrix ("At a glance")
+6. Stack Comparison ("One platform vs a stack")
+7. FAQs
+8. Bottom CTA
 
-Replace `useScrollReveal` + CSS class toggling with `ScrollReveal` wrapper. Remove the `section-reveal` / `section-revealed` class logic. The component becomes:
+This moves the plan-vs-plan matrix closer to the cards (where readers compare tiers), and puts the competitive stack comparison further down (where skeptics scroll).
 
-```tsx
-<ScrollReveal>
-  <div className={cn('mx-auto px-6 relative', sizeClasses[size])}>
-    {children}
-  </div>
-</ScrollReveal>
-```
-
-#### 3. Update landing page sections (6 files)
-
-Each section replaces its `useScrollReveal` pattern:
-
-| Component | Change |
-|-----------|--------|
-| `WhyProperaCards.tsx` | Remove `useScrollReveal`, wrap content in `ScrollReveal`, wrap each `ValueCard` in `RevealItem` instead of `stagger-N` classes |
-| `PlatformModules.tsx` | Same pattern -- `ScrollReveal` container, `RevealItem` for header + each `ModuleCard` |
-| `HowItWorks.tsx` | `ScrollReveal` container, `RevealItem` for each `StepCard` |
-| `GlobalReady.tsx` | `ScrollReveal` container, `RevealItem` for header, chips, showcases |
-| `HomeFinalCTA.tsx` | `ScrollReveal` container, `RevealItem` for h2, p, buttons, reassurance |
-| `HomeHero.tsx` | Already uses Framer Motion -- add `style={{ willChange: 'opacity, transform' }}` to each `motion.div` |
-
-#### 4. Update pricing page sections (5 files)
-
-| Component | Change |
-|-----------|--------|
-| `PricingTrustSection.tsx` | Replace `useScrollReveal` with `ScrollReveal` + `RevealItem` |
-| `PricingCTASection.tsx` | Same |
-| `PricingComparisonMatrix.tsx` | Same |
-| `PricingPlanGrid.tsx` | Same |
-| `PricingFAQSection.tsx` | Same |
-| `PricingAddonsSection.tsx` | Same |
-| `PricingTeaser.tsx` | Already uses Framer Motion -- add `will-change` style |
-| `TrustStrip.tsx` | Already uses Framer Motion -- add `will-change` style |
-
-#### 5. Update `GuestJourneyFlow.tsx`
-
-Replace `useScrollReveal` with `ScrollReveal`.
-
-#### 6. CSS cleanup in `src/index.css`
-
-Remove the now-unused CSS rules (lines ~2150-2170):
-- `.section-reveal` / `.section-revealed` opacity/transform rules
-- `.section-revealed .stagger-1` through `.stagger-7` delay rules
-
-Keep all other CSS animations (hover effects, chart-bar-grow, chip-stagger, etc.) as they serve different purposes.
-
-#### 7. No changes to `useScrollReveal.ts`
-
-The hook file stays as-is -- it may still be used by non-marketing components. If no remaining consumers exist after all updates, it can be removed in a follow-up.
-
-### Performance Guarantees
-
-- **`will-change: opacity, transform`** on every animating `motion.div` -- tells the browser to composite these elements on their own GPU layer
-- **`viewport={{ once: true }}`** -- animations fire once and Framer disconnects the IntersectionObserver, zero ongoing cost
-- **`staggerChildren: 0.08`** -- Framer batches child animations off the main thread
-- **Reduced motion / low-power** -- bypasses all animation, renders static `div` elements
-- **No layout shift** -- `y: 24` translate doesn't affect document flow (transform-only, no height/margin changes)
-- **Lazy-loaded sections** remain lazy -- `ScrollReveal` is lightweight (~200 bytes) and doesn't import framer-motion's heavy features
-
-### Files Changed
-
-| File | Type |
-|------|------|
-| `src/components/motion/ScrollReveal.tsx` | **New** |
-| `src/components/layout/MarketingSection.tsx` | Edit |
-| `src/components/landing/WhyProperaCards.tsx` | Edit |
-| `src/components/landing/PlatformModules.tsx` | Edit |
-| `src/components/landing/HowItWorks.tsx` | Edit |
-| `src/components/landing/GlobalReady.tsx` | Edit |
-| `src/components/landing/HomeFinalCTA.tsx` | Edit |
-| `src/components/landing/HomeHero.tsx` | Edit (add will-change) |
-| `src/components/landing/PricingTeaser.tsx` | Edit (add will-change) |
-| `src/components/landing/TrustStrip.tsx` | Edit (add will-change) |
-| `src/components/pricing/PricingTrustSection.tsx` | Edit |
-| `src/components/pricing/PricingCTASection.tsx` | Edit |
-| `src/components/pricing/PricingComparisonMatrix.tsx` | Edit |
-| `src/components/pricing/PricingPlanGrid.tsx` | Edit |
-| `src/components/pricing/PricingFAQSection.tsx` | Edit |
-| `src/components/pricing/PricingAddonsSection.tsx` | Edit |
-| `src/components/illustrations/GuestJourneyFlow.tsx` | Edit |
-| `src/index.css` | Edit (remove unused rules) |
-
-18 files total. No new dependencies needed (framer-motion already installed).
+### Files changed
+- `src/pages/PricingPage.tsx` — remove Promise/Trust imports+renders, reorder sections, remove orphan import if any
+- `src/components/pricing/PricingFAQSection.tsx` — fix CTA link to `/book-demo`
+- **Delete:** `PricingPromiseSection.tsx`, `PricingTrustSection.tsx`, `PricingAddonsSection.tsx`, `PricingComparisonTable.tsx`, `PricingEliteSpotlight.tsx`, `PricingScenarioGuide.tsx`
 
