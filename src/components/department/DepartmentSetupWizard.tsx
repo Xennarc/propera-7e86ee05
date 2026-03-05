@@ -99,6 +99,7 @@ interface Props {
 
 export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   // Step 1 state
