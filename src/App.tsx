@@ -312,7 +312,18 @@ const App = () => (
                   <Route path="room-service/orders" element={<StaffRoomServiceOrdersPage />} />
                   <Route path="room-service/orders/:orderId" element={<StaffRoomServiceOrderDetailPage />} />
                   <Route path="room-service/my-deliveries" element={<StaffRoomServiceMyDeliveriesPage />} />
-                </Route>
+                  {/* Department routes nested inside StaffShell */}
+                  <Route path="dept/:deptKey" element={<DepartmentLayout />}>
+                    <Route index element={<Navigate to="planner" replace />} />
+                    <Route path="planner" element={<DeptPlannerPage />} />
+                    <Route path="master" element={<DeptMasterSheetPage />} />
+                    <Route path="inbox" element={<DeptInboxPage />} />
+                    <Route path="session/:sessionId" element={<DeptSessionRunSheetPage />} />
+                    <Route path="resources/assets" element={<DeptResourcesAssetsPage />} />
+                    <Route path="resources/shifts" element={<DeptResourcesShiftsPage />} />
+                    <Route path="resources/unavailability" element={<DeptResourcesUnavailabilityPage />} />
+                    <Route path="manage/access" element={<DeptManageAccessPage />} />
+                  </Route>
                 
                 {/* Staff invitation acceptance (public) */}
                 <Route path="/staff/invite/:token" element={<StaffInviteAcceptPage />} />
