@@ -8,6 +8,7 @@ import { usePrefetchResortData } from '@/hooks/usePrefetch';
 import { useStaffDebugMode } from '@/hooks/useStaffDebugMode';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
+import { useDepartmentRedirect } from '@/hooks/useDepartmentRedirect';
 import { initErrorCapture } from '@/lib/debug-error-capture';
 import { initQueryTracker } from '@/lib/debug-query-tracker';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
