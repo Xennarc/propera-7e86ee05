@@ -142,6 +142,12 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
                       <p className="text-xs text-muted-foreground mb-4">
                         <span className="font-medium">Recommended for:</span> {config.recommendedFor}
                       </p>
+
+                      {isElite && (
+                        <p className="text-xs text-muted-foreground/80 italic mb-4">
+                          For high-volume resorts and groups that need consistency, control, and automation.
+                        </p>
+                      )}
                       
                       <div className="mb-5 min-h-[48px] flex items-baseline flex-wrap gap-x-2">
                         <span className="text-3xl font-bold text-foreground transition-[opacity] duration-200" key={displayPrice}>
@@ -215,6 +221,12 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
                           >
                             {isExpanded ? 'Show less' : `+${plan.features.length - 5} more`}
                           </button>
+                        )}
+
+                        {isProfessional && (
+                          <p className="text-xs text-muted-foreground/70 italic mb-4">
+                            Room Service Suite available in Elite.
+                          </p>
                         )}
                         
                         {(displayUsage || displayOverage) && (
