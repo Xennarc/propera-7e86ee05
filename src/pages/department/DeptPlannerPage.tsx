@@ -500,6 +500,7 @@ function DeptPlannerContent() {
                           )}
                         </div>
                       </div>
+                      {/* Coverage details */}
                       {coverage.details.length > 0 && (
                         <div className="text-[11px] text-muted-foreground pl-[22px] space-y-0.5">
                           {coverage.details.map((d, i) => (
@@ -509,6 +510,18 @@ function DeptPlannerContent() {
                             )}>• {d}</p>
                           ))}
                         </div>
+                      )}
+                      {/* Missing pickup */}
+                      {s.missingPickup && (
+                        <p className="text-[11px] text-warning pl-[22px] flex items-center gap-1">
+                          <Truck className="h-3 w-3" /> No pickup run linked
+                        </p>
+                      )}
+                      {/* Readiness blockers */}
+                      {s.readinessBlockerCount > 0 && (
+                        <p className="text-[11px] text-warning pl-[22px] flex items-center gap-1">
+                          <FileWarning className="h-3 w-3" /> {s.readinessBlockerCount} readiness blocker{s.readinessBlockerCount !== 1 ? 's' : ''}
+                        </p>
                       )}
                     </CardContent>
                   </Card>
