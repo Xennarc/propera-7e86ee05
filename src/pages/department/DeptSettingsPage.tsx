@@ -16,6 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Settings, AlertTriangle, Save, Layers, PackageCheck, Sparkles, Eye } from 'lucide-react';
 import type { DepartmentModuleKey } from '@/types/database';
 import { ALL_DEPARTMENT_MODULES, MODULE_GROUPS, DEPARTMENT_TEMPLATES, type DeptTemplate } from '@/lib/departments/module-definitions';
+import { getToggleableModules, REGISTRY_GROUPS, getModuleEntry } from '@/lib/departments/module-registry';
+import { BindingsRenderer } from '@/components/department/BindingsRenderer';
 
 const ACTIVITY_CATEGORIES = [
   { value: 'DIVE', label: 'Dive' },
@@ -309,45 +311,21 @@ function DeptSettingsContent() {
           <CardDescription className="text-xs">Define which sessions and entities this department manages</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Activity Categories */}
-          <div className="space-y-3">
-            <Label className="text-xs font-medium">Activity Categories</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {ACTIVITY_CATEGORIES.map(cat => (
-                <label
-                  key={cat.value}
-                  className="flex items-center gap-2 rounded-md border p-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
-                >
-                  <Checkbox
-                    checked={selectedCategories.includes(cat.value)}
-                    onCheckedChange={() => toggleCategory(cat.value)}
-                  />
-                  <span className="text-xs font-medium">{cat.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Restaurants */}
-          {restaurants.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-xs font-medium">Restaurants</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {restaurants.map((r: any) => (
-                  <label
-                    key={r.id}
-                    className="flex items-center gap-2 rounded-md border p-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
-                  >
-                    <Checkbox
-                      checked={selectedRestaurants.includes(r.id)}
-                      onCheckedChange={() => toggleRestaurant(r.id)}
-                    />
-                    <span className="text-xs font-medium">{r.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
+          <BindingsRenderer
+            selections={{
+              activity_category: selectedCategories,
+              restaurant: selectedRestaurants,
+            }}
+            onToggle={(type, key) => {
+              if (type === 'activity_category') toggleCategory(key);
+              else if (type === 'restaurant') toggleRestaurant(key);
+              setBindingsDirty(true);
+            }}
+            options={{
+              activity_category: ACTIVITY_CATEGORIES.map(c => ({ key: c.value, label: c.label })),
+              restaurant: restaurants.map((r: any) => ({ key: r.id, label: r.name })),
+            }}
+          />
 
           <Separator />
 
@@ -409,28 +387,35 @@ function DeptSettingsContent() {
 
           <Separator />
 
-          {/* Module toggles by group */}
-          {MODULE_GROUPS.map(group => {
+          {/* Module toggles by group — driven from registry */}
+          {REGISTRY_GROUPS.filter(g => g.key !== 'manage').map(group => {
             const groupModules = ALL_DEPARTMENT_MODULES.filter(m => m.group === group.key);
             return (
               <div key={group.key} className="space-y-2">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{group.label}</p>
                 <div className="space-y-1">
-                  {groupModules.map(mod => (
+                  {groupModules.map(mod => {
+                    const registryEntry = getModuleEntry(mod.key);
+                    const Icon = registryEntry?.icon;
+                    return (
                     <div
                       key={mod.key}
                       className="flex items-center justify-between rounded-md border p-2.5"
                     >
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium">{mod.label}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">{mod.description}</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium">{registryEntry?.label ?? mod.label}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{registryEntry?.description ?? mod.description}</p>
+                        </div>
                       </div>
                       <Switch
                         checked={moduleToggles[mod.key] ?? true}
                         onCheckedChange={() => toggleModule(mod.key)}
                       />
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
