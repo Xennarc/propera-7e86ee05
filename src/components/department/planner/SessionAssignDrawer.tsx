@@ -45,6 +45,7 @@ export interface SessionInfo {
   capacity: number;
   resort_id: string;
   ops_rules_json?: unknown;
+  category?: string | null;
 }
 
 interface Props {
@@ -476,6 +477,8 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                 assignedRoles: roleCounts,
                 assignedBoats: assetAssignments.length,
                 bookedCount: bookedCount,
+                category: session.category ?? null,
+                conflictCount: conflictCount,
               });
               if (coverage.details.length === 0) return null;
               return (
