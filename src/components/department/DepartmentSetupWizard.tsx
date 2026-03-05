@@ -28,6 +28,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { DepartmentModuleKey } from '@/types/database';
 
