@@ -455,6 +455,40 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
               )}
             </div>
 
+            {/* Coverage details */}
+            {(() => {
+              const roleCounts: Record<string, number> = {};
+              for (const a of staffAssignments) {
+                roleCounts[a.role] = (roleCounts[a.role] ?? 0) + 1;
+              }
+              const coverage = computeCoverage({
+                opsRules: session.ops_rules_json,
+                assignedRoles: roleCounts,
+                assignedBoats: assetAssignments.length,
+                bookedCount: bookedCount,
+              });
+              if (coverage.details.length === 0) return null;
+              return (
+                <Alert
+                  variant={coverage.status === 'red' ? 'destructive' : undefined}
+                  className={cn(
+                    'text-foreground',
+                    coverage.status === 'amber' && 'border-warning/50 bg-warning/5',
+                    coverage.status === 'red' && 'border-destructive/50 bg-destructive/5',
+                  )}
+                >
+                  <AlertTriangle className={cn(
+                    'h-4 w-4',
+                    coverage.status === 'amber' && 'text-warning',
+                    coverage.status === 'red' && 'text-destructive',
+                  )} />
+                  <AlertDescription className="text-xs space-y-0.5">
+                    {coverage.details.map((d, i) => <p key={i}>{d}</p>)}
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
+
             {/* ─── BOAT SECTION ─── */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
