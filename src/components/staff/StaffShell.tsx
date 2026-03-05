@@ -271,9 +271,5 @@ function StaffShellInner() {
 }
 
 export function StaffShell() {
-  return (
-    <DepartmentShellProvider>
-      <StaffShellInner />
-    </DepartmentShellProvider>
-  );
+  return <StaffShellInner />;
 }
