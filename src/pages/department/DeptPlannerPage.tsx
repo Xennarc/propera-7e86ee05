@@ -4,6 +4,7 @@ import { useDepartment } from '@/contexts/DepartmentContext';
 import { useCanEditPlanner } from '@/hooks/useCanEditPlanner';
 import { usePlannerState } from '@/hooks/usePlannerState';
 import { computeCoverage, type CoverageStatus } from '@/lib/ops/coverageRules';
+import { parseActivityRequirements } from '@/lib/activity-requirements';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +18,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert, Truck, FileWarning } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffLanesView } from '@/components/department/planner/StaffLanesView';
 import { AssetLanesView } from '@/components/department/planner/AssetLanesView';
@@ -34,7 +35,12 @@ interface SessionSlot {
   category: string;
   booked: number;
   ops_rules_json: unknown;
+  requirements_json: unknown;
   coverageStatus: CoverageStatus;
+  /** True if activity requires pickup but no transport link exists */
+  missingPickup: boolean;
+  /** Count of unverified certs + pending/followup medical reviews */
+  readinessBlockerCount: number;
 }
 
 /** Lightweight hook to batch-fetch conflicts for multiple sessions */
@@ -110,7 +116,7 @@ function DeptPlannerContent() {
         .from('activity_sessions')
         .select(`
           id, date, start_time, end_time, capacity, status,
-          activity:activities(name, category, ops_rules_json)
+          activity:activities(name, category, ops_rules_json, requirements_json)
         `)
         .eq('resort_id', resortId)
         .gte('date', weekStartStr)
@@ -178,6 +184,44 @@ function DeptPlannerContent() {
 
   const { data: conflictCounts = {} } = useMultiSessionConflicts(resortId, sessionIds);
 
+  // Transport links — check which sessions have a pickup linked
+  const { data: transportLinkedSessions = new Set<string>() } = useQuery({
+    queryKey: ['dept-planner-transport-links', sessionIds],
+    queryFn: async () => {
+      if (sessionIds.length === 0) return new Set<string>();
+      const { data } = await supabase
+        .from('session_transport_links')
+        .select('session_id')
+        .in('session_id', sessionIds)
+        .eq('link_type', 'pickup');
+      return new Set((data ?? []).map((r: any) => r.session_id));
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 30_000,
+  });
+
+  // Readiness blockers — unverified certs + pending/followup medical per session
+  const { data: readinessBlockers = {} } = useQuery({
+    queryKey: ['dept-planner-readiness-blockers', sessionIds],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (sessionIds.length === 0) return {};
+      const { data } = await supabase
+        .from('activity_booking_readiness')
+        .select('session_id, cert_verification_status, medical_review_status')
+        .in('session_id', sessionIds);
+      const counts: Record<string, number> = {};
+      for (const r of data ?? []) {
+        let blockers = 0;
+        if (r.cert_verification_status === 'unverified' || r.cert_verification_status === 'rejected') blockers++;
+        if (r.medical_review_status === 'pending' || r.medical_review_status === 'requires_followup') blockers++;
+        if (blockers > 0) counts[r.session_id] = (counts[r.session_id] ?? 0) + blockers;
+      }
+      return counts;
+    },
+    enabled: sessionIds.length > 0,
+    staleTime: 30_000,
+  });
+
   // Realtime subscriptions
   useEffect(() => {
     if (!resortId) return;
@@ -207,12 +251,15 @@ function DeptPlannerContent() {
       const assigns = sessionAssignments[s.id];
       const booked = bookingCounts[s.id] ?? 0;
       const conflicts = conflictCounts[s.id] ?? 0;
+      const actCategory = s.activity?.category ?? '';
+      const reqJson = s.activity?.requirements_json;
+      const actReqs = parseActivityRequirements(reqJson, actCategory);
       const coverage = computeCoverage({
         opsRules: s.activity?.ops_rules_json,
         assignedRoles: assigns?.roles ?? {},
         assignedBoats: assigns?.boats ?? 0,
         bookedCount: booked,
-        category: s.activity?.category ?? null,
+        category: actCategory || null,
         conflictCount: conflicts,
       });
       const slot: SessionSlot = {
@@ -223,16 +270,19 @@ function DeptPlannerContent() {
         status: s.status,
         capacity: s.capacity,
         activity_name: s.activity?.name ?? 'Unknown',
-        category: s.activity?.category ?? '',
+        category: actCategory,
         booked,
         ops_rules_json: s.activity?.ops_rules_json,
+        requirements_json: reqJson,
         coverageStatus: coverage.status,
+        missingPickup: actReqs.requires_pickup && !transportLinkedSessions.has(s.id),
+        readinessBlockerCount: readinessBlockers[s.id] ?? 0,
       };
       if (!grouped[s.date]) grouped[s.date] = [];
       grouped[s.date].push(slot);
     }
     return grouped;
-  }, [sessions, bookingCounts, sessionAssignments]);
+  }, [sessions, bookingCounts, sessionAssignments, conflictCounts, transportLinkedSessions, readinessBlockers]);
 
   // Attention mode: filter today's sessions to high-risk items
   const attentionItems = useMemo(() => {
@@ -246,13 +296,22 @@ function DeptPlannerContent() {
     return allToday.filter(s => {
       if (s.coverageStatus === 'amber' || s.coverageStatus === 'red') return true;
       if ((conflictCounts[s.id] ?? 0) > 0) return true;
+      if (s.missingPickup) return true;
+      if (s.readinessBlockerCount > 0) return true;
       const [h, m] = (s.start_time ?? '00:00').split(':').map(Number);
       const startMin = h * 60 + m;
       if (startMin <= soonThreshold && startMin >= nowMinutes && s.booked > 0) return true;
       return false;
     }).sort((a, b) => {
-      const order = { red: 0, amber: 1, green: 2 } as const;
-      const diff = order[a.coverageStatus] - order[b.coverageStatus];
+      // Priority: red > missing pickup > readiness blockers > amber > green
+      const urgency = (s: SessionSlot) => {
+        if (s.coverageStatus === 'red') return 0;
+        if (s.missingPickup) return 1;
+        if (s.readinessBlockerCount > 0) return 2;
+        if (s.coverageStatus === 'amber') return 3;
+        return 4;
+      };
+      const diff = urgency(a) - urgency(b);
       if (diff !== 0) return diff;
       return (a.start_time ?? '').localeCompare(b.start_time ?? '');
     });
@@ -441,6 +500,7 @@ function DeptPlannerContent() {
                           )}
                         </div>
                       </div>
+                      {/* Coverage details */}
                       {coverage.details.length > 0 && (
                         <div className="text-[11px] text-muted-foreground pl-[22px] space-y-0.5">
                           {coverage.details.map((d, i) => (
@@ -450,6 +510,18 @@ function DeptPlannerContent() {
                             )}>• {d}</p>
                           ))}
                         </div>
+                      )}
+                      {/* Missing pickup */}
+                      {s.missingPickup && (
+                        <p className="text-[11px] text-warning pl-[22px] flex items-center gap-1">
+                          <Truck className="h-3 w-3" /> No pickup run linked
+                        </p>
+                      )}
+                      {/* Readiness blockers */}
+                      {s.readinessBlockerCount > 0 && (
+                        <p className="text-[11px] text-warning pl-[22px] flex items-center gap-1">
+                          <FileWarning className="h-3 w-3" /> {s.readinessBlockerCount} readiness blocker{s.readinessBlockerCount !== 1 ? 's' : ''}
+                        </p>
                       )}
                     </CardContent>
                   </Card>
