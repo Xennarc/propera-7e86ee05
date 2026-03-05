@@ -60,6 +60,7 @@ export type Database = {
           created_at: string
           default_max_capacity: number
           default_price_per_person: number
+          department_key: string | null
           description: string | null
           difficulty_level: string | null
           duration_minutes: number
@@ -97,6 +98,7 @@ export type Database = {
           created_at?: string
           default_max_capacity?: number
           default_price_per_person?: number
+          department_key?: string | null
           description?: string | null
           difficulty_level?: string | null
           duration_minutes?: number
@@ -134,6 +136,7 @@ export type Database = {
           created_at?: string
           default_max_capacity?: number
           default_price_per_person?: number
+          department_key?: string | null
           description?: string | null
           difficulty_level?: string | null
           duration_minutes?: number
