@@ -10,6 +10,7 @@ interface ModuleAccessListProps {
   resortId?: string;
   rolePermissions?: string[];
   userOverrides?: Array<{ permission_key: string; effect: string }>;
+  onChangeRecorded?: (moduleLabel: string, description: string, isSensitive: boolean) => void;
 }
 
 export function ModuleAccessList({
@@ -19,6 +20,7 @@ export function ModuleAccessList({
   resortId,
   rolePermissions,
   userOverrides,
+  onChangeRecorded,
 }: ModuleAccessListProps) {
   if (groups.length === 0) {
     return (
@@ -48,6 +50,7 @@ export function ModuleAccessList({
                   resortId={resortId}
                   rolePermissions={rolePermissions}
                   userOverrides={userOverrides}
+                  onChangeRecorded={onChangeRecorded}
                 />
               ))}
             </div>
