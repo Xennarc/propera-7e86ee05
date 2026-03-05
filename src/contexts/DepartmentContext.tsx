@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode } fr
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFeatureEnabled } from '@/components/FeatureGate';
 import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding } from '@/types/database';
+import { resolveDepartmentScope, type DepartmentScope } from '@/lib/departments/department-scope';
 
 interface DepartmentContextType {
   /** All departments for the user's resort(s) */
@@ -17,6 +19,8 @@ interface DepartmentContextType {
   moduleAccess: DepartmentModuleAccess[];
   /** Bindings for the current department (scope source of truth) */
   bindings: DepartmentBinding[];
+  /** Resolved scope from canonical resolver */
+  scope: DepartmentScope;
   /** Whether the user has access to a specific module in current dept */
   hasModule: (moduleKey: DepartmentModuleKey) => boolean;
   /** Whether the user is a manager in the current department */
