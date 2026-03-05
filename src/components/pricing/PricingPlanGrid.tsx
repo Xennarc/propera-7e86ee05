@@ -38,23 +38,23 @@ const PLAN_CONFIG: Record<string, {
     accent: 'muted-foreground',
     tagline: 'A refined foundation for modern guest service.',
     recommendedFor: 'Boutique resorts, soft launches, and focused teams.',
-    ctaHelper: 'A perfect starting point. Upgrade anytime.',
+    ctaHelper: 'Upgrade anytime. Keep your data.',
   },
   professional: { 
     icon: Monitor, 
     gradient: 'from-primary/15 to-primary/5',
     accent: 'primary',
-    tagline: 'The full Propera experience — balanced, complete, and effortless.',
+    tagline: 'The Resort OS — balanced, complete, effortless.',
     recommendedFor: 'Day-to-day operations across departments.',
-    ctaHelper: 'The plan most resorts choose to run everything smoothly.',
+    ctaHelper: 'Most resorts run everything on this plan.',
   },
   enterprise: { 
     icon: BarChart3, 
     gradient: 'from-violet-500/15 to-violet-500/5',
     accent: 'violet-500',
-    tagline: 'Built for scale — with the finish of a luxury product.',
+    tagline: 'Scale-ready, with the finish of a luxury product.',
     recommendedFor: 'High-volume resorts and multi-property groups.',
-    ctaHelper: 'For groups that want consistency across properties.',
+    ctaHelper: 'For groups that need consistency across properties.',
   },
 };
 

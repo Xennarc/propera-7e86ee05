@@ -8,6 +8,7 @@ import { PricingTrustSection } from '@/components/pricing/PricingTrustSection';
 import { PricingAddonsSection } from '@/components/pricing/PricingAddonsSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
+import { PricingPromiseSection } from '@/components/pricing/PricingPromiseSection';
 import { usePricingConfig } from '@/hooks/usePricingConfig';
 
 // ==========================================
@@ -58,15 +59,16 @@ export default function PricingPage() {
   return (
     <MarketingLayout currentPage="pricing">
       <SEOHead
-        title="Pricing - Resort Booking Platform Plans"
-        description="Simple, transparent pricing for modern resorts. Choose from Essential, Professional, or Elite plans to streamline guest bookings, staff operations, and analytics."
+        title="Pricing — Replace Your Resort Stack | Propera"
+        description="One platform for pre-arrival, bookings, dining, room service, housekeeping, transport, loyalty, and department operations. Simple plans that scale with your resort."
         canonicalUrl="/pricing"
-        keywords="resort booking pricing, hotel booking software pricing, resort management plans, guest portal pricing"
+        keywords="resort operating system pricing, resort booking platform plans, resort ops software, guest experience platform pricing"
         structuredData={[PROPERA_ORGANIZATION_SCHEMA, PRICING_PAGE_SCHEMA]}
       />
 
       <PricingHeroSection />
       <PricingPlanGrid plans={plans} />
+      <PricingPromiseSection />
       <PricingComparisonMatrix />
       <PricingTrustSection />
       <PricingAddonsSection addons={addons} onboarding={ONBOARDING} />

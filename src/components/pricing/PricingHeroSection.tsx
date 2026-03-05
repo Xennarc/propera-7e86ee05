@@ -77,11 +77,15 @@ export function PricingHeroSection() {
           {/* Left - Copy */}
           <div className="text-center lg:text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-[1.1] tracking-tight">
-              Pricing, made simple.
+              Replace your resort stack.
             </h1>
             
-            <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-6 md:mb-8">
-              Propera brings guests, teams, and schedules into one elegant system — so every day runs smoothly.
+            <p className="text-base md:text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-3 md:mb-4">
+              Pre-arrival, bookings, transport, dining, room service, housekeeping requests, loyalty, and department operations — in one calm system.
+            </p>
+
+            <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto lg:mx-0 mb-6 md:mb-8">
+              One source of truth from guest tap → team schedule.
             </p>
 
             {/* CTAs */}
@@ -105,6 +109,20 @@ export function PricingHeroSection() {
             <p className="text-sm text-muted-foreground">
               See how it looks with your resort's branding.
             </p>
+
+            {/* Built for daily ops strip */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 mt-6 md:mt-8 mb-2">
+              {[
+                'Live availability that stays truthful',
+                'Requests routed to the right department',
+                'Bookings automatically shape the operational plan',
+              ].map((item) => (
+                <span key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                  {item}
+                </span>
+              ))}
+            </div>
 
             {/* Value chips - static */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 mt-6 md:mt-8">
