@@ -8173,6 +8173,10 @@ export type Database = {
       }
       backfill_guest_stays_from_guests: { Args: never; Returns: Json }
       backfill_submissions_from_profiles: { Args: never; Returns: Json }
+      can_manage_department: {
+        Args: { p_department_id: string; p_user_id: string }
+        Returns: boolean
+      }
       cancel_activity_booking_safe: {
         Args: {
           p_booking_id: string
@@ -8427,6 +8431,10 @@ export type Database = {
         Returns: Json
       }
       get_demo_workspace_by_email: { Args: { p_email: string }; Returns: Json }
+      get_department_bindings: {
+        Args: { p_department_id: string }
+        Returns: Json
+      }
       get_effective_feature_flags: {
         Args: { _guest_id?: string; _resort_id: string }
         Returns: {
@@ -9386,6 +9394,14 @@ export type Database = {
           username: string
         }[]
       }
+      update_department_profile: {
+        Args: {
+          p_department_id: string
+          p_is_active?: boolean
+          p_name?: string
+        }
+        Returns: Json
+      }
       update_department_settings: {
         Args: {
           p_activity_scope_key?: string
@@ -9397,6 +9413,10 @@ export type Database = {
       }
       update_staff_username: {
         Args: { p_new_username: string; p_user_id: string }
+        Returns: Json
+      }
+      upsert_department_bindings: {
+        Args: { p_bindings: Json; p_department_id: string }
         Returns: Json
       }
       upsert_transport_settings_atomic: {
