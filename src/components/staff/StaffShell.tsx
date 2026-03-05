@@ -170,7 +170,7 @@ function StaffShellInner() {
   const sidebarWidth = isDeptActive ? 'lg:w-56' : 'lg:w-64';
   const sidebarPl = isDeptActive ? 'lg:pl-56' : 'lg:pl-64';
 
-  return (
+  const shellContent = (
     <FeatureFlagsProvider resortId={currentResort?.id}>
       <TooltipProvider>
         <DemoRefreshedModal
@@ -256,6 +256,18 @@ function StaffShellInner() {
       </TooltipProvider>
     </FeatureFlagsProvider>
   );
+
+  // Wrap in DepartmentProvider when a department route is active
+  // so sidebar/topbar/bottom-nav can access department context
+  if (isDeptActive && deptKeyFromUrl) {
+    return (
+      <DepartmentProvider deptKeyOverride={deptKeyFromUrl}>
+        {shellContent}
+      </DepartmentProvider>
+    );
+  }
+
+  return shellContent;
 }
 
 export function StaffShell() {
