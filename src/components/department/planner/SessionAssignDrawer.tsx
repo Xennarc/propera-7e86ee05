@@ -508,7 +508,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                 {assetAssignments.map(a => (
                   <Badge key={a.id} variant="secondary" className="gap-1 pl-2 pr-1 py-1 text-xs">
                     {a.asset_label}
-                    {isManager && (
+                    {canAssignBoat && (
                       <button
                         className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
                         onClick={() => removeAsset(a.id)}
@@ -524,7 +524,7 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
               </div>
 
               {/* Asset picker */}
-              {isManager && availableAssets.length > 0 && (
+              {canAssignBoat && availableAssets.length > 0 && (
                 <div className="grid gap-1 max-h-32 overflow-y-auto">
                   {availableAssets.map(asset => (
                     <button
