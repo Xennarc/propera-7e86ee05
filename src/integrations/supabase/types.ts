@@ -2255,31 +2255,89 @@ export type Database = {
       department_memberships: {
         Row: {
           created_at: string
+          department_id: string | null
           department_key: string
           dept_role: string
           id: string
+          is_active: boolean
           resort_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          department_id?: string | null
           department_key: string
           dept_role: string
           id?: string
+          is_active?: boolean
           resort_id: string
           user_id: string
         }
         Update: {
           created_at?: string
+          department_id?: string | null
           department_key?: string
           dept_role?: string
           id?: string
+          is_active?: boolean
           resort_id?: string
           user_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "department_memberships_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "resort_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "department_memberships_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_module_access: {
+        Row: {
+          department_id: string
+          enabled: boolean
+          id: string
+          module_key: string
+          resort_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          department_id: string
+          enabled?: boolean
+          id?: string
+          module_key: string
+          resort_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          department_id?: string
+          enabled?: boolean
+          id?: string
+          module_key?: string
+          resort_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_module_access_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "resort_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_module_access_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
@@ -4657,6 +4715,41 @@ export type Database = {
           },
           {
             foreignKeyName: "resort_addons_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resort_departments: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          resort_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          resort_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          resort_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resort_departments_resort_id_fkey"
             columns: ["resort_id"]
             isOneToOne: false
             referencedRelation: "resorts"
@@ -9149,6 +9242,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_has_department_access: {
+        Args: { _department_id: string }
+        Returns: boolean
+      }
+      user_has_department_module: {
+        Args: { _department_id: string; _module_key: string }
+        Returns: boolean
+      }
       user_has_permission: {
         Args: {
           p_permission_key: string
@@ -9158,6 +9259,10 @@ export type Database = {
         Returns: boolean
       }
       user_is_active: { Args: { p_user_id: string }; Returns: boolean }
+      user_is_department_manager: {
+        Args: { _department_id: string }
+        Returns: boolean
+      }
       utc_to_resort_tz: {
         Args: { p_resort_id: string; p_timestamp: string }
         Returns: string
