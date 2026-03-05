@@ -167,6 +167,17 @@ export const FEATURE_FLAG_REGISTRY: FeatureFlagDefinition[] = [
     scope: 'resort',
   },
 
+  // Ops Planner Editing v1 (child of activities_ops)
+  {
+    key: 'ops_planner_edit_v1',
+    label: 'Ops Planner Editing v1 (Shifts + Quick Assign)',
+    description: 'Enable calendar-style shift editing and planner quick-assign tools. Requires Activities Ops to be enabled.',
+    category: 'experimental',
+    tier: null,
+    is_dangerous: false,
+    scope: 'resort',
+  },
+
   // Transport Module
   {
     key: 'enable_transport',
