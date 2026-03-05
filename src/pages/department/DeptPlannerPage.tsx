@@ -281,6 +281,7 @@ function DeptPlannerContent() {
           capacity: session.capacity,
           resort_id: resortId,
           ops_rules_json: session.activity?.ops_rules_json,
+          category: session.activity?.category ?? null,
         });
         setAssignDrawerOpen(true);
       }
