@@ -60,7 +60,7 @@ export async function registerPWA() {
           setInterval(() => {
             registration.update();
             pwaStatus.lastUpdateCheck = new Date();
-          }, 60 * 60 * 1000);
+          }, 5 * 60 * 1000);
         }
       },
     });
