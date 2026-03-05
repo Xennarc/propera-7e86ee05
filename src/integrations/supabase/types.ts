@@ -8905,6 +8905,10 @@ export type Database = {
         Returns: undefined
       }
       is_demo_write_blocked: { Args: never; Returns: boolean }
+      is_dept_manager_or_admin: {
+        Args: { _resort_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_guest_session: { Args: never; Returns: boolean }
       is_resort_driver: {
         Args: { _resort_id: string; _user_id: string }
