@@ -84,14 +84,17 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
           setDepartments([]);
         }
 
-        // Fetch module access for this user
-        const { data: accessData } = await supabase
-          .from('department_module_access')
-          .select('*')
-          .eq('user_id', user!.id);
+        // Fetch module access and bindings in parallel
+        const [accessResult, bindingsResult] = await Promise.all([
+          supabase.from('department_module_access').select('*').eq('user_id', user!.id),
+          resortIds.length > 0
+            ? supabase.from('department_bindings').select('*').in('resort_id', resortIds).eq('is_active', true)
+            : Promise.resolve({ data: [] }),
+        ]);
 
         if (cancelled) return;
-        setModuleAccess((accessData ?? []) as DepartmentModuleAccess[]);
+        setModuleAccess((accessResult.data ?? []) as DepartmentModuleAccess[]);
+        setBindings((bindingsResult.data ?? []) as DepartmentBinding[]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -115,6 +118,11 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
     if (!currentDepartment) return [];
     return moduleAccess.filter(a => a.department_id === currentDepartment.id);
   }, [moduleAccess, currentDepartment]);
+
+  const currentBindings = useMemo(() => {
+    if (!currentDepartment) return [];
+    return bindings.filter(b => b.department_id === currentDepartment.id);
+  }, [bindings, currentDepartment]);
 
   const isManager = useMemo(() => {
     if (isSuperAdmin()) return true;
@@ -148,6 +156,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
         currentDepartment,
         currentMembership,
         moduleAccess: currentModuleAccess,
+        bindings: currentBindings,
         hasModule,
         isManager,
         isDeptOnly,
