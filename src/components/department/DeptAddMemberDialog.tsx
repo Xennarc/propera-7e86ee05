@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Shield } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -34,7 +34,6 @@ export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, depa
     
     async function fetchStaff() {
       setLoading(true);
-      // Fetch resort members who aren't already in this department
       const { data: membershipData } = await supabase
         .from('resort_memberships')
         .select('user_id')
@@ -70,29 +69,85 @@ export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, depa
     );
   }, [staffUsers, search]);
 
-  const handleAdd = async (user: StaffUser) => {
+  const handleAdd = async (user: StaffUser, role: 'staff' | 'manager') => {
     setAdding(user.id);
     try {
-      const { error } = await supabase
+      // Check for existing inactive membership to reactivate
+      const { data: existing } = await supabase
         .from('department_memberships')
-        .insert({
-          resort_id: resortId,
-          department_id: departmentId,
-          department_key: departmentKey,
-          user_id: user.id,
-          dept_role: 'staff',
-          is_active: true,
-        });
+        .select('id, dept_role, is_active')
+        .eq('department_id', departmentId)
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (error) throw error;
-      toast.success(`${user.full_name ?? user.username} added to department`);
+      if (existing && !existing.is_active) {
+        // Reactivate + update role
+        const { error } = await supabase
+          .from('department_memberships')
+          .update({ is_active: true, dept_role: role })
+          .eq('id', existing.id);
+        if (error) throw error;
+
+        // Re-provision module access (trigger only fires on INSERT, so do it manually)
+        const { data: accessRows } = await supabase
+          .from('department_module_access')
+          .select('id')
+          .eq('department_id', departmentId)
+          .eq('user_id', user.id);
+
+        if (accessRows && accessRows.length > 0) {
+          // Re-enable all for managers, core set for staff
+          const coreModules = ['ops_planner', 'master_ops_sheet', 'ops_inbox', 'session_run_sheet'];
+          for (const row of accessRows) {
+            // We need the module_key to decide, so fetch it
+          }
+          // Simpler: just re-enable based on role
+          if (role === 'manager') {
+            await supabase
+              .from('department_module_access')
+              .update({ enabled: true, updated_at: new Date().toISOString() })
+              .eq('department_id', departmentId)
+              .eq('user_id', user.id);
+          } else {
+            // Disable all first, then enable core
+            await supabase
+              .from('department_module_access')
+              .update({ enabled: false, updated_at: new Date().toISOString() })
+              .eq('department_id', departmentId)
+              .eq('user_id', user.id);
+            await supabase
+              .from('department_module_access')
+              .update({ enabled: true, updated_at: new Date().toISOString() })
+              .eq('department_id', departmentId)
+              .eq('user_id', user.id)
+              .in('module_key', coreModules);
+          }
+        }
+
+        toast.success(`${user.full_name ?? user.username} re-added as ${role}`);
+      } else if (existing && existing.is_active) {
+        toast.error('This user is already a member');
+        setAdding(null);
+        return;
+      } else {
+        // Fresh insert — DB trigger handles module access defaults
+        const { error } = await supabase
+          .from('department_memberships')
+          .insert({
+            resort_id: resortId,
+            department_id: departmentId,
+            department_key: departmentKey,
+            user_id: user.id,
+            dept_role: role,
+            is_active: true,
+          });
+        if (error) throw error;
+        toast.success(`${user.full_name ?? user.username} added as ${role}`);
+      }
+
       onAdded();
     } catch (err: any) {
-      if (err?.code === '23505') {
-        toast.error('This user is already a member of this department');
-      } else {
-        toast.error('Failed to add member');
-      }
+      toast.error(err?.message ?? 'Failed to add member');
     } finally {
       setAdding(null);
     }
@@ -103,7 +158,7 @@ export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, depa
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add Department Member</DialogTitle>
-          <DialogDescription>Select a resort staff member to add to this department.</DialogDescription>
+          <DialogDescription>Select a resort staff member and choose their role.</DialogDescription>
         </DialogHeader>
 
         <div className="relative">
@@ -139,16 +194,28 @@ export function DeptAddMemberDialog({ open, onClose, onAdded, departmentId, depa
                     <div className="text-xs text-muted-foreground">@{user.username}</div>
                   )}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={adding === user.id}
-                  onClick={() => handleAdd(user)}
-                  className="gap-1.5 shrink-0"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  {adding === user.id ? 'Adding...' : 'Add'}
-                </Button>
+                <div className="flex gap-1.5 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={adding === user.id}
+                    onClick={() => handleAdd(user, 'staff')}
+                    className="gap-1 text-xs"
+                  >
+                    <UserPlus className="h-3 w-3" />
+                    Staff
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    disabled={adding === user.id}
+                    onClick={() => handleAdd(user, 'manager')}
+                    className="gap-1 text-xs"
+                  >
+                    <Shield className="h-3 w-3" />
+                    Manager
+                  </Button>
+                </div>
               </div>
             ))
           )}
