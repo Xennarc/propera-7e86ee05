@@ -77,6 +77,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
         // Get unique resort IDs from memberships
         const resortIds = [...new Set(mems.map(m => m.resort_id))];
         
+        let fetchedDepts: ResortDepartment[] = [];
         if (resortIds.length > 0) {
           // Fetch departments for those resorts
           const { data: deptData } = await supabase
@@ -86,13 +87,14 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
             .eq('is_active', true);
 
           if (cancelled) return;
-          setDepartments((deptData ?? []) as ResortDepartment[]);
+          fetchedDepts = (deptData ?? []) as ResortDepartment[];
+          setDepartments(fetchedDepts);
         } else {
           setDepartments([]);
         }
 
         // Fetch module access, bindings, and dept-level modules in parallel
-        const deptIds = (deptData ?? []).map((d: any) => d.id);
+        const deptIds = fetchedDepts.map(d => d.id);
         const [accessResult, bindingsResult, deptModulesResult] = await Promise.all([
           supabase.from('department_module_access').select('*').eq('user_id', user!.id),
           resortIds.length > 0
