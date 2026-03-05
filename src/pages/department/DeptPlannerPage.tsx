@@ -372,7 +372,7 @@ function DeptPlannerContent() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {unscoped && <UnscopedDepartmentBanner />}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight">{currentDepartment?.name} Planner</h1>
