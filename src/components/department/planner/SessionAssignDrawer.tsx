@@ -561,9 +561,9 @@ export function SessionAssignDrawer({ open, onOpenChange, session }: Props) {
                         {/* Availability dot */}
                         <span className={cn(
                           'h-2 w-2 rounded-full shrink-0',
-                          staff.signal === 'free' && 'bg-emerald-500',
-                          staff.signal === 'busy' && 'bg-amber-500',
-                          staff.signal === 'off-shift' && 'bg-red-400',
+                          staff.signal === 'free' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                          staff.signal === 'busy' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                          staff.signal === 'off-shift' && 'bg-destructive/60',
                         )} />
                         <span className="font-medium flex-1 truncate">{staff.full_name}</span>
                         {staff.conflictLabel && (
