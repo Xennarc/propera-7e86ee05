@@ -23,11 +23,25 @@ interface OpsRules {
   requires_boat?: boolean;
 }
 
+/**
+ * Category-based default ops rules applied when ops_rules_json is null.
+ * These provide sane coverage signals out of the box.
+ */
+const CATEGORY_DEFAULTS: Record<string, OpsRules> = {
+  DIVE: { min_roles: { instructor: 1 }, max_pax_per_role: { instructor: 4 }, requires_boat: true },
+  WATERSPORT: { min_roles: { guide: 1 }, max_pax_per_role: { guide: 8 } },
+  EXCURSION: { min_roles: { guide: 1 }, max_pax_per_role: { guide: 10 } },
+};
+
 interface CoverageInput {
   opsRules: unknown;
   assignedRoles: Record<string, number>; // e.g. { instructor: 2, captain: 1 }
   assignedBoats: number;
   bookedCount: number;
+  /** Activity category – used for defaults when opsRules is null */
+  category?: string | null;
+  /** Number of resource conflicts (boats/staff/equipment) – escalates to red */
+  conflictCount?: number;
 }
 
 function parseRules(raw: unknown): OpsRules | null {
@@ -36,9 +50,11 @@ function parseRules(raw: unknown): OpsRules | null {
 }
 
 export function computeCoverage(input: CoverageInput): CoverageResult {
-  const rules = parseRules(input.opsRules);
-  if (!rules) {
-    // No rules configured — always green
+  // Use explicit rules, fall back to category defaults
+  const rules = parseRules(input.opsRules)
+    ?? (input.category ? CATEGORY_DEFAULTS[input.category] ?? null : null);
+
+  if (!rules && !input.conflictCount) {
     return { status: 'green', details: [] };
   }
 
