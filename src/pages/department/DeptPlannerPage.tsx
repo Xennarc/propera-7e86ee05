@@ -15,7 +15,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffLanesView } from '@/components/department/planner/StaffLanesView';
 import { AssetLanesView } from '@/components/department/planner/AssetLanesView';
@@ -78,6 +78,8 @@ function DeptPlannerContent() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<ViewMode>('sessions');
+  const [attentionMode, setAttentionMode] = useState(false);
+  const [showAllRisks, setShowAllRisks] = useState(false);
   const [assignDrawerOpen, setAssignDrawerOpen] = useState(false);
   const [selectedSessionForAssign, setSelectedSessionForAssign] = useState<any>(null);
 
