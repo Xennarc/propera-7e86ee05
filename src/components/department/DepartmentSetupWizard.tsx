@@ -461,7 +461,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={addingMember}
+                        disabled={false}
                         onClick={() => handleAddMember(user, 'staff')}
                         className="gap-1 text-xs"
                       >
@@ -471,7 +471,7 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
                       <Button
                         variant="default"
                         size="sm"
-                        disabled={addingMember}
+                        disabled={false}
                         onClick={() => handleAddMember(user, 'manager')}
                         className="gap-1 text-xs"
                       >
