@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode } fr
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey } from '@/types/database';
+import type { ResortDepartment, DepartmentMembership, DepartmentModuleAccess, DepartmentModuleKey, DepartmentBinding } from '@/types/database';
 
 interface DepartmentContextType {
   /** All departments for the user's resort(s) */
@@ -15,6 +15,8 @@ interface DepartmentContextType {
   currentMembership: DepartmentMembership | null;
   /** Module access entries for the current department */
   moduleAccess: DepartmentModuleAccess[];
+  /** Bindings for the current department (scope source of truth) */
+  bindings: DepartmentBinding[];
   /** Whether the user has access to a specific module in current dept */
   hasModule: (moduleKey: DepartmentModuleKey) => boolean;
   /** Whether the user is a manager in the current department */
@@ -35,6 +37,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
   const [departments, setDepartments] = useState<ResortDepartment[]>([]);
   const [myMemberships, setMyMemberships] = useState<DepartmentMembership[]>([]);
   const [moduleAccess, setModuleAccess] = useState<DepartmentModuleAccess[]>([]);
+  const [bindings, setBindings] = useState<DepartmentBinding[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch departments and memberships for this user
@@ -43,6 +46,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
       setDepartments([]);
       setMyMemberships([]);
       setModuleAccess([]);
+      setBindings([]);
       setLoading(false);
       return;
     }
@@ -80,14 +84,17 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
           setDepartments([]);
         }
 
-        // Fetch module access for this user
-        const { data: accessData } = await supabase
-          .from('department_module_access')
-          .select('*')
-          .eq('user_id', user!.id);
+        // Fetch module access and bindings in parallel
+        const [accessResult, bindingsResult] = await Promise.all([
+          supabase.from('department_module_access').select('*').eq('user_id', user!.id),
+          resortIds.length > 0
+            ? supabase.from('department_bindings').select('*').in('resort_id', resortIds).eq('is_active', true)
+            : Promise.resolve({ data: [] }),
+        ]);
 
         if (cancelled) return;
-        setModuleAccess((accessData ?? []) as DepartmentModuleAccess[]);
+        setModuleAccess((accessResult.data ?? []) as DepartmentModuleAccess[]);
+        setBindings((bindingsResult.data ?? []) as DepartmentBinding[]);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -111,6 +118,11 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
     if (!currentDepartment) return [];
     return moduleAccess.filter(a => a.department_id === currentDepartment.id);
   }, [moduleAccess, currentDepartment]);
+
+  const currentBindings = useMemo(() => {
+    if (!currentDepartment) return [];
+    return bindings.filter(b => b.department_id === currentDepartment.id);
+  }, [bindings, currentDepartment]);
 
   const isManager = useMemo(() => {
     if (isSuperAdmin()) return true;
@@ -144,6 +156,7 @@ export function DepartmentProvider({ children, deptKeyOverride }: { children: Re
         currentDepartment,
         currentMembership,
         moduleAccess: currentModuleAccess,
+        bindings: currentBindings,
         hasModule,
         isManager,
         isDeptOnly,

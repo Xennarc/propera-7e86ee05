@@ -394,6 +394,19 @@ export interface DepartmentModuleAccess {
   updated_at: string;
 }
 
+export type DepartmentBindingType = 'activity_category' | 'restaurant';
+
+export interface DepartmentBinding {
+  id: string;
+  resort_id: string;
+  department_id: string;
+  binding_type: DepartmentBindingType;
+  binding_key: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================================
 // Transport/Buggy Module Types
 // ============================================================================

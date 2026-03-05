@@ -2312,6 +2312,54 @@ export type Database = {
           },
         ]
       }
+      department_bindings: {
+        Row: {
+          binding_key: string
+          binding_type: string
+          created_at: string
+          department_id: string
+          id: string
+          is_active: boolean
+          resort_id: string
+          updated_at: string
+        }
+        Insert: {
+          binding_key: string
+          binding_type: string
+          created_at?: string
+          department_id: string
+          id?: string
+          is_active?: boolean
+          resort_id: string
+          updated_at?: string
+        }
+        Update: {
+          binding_key?: string
+          binding_type?: string
+          created_at?: string
+          department_id?: string
+          id?: string
+          is_active?: boolean
+          resort_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_bindings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "resort_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_bindings_resort_id_fkey"
+            columns: ["resort_id"]
+            isOneToOne: false
+            referencedRelation: "resorts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_memberships: {
         Row: {
           created_at: string
