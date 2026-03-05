@@ -359,8 +359,104 @@ function DeptPlannerContent() {
         </Button>
       </div>
 
+      {/* ─── ATTENTION MODE ─── */}
+      {attentionMode && viewMode === 'sessions' && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+            <span className="text-sm font-semibold">Attention Required</span>
+            <Badge variant="outline" className="text-[10px]">
+              {attentionItems.length} item{attentionItems.length !== 1 ? 's' : ''}
+            </Badge>
+          </div>
+
+          {attentionItems.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center py-8">
+                <span className="text-2xl mb-2">✅</span>
+                <p className="text-sm font-medium">All clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No issues found for today.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {(showAllRisks ? attentionItems : attentionItems.slice(0, 7)).map(s => {
+                const conflicts = conflictCounts[s.id] ?? 0;
+                const assigns = sessionAssignments[s.id];
+                const coverage = computeCoverage({
+                  opsRules: s.ops_rules_json,
+                  assignedRoles: assigns?.roles ?? {},
+                  assignedBoats: assigns?.boats ?? 0,
+                  bookedCount: s.booked,
+                });
+
+                return (
+                  <Card
+                    key={s.id}
+                    className={cn(
+                      'cursor-pointer hover:bg-muted/30 transition-colors',
+                      s.coverageStatus === 'red' && 'border-destructive/50',
+                      s.coverageStatus === 'amber' && 'border-warning/50',
+                    )}
+                    onClick={() => handleSessionClick(s.id)}
+                  >
+                    <CardContent className="py-3 px-4 space-y-1.5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={cn(
+                            'h-2.5 w-2.5 rounded-full shrink-0',
+                            s.coverageStatus === 'green' && 'bg-[hsl(var(--success,142_76%_36%))]',
+                            s.coverageStatus === 'amber' && 'bg-[hsl(var(--warning,38_92%_50%))]',
+                            s.coverageStatus === 'red' && 'bg-destructive',
+                          )} />
+                          <span className="text-sm font-mono font-medium text-primary">
+                            {s.start_time?.slice(0, 5)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm truncate block">{s.activity_name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs text-muted-foreground">{s.booked}/{s.capacity}</span>
+                          {conflicts > 0 && (
+                            <Badge variant="outline" className="text-[9px] border-warning/50 text-warning gap-0.5 py-0">
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              {conflicts}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {coverage.details.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground pl-[22px] space-y-0.5">
+                          {coverage.details.map((d, i) => (
+                            <p key={i} className={cn(
+                              s.coverageStatus === 'red' && 'text-destructive',
+                              s.coverageStatus === 'amber' && 'text-warning',
+                            )}>• {d}</p>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+              {!showAllRisks && attentionItems.length > 7 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => setShowAllRisks(true)}
+                >
+                  Show all {attentionItems.length} risks
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* SESSIONS view (weekly grid) */}
-      {viewMode === 'sessions' && (
+      {viewMode === 'sessions' && !attentionMode && (
         <>
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
