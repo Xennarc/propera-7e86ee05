@@ -73,6 +73,7 @@ type ViewMode = 'sessions' | 'staff' | 'boats';
 
 function DeptPlannerContent() {
   const { currentDepartment, isManager } = useDepartment();
+  const { canEdit: canEditPlanner } = useCanEditPlanner();
   const { deptKey } = useParams<{ deptKey: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -255,7 +256,7 @@ function DeptPlannerContent() {
   const selectedDay = parseISO(dateStr);
 
   const handleSessionClick = (sessionId: string) => {
-    if (viewMode === 'sessions' && !isManager) {
+    if (viewMode === 'sessions' && !canEditPlanner) {
       navigate(`/dept/${deptKey}/session/${sessionId}`);
     } else {
       // In lane views, open the assignment drawer
