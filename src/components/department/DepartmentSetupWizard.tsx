@@ -383,7 +383,38 @@ export function DepartmentSetupWizard({ open, onClose, resortId }: Props) {
       const deptId = dept.id;
       const deptKeyFinal = dept.key;
 
-      // 2) Bulk insert memberships (DB trigger provisions default module access)
+      // 2) Bulk insert scope bindings via RPC
+      const bindingsPayload = [
+        ...selectedCategories.map(k => ({ binding_type: 'activity_category', binding_key: k, is_active: true })),
+        ...selectedRestaurantIds.map(k => ({ binding_type: 'restaurant', binding_key: k, is_active: true })),
+      ];
+      if (bindingsPayload.length > 0) {
+        const { error: bindErr } = await supabase.rpc('upsert_department_bindings', {
+          p_department_id: deptId,
+          p_bindings: bindingsPayload,
+        });
+        if (bindErr) {
+          console.error('[DeptWizard] Bindings upsert warning:', bindErr.message);
+        }
+      }
+
+      // 3) Bulk insert department-level modules via RPC
+      const deptModulesPayload = Object.entries(moduleState).map(([key, enabled], i) => ({
+        module_key: key,
+        enabled,
+        sort_order: i,
+      }));
+      if (deptModulesPayload.length > 0) {
+        const { error: dmErr } = await supabase.rpc('upsert_department_modules', {
+          p_department_id: deptId,
+          p_modules: deptModulesPayload,
+        });
+        if (dmErr) {
+          console.error('[DeptWizard] Dept modules upsert warning:', dmErr.message);
+        }
+      }
+
+      // 4) Bulk insert memberships (DB trigger provisions default module access)
       if (addedMembers.length > 0) {
         const memberRows = addedMembers.map(m => ({
           resort_id: resortId,
