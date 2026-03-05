@@ -3,10 +3,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Shield, History } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Shield, History, Copy, GitCompare } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   useUserRoles,
   useUserOverrides,
@@ -15,14 +16,17 @@ import {
   useRolePermissions,
 } from '@/hooks/useEffectivePermissions';
 import { useModulePermissions, ModuleAccessState } from '@/hooks/useModulePermissions';
+import { useRemovePermissionOverride } from '@/hooks/useAccessManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResort } from '@/contexts/ResortContext';
-import { AUDIT_ACTION_LABELS } from '@/types/rbac';
 import { AccessIdentityHeader } from './AccessIdentityHeader';
 import { AccessModeSelector, AccessMode } from './AccessModeSelector';
 import { ModuleAccessFilters, ModuleFilter } from './ModuleAccessFilters';
 import { ModuleAccessList } from './ModuleAccessList';
 import { ChangeImpactSummary, AccessChange } from './ChangeImpactSummary';
+import { AccessDrawerFooter } from './AccessDrawerFooter';
+import { AccessAuditTab } from './AccessAuditTab';
+import { CloneAccessDialog } from './CloneAccessDialog';
 
 interface ModuleAccessDrawerProps {
   open: boolean;
@@ -41,6 +45,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const { isSuperAdmin } = useAuth();
   const { currentResort } = useResort();
   const superAdmin = isSuperAdmin();
+  const queryClient = useQueryClient();
 
   const { hasPermission } = useEffectivePermissions();
   const canManagePerms = superAdmin || hasPermission('access.permissions.manage');
@@ -64,6 +69,7 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const {
     groupedModules,
     modules: allModuleStates,
+    uncategorizedKeys,
     isLoading: moduleLoading,
   } = useModulePermissions(targetPermissions, overrideKeys, rolePermissions);
 
@@ -72,6 +78,10 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<ModuleFilter>('all');
   const [sessionChanges, setSessionChanges] = useState<AccessChange[]>([]);
+  const [showResetSuccess, setShowResetSuccess] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
 
   const hasOverrides = userOverrides.length > 0;
   const [accessMode, setAccessMode] = useState<AccessMode>(hasOverrides ? 'customize' : 'role-defaults');
@@ -81,13 +91,103 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
       ...prev,
       { id: `${Date.now()}-${Math.random()}`, moduleLabel, description, isSensitive },
     ]);
+    setShowResetSuccess(false);
   }, []);
 
   // Derive role name from first assigned role
   const primaryRole = userRoles[0]?.role?.name ?? null;
 
-  // Count customized modules
+  // Count customized vs inherited modules
   const customizedCount = allModuleStates.filter(m => m.inheritance === 'customized').length;
+  const inheritedCount = allModuleStates.filter(m => m.inheritance === 'inherited').length;
+
+  // Last audit entry for "last changed" context
+  const lastAuditEntry = auditLog[0];
+  const lastChangedAt = lastAuditEntry?.created_at ?? null;
+  const lastChangedBy = lastAuditEntry?.actor?.full_name || lastAuditEntry?.actor?.username || null;
+
+  // Reset all overrides
+  const removeOverride = useRemovePermissionOverride();
+  const handleResetToDefaults = useCallback(async () => {
+    if (!user?.id || !resortId) return;
+    setIsResetting(true);
+
+    try {
+      // Remove all overrides one by one (could optimize with a batch RPC later)
+      for (const override of userOverrides) {
+        await supabase.rpc('remove_permission_override', {
+          p_user_id: user.id,
+          p_resort_id: resortId,
+          p_permission_key: override.permission_key,
+        });
+      }
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['user-overrides', user.id, resortId] });
+      queryClient.invalidateQueries({ queryKey: ['target-effective-permissions', user.id, resortId] });
+      queryClient.invalidateQueries({ queryKey: ['user-access-audit', user.id, resortId] });
+
+      setShowResetSuccess(true);
+      setSessionChanges(prev => [
+        ...prev,
+        { id: `reset-${Date.now()}`, moduleLabel: 'All Modules', description: 'Reset to role defaults', isSensitive: false },
+      ]);
+      toast.success('Access reset to role defaults');
+    } catch (err) {
+      toast.error('Failed to reset overrides');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [user?.id, resortId, userOverrides, queryClient]);
+
+  // Clone overrides from another user
+  const handleCloneAccess = useCallback(async (sourceUserId: string) => {
+    if (!user?.id || !resortId) return;
+
+    try {
+      // Fetch source user's overrides
+      const { data: sourceOverrides, error } = await supabase
+        .from('user_permission_overrides')
+        .select('permission_key, effect')
+        .eq('user_id', sourceUserId)
+        .eq('resort_id', resortId);
+
+      if (error) throw error;
+
+      // Remove existing overrides for target user
+      for (const override of userOverrides) {
+        await supabase.rpc('remove_permission_override', {
+          p_user_id: user.id,
+          p_resort_id: resortId,
+          p_permission_key: override.permission_key,
+        });
+      }
+
+      // Apply source overrides to target
+      for (const override of (sourceOverrides || [])) {
+        await supabase.rpc('set_permission_override', {
+          p_user_id: user.id,
+          p_resort_id: resortId,
+          p_permission_key: override.permission_key,
+          p_effect: override.effect,
+        });
+      }
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['user-overrides', user.id, resortId] });
+      queryClient.invalidateQueries({ queryKey: ['target-effective-permissions', user.id, resortId] });
+      queryClient.invalidateQueries({ queryKey: ['user-access-audit', user.id, resortId] });
+
+      setSessionChanges(prev => [
+        ...prev,
+        { id: `clone-${Date.now()}`, moduleLabel: 'All Modules', description: `Cloned ${sourceOverrides?.length || 0} overrides from another user`, isSensitive: false },
+      ]);
+      setCloneDialogOpen(false);
+      toast.success(`Cloned ${sourceOverrides?.length || 0} permission overrides`);
+    } catch (err) {
+      toast.error('Failed to clone access');
+    }
+  }, [user?.id, resortId, userOverrides, queryClient]);
 
   // Filter modules
   const filteredGroups = useMemo(() => {
@@ -112,6 +212,11 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
   }, [groupedModules, search, filter]);
 
   const isLoading = rolesLoading || overridesLoading || effectiveLoading || moduleLoading || rolePermsLoading;
+
+  // Log uncategorized permissions for cleanup
+  if (uncategorizedKeys.length > 0) {
+    console.warn('[ModuleAccessDrawer] Uncategorized permission keys (not mapped to any module):', uncategorizedKeys);
+  }
 
   if (!user) return null;
 
@@ -139,13 +244,45 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                 roleName={primaryRole ?? undefined}
                 customizedCount={customizedCount}
                 hasOverrides={hasOverrides}
+                totalModules={allModuleStates.length}
+                inheritedCount={inheritedCount}
+                lastChangedAt={lastChangedAt}
+                lastChangedBy={lastChangedBy}
               />
+
+              {/* Quick actions bar */}
               {!readOnly && (
-                <AccessModeSelector
-                  mode={accessMode}
-                  onChange={setAccessMode}
-                  disabled={readOnly}
-                />
+                <div className="flex items-center gap-2 py-2 border-b border-border/30">
+                  <AccessModeSelector
+                    mode={accessMode}
+                    onChange={setAccessMode}
+                    disabled={readOnly}
+                  />
+                </div>
+              )}
+
+              {/* QoL action buttons */}
+              {!readOnly && accessMode === 'customize' && (
+                <div className="flex items-center gap-1.5 py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    onClick={() => setCloneDialogOpen(true)}
+                  >
+                    <Copy className="h-3 w-3" />
+                    Clone from…
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-7 text-xs gap-1.5 ${showCompare ? 'bg-accent' : ''}`}
+                    onClick={() => setShowCompare(!showCompare)}
+                  >
+                    <GitCompare className="h-3 w-3" />
+                    {showCompare ? 'Hide' : 'Show'} role comparison
+                  </Button>
+                </div>
               )}
             </>
           )}
@@ -161,6 +298,9 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
               <TabsTrigger value="audit" className="flex items-center gap-1.5 text-xs">
                 <History className="h-3.5 w-3.5" />
                 Audit Log
+                {auditLog.length > 0 && (
+                  <span className="ml-1 text-[10px] tabular-nums text-muted-foreground">{auditLog.length}</span>
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -174,7 +314,42 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                 onFilterChange={setFilter}
               />
             </div>
-            <ScrollArea className="flex-1 px-6 pb-6">
+
+            {/* Role comparison banner */}
+            {showCompare && !isLoading && (
+              <div className="mx-6 mb-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-primary mb-1.5">
+                  Role Defaults Comparison
+                </p>
+                <div className="space-y-0.5">
+                  {allModuleStates.filter(m => m.module.permissionKeys.length > 0).map(m => {
+                    const roleGranted = rolePermissions.filter(rp => m.module.permissionKeys.includes(rp)).length;
+                    const totalKeys = m.module.permissionKeys.length;
+                    return (
+                      <div key={m.module.id} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground truncate">{m.module.label}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] tabular-nums text-muted-foreground">
+                            Role: {roleGranted}/{totalKeys}
+                          </span>
+                          {m.customizationState !== 'inherited' && (
+                            <span className={`text-[10px] font-medium ${
+                              m.customizationState === 'elevated' ? 'text-info' :
+                              m.customizationState === 'restricted' ? 'text-destructive' :
+                              'text-warning'
+                            }`}>
+                              {m.customizationState}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="flex-1 px-6 pb-2">
               {isLoading ? (
                 <div className="space-y-2 pt-2">
                   {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-14 w-full" />)}
@@ -190,55 +365,69 @@ export function ModuleAccessDrawer({ open, onOpenChange, user, resortId, readOnl
                     userOverrides={userOverrides}
                     onChangeRecorded={handleChangeRecorded}
                   />
+
+                  {/* Uncategorized permissions warning */}
+                  {uncategorizedKeys.length > 0 && (
+                    <div className="mt-3 p-3 rounded-lg border border-warning/30 bg-warning/5">
+                      <p className="text-xs font-medium text-warning mb-1">
+                        Unmapped Permissions ({uncategorizedKeys.length})
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mb-2">
+                        These permissions exist but aren't assigned to a module yet. They remain active and unchanged.
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {uncategorizedKeys.slice(0, 10).map(key => (
+                          <span key={key} className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">
+                            {key}
+                          </span>
+                        ))}
+                        {uncategorizedKeys.length > 10 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            +{uncategorizedKeys.length - 10} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </ScrollArea>
+
             {sessionChanges.length > 0 && (
               <ChangeImpactSummary changes={sessionChanges} />
             )}
           </TabsContent>
 
           <TabsContent value="audit" className="flex-1 min-h-0 mt-0">
-            <ScrollArea className="h-full px-6 pb-6">
-              {auditLoading ? (
-                <div className="space-y-2 pt-2">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
-                </div>
-              ) : auditLog.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <History className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No access changes recorded yet</p>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-2">
-                  {auditLog.map((log: any) => (
-                    <div key={log.id} className="p-3 rounded-lg border border-border/40 bg-muted/20">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">
-                          {AUDIT_ACTION_LABELS[log.action_key] || log.action_key}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      {log.details_json && (
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {log.details_json.role_name && <span>Role: {log.details_json.role_name}</span>}
-                          {log.details_json.permission_key && <span>Permission: {log.details_json.permission_key}</span>}
-                        </div>
-                      )}
-                      {log.actor && (
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          By: {log.actor.full_name || log.actor.username || 'Unknown'}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
+            <AccessAuditTab
+              auditLog={auditLog}
+              isLoading={auditLoading}
+              lastChangedAt={lastChangedAt}
+              lastChangedBy={lastChangedBy}
+            />
           </TabsContent>
         </Tabs>
+
+        {/* Sticky footer */}
+        <AccessDrawerFooter
+          sessionChanges={sessionChanges}
+          hasOverrides={hasOverrides}
+          readOnly={readOnly}
+          onClose={() => onOpenChange(false)}
+          onResetToDefaults={handleResetToDefaults}
+          isResetting={isResetting}
+          showSuccess={showResetSuccess}
+        />
+
+        {/* Clone dialog */}
+        <CloneAccessDialog
+          open={cloneDialogOpen}
+          onOpenChange={setCloneDialogOpen}
+          targetUserId={user.id}
+          targetUserName={user.full_name || user.username || 'this user'}
+          resortId={resortId}
+          onClone={handleCloneAccess}
+        />
       </SheetContent>
     </Sheet>
   );
