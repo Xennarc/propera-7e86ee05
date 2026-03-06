@@ -24,6 +24,7 @@ interface Plan {
 interface PricingPlanGridProps {
   plans: Plan[];
   resortSize: ResortSize;
+  onResortSizeChange: (size: ResortSize) => void;
 }
 
 const PLAN_CONFIG: Record<string, { 

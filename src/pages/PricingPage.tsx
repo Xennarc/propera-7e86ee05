@@ -66,8 +66,7 @@ export default function PricingPage() {
       />
 
       <PricingHeroSection />
-      <ResortSizeSelector value={resortSize} onChange={setResortSize} />
-      <PricingPlanGrid plans={plans} resortSize={resortSize} />
+      <PricingPlanGrid plans={plans} resortSize={resortSize} onResortSizeChange={setResortSize} />
       <PricingSwitchSection />
       <PricingComparisonMatrix />
       <PricingStackComparison />
