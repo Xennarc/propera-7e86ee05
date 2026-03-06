@@ -45,10 +45,10 @@ export function HomeHero() {
   return (
     <section className="relative min-h-[90vh] md:min-h-screen flex items-center pt-16 md:pt-20 pb-12 md:pb-16 overflow-hidden bg-background">
       {/* === Animated blob gradient background === */}
-      <div className="hero-blob hero-blob-1 absolute top-[10%] right-[-5%] w-[300px] h-[300px] md:w-[700px] md:h-[700px] rounded-full blur-[100px] md:blur-[160px] bg-[hsl(var(--primary)/0.25)] dark:bg-[hsl(var(--primary)/0.30)]" />
-      <div className="hero-blob hero-blob-2 absolute bottom-[0%] left-[-8%] w-[280px] h-[280px] md:w-[600px] md:h-[600px] rounded-full blur-[90px] md:blur-[140px] bg-[hsl(175_60%_50%/0.18)] dark:bg-[hsl(175_60%_40%/0.22)]" />
-      <div className="hero-blob hero-blob-3 absolute top-[50%] left-[20%] w-[200px] h-[200px] md:w-[450px] md:h-[450px] rounded-full blur-[80px] md:blur-[130px] bg-[hsl(245_50%_55%/0.14)] dark:bg-[hsl(245_50%_45%/0.18)]" />
-      <div className="hero-blob hero-blob-4 absolute top-[5%] left-[40%] w-[180px] h-[180px] md:w-[350px] md:h-[350px] rounded-full blur-[70px] md:blur-[120px] bg-[hsl(var(--primary)/0.12)] dark:bg-[hsl(var(--primary)/0.16)]" />
+      <div className="hero-blob hero-blob-1 absolute top-[5%] right-[-8%] w-[400px] h-[400px] md:w-[700px] md:h-[700px] rounded-full blur-[70px] md:blur-[160px] bg-[hsl(var(--primary)/0.45)] md:bg-[hsl(var(--primary)/0.25)] dark:bg-[hsl(var(--primary)/0.50)] dark:md:bg-[hsl(var(--primary)/0.30)]" />
+      <div className="hero-blob hero-blob-2 absolute bottom-[5%] left-[-12%] w-[360px] h-[360px] md:w-[600px] md:h-[600px] rounded-full blur-[60px] md:blur-[140px] bg-[hsl(175_60%_50%/0.35)] md:bg-[hsl(175_60%_50%/0.18)] dark:bg-[hsl(175_60%_40%/0.40)] dark:md:bg-[hsl(175_60%_40%/0.22)]" />
+      <div className="hero-blob hero-blob-3 absolute top-[40%] left-[10%] w-[320px] h-[320px] md:w-[450px] md:h-[450px] rounded-full blur-[60px] md:blur-[130px] bg-[hsl(245_50%_55%/0.30)] md:bg-[hsl(245_50%_55%/0.14)] dark:bg-[hsl(245_50%_45%/0.35)] dark:md:bg-[hsl(245_50%_45%/0.18)]" />
+      <div className="hero-blob hero-blob-4 absolute top-[0%] left-[30%] w-[280px] h-[280px] md:w-[350px] md:h-[350px] rounded-full blur-[55px] md:blur-[120px] bg-[hsl(var(--primary)/0.30)] md:bg-[hsl(var(--primary)/0.12)] dark:bg-[hsl(var(--primary)/0.35)] dark:md:bg-[hsl(var(--primary)/0.16)]" />
 
       <div className="container relative mx-auto px-4 z-10">
         <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12 lg:gap-16 items-center text-center md:text-left">
