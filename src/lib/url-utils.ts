@@ -91,7 +91,9 @@ export function getSignedQrLoginUrl(params: {
   const { resortCode, room, last, pin, exp, sig } = params;
   const encodedRoom = encodeURIComponent(room);
   const encodedLast = encodeURIComponent(last);
-  return `${PRODUCTION_URL}/resort/${resortCode.toLowerCase()}/guest/login?room=${encodedRoom}&last=${encodedLast}&pin=${pin}&exp=${exp}&sig=${sig}&autologin=1`;
+  const encodedPin = encodeURIComponent(pin);
+  const encodedSig = encodeURIComponent(sig);
+  return `${PRODUCTION_URL}/resort/${resortCode.toLowerCase()}/guest/login?room=${encodedRoom}&last=${encodedLast}&pin=${encodedPin}&exp=${exp}&sig=${encodedSig}&autologin=1`;
 }
 
 /**
