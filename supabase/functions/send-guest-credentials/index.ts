@@ -75,17 +75,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const firstName = guestName.split(' ')[0];
+    // Escape HTML special characters to prevent XSS in email templates
+    function escapeHtml(str: string): string {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    const safeGuestName = escapeHtml(guestName);
+    const safeResortName = escapeHtml(resortName);
+    const safeRoomNumber = escapeHtml(roomNumber);
+    const safePin = escapeHtml(pin);
+    const safeGuestEmail = escapeHtml(guestEmail);
+    const firstName = safeGuestName.split(' ')[0];
     const formattedDate = new Date(checkInDate).toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
-    
+
     // Build the portal URL with resort code
-    const portalUrl = `${PRODUCTION_URL}/resort/${resortCode.toLowerCase()}/guest/login`;
-    
+    const portalUrl = `${PRODUCTION_URL}/resort/${encodeURIComponent(resortCode.toLowerCase())}/guest/login`;
+
     const primaryColor = resortPrimaryColor || '#0891b2';
     const subject = `Your stay at ${resortName} — login details`;
     const bodyPreview = `Dear ${firstName}, your stay begins ${formattedDate}. Here are your guest portal login credentials.`;
@@ -121,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
   <meta name="supported-color-schemes" content="light">
-  <title>Your stay at ${resortName}</title>
+  <title>Your stay at ${safeResortName}</title>
   <!--[if mso]>
   <style type="text/css">
     table { border-collapse: collapse; }
@@ -138,9 +153,9 @@ const handler = async (req: Request): Promise<Response> => {
           <!-- Header with gradient -->
           <tr>
             <td style="background: linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%); padding: 48px 40px 40px; text-align: center;">
-              ${resortLogoUrl ? `<img src="${resortLogoUrl}" alt="${resortName}" style="max-height: 48px; margin-bottom: 20px;">` : ''}
+              ${resortLogoUrl ? `<img src="${escapeHtml(resortLogoUrl)}" alt="${safeResortName}" style="max-height: 48px; margin-bottom: 20px;">` : ''}
               <h1 style="color: #ffffff; font-size: 26px; font-weight: 600; margin: 0; line-height: 1.3; letter-spacing: -0.02em;">
-                Welcome to ${resortName}
+                Welcome to ${safeResortName}
               </h1>
               <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin: 12px 0 0; line-height: 1.5;">
                 Your stay begins ${formattedDate}
@@ -175,15 +190,15 @@ const handler = async (req: Request): Promise<Response> => {
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Room:</td>
-                        <td style="padding: 8px 0; font-size: 18px; color: #1e293b; font-weight: 600;">${roomNumber}</td>
+                        <td style="padding: 8px 0; font-size: 18px; color: #1e293b; font-weight: 600;">${safeRoomNumber}</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Last Name:</td>
-                        <td style="padding: 8px 0; font-size: 18px; color: #1e293b; font-weight: 600;">${lastName}</td>
+                        <td style="padding: 8px 0; font-size: 18px; color: #1e293b; font-weight: 600;">${escapeHtml(lastName)}</td>
                       </tr>
                       <tr>
                         <td style="padding: 8px 0; font-size: 14px; color: #64748b;">PIN:</td>
-                        <td style="padding: 8px 0; font-size: 22px; color: ${primaryColor}; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 4px;">${pin}</td>
+                        <td style="padding: 8px 0; font-size: 22px; color: ${primaryColor}; font-weight: 700; font-family: 'Courier New', monospace; letter-spacing: 4px;">${safePin}</td>
                       </tr>
                     </table>
                   </td>
@@ -272,7 +287,7 @@ const handler = async (req: Request): Promise<Response> => {
               </p>
               <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
                 Warm regards,<br>
-                <strong style="color: #64748b;">The ${resortName} Team</strong>
+                <strong style="color: #64748b;">The ${safeResortName} Team</strong>
               </p>
             </td>
           </tr>
@@ -284,7 +299,7 @@ const handler = async (req: Request): Promise<Response> => {
           <tr>
             <td align="center">
               <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.5;">
-                This email was sent to ${guestEmail} because you have an upcoming reservation.<br>
+                This email was sent to ${safeGuestEmail} because you have an upcoming reservation.<br>
                 Powered by <a href="https://propera.cc" style="color: #94a3b8;">Propera</a>
               </p>
             </td>

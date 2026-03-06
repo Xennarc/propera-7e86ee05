@@ -359,26 +359,25 @@ const SAMPLE_BOOKING_NOTES = [
   null,
 ];
 
+// Cryptographically secure random string generation
+function cryptoRandomString(length: number, charset: string): string {
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+  return Array.from(values, (v) => charset[v % charset.length]).join('');
+}
+
 function generatePassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let password = "";
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
+  return cryptoRandomString(16, chars);
 }
 
 function generatePin(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
+  return cryptoRandomString(4, "0123456789");
 }
 
 function generateToken(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let token = "";
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  return cryptoRandomString(32, chars);
 }
 
 function formatDate(date: Date): string {

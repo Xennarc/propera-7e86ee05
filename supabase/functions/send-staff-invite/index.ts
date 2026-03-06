@@ -12,6 +12,16 @@ const corsHeaders = {
 // Production domain - ALWAYS use this for all external links
 const PRODUCTION_URL = 'https://propera.cc';
 
+// Escape HTML special characters to prevent XSS in email templates
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 interface StaffInviteRequest {
   email: string;
   name: string | null;
@@ -117,9 +127,17 @@ serve(async (req) => {
     }: StaffInviteRequest = await req.json();
 
     // Validate required fields
-    if (!resortId) {
+    if (!resortId || !email || !username || !resortName || !inviteLink) {
       return new Response(
-        JSON.stringify({ success: false, error: "Resort ID is required" }),
+        JSON.stringify({ success: false, error: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Basic email format validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid email format" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -153,9 +171,14 @@ serve(async (req) => {
 
     console.log(`Sending staff invite email to ${email} for ${resortName} (authorized by user ${user.id})`);
 
-    const roleLabel = ROLE_LABELS[role] || role;
-    const greeting = name ? `Hi ${name},` : 'Hi,';
-    const expiryDateFormatted = new Date(expiresAt).toLocaleDateString('en-US', { 
+    const roleLabel = ROLE_LABELS[role] || escapeHtml(role);
+    const safeName = name ? escapeHtml(name) : '';
+    const safeInviterName = inviterName ? escapeHtml(inviterName) : '';
+    const safeResortName = escapeHtml(resortName || '');
+    const safeUsername = escapeHtml(username || '');
+    const safeInviteMessage = inviteMessage ? escapeHtml(inviteMessage) : '';
+    const greeting = safeName ? `Hi ${safeName},` : 'Hi,';
+    const expiryDateFormatted = new Date(expiresAt).toLocaleDateString('en-US', {
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
@@ -167,11 +190,11 @@ serve(async (req) => {
     console.log('Original link:', inviteLink);
     console.log('Production link:', productionInviteLink);
 
-    // Build personal note section if provided
-    const personalNoteHtml = inviteMessage ? `
+    // Build personal note section if provided (user input is HTML-escaped)
+    const personalNoteHtml = safeInviteMessage ? `
       <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;">
-        <p style="font-size: 14px; color: #92400e; margin: 0 0 8px 0; font-weight: 600;">Message from ${inviterName}:</p>
-        <p style="font-size: 14px; color: #78350f; margin: 0; font-style: italic;">"${inviteMessage}"</p>
+        <p style="font-size: 14px; color: #92400e; margin: 0 0 8px 0; font-weight: 600;">Message from ${safeInviterName}:</p>
+        <p style="font-size: 14px; color: #78350f; margin: 0; font-style: italic;">"${safeInviteMessage}"</p>
       </div>
     ` : '';
 
@@ -191,7 +214,7 @@ serve(async (req) => {
             <span style="color: white; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">Propera</span>
           </div>
           <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            You're invited to join<br/>${resortName}
+            You're invited to join<br/>${safeResortName}
           </h1>
         </div>
         
@@ -201,7 +224,7 @@ serve(async (req) => {
           <p style="font-size: 16px; margin-bottom: 24px; color: #374151;">${greeting}</p>
           
           <p style="font-size: 16px; margin-bottom: 24px; color: #374151;">
-            <strong>${inviterName}</strong> has invited you to join the <strong>${resortName}</strong> team on Propera, our resort operations platform.
+            <strong>${safeInviterName}</strong> has invited you to join the <strong>${safeResortName}</strong> team on Propera, our resort operations platform.
           </p>
           
           <!-- Details Card -->
@@ -211,7 +234,7 @@ serve(async (req) => {
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 14px; width: 120px;">Invited by</td>
-                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 500;">${inviterName}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-weight: 500;">${safeInviterName}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Your Role</td>
@@ -221,7 +244,7 @@ serve(async (req) => {
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Username</td>
-                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-family: monospace; font-weight: 600;">@${username}</td>
+                <td style="padding: 8px 0; color: #1f2937; font-size: 14px; font-family: monospace; font-weight: 600;">@${safeUsername}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Link expires</td>

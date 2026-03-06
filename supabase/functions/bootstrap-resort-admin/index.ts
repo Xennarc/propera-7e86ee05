@@ -20,28 +20,36 @@ interface BootstrapResortAdminRequest {
   adminFullName: string;
 }
 
+// Cryptographically secure random string generation
+function cryptoRandomString(length: number, charset: string): string {
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+  return Array.from(values, (v) => charset[v % charset.length]).join('');
+}
+
 // Generate a strong random password (16 chars with letters, numbers, symbols)
 function generateTempPassword(): string {
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz'; // No confusing chars like I, l, O, 0
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
   const numbers = '23456789';
   const symbols = '!@#$%^&*';
   const all = letters + numbers + symbols;
-  
-  let password = '';
-  // Ensure at least one of each type
-  password += letters.charAt(Math.floor(Math.random() * letters.length));
-  password += letters.charAt(Math.floor(Math.random() * letters.length));
-  password += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  password += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  password += symbols.charAt(Math.floor(Math.random() * symbols.length));
-  
-  // Fill rest with random chars
-  for (let i = 5; i < 16; i++) {
-    password += all.charAt(Math.floor(Math.random() * all.length));
+
+  // Ensure at least one of each type, then fill with mixed chars
+  const pwd =
+    cryptoRandomString(2, letters) +
+    cryptoRandomString(2, numbers) +
+    cryptoRandomString(1, symbols) +
+    cryptoRandomString(11, all);
+
+  // Fisher-Yates shuffle with crypto-secure random
+  const arr = pwd.split('');
+  const shuffleValues = new Uint32Array(arr.length);
+  crypto.getRandomValues(shuffleValues);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = shuffleValues[i] % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  
-  // Shuffle the password
-  return password.split('').sort(() => Math.random() - 0.5).join('');
+  return arr.join('');
 }
 
 serve(async (req) => {
