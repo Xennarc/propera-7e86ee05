@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { BuggyRequestStatus, BuggyRequestType, BuggyPriority } from '@/types/database';
 import { toast } from 'sonner';
+import { cryptoRandomHex } from '@/lib/crypto-random';
 
 // Local interface matching the query shape (not extending BuggyRequest to avoid type conflicts)
 export interface GuestBuggyRequest {
@@ -90,8 +91,8 @@ export function useCreateBuggyRequest() {
   
   return useMutation({
     mutationFn: async (params: CreateBuggyRequestParams) => {
-      // Generate client-side idempotency key
-      const idempotencyKey = `guest_${params.guestId}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      // Generate client-side idempotency key with cryptographically secure randomness
+      const idempotencyKey = `guest_${params.guestId}_${Date.now()}_${cryptoRandomHex(8)}`;
       
       const { data, error } = await supabase.rpc('create_buggy_request_idempotent', {
         _resort_id: params.resortId,

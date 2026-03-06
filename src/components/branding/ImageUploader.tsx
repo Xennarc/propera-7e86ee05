@@ -7,6 +7,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Upload, X, Link2, Image as ImageIcon } from 'lucide-react';
+import { cryptoRandomHex } from '@/lib/crypto-random';
+import { validateImageMagicBytes } from '@/lib/file-validation';
 
 interface ImageUploaderProps {
   label: string;
@@ -52,11 +54,18 @@ export function ImageUploader({
       return;
     }
 
+    // Validate file content matches claimed type (magic bytes)
+    const validContent = await validateImageMagicBytes(file);
+    if (!validContent) {
+      toast.error('File content does not match a valid image format.');
+      return;
+    }
+
     setUploading(true);
     try {
-      // Generate unique filename
+      // Generate unique filename with cryptographically secure randomness
       const ext = file.name.split('.').pop();
-      const fileName = `${resortId}/${imageType}-${Date.now()}.${ext}`;
+      const fileName = `${resortId}/${imageType}-${cryptoRandomHex(12)}.${ext}`;
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage

@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { Copy, Check, Mail, UserPlus, AlertCircle, Loader2, AtSign, Calendar, Shield } from 'lucide-react';
 import { z } from 'zod';
 import { useDebounce } from '@/hooks/useDebounce';
+import { cryptoRandomString } from '@/lib/crypto-random';
 
 const ROLE_LABELS: Record<ResortRole, string> = {
   RESORT_ADMIN: 'Resort Admin',
@@ -123,11 +124,7 @@ export function StaffInviteDialog({ open, onOpenChange, onSuccess }: StaffInvite
 
   const generateToken = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let token = '';
-    for (let i = 0; i < 32; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return token;
+    return cryptoRandomString(32, chars);
   };
 
   const handleUsernameChange = (value: string) => {

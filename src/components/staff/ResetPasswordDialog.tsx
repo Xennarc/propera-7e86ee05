@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { KeyRound, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { cryptoRandomString } from '@/lib/crypto-random';
 
 interface ResetPasswordDialogProps {
   open: boolean;
@@ -31,11 +32,8 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userName }: Re
   const [error, setError] = useState('');
 
   const generatePassword = () => {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    let pwd = '';
-    for (let i = 0; i < 10; i++) {
-      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+    const pwd = cryptoRandomString(12, chars);
     setPassword(pwd);
     setConfirmPassword(pwd);
   };
@@ -43,8 +41,8 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userName }: Re
   const handleSubmit = async () => {
     setError('');
     
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
     
@@ -121,7 +119,7 @@ export function ResetPasswordDialog({ open, onOpenChange, userId, userName }: Re
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Min 6 characters"
+                      placeholder="Min 8 characters"
                       className="pr-10"
                     />
                     <Button

@@ -28,6 +28,8 @@ import { useToast } from '@/hooks/use-toast';
 import { z } from 'zod';
 import { ActivityIconPicker } from '@/components/ui/activity-icon-picker';
 import { Upload, X, Image as ImageIcon, Loader2, Info, AlertTriangle, Clock, Users, Shield } from 'lucide-react';
+import { cryptoRandomHex } from '@/lib/crypto-random';
+import { validateImageMagicBytes } from '@/lib/file-validation';
 import { ActivitySessionsList } from '@/components/activities/ActivitySessionsList';
 import { HighlightListInput } from '@/components/ui/highlight-list-input';
 
@@ -189,11 +191,18 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       return;
     }
 
+    // Validate file content matches a real image format (magic bytes)
+    const validContent = await validateImageMagicBytes(file);
+    if (!validContent) {
+      toast({ variant: 'destructive', title: 'Invalid file', description: 'File content does not match a valid image format' });
+      return;
+    }
+
     setUploading(true);
 
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${resortId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileName = `${resortId}/${cryptoRandomHex(16)}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from('activity-images')
@@ -208,7 +217,8 @@ export function ActivityDialog({ open, onOpenChange, activity, resortId, onSucce
       setFormData({ ...formData, image_url: publicUrl });
       toast({ title: 'Image uploaded', description: 'Hero image has been uploaded successfully' });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Upload failed', description: error.message });
+      console.error('Image upload error:', error);
+      toast({ variant: 'destructive', title: 'Upload failed', description: 'Failed to upload image. Please try again.' });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

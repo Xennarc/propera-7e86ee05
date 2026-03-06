@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { cryptoRandomDigits } from '@/lib/crypto-random';
 
 const VENDOR_SESSION_KEY = 'vendor_session_token';
 
@@ -70,8 +71,8 @@ export function useVendorPortal() {
   // Request login code
   const requestCodeMutation = useMutation({
     mutationFn: async (email: string) => {
-      // Generate a 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate an 8-digit code using cryptographically secure RNG
+      const code = cryptoRandomDigits(8);
       
       // Find vendor by email
       const { data: vendor, error: vendorError } = await supabase
@@ -96,9 +97,11 @@ export function useVendorPortal() {
 
       if (codeError) throw codeError;
 
-      // In production, send email here
-      // For now, log to console (would use Resend in production)
-      console.log(`[DEV] Vendor login code for ${email}: ${code}`);
+      // In production, send email via Resend or similar service
+      if (import.meta.env.DEV) {
+        // Only log in development builds — never in production
+        console.log(`[DEV] Vendor login code for ${email}: ${code}`);
+      }
 
       return { vendorName: vendor.name };
     },

@@ -18,6 +18,7 @@ import {
 import { SuperAdminConfirmDialog } from './SuperAdminConfirmDialog';
 import { toast } from 'sonner';
 import { UserPlus, Eye, EyeOff, Copy, Check, Shield } from 'lucide-react';
+import { cryptoRandomString } from '@/lib/crypto-random';
 import { z } from 'zod';
 
 const ROLE_LABELS: Record<ResortRole, string> = {
@@ -78,11 +79,8 @@ export function CreateStaffAccountDialog({
   const availableRoles = getAvailableRoles(false) as ResortRole[];
 
   const generatePassword = () => {
-    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    let password = '';
-    for (let i = 0; i < 10; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%&*';
+    const password = cryptoRandomString(12, chars);
     setFormData(prev => ({ ...prev, password }));
   };
 
