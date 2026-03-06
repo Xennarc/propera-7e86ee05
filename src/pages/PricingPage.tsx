@@ -4,7 +4,6 @@ import { MarketingLayout } from '@/components/layout/MarketingLayout';
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
-import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
 import { PricingSwitchSection } from '@/components/pricing/PricingSwitchSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
@@ -66,8 +65,7 @@ export default function PricingPage() {
       />
 
       <PricingHeroSection />
-      <ResortSizeSelector value={resortSize} onChange={setResortSize} />
-      <PricingPlanGrid plans={plans} resortSize={resortSize} />
+      <PricingPlanGrid plans={plans} resortSize={resortSize} onResortSizeChange={setResortSize} />
       <PricingSwitchSection />
       <PricingComparisonMatrix />
       <PricingStackComparison />
