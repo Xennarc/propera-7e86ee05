@@ -4,7 +4,7 @@ import { MarketingLayout } from '@/components/layout/MarketingLayout';
 import { PricingHeroSection } from '@/components/pricing/PricingHeroSection';
 import { PricingPlanGrid } from '@/components/pricing/PricingPlanGrid';
 import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
-import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
+import { PricingComparisonMatrix } from '@/components/pricing/PricingComparisonMatrix';
 import { PricingSwitchSection } from '@/components/pricing/PricingSwitchSection';
 import { PricingFAQSection } from '@/components/pricing/PricingFAQSection';
 import { PricingCTASection } from '@/components/pricing/PricingCTASection';
