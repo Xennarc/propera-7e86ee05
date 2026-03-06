@@ -4,6 +4,7 @@ import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles, Lay
 import { useState } from 'react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
+import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
 import { type ResortSize, getBandPricing } from '@/hooks/useResortSize';
 
 interface Plan {
@@ -67,7 +68,7 @@ const PRO_HIGHLIGHTS = [
   'Insights that improve every day',
 ];
 
-export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
+export function PricingPlanGrid({ plans, resortSize, onResortSizeChange }: PricingPlanGridProps) {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
 
   return (
@@ -89,6 +90,9 @@ export function PricingPlanGrid({ plans, resortSize }: PricingPlanGridProps) {
             <p className="text-muted-foreground max-w-md mx-auto text-sm">
               Simple pricing that scales with your resort. No per-user fees, ever.
             </p>
+            <div className="mt-4">
+              <ResortSizeSelector value={resortSize} onChange={onResortSizeChange} />
+            </div>
           </RevealItem>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
