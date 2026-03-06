@@ -30,6 +30,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
   ];
 
   return (
+    <ThemeProvider forcedTheme="dark">
     <div className="min-h-screen overflow-x-hidden bg-background">
       {/* Fixed canvas background */}
       <div className="marketing-canvas" />
