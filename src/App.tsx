@@ -92,7 +92,7 @@ const TransportPage = lazy(() => import("./pages/staff/TransportPage"));
 const TransportSettingsPage = lazy(() => import("./pages/staff/TransportSettingsPage"));
 const ResortOnboardingPage = lazy(() => import("./pages/onboarding/ResortOnboardingPage"));
 const DemoOnboardingPage = lazy(() => import("./pages/staff/DemoOnboardingPage"));
-const DemoAutoLoginPage = lazy(() => import("./pages/staff/DemoAutoLoginPage"));
+
 
 // Driver Portal
 const DriverLayout = lazy(() => import("./components/driver/DriverLayout").then(m => ({ default: m.DriverLayout })));
@@ -186,16 +186,10 @@ const GuestRequestsCatalogPage = lazy(() => import("./pages/guest/GuestRequestsP
 const GuestMyRequestsPage = lazy(() => import("./pages/guest/GuestMyRequestsPage"));
 const GuestBuggyRequestPage = lazy(() => import("./pages/guest/GuestBuggyRequestPage"));
 const GuestMyRidesPage = lazy(() => import("./pages/guest/GuestMyRidesPage"));
-const DemoGuestAutoLoginPage = lazy(() => import("./pages/guest/DemoGuestAutoLoginPage"));
 const GuestNotFound = lazy(() => import("./pages/guest/GuestNotFound"));
-const GuestQrConfirmPage = lazy(() => import("./pages/guest/GuestQrConfirmPage"));
-const GuestQrLoginPage = lazy(() => import("./pages/guest/GuestQrLoginPage"));
-const GuestAccessLoginPage = lazy(() => import("./pages/guest/GuestAccessLoginPage"));
 const GuestEntryPage = lazy(() => import("./pages/guest/GuestEntryPage"));
 const DemoLoginPage = lazy(() => import("./pages/demo/DemoLoginPage"));
 
-// Legacy redirect component for deprecated pre-arrival routes
-import { LegacyPrearrivalRedirect } from "./components/prearrival/LegacyPrearrivalRedirect";
 
 // Lazy loaded pages - Public
 const ResortMarketingPage = lazy(() => import("./pages/resorts/ResortMarketingPage"));
@@ -356,8 +350,8 @@ const App = () => (
                 
                 {/* Demo auto-login routes */}
                 <Route path="/demo/login" element={<DemoLoginPage />} />
-                <Route path="/staff/demo-login" element={<DemoAutoLoginPage />} />
-                <Route path="/guest/demo-login" element={<DemoGuestAutoLoginPage />} />
+                <Route path="/staff/demo-login" element={<Navigate to="/demo/login" replace />} />
+                <Route path="/guest/demo-login" element={<Navigate to="/demo/login" replace />} />
                 
                 {/* Vendor portal routes */}
                 <Route path="/vendor/login" element={<VendorLogin />} />
@@ -397,9 +391,9 @@ const App = () => (
                 </Route>
                 
                 {/* Legacy pre-arrival routes - redirect to guest login */}
-                <Route path="/prearrival/:token" element={<LegacyPrearrivalRedirect />} />
-                <Route path="/prearrival/:token/checkin" element={<LegacyPrearrivalRedirect />} />
-                <Route path="/prearrival/:token/experiences" element={<LegacyPrearrivalRedirect />} />
+                <Route path="/prearrival/:token" element={<Navigate to="/guest/find" replace />} />
+                <Route path="/prearrival/:token/checkin" element={<Navigate to="/guest/find" replace />} />
+                <Route path="/prearrival/:token/experiences" element={<Navigate to="/guest/find" replace />} />
                 
                 {/* Guest alias redirects (legacy / typo paths) */}
                 <Route path="/guest/dining" element={<Navigate to="/guest/restaurants" replace />} />
@@ -410,9 +404,9 @@ const App = () => (
                 <Route path="/guest/entry" element={<GuestEntryPage />} />
                 <Route path="/guest/login" element={<GuestLogin />} />
                 <Route path="/guest/find" element={<GuestFindResort />} />
-                <Route path="/guest/access" element={<GuestAccessLoginPage />} />
-                <Route path="/guest/qr/:token" element={<GuestQrConfirmPage />} />
-                <Route path="/guest/qr" element={<GuestQrLoginPage />} />
+                <Route path="/guest/access" element={<Navigate to="/guest/find" replace />} />
+                <Route path="/guest/qr/:token" element={<Navigate to="/guest/find" replace />} />
+                <Route path="/guest/qr" element={<Navigate to="/guest/find" replace />} />
                 <Route path="/guest" element={<GuestLayout />}>
                   <Route index element={<GuestHome />} />
                   <Route path="profile" element={<GuestProfilePage />} />

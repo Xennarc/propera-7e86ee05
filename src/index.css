@@ -2138,10 +2138,6 @@
 }
 
 @layer utilities {
-  /* Pull-to-refresh indicator space */
-  .pull-refresh-space {
-    padding-top: env(safe-area-inset-top, 0);
-  }
   
   /* Haptic feedback simulation */
   .haptic-light:active {
@@ -2152,16 +2148,6 @@
     transform: scale(0.96);
   }
   
-  /* DEPRECATED: scroll-smooth-touch — per layout contract, do NOT use on iOS. Kept for backward compat. */
-  .scroll-smooth-touch {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-  
-  /* Bottom safe area with extra padding for nav */
-  .pb-safe-nav {
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
-  }
   
   /* Guest portal specific shadows */
   .shadow-guest-card {
@@ -2350,12 +2336,6 @@
 
   /* === Mobile Performance Optimizations === */
   
-  /* DEPRECATED: gpu-scroll — per layout contract, do NOT use on iOS guest portal. Kept for backward compat. */
-  .gpu-scroll {
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-  }
   
   /* Content containment for better paint performance */
   .contain-layout {
@@ -2370,12 +2350,6 @@
     contain: strict;
   }
   
-  /* DEPRECATED: touch-scroll — per layout contract, do NOT use on iOS guest portal. Kept for backward compat. */
-  .touch-scroll {
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    touch-action: pan-y;
-  }
   
   /* Will-change hints for animated elements */
   .will-animate {

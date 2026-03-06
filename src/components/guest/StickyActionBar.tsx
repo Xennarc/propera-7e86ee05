@@ -48,13 +48,3 @@ export function StickyActionBar({ children, className }: StickyActionBarProps) {
   );
 }
 
-/**
- * Spacer to add at the bottom of scrollable content when using StickyActionBar.
- * Prevents the action bar from covering the last items.
- * NOTE: Prefer using GuestPageShell overlay="action" instead of this spacer.
- */
-export function StickyActionBarSpacer({ className }: { className?: string }) {
-  return (
-    <div className={cn("h-20 lg:h-0 shrink-0", className)} />
-  );
-}
