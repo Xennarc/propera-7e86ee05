@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
-
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
 
