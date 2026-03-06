@@ -190,5 +190,6 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
         </footer>
       </div>
     </div>
+    </ThemeProvider>
   );
 }
