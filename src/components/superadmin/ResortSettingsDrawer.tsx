@@ -175,9 +175,26 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
         .eq('resort_id', resort.id)
         .maybeSingle();
 
+      // Check resort settings for transport and guest booking
+      const { data: settings } = await supabase
+        .from('resort_settings')
+        .select('transport_enabled, guest_booking_enabled')
+        .eq('resort_id', resort.id)
+        .maybeSingle();
+
+      // Check for active vendor partnerships (PMS-like integration)
+      const { count: vendorCount } = await supabase
+        .from('vendor_resorts')
+        .select('id', { count: 'exact', head: true })
+        .eq('resort_id', resort.id)
+        .eq('status', 'active');
+
       return {
         prearrival: prearrival?.is_enabled ?? false,
         loyalty: loyalty?.is_enabled ?? false,
+        transport: settings?.transport_enabled ?? false,
+        guestBooking: settings?.guest_booking_enabled ?? false,
+        vendors: (vendorCount ?? 0) > 0,
       };
     },
     enabled: !!resort?.id && open && activeTab === 'integrations',
@@ -602,23 +619,31 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
                         {integrations?.loyalty ? 'Active' : 'Not Configured'}
                       </Badge>
                     </div>
-                    {/* TODO: Add more integrations when schema supports them */}
-                    <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl opacity-60">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
                       <div>
-                        <Label>PMS Integration</Label>
-                        <p className="text-xs text-muted-foreground">Property management system sync</p>
+                        <Label>Vendor Partners</Label>
+                        <p className="text-xs text-muted-foreground">Third-party vendor integrations</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">
-                        Not configured yet
+                      <Badge variant={integrations?.vendors ? 'default' : 'outline'}>
+                        {integrations?.vendors ? 'Active' : 'Not Configured'}
                       </Badge>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-muted/20 rounded-xl opacity-60">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
                       <div>
-                        <Label>Payment Gateway</Label>
-                        <p className="text-xs text-muted-foreground">Online payment processing</p>
+                        <Label>Guest Booking</Label>
+                        <p className="text-xs text-muted-foreground">Online guest booking portal</p>
                       </div>
-                      <Badge variant="outline" className="text-muted-foreground">
-                        Not configured yet
+                      <Badge variant={integrations?.guestBooking ? 'default' : 'outline'}>
+                        {integrations?.guestBooking ? 'Active' : 'Not Configured'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <div>
+                        <Label>Transport</Label>
+                        <p className="text-xs text-muted-foreground">Guest transport and transfer services</p>
+                      </div>
+                      <Badge variant={integrations?.transport ? 'default' : 'outline'}>
+                        {integrations?.transport ? 'Active' : 'Not Configured'}
                       </Badge>
                     </div>
                   </div>
