@@ -8,6 +8,7 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useResort } from '@/contexts/ResortContext';
 import { useDailyOpsSheet, type OpsDepartment, type OpsSessionRow } from '@/hooks/useDailyOpsSheet';
+import { parseActivityRequirements } from '@/lib/activity-requirements';
 import { OpsSheetRowCard, OpsSheetRowCardSkeleton } from '@/components/activities/ops/OpsSheetRowCard';
 import { OpsFilterChips, type OpsFilter } from '@/components/activities/ops/OpsFilterChips';
 import { OpsTimelineView } from '@/components/activities/ops/OpsTimelineView';
@@ -90,7 +91,7 @@ function hasAnyBlocker(row: OpsSessionRow): boolean {
     row.readiness.pending_medical > 0 ||
     row.readiness.unverified_certs > 0 ||
     row.conflicts_count > 0 ||
-    (!row.pickup && row.readiness.missing > 0) // placeholder for pickup-needed logic
+    (!row.pickup && row.total_pax > 0 && parseActivityRequirements(row.requirements_json, row.category).requires_pickup)
   );
 }
 
