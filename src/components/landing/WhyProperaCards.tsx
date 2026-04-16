@@ -7,7 +7,7 @@ const cards = [
   {
     icon: BarChart3,
     title: 'Operational clarity',
-    description: 'Schedules, capacity, and bookings — presented with calm precision.',
+    description: 'Schedules, capacity, and bookings presented with calm precision.',
     features: ['Real-time capacity', 'Smart scheduling', 'Clear dashboards'],
   },
   {
@@ -19,74 +19,51 @@ const cards = [
   {
     icon: RefreshCw,
     title: 'Consistent & reliable',
-    description: 'Staff and guest views stay aligned, so everyone trusts what they see.',
+    description: 'Staff and guest views stay aligned so everyone trusts what they see.',
     features: ['Live sync', 'Single source', 'No conflicts'],
   },
 ];
 
-const ValueCard = memo(function ValueCard({
+const FeatureCard = memo(function FeatureCard({
   card,
 }: {
   card: typeof cards[0];
 }) {
   return (
-    <RevealItem className="group cursor-pointer">
-      <div className="value-card-premium stroke-gradient h-full">
-        <div className="relative p-6">
-          <div className="icon-orb-gradient icon-orb-hover text-primary mb-6">
-            <card.icon className="h-7 w-7" />
-          </div>
-        
-          <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>
-          <p className="text-muted-foreground leading-relaxed mb-4">{card.description}</p>
-
-          <div className="preview-reveal space-y-2">
-            {card.features.map((feature, i) => (
-              <div
-                key={feature}
-                className={`flex items-center gap-2 text-sm preview-item-${i + 1}`}
-              >
-                <div className="hover-scale-icon">
-                  <Check className="h-3.5 w-3.5 text-success" />
-                </div>
-                <span className="text-muted-foreground">{feature}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="learn-more-hint mt-4 flex items-center gap-1 text-xs text-primary font-medium">
-            <span>Learn more</span>
-            <ArrowRight className="h-3 w-3" />
-          </div>
-        </div>
+    <div className="flex-shrink-0 w-[240px] sm:w-auto bg-card border border-border/50 rounded-[20px] p-6">
+      <div className="w-11 h-11 rounded-[13px] bg-primary/10 flex items-center justify-center mb-4">
+        <card.icon className="h-[22px] w-[22px] text-primary" />
       </div>
-    </RevealItem>
+      <h3 className="text-base font-semibold text-foreground mb-2 tracking-[-0.2px]">{card.title}</h3>
+      <p className="text-[13px] font-light leading-[1.65] text-muted-foreground">{card.description}</p>
+    </div>
   );
 });
 
 export function WhyProperaCards() {
   return (
-    <section className="py-24 relative overflow-hidden bg-card/30">
+    <section className="py-20 relative overflow-hidden bg-card/30 border-t border-b border-border/50">
       <div className="container relative mx-auto px-4">
         <ScrollReveal>
-          <RevealItem className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-12 lg:mb-16">
-            <div className="text-center lg:text-left">
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                Designed for real resort days.
-              </h2>
-              <p className="text-muted-foreground max-w-xl">
-                Every feature built to make operations smoother and guests happier.
-              </p>
-            </div>
-            
-            <div className="flex justify-center lg:justify-end">
-              <AnalyticsMiniCard className="scale-90 lg:scale-100" />
-            </div>
+          <RevealItem className="mb-8">
+            <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">Why Propera</p>
+            <h2 className="font-serif text-[38px] font-bold leading-[1.05] tracking-[-1px] text-foreground mb-3.5">
+              Designed for real resort days.
+            </h2>
+            <p className="text-[15px] font-light leading-[1.7] text-muted-foreground">
+              Every feature built to make operations smoother and guests happier.
+            </p>
           </RevealItem>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {/* Analytics Card */}
+          <RevealItem className="mb-7">
+            <AnalyticsMiniCard className="w-full" />
+          </RevealItem>
+
+          {/* Feature Cards - horizontal scroll on mobile, grid on sm+ */}
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide mx-[-20px] px-5 py-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
             {cards.map((card) => (
-              <ValueCard key={card.title} card={card} />
+              <FeatureCard key={card.title} card={card} />
             ))}
           </div>
         </ScrollReveal>

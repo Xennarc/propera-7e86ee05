@@ -7,16 +7,12 @@ import { ArrowRight, Zap } from 'lucide-react';
 import { MobileGuestShowcase } from '@/components/illustrations/MobileGuestShowcase';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
-// Lazy load desktop-only showcase (hidden on mobile, reduces initial bundle)
-const InteractiveProductShowcase = lazy(() => 
-  import('@/components/illustrations/InteractiveProductShowcase').then(m => ({ default: m.InteractiveProductShowcase }))
-);
-
 const valueChips = [
   'Unlimited staff',
   'Multi-resort ready',
   'Real-time sync',
-  'White-label capable',
+  'White-label',
+  'Mobile-first',
 ];
 
 // Framer Motion variants
@@ -38,125 +34,116 @@ export function HomeHero() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // When reduced motion is on, show everything instantly
   const initial = prefersReducedMotion ? 'visible' : 'hidden';
   const animate = 'visible';
 
   return (
-    <section className="relative min-h-[90vh] md:min-h-screen flex items-center pt-16 md:pt-20 pb-12 md:pb-16 overflow-hidden bg-background">
-      {/* === Animated blob gradient background === */}
-      <div className="hero-blob hero-blob-1 absolute top-[5%] right-[-8%] w-[400px] h-[400px] md:w-[700px] md:h-[700px] rounded-full blur-[70px] md:blur-[160px] bg-[hsl(var(--primary)/0.45)] md:bg-[hsl(var(--primary)/0.25)] dark:bg-[hsl(var(--primary)/0.50)] dark:md:bg-[hsl(var(--primary)/0.30)]" />
-      <div className="hero-blob hero-blob-2 absolute bottom-[5%] left-[-12%] w-[360px] h-[360px] md:w-[600px] md:h-[600px] rounded-full blur-[60px] md:blur-[140px] bg-[hsl(175_60%_50%/0.35)] md:bg-[hsl(175_60%_50%/0.18)] dark:bg-[hsl(175_60%_40%/0.40)] dark:md:bg-[hsl(175_60%_40%/0.22)]" />
-      <div className="hero-blob hero-blob-3 absolute top-[40%] left-[10%] w-[320px] h-[320px] md:w-[450px] md:h-[450px] rounded-full blur-[60px] md:blur-[130px] bg-[hsl(245_50%_55%/0.30)] md:bg-[hsl(245_50%_55%/0.14)] dark:bg-[hsl(245_50%_45%/0.35)] dark:md:bg-[hsl(245_50%_45%/0.18)]" />
-      <div className="hero-blob hero-blob-4 absolute top-[0%] left-[30%] w-[280px] h-[280px] md:w-[350px] md:h-[350px] rounded-full blur-[55px] md:blur-[120px] bg-[hsl(var(--primary)/0.30)] md:bg-[hsl(var(--primary)/0.12)] dark:bg-[hsl(var(--primary)/0.35)] dark:md:bg-[hsl(var(--primary)/0.16)]" />
+    <section className="relative min-h-[100svh] flex flex-col pt-[120px] pb-0 overflow-hidden bg-background">
+      {/* === Background gradients === */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,hsl(var(--primary)/0.18),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_80%_80%,hsl(175_50%_45%/0.08),transparent_50%)]" />
+      </div>
 
-      <div className="container relative mx-auto px-4 z-10">
-        <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12 lg:gap-16 items-center text-center md:text-left">
-          {/* Left: Copy */}
-          <div className="max-w-xl mx-auto md:mx-0 relative z-10">
-            <motion.h1
-              variants={fadeRise(10, 0)}
-              initial={initial}
-              animate={animate}
-              style={{ willChange: 'opacity, transform' }}
-              className="text-[1.75rem] xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 md:mb-6 leading-[1.1] tracking-tight"
-            >
-              Resort operations.{' '}
-              <span className="text-gradient bg-gradient-to-r from-primary via-teal-400 to-primary bg-clip-text text-transparent">
-                Beautifully organized.
-              </span>
-            </motion.h1>
-
-            <motion.p
-              variants={fadeRise(8, 0.1)}
-              initial={initial}
-              animate={animate}
-              style={{ willChange: 'opacity, transform' }}
-              className="text-base md:text-lg lg:text-xl text-foreground/70 mb-5 md:mb-8 leading-relaxed"
-            >
-              Propera brings guests, teams, schedules, and bookings into one elegant system — so service feels effortless.
-            </motion.p>
-
-            {/* CTA Row */}
-            <motion.div
-              variants={fadeRise(6, 0.2)}
-              initial={initial}
-              animate={animate}
-              style={{ willChange: 'opacity, transform' }}
-              className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 md:mb-8 sm:justify-center md:justify-start"
-            >
-              <Button 
-                asChild 
-                size="lg" 
-                className="bg-primary text-primary-foreground text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full font-semibold glow-lime cta-breathe-once transition-all duration-200 group hover:-translate-y-0.5 active:scale-[0.97] w-full sm:w-auto"
-              >
-                <Link to="/book-demo">
-                  Book a demo
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="text-base px-6 sm:px-8 h-12 sm:h-14 rounded-full border-border/50 hover:border-primary/30 hover:bg-midnight-800/50 group active:scale-[0.97] transition-all duration-200 w-full sm:w-auto"
-                onClick={scrollToProduct}
-              >
-                <Zap className="mr-2 h-4 w-4 text-primary" />
-                Explore the platform
-              </Button>
-            </motion.div>
-
-            {/* Value Chips - horizontal scroll on mobile, wrap on sm+ */}
-            <motion.div
-              variants={fadeRise(0, 0.3)}
-              initial={initial}
-              animate={animate}
-              style={{ willChange: 'opacity, transform' }}
-              className="relative"
-            >
-              <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide scroll-fade-right sm:flex-wrap sm:overflow-visible sm:justify-center md:justify-start sm:[mask-image:none]">
-                {valueChips.map((chip) => (
-                  <Badge key={chip} variant="secondary" className="glass-pill px-3 py-1.5 text-xs font-medium hover:bg-white/10 dark:hover:bg-white/10 transition-colors snap-start shrink-0 sm:shrink">
-                    {chip}
-                  </Badge>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Phone Mockup - Below CTAs on mobile only */}
-            <motion.div
-              variants={scaleIn(0.4)}
-              initial={initial}
-              animate={animate}
-              style={{ willChange: 'opacity, transform' }}
-              className="flex justify-center mt-6 md:hidden"
-            >
-              <div className="animate-hero-float">
-                <MobileGuestShowcase />
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Right: Phone Mockup for tablet (md to lg) */}
+      <div className="container relative mx-auto px-4 z-10 flex-1 flex flex-col">
+        <div className="max-w-xl">
+          {/* Label pill */}
           <motion.div
-            variants={scaleIn(0.4)}
+            variants={fadeRise(10, 0)}
+            initial={initial}
+            animate={animate}
+            className="mb-7"
+          >
+            <span className="inline-flex items-center gap-2 bg-card border border-border/50 rounded-full px-3.5 py-1.5 text-[11.5px] font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+              Resort Operations Platform
+            </span>
+          </motion.div>
+
+          {/* Headline */}
+          <motion.h1
+            variants={fadeRise(10, 0.1)}
             initial={initial}
             animate={animate}
             style={{ willChange: 'opacity, transform' }}
-            className="hidden md:flex lg:hidden items-center justify-center"
+            className="font-serif text-[52px] font-black leading-[1.0] tracking-[-1.5px] text-foreground mb-1.5"
           >
-            <div className="animate-hero-float">
-              <MobileGuestShowcase />
-            </div>
+            Resort ops.{' '}
+            <br />
+            <em className="not-italic text-primary">Beautifully</em>
+            <br />
+            organized.
+          </motion.h1>
+
+          {/* Subtitle */}
+          <motion.p
+            variants={fadeRise(8, 0.2)}
+            initial={initial}
+            animate={animate}
+            style={{ willChange: 'opacity, transform' }}
+            className="text-base font-light leading-[1.65] text-muted-foreground mt-5 mb-9 max-w-[340px]"
+          >
+            Guests, teams, schedules, and bookings — unified in one elegant system so service feels effortless.
+          </motion.p>
+
+          {/* CTA Row */}
+          <motion.div
+            variants={fadeRise(6, 0.3)}
+            initial={initial}
+            animate={animate}
+            style={{ willChange: 'opacity, transform' }}
+            className="flex flex-col gap-3 mb-10"
+          >
+            <Button 
+              asChild 
+              size="lg" 
+              className="bg-primary text-primary-foreground text-[15px] px-7 h-[52px] rounded-full font-semibold glow-lime transition-all duration-200 group active:scale-[0.98] w-full sm:w-auto"
+            >
+              <Link to="/book-demo">
+                Book a demo
+                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-[15px] px-7 h-[52px] rounded-full border-border/50 hover:border-foreground/20 group active:scale-[0.98] transition-all duration-200 w-full sm:w-auto"
+              onClick={scrollToProduct}
+            >
+              <Zap className="mr-2 h-4 w-4 text-primary" />
+              Explore the platform
+            </Button>
           </motion.div>
 
-          {/* Right: Interactive Product Showcase (Desktop only - lazy loaded) */}
-          <div className="relative lg:pl-8 hidden lg:block" style={{ minHeight: '500px' }}>
-            <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /></div>}>
-              <InteractiveProductShowcase />
-            </Suspense>
-          </div>
+          {/* Value Chips */}
+          <motion.div
+            variants={fadeRise(0, 0.4)}
+            initial={initial}
+            animate={animate}
+            style={{ willChange: 'opacity, transform' }}
+          >
+            <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory scrollbar-hide mx-[-20px] px-5 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
+              {valueChips.map((chip) => (
+                <Badge key={chip} variant="secondary" className="glass-pill px-4 py-2 text-xs font-medium snap-start shrink-0 sm:shrink">
+                  {chip}
+                </Badge>
+              ))}
+            </div>
+          </motion.div>
         </div>
+
+        {/* Phone Mockup */}
+        <motion.div
+          variants={scaleIn(0.5)}
+          initial={initial}
+          animate={animate}
+          style={{ willChange: 'opacity, transform' }}
+          className="flex justify-center mt-12 relative"
+        >
+          <div className="animate-hero-float">
+            <MobileGuestShowcase />
+          </div>
+        </motion.div>
       </div>
     </section>
   );
