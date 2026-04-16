@@ -1,6 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles, Layers } from 'lucide-react';
+import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
 import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
@@ -72,22 +71,17 @@ export function PricingPlanGrid({ plans, resortSize, onResortSizeChange }: Prici
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
 
   return (
-    <section id="plans" className="py-12 md:py-16 lg:py-20 relative overflow-hidden scroll-mt-24">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-midnight-900/30 to-background dark:via-midnight-950" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] md:w-[800px] h-[400px] md:h-[600px] bg-lime-400/5 dark:bg-lime-400/8 rounded-full blur-[100px] md:blur-[140px] pointer-events-none hidden sm:block" />
-      <div className="absolute top-0 right-0 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-teal-400/5 dark:bg-teal-400/8 rounded-full blur-[80px] md:blur-[120px] pointer-events-none hidden sm:block" />
+    <section id="plans" className="py-[60px] relative overflow-hidden scroll-mt-24 border-t border-border/50">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/4 rounded-full blur-[140px] pointer-events-none hidden sm:block" />
       
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
           <RevealItem className="text-center mb-8 md:mb-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              <Layers className="h-4 w-4" />
-              Plans
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+            <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">Plans</p>
+            <h2 className="font-serif text-[32px] md:text-[38px] font-bold leading-[1.05] tracking-[-1px] text-foreground mb-2">
               Choose your plan
             </h2>
-            <p className="text-muted-foreground max-w-md mx-auto text-sm">
+            <p className="text-[15px] font-light leading-[1.65] text-muted-foreground max-w-md mx-auto">
               Simple pricing that scales with your resort. No per-user fees, ever.
             </p>
             <div className="mt-4">
@@ -176,22 +170,19 @@ export function PricingPlanGrid({ plans, resortSize, onResortSizeChange }: Prici
                         )}
                       </div>
                       
-                      <Button 
-                        asChild 
-                        className={`w-full rounded-full font-semibold h-12 min-h-[48px] transition-all duration-200 active:scale-[0.97] ${
+                      <a 
+                        href={`mailto:hello@propera.io?subject=${plan.name} Plan Inquiry`}
+                        className={`w-full flex items-center justify-center rounded-full font-semibold h-[52px] transition-all duration-200 active:scale-[0.97] text-[15px] ${
                           isElite 
                             ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-violet-500/40' 
                             : isProfessional
                             ? 'bg-primary text-primary-foreground glow-lime hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20'
-                            : 'bg-card hover:bg-muted border border-border/40 dark:bg-midnight-800 dark:border-midnight-600 hover:border-primary/30'
+                            : 'bg-card hover:bg-muted border border-border/40 dark:bg-midnight-800 dark:border-midnight-600 hover:border-primary/30 text-foreground'
                         }`}
-                        variant={isProfessional ? 'default' : isElite ? 'default' : 'secondary'}
                       >
-                        <a href={`mailto:hello@propera.io?subject=${plan.name} Plan Inquiry`}>
-                          {plan.cta || 'Talk to us'}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </a>
-                      </Button>
+                        {plan.cta || 'Talk to us'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
                       
                       <p className="text-xs text-muted-foreground text-center mt-3 mb-6">{config.ctaHelper}</p>
                       

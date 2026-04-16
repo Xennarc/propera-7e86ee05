@@ -15,17 +15,15 @@ const COMPARISON_ROWS = [
 
 export function PricingComparisonMatrix() {
   return (
-    <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-br from-background via-background to-teal-400/5 dark:from-background dark:via-background dark:to-background relative overflow-hidden border-t border-border/10">
-      <div className="absolute top-0 left-1/3 w-[300px] md:w-[500px] h-[200px] md:h-[400px] bg-primary/10 dark:bg-primary/4 rounded-full blur-[80px] md:blur-[120px] pointer-events-none hidden sm:block" />
-      <div className="absolute bottom-0 right-1/4 w-[200px] md:w-[300px] h-[200px] md:h-[300px] bg-teal-400/10 dark:bg-teal-400/5 rounded-full blur-[60px] md:blur-[100px] pointer-events-none hidden sm:block" />
-      
+    <section className="py-[60px] relative overflow-hidden border-t border-border/50">
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
           <RevealItem className="text-center mb-6 md:mb-10">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-2 md:mb-3">
+            <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">Comparison</p>
+            <h2 className="font-serif text-[32px] md:text-[38px] font-bold leading-[1.05] tracking-[-1px] text-foreground mb-2 md:mb-3">
               At a glance
             </h2>
-            <p className="text-sm md:text-base text-muted-foreground">
+            <p className="text-[15px] font-light leading-[1.65] text-muted-foreground">
               A quick view of what's included in each plan.
             </p>
           </RevealItem>
