@@ -173,6 +173,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li><Link to="/auth" className="hover:text-foreground transition-colors py-1 inline-block">Sign In</Link></li>
                   <li><Link to={GUEST_ROUTES.FIND_RESORT} className="hover:text-foreground transition-colors py-1 inline-block">Find Your Resort</Link></li>
+                  <li><Link to="/book-demo" className="hover:text-foreground transition-colors py-1 inline-block">Book a Demo</Link></li>
                 </ul>
               </div>
             </div>
