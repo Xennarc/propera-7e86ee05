@@ -128,9 +128,44 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+  // ── Auth gate: require a valid JWT and SUPER_ADMIN role ──
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const callerClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: claims, error: claimsError } = await callerClient.auth.getClaims(
+    authHeader.replace("Bearer ", "")
+  );
+  if (claimsError || !claims?.claims?.sub) {
+    return new Response(
+      JSON.stringify({ error: "Invalid token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const callerId = claims.claims.sub as string;
+
   // Use service role client to bypass RLS and demo-write-blocking
   const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // Verify caller is SUPER_ADMIN
+  const { data: isSuperAdmin } = await supabase.rpc("is_super_admin", { _user_id: callerId });
+  if (!isSuperAdmin) {
+    return new Response(
+      JSON.stringify({ error: "Forbidden: requires super admin role" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 
   try {
     const { job_id } = await req.json();
