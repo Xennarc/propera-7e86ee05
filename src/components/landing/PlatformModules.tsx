@@ -15,7 +15,6 @@ const modules = [
     title: 'Guest Portal', 
     description: 'Room-based login, personalized dashboard, and one place for every booking and request — built for thumb-first use.', 
     category: 'Guest', 
-    spotlight: true,
   },
   { 
     icon: Activity, 
@@ -55,26 +54,6 @@ const categoryTagStyles: Record<string, string> = {
   Analytics: 'bg-orchid-400/12 text-orchid-400',
 };
 
-const SpotlightCard = memo(function SpotlightCard({ module }: { module: typeof modules[0] }) {
-  const tagStyle = categoryTagStyles[module.category] || '';
-  return (
-    <RevealItem>
-      <div className="bg-card border border-border/50 rounded-[20px] p-6 mb-4">
-        <div className="w-11 h-11 rounded-[13px] bg-primary/10 flex items-center justify-center mb-4">
-          <module.icon className="h-[22px] w-[22px] text-primary" />
-        </div>
-        <div className="flex items-center gap-2 mb-1">
-          <h3 className="text-[15px] font-semibold text-foreground tracking-[-0.2px]">{module.title}</h3>
-          <span className={`text-[10px] font-semibold tracking-[0.4px] uppercase px-2 py-0.5 rounded-full ${tagStyle}`}>
-            {module.category}
-          </span>
-        </div>
-        <p className="text-[13px] font-light leading-[1.6] text-muted-foreground">{module.description}</p>
-      </div>
-    </RevealItem>
-  );
-});
-
 const ModuleItem = memo(function ModuleItem({ module }: { module: typeof modules[0] }) {
   const tagStyle = categoryTagStyles[module.category] || '';
   return (
@@ -98,9 +77,6 @@ const ModuleItem = memo(function ModuleItem({ module }: { module: typeof modules
 });
 
 export function PlatformModules() {
-  const spotlight = modules.filter(m => m.spotlight);
-  const rest = modules.filter(m => !m.spotlight);
-
   return (
     <section id="platform-overview" className="py-[60px] relative overflow-hidden">
       <div className="container relative mx-auto px-4 z-10">
@@ -115,14 +91,8 @@ export function PlatformModules() {
             </p>
           </RevealItem>
 
-          {/* Spotlight module */}
-          {spotlight.map(m => (
-            <SpotlightCard key={m.title} module={m} />
-          ))}
-
-          {/* Module list */}
           <div>
-            {rest.map(m => (
+            {modules.map(m => (
               <ModuleItem key={m.title} module={m} />
             ))}
           </div>
