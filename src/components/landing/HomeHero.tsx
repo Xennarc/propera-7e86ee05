@@ -1,7 +1,5 @@
-import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap } from 'lucide-react';
 import { MobileGuestShowcase } from '@/components/illustrations/MobileGuestShowcase';
@@ -47,19 +45,6 @@ export function HomeHero() {
 
       <div className="container relative mx-auto px-4 z-10 flex-1 flex flex-col">
         <div className="max-w-xl">
-          {/* Label pill */}
-          <motion.div
-            variants={fadeRise(10, 0)}
-            initial={initial}
-            animate={animate}
-            className="mb-7"
-          >
-            <span className="inline-flex items-center gap-2 bg-card border border-border/50 rounded-full px-3.5 py-1.5 text-[11.5px] font-medium text-muted-foreground uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
-              Resort Operations Platform
-            </span>
-          </motion.div>
-
           {/* Headline */}
           <motion.h1
             variants={fadeRise(10, 0.1)}
@@ -92,27 +77,22 @@ export function HomeHero() {
             initial={initial}
             animate={animate}
             style={{ willChange: 'opacity, transform' }}
-            className="flex flex-col gap-3 mb-10"
+            className="flex flex-col gap-3.5 mb-10"
           >
-            <Button 
-              asChild 
-              size="lg" 
-              className="bg-primary text-primary-foreground text-[15px] px-7 h-[52px] rounded-full font-semibold glow-lime transition-all duration-200 group active:scale-[0.98] w-full sm:w-auto"
+            <Link
+              to="/book-demo"
+              className="inline-flex items-center justify-center w-full sm:w-auto h-[56px] px-8 rounded-full bg-primary text-primary-foreground text-[16px] font-semibold shadow-[0_0_24px_hsl(var(--primary)/0.35)] hover:shadow-[0_0_36px_hsl(var(--primary)/0.5)] hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 group"
             >
-              <Link to="/book-demo">
-                Book a demo
-                <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="text-[15px] px-7 h-[52px] rounded-full border-border/50 hover:border-foreground/20 group active:scale-[0.98] transition-all duration-200 w-full sm:w-auto"
+              Book a demo
+              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <button
               onClick={scrollToProduct}
+              className="inline-flex items-center justify-center w-full sm:w-auto h-[56px] px-8 rounded-full border border-border/40 text-muted-foreground text-[16px] font-medium hover:text-foreground hover:border-border/70 active:scale-[0.98] transition-all duration-200 group"
             >
               <Zap className="mr-2 h-4 w-4 text-primary" />
               Explore the platform
-            </Button>
+            </button>
           </motion.div>
 
           {/* Value Chips */}
