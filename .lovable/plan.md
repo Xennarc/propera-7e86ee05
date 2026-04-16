@@ -1,20 +1,22 @@
 
 
-## HomeHero CTA Redesign
+## Fix Guest Portal Card to Match Module List
 
-### Changes to `src/components/landing/HomeHero.tsx`
+### Problem
+The Guest Portal has a `spotlight: true` flag that renders it as a large standalone card (`SpotlightCard`), visually breaking from the uniform list style of the other modules.
 
-1. **Remove the label pill** — Delete the entire `motion.div` block (lines 51–61) containing "Resort Operations Platform"
+### Change — `src/components/landing/PlatformModules.tsx`
 
-2. **Redesign CTA buttons** to match the reference image:
-   - **"Book a demo"** — Full-width on mobile, larger height (~56px), stronger lime glow, bolder presence. Remove the shadcn `Button` wrapper and use a styled `Link` directly for cleaner control, or keep `Button` but override classes more precisely.
-   - **"Explore the platform"** — Subtle rounded outline with softer border, matching the reference's thinner, more refined ghost style. Slightly larger height to match primary.
-   - Increase gap between the two buttons slightly (gap-3 → gap-3.5)
-   - Both buttons get `text-[16px]` and `h-[56px]` for more visual weight
+1. **Remove the `spotlight` property** from the Guest Portal entry in the `modules` array (line 18)
+2. **Remove the `SpotlightCard` component** (lines 58–76) — no longer needed
+3. **Remove the spotlight filter logic** (lines 101–102, 118–121) — render all modules through the same `ModuleItem` list
+4. **Render all modules uniformly** in a single `<div>` using `ModuleItem`
+
+This makes Guest Portal appear as a row with icon + title + GUEST tag + description, identical to Activities, Dining, etc.
 
 ### Files Modified (1)
-- `src/components/landing/HomeHero.tsx`
+- `src/components/landing/PlatformModules.tsx`
 
 ### No behavior changes
-All links, scroll targets, and animations remain identical.
+Same data, same scroll target, same section structure.
 
