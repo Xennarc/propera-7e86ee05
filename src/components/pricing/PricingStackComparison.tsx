@@ -77,11 +77,11 @@ export function PricingStackComparison() {
                   {ROWS.map((row, i) => (
                     <div
                       key={row.label}
-                      className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-2 sm:gap-3 py-3 ${
+                      className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-1.5 sm:gap-3 py-3 ${
                         i !== ROWS.length - 1 ? 'border-b border-border/25' : ''
                       }`}
                     >
-                      <div className="text-[13px] text-foreground/90">{row.label}</div>
+                      <div className="text-[12.5px] sm:text-[13px] text-foreground/90 leading-snug">{row.label}</div>
                       <div className="flex items-center justify-center">
                         <Cell value={row.propera} isPropera />
                       </div>
