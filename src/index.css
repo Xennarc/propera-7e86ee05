@@ -1858,30 +1858,59 @@
     @apply border-border/80 shadow-soft;
   }
 
-  /* Guest card with subtle animation - Enhanced premium feel */
+  /* Guest card — Warm Editorial: Paper-on-Sand pill */
   .guest-card {
-    @apply relative bg-card rounded-3xl border border-border/40 overflow-hidden transition-all duration-200;
-    box-shadow: 
-      0 1px 2px 0 rgb(0 0 0 / 0.03),
-      0 2px 8px -2px rgb(0 0 0 / 0.04);
+    @apply relative bg-card overflow-hidden transition-all duration-200;
+    border: 1px solid transparent;
+    border-radius: 28px;
+    box-shadow:
+      0 1px 2px 0 hsl(var(--foreground) / 0.04),
+      0 8px 24px -12px hsl(var(--foreground) / 0.08);
   }
-  
+
   .guest-card:hover {
-    @apply border-border/60;
-    box-shadow: 
-      0 2px 4px 0 rgb(0 0 0 / 0.04),
-      0 4px 16px -4px rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 2px 4px 0 hsl(var(--foreground) / 0.05),
+      0 12px 32px -12px hsl(var(--foreground) / 0.12);
   }
-  
+
   .guest-card-interactive {
     @apply guest-card cursor-pointer;
   }
-  
+
   .guest-card-interactive:hover {
-    transform: translateY(-3px) rotate(-0.3deg);
-    box-shadow: 
-      0 6px 16px 0 rgb(0 0 0 / 0.08),
-      0 12px 32px -8px rgb(0 0 0 / 0.12);
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 10px 0 hsl(var(--foreground) / 0.06),
+      0 16px 36px -12px hsl(var(--foreground) / 0.14);
+  }
+
+  /* Guest pill chip — filter rows / section toggles */
+  .guest-pill-chip {
+    @apply inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-xs font-medium text-foreground/70 transition-all duration-150;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.04);
+  }
+  .guest-pill-chip:hover {
+    @apply text-foreground;
+  }
+  .guest-pill-chip-active {
+    @apply bg-foreground text-background;
+    box-shadow: 0 4px 14px -4px hsl(var(--foreground) / 0.3);
+  }
+
+  /* Guest stat pill — dashboard KPI */
+  .guest-stat-pill {
+    @apply flex flex-col items-start justify-center rounded-[24px] bg-card px-4 py-3 transition-all duration-150;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.04), 0 6px 18px -10px hsl(var(--foreground) / 0.08);
+  }
+  .guest-stat-pill .stat-value {
+    @apply font-serif text-2xl leading-none text-foreground;
+    font-feature-settings: "lnum" 1;
+  }
+  .guest-stat-pill .stat-label {
+    @apply mt-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
   }
   
   .guest-card-interactive:active {
@@ -1948,26 +1977,26 @@
     pointer-events: none;
   }
   
-  /* === Quick Action Buttons - Premium Polish === */
+  /* === Quick Action — Warm Editorial Paper pill === */
   .guest-quick-action {
-    @apply flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-200;
-    box-shadow: 
-      0 2px 6px -1px rgb(0 0 0 / 0.1),
-      0 1px 3px 0 rgb(0 0 0 / 0.06);
+    @apply flex flex-col items-center justify-center gap-2.5 p-3.5 bg-card transition-all duration-200;
+    border: 1px solid transparent;
+    border-radius: 24px;
+    box-shadow:
+      0 1px 2px 0 hsl(var(--foreground) / 0.04),
+      0 6px 18px -10px hsl(var(--foreground) / 0.08);
   }
 
   .guest-quick-action:hover {
     transform: translateY(-2px);
-    box-shadow: 
-      0 4px 12px -2px rgb(0 0 0 / 0.15),
-      0 2px 6px 0 rgb(0 0 0 / 0.08);
+    box-shadow:
+      0 4px 10px -2px hsl(var(--foreground) / 0.08),
+      0 12px 28px -12px hsl(var(--foreground) / 0.14);
   }
 
   .guest-quick-action:active {
     transform: scale(0.98) translateY(0);
-    box-shadow: 
-      0 1px 3px -1px rgb(0 0 0 / 0.1),
-      0 1px 2px 0 rgb(0 0 0 / 0.06);
+    transition-duration: 100ms;
   }
 
   /* === Premium Enhancement Utilities === */
@@ -2170,18 +2199,18 @@
       0 0 0 1px rgb(0 0 0 / 0.05);
   }
 
-  /* Premium stay badge */
+  /* Stay badge — Obsidian pill (Warm Editorial) */
   .guest-stay-badge {
-    @apply inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold;
-    background: rgb(255 255 255 / 0.2);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgb(255 255 255 / 0.2);
-    box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.2);
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.08em];
+    background: hsl(var(--foreground));
+    color: hsl(var(--background));
+    box-shadow: 0 4px 14px -4px hsl(var(--foreground) / 0.4);
   }
 
   .guest-stay-badge-accent {
-    @apply bg-amber-400/90 text-amber-950 border-amber-300/50;
-    box-shadow: 0 2px 8px -2px rgb(251 191 36 / 0.4);
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    box-shadow: 0 4px 14px -4px hsl(var(--accent) / 0.5);
   }
 
   /* === Enhanced Loading & Shimmer === */

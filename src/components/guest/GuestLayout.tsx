@@ -277,8 +277,8 @@ function GuestLayoutInner({
       >
         {/* Mobile-optimized Header with glassmorphism */}
         <header className={cn(
-          "flex-shrink-0 z-20 surface-glass-strong border-b transition-all duration-200 safe-area-inset-top",
-          isScrolled ? "border-border/30 shadow-md" : "border-transparent"
+          "flex-shrink-0 z-20 bg-background/95 backdrop-blur-sm border-b transition-all duration-200 safe-area-inset-top",
+          isScrolled ? "border-border shadow-sm" : "border-transparent"
         )}>
           <div className="flex h-14 sm:h-16 items-center justify-between px-4 max-w-lg md:max-w-2xl xl:max-w-4xl mx-auto">
             <Link 
@@ -295,8 +295,8 @@ function GuestLayoutInner({
                   className="h-10 w-10 object-contain flex-shrink-0 rounded-lg transition-transform group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-105">
-                  <ProperaMark size={28} className="text-primary" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground text-background transition-transform group-hover:scale-105">
+                  <ProperaMark size={28} />
                 </div>
               )}
               <div className="min-w-0">
