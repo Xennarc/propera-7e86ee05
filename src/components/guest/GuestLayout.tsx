@@ -378,7 +378,26 @@ function GuestLayoutInner({
         {content}
       </GuestRealtimeProvider>
     );
-  }
+}
+
+function DemoExitButton() {
+  const { exit } = useDemoExit();
+  const slot = getStoredDemoSlot();
+  useDemoExitBeacon(slot != null);
+  if (slot == null) return null;
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => { void exit(); }}
+      className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
+      aria-label="Exit demo"
+      title="Exit demo"
+    >
+      <LogOut className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+    </Button>
+  );
+}
 
   return content;
 }
