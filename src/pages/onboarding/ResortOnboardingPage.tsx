@@ -263,7 +263,7 @@ export default function ResortOnboardingPage() {
     const fieldName = `onboarding_${step}_done`;
     const { error } = await supabase
       .from('resorts')
-      .update({ [fieldName]: done, onboarding_status: 'IN_PROGRESS' })
+      .update({ [fieldName]: done, onboarding_status: 'IN_PROGRESS' } as never)
       .eq('id', currentResort.id);
 
     if (error) {

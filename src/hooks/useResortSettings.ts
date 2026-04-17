@@ -87,7 +87,7 @@ export function useUpdateResortSetting() {
           [key]: value, 
           updated_at: new Date().toISOString(),
           updated_by: userId
-        }, { 
+        } as never, { 
           onConflict: 'resort_id' 
         });
       
@@ -114,7 +114,7 @@ export function useUpdateResortSetting() {
         target_id: resortId,
         actor_user_id: userId,
         metadata: { setting: key, from: oldValue, to: value }
-      });
+      } as never);
       
       return { success: true };
     },
@@ -163,7 +163,7 @@ export function useIncrementResortVersion() {
           [versionKey]: newVersion, 
           updated_at: new Date().toISOString(),
           updated_by: userId
-        })
+        } as never)
         .eq('resort_id', resortId);
       
       if (error) throw error;

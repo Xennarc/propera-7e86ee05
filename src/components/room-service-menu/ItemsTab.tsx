@@ -104,7 +104,7 @@ export function RoomServiceItemsTab() {
     mutationFn: async (payload: Record<string, any>) => {
       if (payload.id) {
         const { id, ...rest } = payload;
-        const { error } = await supabase.from('room_service_menu_items').update(rest).eq('id', id);
+        const { error } = await supabase.from('room_service_menu_items').update(rest as never).eq('id', id);
         if (error) throw error;
       } else {
         const row = { ...payload, resort_id: resortId! } as any;
@@ -123,7 +123,7 @@ export function RoomServiceItemsTab() {
 
   const toggleField = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: boolean }) => {
-      const { error } = await supabase.from('room_service_menu_items').update({ [field]: value }).eq('id', id);
+      const { error } = await supabase.from('room_service_menu_items').update({ [field]: value } as never).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: itemsKey }),

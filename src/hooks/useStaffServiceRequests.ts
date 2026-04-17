@@ -417,7 +417,7 @@ export function useStaffRequestMutations() {
 
       const { error } = await supabase
         .from('service_requests')
-        .update(updates)
+        .update(updates as never)
         .eq('id', requestId)
         .eq('resort_id', resortId);
 
