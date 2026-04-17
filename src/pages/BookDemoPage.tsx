@@ -24,10 +24,9 @@ import {
   Shield,
   Waves
 } from 'lucide-react';
-import { DemoWizard } from '@/components/demo/DemoWizard';
 import { LiveDemoQualifier } from '@/components/demo/LiveDemoQualifier';
-import { ResumeDemoBanner } from '@/components/demo/ResumeDemoBanner';
-import { useDemoWorkspace } from '@/hooks/useDemoWorkspace';
+import { useDemoEnter } from '@/hooks/useDemoEnter';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
 import { MarketingLayout } from '@/components/layout/MarketingLayout';
 
@@ -132,27 +131,12 @@ const BOOK_DEMO_SCHEMA = {
 };
 
 export default function BookDemoPage() {
-  const [showDemoWizard, setShowDemoWizard] = useState(false);
   const [showLiveQualifier, setShowLiveQualifier] = useState(false);
   const [selectedPath, setSelectedPath] = useState<'instant' | 'walkthrough'>('instant');
-  const [resumeMode, setResumeMode] = useState(false);
-  
-  const { hasExistingWorkspace, savedEmail, workspace, clearWorkspace, isLoading } = useDemoWorkspace();
+  const { enter, isEntering } = useDemoEnter();
 
-  const handleResume = () => {
-    setResumeMode(true);
-    setShowDemoWizard(true);
-  };
-
-  const handleStartFresh = () => {
-    clearWorkspace();
-    setResumeMode(false);
-  };
-
-  const handleOpenWizard = () => {
-    setResumeMode(false);
-    setShowDemoWizard(true);
-  };
+  const handleEnterGuest = () => { void enter('guest'); };
+  const handleEnterStaff = () => { void enter('staff'); };
 
   return (
     <MarketingLayout currentPage="demo">
