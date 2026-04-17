@@ -36,16 +36,16 @@ function Cell({ value, isPropera }: { value: CellValue; isPropera: boolean }) {
 
 export function PricingStackComparison() {
   return (
-    <section className="py-[60px] md:py-[80px] relative overflow-hidden border-t border-border/50">
+    <section className="py-[60px] md:py-[80px] relative overflow-x-clip border-t border-border/50">
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
           <div className="max-w-5xl mx-auto grid md:grid-cols-12 gap-8 md:gap-12 items-start">
             {/* Editorial headline column */}
-            <RevealItem className="md:col-span-5">
+            <RevealItem className="md:col-span-5 min-w-0">
               <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">
                 One platform, not a stack
               </p>
-              <h2 className="font-serif text-[34px] md:text-[44px] font-bold leading-[1.0] tracking-[-1.2px] text-foreground mb-5">
+              <h2 className="font-serif text-[28px] md:text-[44px] font-bold leading-[1.05] md:leading-[1.0] tracking-[-0.8px] md:tracking-[-1.2px] text-foreground mb-5 break-words">
                 Stacks create gaps.{' '}
                 <em className="not-italic text-primary">Gaps create service failures.</em>
               </h2>
@@ -56,11 +56,11 @@ export function PricingStackComparison() {
             </RevealItem>
 
             {/* Comparison table */}
-            <RevealItem className="md:col-span-7">
+            <RevealItem className="md:col-span-7 min-w-0">
               <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                <div className="min-w-[460px] sm:min-w-0">
+                <div className="min-w-[360px] sm:min-w-0">
                   {/* Header */}
-                  <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-2 sm:gap-3 pb-3 border-b border-border/60">
+                  <div className="grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-1.5 sm:gap-3 pb-3 border-b border-border/60">
                     <div />
                     <div className="text-[10px] font-semibold text-primary tracking-[1.5px] uppercase text-center">
                       Propera
@@ -77,11 +77,11 @@ export function PricingStackComparison() {
                   {ROWS.map((row, i) => (
                     <div
                       key={row.label}
-                      className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-2 sm:gap-3 py-3 ${
+                      className={`grid grid-cols-[1.6fr_0.8fr_0.8fr_0.8fr] gap-1.5 sm:gap-3 py-3 ${
                         i !== ROWS.length - 1 ? 'border-b border-border/25' : ''
                       }`}
                     >
-                      <div className="text-[13px] text-foreground/90">{row.label}</div>
+                      <div className="text-[12.5px] sm:text-[13px] text-foreground/90 leading-snug">{row.label}</div>
                       <div className="flex items-center justify-center">
                         <Cell value={row.propera} isPropera />
                       </div>
