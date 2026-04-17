@@ -277,10 +277,9 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
       },
       fontFamily: {
-        sans: ['Geist', 'DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         serif: ['Playfair Display', 'Georgia', 'serif'],
-        display: ['Instrument Serif', 'Playfair Display', 'Georgia', 'serif'],
-        geist: ['Geist', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Playfair Display', 'Georgia', 'serif'],
       },
       letterSpacing: {
         'heading': '0.02em',
