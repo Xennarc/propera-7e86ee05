@@ -89,46 +89,60 @@
     --orchid-400: 280 55% 70%;
     --orchid-300: 280 60% 85%;
 
-    /* === Core Palette - Light Mode === */
-    /* Light mode gets inverted - uses midnight as accent, light surfaces */
-    --background: 220 20% 98%;
-    --foreground: var(--midnight-950);
+    /* === Warm Editorial palette tokens (defined early so semantic tokens reference them) === */
+    --we-sand: 42 22% 91%;          /* #EDE9E0 */
+    --we-sand-deep: 38 18% 84%;     /* slightly deeper sand for muted */
+    --we-paper: 0 0% 100%;
+    --we-obsidian: 60 4% 6%;        /* #0E0F0E */
+    --we-obsidian-soft: 60 4% 14%;
+    --we-sprig: 96 50% 75%;         /* #B8E29E */
+    --we-sprig-deep: 96 35% 55%;
+    --we-ember: 12 83% 54%;         /* #E94F2A */
+    --we-ember-soft: 12 90% 65%;
+    --we-ink-muted: 60 4% 35%;
+    --we-rule: 42 12% 78%;
 
-    --card: 0 0% 100%;
-    --card-foreground: var(--midnight-950);
+    /* === Core Palette — Warm Editorial (app-wide, light-only) === */
+    --background: var(--we-sand);
+    --foreground: var(--we-obsidian);
 
-    --popover: 0 0% 100%;
-    --popover-foreground: var(--midnight-950);
+    --card: var(--we-paper);
+    --card-foreground: var(--we-obsidian);
 
-    /* Primary: Blurple for light mode CTAs */
-    --primary: var(--blurple-500);
+    --popover: var(--we-paper);
+    --popover-foreground: var(--we-obsidian);
+
+    /* Primary: Obsidian ink CTA */
+    --primary: var(--we-obsidian);
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Subtle gray */
-    --secondary: 220 15% 94%;
-    --secondary-foreground: var(--midnight-800);
+    /* Secondary: Sand-deep */
+    --secondary: var(--we-sand-deep);
+    --secondary-foreground: var(--we-obsidian);
 
     /* Muted Surfaces */
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 15% 45%;
+    --muted: var(--we-sand-deep);
+    --muted-foreground: var(--we-ink-muted);
 
-    /* Accent: Lime for light mode */
-    --accent: var(--lime-400);
-    --accent-foreground: var(--midnight-950);
+    /* Accent: Sprig */
+    --accent: var(--we-sprig);
+    --accent-foreground: var(--we-obsidian);
 
-    /* Destructive */
-    --destructive: 0 84% 55%;
+    /* Destructive: Ember */
+    --destructive: var(--we-ember);
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & Input */
-    --border: 220 15% 85%;
-    --input: 220 15% 85%;
-    --ring: var(--blurple-500);
+    --border: var(--we-rule);
+    --input: var(--we-rule);
+    --ring: var(--we-obsidian);
 
-    /* Radius - Modern larger radii */
-    --radius: 0.75rem;
-    --radius-lg: 1.5rem;
-    --radius-xl: 1.5rem;
+    /* Radius - Warm Editorial */
+    --radius: 1rem;
+    --radius-sm: 0.75rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.25rem;
+    --radius-xl: 1.75rem;
 
     /* === Spacing Scale === */
     --space-xs: 0.25rem;   /* 4px */
