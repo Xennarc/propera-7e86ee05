@@ -1,45 +1,36 @@
 
-## App-wide Warm Editorial — Light-only (A1)
+## Pull v3 fonts (verified) — colors untouched
 
-Single light theme app-wide: Sand background, Obsidian ink, Paper cards, Sprig accent, Ember CTA. Instrument Serif display, Geist body. No dark mode.
+### v3's exact font setup (verified)
+- `tailwind.config.ts` fontFamily: `sans: ['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']`, `serif: ['Playfair Display', 'Georgia', 'serif']` — no `display`, no `geist`
+- `index.html` preload: `Playfair Display + DM Sans + Plus Jakarta Sans + Sora` — no Instrument Serif, no Geist
+- Body critical CSS lead: `'Plus Jakarta Sans', 'Sora', …`
+- Global body in `index.css` line 296: `'Plus Jakarta Sans', 'Sora', system-ui, …`
 
-### Changes
+### Changes (fonts only — no color/theme touches)
 
-**1. `src/index.css` — Token rewrite**
-- Replace `:root` with Warm Editorial values (Sand `42 22% 91%`, Obsidian `60 4% 6%`, Paper `0 0% 100%`, Sprig `96 50% 75%`, Ember `12 83% 54%`).
-- Replace `.dark` block to alias the same light values (so any `.dark` className in the tree renders identical to light — prevents regressions without removing the class).
-- Repaint sidebar tokens to Paper sidebar + Obsidian text + Sprig active state.
-- Repaint status (`--success` Sprig, `--warning` warm amber, `--destructive` Ember) and chart palette (Sprig/Ember/Sand/Obsidian + 2 supporting warm tones).
-- Repaint `.hero-blob` from lime/blurple to Sprig + warm sand glows.
-- Keep `.theme-warm-editorial` block as alias to `:root` (backward compat).
+**1. `tailwind.config.ts` — fontFamily block**
+- Replace current `sans` (`['Geist', 'DM Sans', 'Plus Jakarta Sans', 'Sora', …]`) with v3's exact: `['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']`
+- Replace `serif` with v3's: `['Playfair Display', 'Georgia', 'serif']`
+- Remove `display` and `geist` aliases (v3 has neither)
 
-**2. `src/components/ThemeProvider.tsx` — Force light**
-- Set `defaultTheme="light"`, add `forcedTheme="light"`, `enableSystem={false}`. User's stored preference ignored.
+**2. `index.html`**
+- Replace the two font links (`<link rel="preload">` and `<noscript>`) with v3's URL — drops `Instrument+Serif` and `Geist` families:
+  ```
+  https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@300;400;500;600;700;800&display=swap
+  ```
+- Critical-CSS `body { font-family }` already matches v3 (`Plus Jakarta Sans, Sora, …`) — no change.
 
-**3. `tailwind.config.ts` — Typography + glow shadows**
-- `font-sans` default → Geist (DM Sans/Plus Jakarta kept as fallbacks).
-- `shadow-glow-lime` retuned to Sprig RGB; add `shadow-glow-sprig` and `shadow-glow-ember` aliases.
-
-**4. `src/components/layout/MarketingLayout.tsx`**
-- Remove `forcedTheme="light"` and `.theme-warm-editorial` wrapper (now app-wide default).
-- Keep marketing-specific glow decoration.
-
-**5. `src/components/ui/button.tsx`**
-- `default` and `premium` variants: swap `hover:shadow-glow-lime` → `hover:shadow-glow-sprig`. No other changes.
-
-**6. Memory updates**
-- `mem://style/warm-editorial-theme` — expand to "app-wide light-only".
-- `mem://style/modern-professional-theme-definition` — mark superseded.
-- `mem://style/public-pages-dark-mode-enforcement` — mark fully obsolete.
-- `mem://index.md` Core rule — replace dual-theme rule with: "App-wide Warm Editorial light theme (Sand/Obsidian/Sprig/Ember). Instrument Serif display, Geist body. Dark mode disabled."
+**3. Memory update**
+- Update `mem://style/warm-editorial-theme` typography line: "Body: DM Sans (primary) → Plus Jakarta Sans → Sora. Display/serif: Playfair Display. Instrument Serif and Geist removed (matches Remix propera v3)."
 
 ### Out of scope
-- Component layout/structure, logic, routing, data
-- Removing existing color scales (lime/blurple/midnight kept as additive)
-- Per-component repaints (token cascade does the work)
+- All color tokens (`:root`, `.dark`, sand/sprig/ember palette) — untouched
+- ThemeProvider light-only forcing — untouched
+- Any component visual styling beyond inherited font
 
 ### Risk
-Medium-high visual change, near-zero functional risk. Will spot-check `/about`, `/staff`, `/staff/dept/.../planner`, `/superadmin`, `/guest/entry` after.
+Low. Pure font stack swap. Pricing hero and any other surfaces using `font-display`/Instrument Serif will fall back to `font-serif` (Playfair) automatically since `font-display` alias is removed — visually a different display face but coherent. If you want me to keep `font-display` as an alias for Playfair to avoid touching consumer components, I can — say the word.
 
 ### Files touched
-`src/index.css`, `src/components/ThemeProvider.tsx`, `tailwind.config.ts`, `src/components/layout/MarketingLayout.tsx`, `src/components/ui/button.tsx` + 4 memory files.
+`tailwind.config.ts`, `index.html`, `mem://style/warm-editorial-theme`
