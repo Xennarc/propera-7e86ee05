@@ -8,6 +8,9 @@ import { useIsPrearrivalGuest } from '@/hooks/usePrearrivalData';
 import { useGuestDebugMode } from '@/hooks/useGuestDebugMode';
 import { useResortBranding, getBrandingWithDefaults } from '@/hooks/useResortBranding';
 import { useDemoInstanceGuard, clearDemoInstanceState } from '@/hooks/useDemoInstanceGuard';
+import { useDemoExit, useDemoExitBeacon } from '@/hooks/useDemoExit';
+import { getStoredDemoSlot } from '@/hooks/useDemoEnter';
+import { LogOut } from 'lucide-react';
 import { FeatureFlagsProvider } from '@/providers/FeatureFlagsProvider';
 import { GuestRealtimeProvider } from '@/contexts/GuestRealtimeContext';
 import { useGuestUnifiedRealtimeEnabled } from '@/hooks/useGuestUnifiedRealtimeEnabled';
@@ -311,6 +314,7 @@ function GuestLayoutInner({
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" aria-label={t('a11y.toggleTheme')} />
               <GuestNotificationBell />
+              <DemoExitButton />
               <Button 
                 variant="ghost" 
                 size="icon" 
