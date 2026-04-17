@@ -276,6 +276,8 @@ export default {
       fontFamily: {
         sans: ['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         serif: ['Playfair Display', 'Georgia', 'serif'],
+        display: ['Instrument Serif', 'Playfair Display', 'Georgia', 'serif'],
+        geist: ['Geist', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       letterSpacing: {
         'heading': '0.02em',

@@ -30,18 +30,17 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
   ];
 
   return (
-    <ThemeProvider forcedTheme="dark">
-    <div className="min-h-screen overflow-x-hidden bg-background">
-      {/* Fixed canvas background */}
-      <div className="marketing-canvas" />
-      
-      {/* Glow blobs - fixed position for continuous feel */}
-      <div className="marketing-glow-hero" />
-      <div className="marketing-glow-mid" />
-      <div className="marketing-glow-cta" />
-      
+    <ThemeProvider forcedTheme="light">
+    <div className="theme-warm-editorial min-h-screen overflow-x-hidden bg-background text-foreground">
+      {/* Sand canvas */}
+      <div className="fixed inset-0 -z-10 we-canvas" />
+
+      {/* Warm editorial glow — Sprig + Ember whisper */}
+      <div className="fixed top-[-20%] left-[-10%] w-[70vw] h-[70vw] -z-10 we-glow-sprig opacity-70" aria-hidden />
+      <div className="fixed bottom-[-30%] right-[-20%] w-[60vw] h-[60vw] -z-10 we-glow-sprig opacity-50" aria-hidden />
+
       {/* Subtle grain overlay */}
-      <div className="fixed inset-0 pointer-events-none grain-overlay opacity-20 dark:opacity-30" />
+      <div className="fixed inset-0 pointer-events-none grain-overlay opacity-[0.06]" />
 
       {/* Scrollable content */}
       <div className="relative z-10">
