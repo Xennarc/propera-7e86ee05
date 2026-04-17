@@ -93,32 +93,28 @@ const NavItem = memo(({
     <Link
       to={item.href}
       className={cn(
-        "guest-nav-item relative min-w-[60px] tap-target touch-passive",
-        isActive 
-          ? "text-primary" 
-          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        "guest-nav-item relative min-w-[60px] tap-target touch-passive flex flex-col items-center justify-center gap-1",
+        isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
       )}
     >
-      {/* Active indicator using guest branding with glow */}
-      {isActive && (
-        <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary guest-nav-indicator shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
-      )}
-      <div className="relative">
+      <div className={cn(
+        "relative flex items-center justify-center transition-all duration-200",
+        isActive
+          ? "h-9 w-9 rounded-full bg-foreground text-background shadow-[0_4px_14px_-4px_hsl(var(--foreground)/0.4)]"
+          : "h-9 w-9"
+      )}>
         <Icon className={cn(
-          "h-5 w-5 sm:h-6 sm:w-6 transition-all duration-200 guest-nav-icon",
-          isActive && "scale-110 drop-shadow-[0_0_4px_hsl(var(--primary)/0.4)]"
+          "h-5 w-5 sm:h-[22px] sm:w-[22px] transition-all duration-200",
         )} />
-        {/* Lock overlay for pre-arrival restricted items */}
         {isPrearrivalRestricted && (
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-muted flex items-center justify-center">
             <Lock className="h-2 w-2 text-muted-foreground" />
           </div>
         )}
       </div>
-      {/* Minimum 11px text for mobile readability */}
       <span className={cn(
-        "text-[11px] sm:text-xs font-medium transition-all whitespace-nowrap text-center",
-        isActive && "font-bold text-primary"
+        "text-[10px] sm:text-[11px] font-medium transition-all whitespace-nowrap text-center leading-none",
+        isActive ? "font-semibold text-foreground" : ""
       )}>
         {label}
       </span>
