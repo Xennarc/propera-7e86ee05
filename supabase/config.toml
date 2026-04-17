@@ -33,7 +33,9 @@ schedule = "* * * * *"
 
 [functions.demo-reset]
 verify_jwt = false
-schedule = "0 4 * * *"
+
+[functions.demo-enter]
+verify_jwt = false
 
 [functions.execute-rollout]
 verify_jwt = true
