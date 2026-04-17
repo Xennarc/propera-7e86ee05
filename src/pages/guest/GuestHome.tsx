@@ -272,15 +272,16 @@ export default function GuestHome() {
       {!isPrearrival && 
        prearrivalData?.settings?.is_enabled && 
        prearrivalData?.profile?.prearrival_status !== 'completed' && (
-        <Card className="guest-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20 overflow-hidden">
+        <Card className="guest-card overflow-hidden">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-                <ClipboardCheck className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+                <ClipboardCheck className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                <h3 className="text-sm font-semibold text-foreground mb-0.5 flex items-center gap-2">
                   Complete your pre-arrival info
+                  <span className="inline-flex h-2 w-2 rounded-full bg-accent" aria-hidden />
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Share your preferences in 2 minutes to help us personalize your stay.
@@ -289,7 +290,7 @@ export default function GuestHome() {
             </div>
             <Button 
               size="sm" 
-              className="mt-3 w-full"
+              className="mt-3 w-full bg-foreground text-background hover:bg-foreground/90"
               onClick={() => setWizardOpen(true)}
             >
               Complete Now
@@ -298,6 +299,89 @@ export default function GuestHome() {
           </CardContent>
         </Card>
       )}
+
+      {/* Feedback Prompt - Show when eligible */}
+      {canSubmitFeedback?.can_submit && (
+        <Card className="guest-card overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-foreground text-background">
+                <IconFeedback className="h-6 w-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-foreground mb-0.5 flex items-center gap-2">
+                  {t('feedback.title')}
+                  <span className="inline-flex h-2 w-2 rounded-full bg-accent" aria-hidden />
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {t('profile.feedback')}
+                </p>
+              </div>
+              <Link to={GUEST_ROUTES.FEEDBACK}>
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-xl font-semibold shrink-0 tap-target">
+                  {t('feedback.submit').split(' ')[0]}
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Premium Image Hero Card */}
+      <div className="guest-hero-card shadow-guest-hero">
+        {/* Background Image with smooth loading */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center scale-[1.02] transition-transform duration-700"
+          style={{ backgroundImage: `url(${heroImage})` }}
+        />
+        
+        {/* Single warm Obsidian gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-foreground/75 via-foreground/45 to-foreground/15" />
+        
+        {/* Content */}
+        <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 aspect-[2.1/1] sm:aspect-[2.4/1] md:aspect-[2.8/1]">
+          <div className="space-y-1">
+            <h1 className="font-serif text-3xl sm:text-4xl text-background tracking-tight drop-shadow-sm">
+              {String(greeting.text)}, {firstName}
+            </h1>
+            <p className="text-background/80 text-sm sm:text-base font-medium">
+              {format(new Date(), 'EEEE, MMMM d')}
+            </p>
+          </div>
+          
+          <div className="flex items-center justify-between gap-3">
+            <span className="guest-stay-badge">
+              {format(parseISO(guest.checkInDate), 'MMM d')} – {format(parseISO(guest.checkOutDate), 'MMM d')}
+            </span>
+            <span className="guest-stay-badge guest-stay-badge-accent">
+              {isCheckoutDay ? 'Check-out day' : `Day ${currentDay} of ${totalDays}`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions Grid */}
+      <GuestQuickActions />
+
+      {/* Travel Party Card */}
+      <TravelPartyCard />
+
+      {/* Stat pills — quiet KPIs */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className="guest-stat-pill">
+          <span className="stat-value">{currentDay}<span className="text-muted-foreground/60 text-base">/{totalDays}</span></span>
+          <span className="stat-label">Day of stay</span>
+        </div>
+        <div className="guest-stat-pill">
+          <span className="stat-value">{todaySchedule.length}</span>
+          <span className="stat-label">Today</span>
+        </div>
+        <div className="guest-stat-pill">
+          <span className="stat-value">{tomorrowCount}</span>
+          <span className="stat-label">Tomorrow</span>
+        </div>
+      </div>
 
       {/* Feedback Prompt - Show when eligible */}
       {canSubmitFeedback?.can_submit && (
