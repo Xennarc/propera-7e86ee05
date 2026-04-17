@@ -1,8 +1,6 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Check, ArrowRight, Smartphone, Monitor, BarChart3, Crown, Sparkles } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { ScrollReveal, RevealItem } from '@/components/motion/ScrollReveal';
-import { AnimatedFeatureIcon } from '@/components/illustrations/AnimatedFeatureIcon';
 import { ResortSizeSelector } from '@/components/pricing/ResortSizeSelector';
 import { type ResortSize, getBandPricing } from '@/hooks/useResortSize';
 
@@ -27,227 +25,186 @@ interface PricingPlanGridProps {
   onResortSizeChange: (size: ResortSize) => void;
 }
 
-const PLAN_CONFIG: Record<string, { 
-  icon: typeof Smartphone; 
-  gradient: string; 
-  accent: string;
-  tagline: string;
-  recommendedFor: string;
-  ctaHelper: string;
-}> = {
-  essential: { 
-    icon: Smartphone, 
-    gradient: 'from-muted/50 to-muted/20',
-    accent: 'muted-foreground',
-    tagline: 'A refined foundation for modern guest service.',
-    recommendedFor: 'Boutique resorts, soft launches, and focused teams.',
-    ctaHelper: 'Upgrade anytime. Keep your data.',
-  },
-  professional: { 
-    icon: Monitor, 
-    gradient: 'from-primary/15 to-primary/5',
-    accent: 'primary',
-    tagline: 'The Resort OS — balanced, complete, effortless.',
-    recommendedFor: 'Day-to-day operations across departments.',
-    ctaHelper: 'Most resorts run everything on this plan.',
-  },
-  enterprise: { 
-    icon: BarChart3, 
-    gradient: 'from-violet-500/15 to-violet-500/5',
-    accent: 'violet-500',
-    tagline: 'Scale-ready, with the finish of a luxury product.',
-    recommendedFor: 'High-volume resorts and multi-property groups.',
-    ctaHelper: 'For groups that need consistency across properties.',
-  },
+const PLAN_TAGLINE: Record<string, string> = {
+  essential: 'For boutique resorts and focused teams.',
+  professional: 'For day-to-day operations across departments.',
+  enterprise: 'For high-volume resorts and multi-property groups.',
 };
 
-const PRO_HIGHLIGHTS = [
-  'One place for experiences and dining',
-  'Clear roles for every team',
-  'Insights that improve every day',
-];
+interface PlanCardProps {
+  plan: Plan;
+  resortSize: ResortSize;
+  emphasis: 'quiet' | 'hero' | 'refined';
+}
 
-export function PricingPlanGrid({ plans, resortSize, onResortSizeChange }: PricingPlanGridProps) {
-  const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
+function PlanCard({ plan, resortSize, emphasis }: PlanCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const band = getBandPricing(plan.id, resortSize);
+  const displayPrice = band?.price ?? plan.price;
+  const displayUsage = band?.usage ?? plan.usage;
+  const displayOverage = band?.overage ?? plan.overage;
+  const tagline = PLAN_TAGLINE[plan.id] ?? plan.whoItsFor;
+
+  const isHero = emphasis === 'hero';
+
+  // Split feature list: detect "Everything in X, plus:" header
+  const firstIsContinuation = plan.features[0]?.toLowerCase().startsWith('everything in');
+  const eyebrow = firstIsContinuation ? plan.features[0] : null;
+  const featureList = firstIsContinuation ? plan.features.slice(1) : plan.features;
+  const visibleFeatures = expanded ? featureList : featureList.slice(0, 5);
 
   return (
-    <section id="plans" className="py-[60px] relative overflow-hidden scroll-mt-24 border-t border-border/50">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-primary/4 rounded-full blur-[140px] pointer-events-none hidden sm:block" />
-      
+    <div className="relative h-full">
+      {isHero && (
+        <div className="absolute -inset-px -top-4 -bottom-4 bg-primary/[0.06] rounded-3xl blur-2xl pointer-events-none" />
+      )}
+      <div
+        className={`relative h-full flex flex-col rounded-2xl bg-card transition-colors duration-200 ${
+          isHero
+            ? 'border border-primary/40 p-6 md:p-7'
+            : 'border border-border/40 hover:border-border/70 p-5 md:p-6'
+        }`}
+      >
+        {/* Eyebrow label */}
+        <div className="h-5 mb-3">
+          {isHero && (
+            <span className="text-[10px] font-semibold text-primary tracking-[1.5px] uppercase">
+              Recommended
+            </span>
+          )}
+        </div>
+
+        {/* Plan name */}
+        <h3 className={`font-serif tracking-tight text-foreground ${isHero ? 'text-3xl' : 'text-2xl'}`}>
+          {plan.name}
+        </h3>
+        <p className="font-serif italic text-sm text-muted-foreground mt-1.5 leading-snug">
+          {tagline}
+        </p>
+
+        {/* Price block */}
+        <div className="mt-7 mb-7">
+          <div
+            className={`font-semibold tracking-tight tabular-nums text-foreground transition-transform duration-200 ${
+              isHero ? 'text-6xl' : 'text-5xl'
+            }`}
+            key={displayPrice}
+          >
+            {displayPrice}
+          </div>
+          {plan.priceUnit && (
+            <div className="text-[10px] uppercase tracking-[1.5px] text-muted-foreground mt-2">
+              {plan.priceUnit}
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <a
+          href={`mailto:hello@propera.io?subject=${plan.name} Plan Inquiry`}
+          className={`inline-flex items-center justify-center rounded-full font-semibold h-12 transition-all duration-200 active:scale-[0.98] text-sm group ${
+            isHero
+              ? 'bg-primary text-primary-foreground glow-lime hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20'
+              : 'border border-border/60 text-foreground hover:border-foreground/40 hover:bg-foreground/[0.02]'
+          }`}
+        >
+          {plan.cta || 'Talk to us'}
+          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </a>
+
+        {/* Feature list */}
+        <div className="mt-7 flex-1">
+          {eyebrow && (
+            <p className="text-[10px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">
+              {eyebrow.replace(/:?\s*$/, '')}
+            </p>
+          )}
+          <ul className="space-y-3">
+            {visibleFeatures.map((feature, i) => (
+              <li key={i} className="flex items-start gap-2.5 text-[13.5px] leading-relaxed">
+                <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" strokeWidth={2} />
+                <span className="text-foreground/90">{feature}</span>
+              </li>
+            ))}
+          </ul>
+
+          {featureList.length > 5 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-muted-foreground hover:text-foreground mt-4 transition-colors"
+            >
+              {expanded ? 'Show less' : `Show ${featureList.length - 5} more`}
+            </button>
+          )}
+        </div>
+
+        {/* Usage footer */}
+        {(displayUsage || displayOverage) && (
+          <div className="mt-7 pt-5 border-t border-border/40">
+            {displayUsage && (
+              <p className="text-xs text-muted-foreground tabular-nums">{displayUsage}</p>
+            )}
+            {displayOverage && (
+              <p className="text-xs text-muted-foreground tabular-nums mt-1">{displayOverage}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function PricingPlanGrid({ plans, resortSize, onResortSizeChange }: PricingPlanGridProps) {
+  // Order: essential, professional, enterprise — to put hero in the middle
+  const ordered = [
+    plans.find((p) => p.id === 'essential'),
+    plans.find((p) => p.id === 'professional'),
+    plans.find((p) => p.id === 'enterprise'),
+  ].filter(Boolean) as Plan[];
+
+  return (
+    <section
+      id="plans"
+      className="py-[60px] relative overflow-hidden scroll-mt-24 border-t border-border/50"
+    >
       <div className="container mx-auto px-4 relative z-10">
         <ScrollReveal>
-          <RevealItem className="text-center mb-8 md:mb-10">
-            <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">Plans</p>
-            <h2 className="font-serif text-[32px] md:text-[38px] font-bold leading-[1.05] tracking-[-1px] text-foreground mb-2">
+          <RevealItem className="text-center mb-10 md:mb-12">
+            <p className="text-[11px] font-semibold text-muted-foreground tracking-[1.5px] uppercase mb-4">
+              Plans
+            </p>
+            <h2 className="font-serif text-[32px] md:text-[44px] font-bold leading-[1.05] tracking-[-1px] text-foreground mb-3">
               Choose your plan
             </h2>
             <p className="text-[15px] font-light leading-[1.65] text-muted-foreground max-w-md mx-auto">
               Simple pricing that scales with your resort. No per-user fees, ever.
             </p>
-            <div className="mt-4">
+            <div className="mt-6">
               <ResortSizeSelector value={resortSize} onChange={onResortSizeChange} />
             </div>
           </RevealItem>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 max-w-6xl mx-auto">
-            {plans.map((plan, index) => {
-              const config = PLAN_CONFIG[plan.id] || PLAN_CONFIG.essential;
-              const band = getBandPricing(plan.id, resortSize);
-              const displayPrice = band?.price ?? plan.price;
-              const displayUsage = band?.usage ?? plan.usage;
-              const displayOverage = band?.overage ?? plan.overage;
-              const Icon = config.icon;
-              const isExpanded = expandedPlan === plan.id;
-              const isProfessional = plan.id === 'professional';
-              const isElite = plan.id === 'enterprise';
-              
+          {/* Asymmetric 10-col grid: 3/4/3 with Professional pulled up */}
+          <div className="grid grid-cols-1 md:grid-cols-10 gap-5 md:gap-6 max-w-6xl mx-auto items-start">
+            {ordered.map((plan) => {
+              const isHero = plan.id === 'professional';
+              const isEssential = plan.id === 'essential';
               return (
                 <RevealItem
                   key={plan.id}
-                  className={`group hover-lift-card ${isProfessional ? 'md:-mt-4 md:mb-4' : ''}`}
+                  className={
+                    isHero
+                      ? 'md:col-span-4 md:-mt-4 md:mb-4'
+                      : isEssential
+                        ? 'md:col-span-3'
+                        : 'md:col-span-3'
+                  }
                 >
-                  <Card className={`h-full relative overflow-hidden transition-all duration-200 bg-card dark:bg-midnight-900 ${
-                    isElite 
-                      ? 'border-violet-500/30 ring-1 ring-violet-500/20 stroke-gradient' 
-                      : isProfessional
-                      ? 'border-primary/40 ring-2 ring-primary/20 glow-lime'
-                      : 'border-border/30 hover:border-primary/30 dark:border-midnight-700/50'
-                  }`}>
-                    {isProfessional && (
-                      <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-primary/90 via-primary to-teal-400/90 text-primary-foreground text-xs font-semibold text-center py-2.5">
-                        <span className="flex items-center justify-center gap-1.5">
-                          <Crown className="h-3.5 w-3.5" />
-                          Most Popular
-                        </span>
-                      </div>
-                    )}
-                    {isElite && (
-                      <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-violet-500/80 via-purple-500/90 to-violet-500/80 text-primary-foreground text-xs font-semibold text-center py-2.5 backdrop-blur-sm">
-                        <span className="flex items-center justify-center gap-1.5">
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Premium
-                        </span>
-                      </div>
-                    )}
-                    
-                    {isProfessional && (
-                      <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
-                    )}
-                    
-                    <CardContent className={`p-5 sm:p-6 relative ${(isProfessional || isElite) ? 'pt-14' : ''}`}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <AnimatedFeatureIcon
-                          icon={Icon}
-                          size="md"
-                          variant="orb"
-                          delay={index * 0.1}
-                        />
-                        <div>
-                          <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                        </div>
-                      </div>
-
-                      <p className="text-sm text-foreground/80 font-medium mb-4 leading-relaxed">
-                        {config.tagline}
-                      </p>
-                      
-                      <p className="text-xs text-muted-foreground mb-4">
-                        <span className="font-medium">Recommended for:</span> {config.recommendedFor}
-                      </p>
-
-                      {isElite && (
-                        <p className="text-xs text-muted-foreground/80 italic mb-4">
-                          For high-volume resorts and groups that need consistency, control, and automation.
-                        </p>
-                      )}
-                      
-                      <div className="mb-5 min-h-[48px] flex items-baseline flex-wrap gap-x-2">
-                        <span className="text-3xl font-bold text-foreground transition-[opacity] duration-200" key={displayPrice}>
-                          {displayPrice}
-                        </span>
-                        {plan.priceUnit && (
-                          <span className="text-sm text-muted-foreground">{plan.priceUnit}</span>
-                        )}
-                      </div>
-                      
-                      <a 
-                        href={`mailto:hello@propera.io?subject=${plan.name} Plan Inquiry`}
-                        className={`w-full flex items-center justify-center rounded-full font-semibold h-[52px] transition-all duration-200 active:scale-[0.97] text-[15px] ${
-                          isElite 
-                            ? 'bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white shadow-lg shadow-violet-500/30 hover:shadow-violet-500/40' 
-                            : isProfessional
-                            ? 'bg-primary text-primary-foreground glow-lime hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20'
-                            : 'bg-card hover:bg-muted border border-border/40 dark:bg-midnight-800 dark:border-midnight-600 hover:border-primary/30 text-foreground'
-                        }`}
-                      >
-                        {plan.cta || 'Talk to us'}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </a>
-                      
-                      <p className="text-xs text-muted-foreground text-center mt-3 mb-6">{config.ctaHelper}</p>
-                      
-                      <div className="border-t border-border/30 pt-5">
-                        {isProfessional && (
-                          <div className="mb-5 p-4 rounded-xl bg-primary/5 border border-primary/15">
-                            <p className="text-xs font-semibold text-foreground mb-2">Why teams choose this</p>
-                            <ul className="space-y-1.5">
-                              {PRO_HIGHLIGHTS.map((highlight, i) => (
-                                <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  <Check className="h-3 w-3 text-primary flex-shrink-0" />
-                                  {highlight}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        <div className="mb-5">
-                          <p className="text-xs font-semibold text-foreground mb-3">What you get</p>
-                          <ul className="space-y-2.5">
-                            {plan.features.slice(0, isExpanded ? undefined : 5).map((feature, i) => (
-                              <li key={i} className="flex items-start gap-2.5 text-sm">
-                                <div 
-                                  className={`h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-transform hover:scale-110 ${
-                                    isElite ? 'bg-violet-500/10' : 
-                                    isProfessional ? 'bg-primary/10' : 'bg-muted/60'
-                                  }`}
-                                >
-                                  <Check className={`h-3 w-3 ${
-                                    isElite ? 'text-violet-500' : 
-                                    isProfessional ? 'text-primary' : 'text-muted-foreground'
-                                  }`} />
-                                </div>
-                                <span className="text-foreground">{feature}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        {plan.features.length > 5 && (
-                          <button
-                            onClick={() => setExpandedPlan(isExpanded ? null : plan.id)}
-                            className="text-xs text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1 transition-colors"
-                          >
-                            {isExpanded ? 'Show less' : `+${plan.features.length - 5} more`}
-                          </button>
-                        )}
-
-                        {isProfessional && (
-                          <p className="text-xs text-muted-foreground/70 italic mb-4">
-                            Room Service Suite available in Elite.
-                          </p>
-                        )}
-                        
-                        {(displayUsage || displayOverage) && (
-                          <div className="p-3 rounded-lg bg-muted/30 border border-border/20 transition-all duration-300">
-                            <p className="text-xs font-medium text-foreground mb-1">Included usage</p>
-                            {displayUsage && <p className="text-xs text-muted-foreground">{displayUsage}</p>}
-                            {displayOverage && <p className="text-xs text-muted-foreground mt-1">{displayOverage}</p>}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PlanCard
+                    plan={plan}
+                    resortSize={resortSize}
+                    emphasis={isHero ? 'hero' : isEssential ? 'quiet' : 'refined'}
+                  />
                 </RevealItem>
               );
             })}
