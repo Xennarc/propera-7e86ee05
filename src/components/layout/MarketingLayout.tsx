@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { GUEST_ROUTES } from '@/routes/guestRoutes';
 import { Button } from '@/components/ui/button';
-import { ThemeProvider } from '@/components/ThemeProvider';
 import { ProperaMark } from '@/components/icons/ProperaLogo';
 import { Menu, X } from 'lucide-react';
 
@@ -30,8 +29,7 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
   ];
 
   return (
-    <ThemeProvider forcedTheme="light">
-    <div className="theme-warm-editorial min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       {/* Sand canvas */}
       <div className="fixed inset-0 -z-10 we-canvas" />
 
@@ -190,6 +188,5 @@ export function MarketingLayout({ children, currentPage }: MarketingLayoutProps)
         </footer>
       </div>
     </div>
-    </ThemeProvider>
   );
 }

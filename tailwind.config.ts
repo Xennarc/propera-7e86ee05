@@ -207,9 +207,12 @@ export default {
         "card-hover": "0 4px 16px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04)",
         "inner-glow": "inset 0 1px 2px rgba(255, 255, 255, 0.08)",
         // Lime glow shadows
-        "glow": "0 0 24px rgba(195, 255, 46, 0.15)",
-        "glow-lime": "0 0 20px rgba(195, 255, 46, 0.3)",
-        "glow-lime-lg": "0 0 40px rgba(195, 255, 46, 0.4)",
+        "glow": "0 0 24px rgba(184, 226, 158, 0.25)",
+        "glow-lime": "0 0 20px rgba(184, 226, 158, 0.35)",
+        "glow-lime-lg": "0 0 40px rgba(184, 226, 158, 0.45)",
+        "glow-sprig": "0 0 20px rgba(184, 226, 158, 0.35)",
+        "glow-sprig-lg": "0 0 40px rgba(184, 226, 158, 0.45)",
+        "glow-ember": "0 0 24px rgba(233, 79, 42, 0.30)",
         "glow-blurple": "0 0 24px rgba(88, 101, 242, 0.25)",
         // Legacy
         "glow-coral": "0 0 24px rgba(var(--coral-500), 0.2)",
@@ -274,7 +277,7 @@ export default {
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
       },
       fontFamily: {
-        sans: ['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['Geist', 'DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         serif: ['Playfair Display', 'Georgia', 'serif'],
         display: ['Instrument Serif', 'Playfair Display', 'Georgia', 'serif'],
         geist: ['Geist', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
