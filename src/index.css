@@ -202,6 +202,59 @@
     --gradient-lagoon: linear-gradient(135deg, hsl(var(--lagoon-600)) 0%, hsl(var(--lagoon-500)) 100%);
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-600)) 0%, hsl(var(--sunset-500)) 100%);
     --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-600)) 0%, hsl(var(--orchid-500)) 100%);
+
+    /* === Warm Editorial palette tokens (raw scales, scoped via .theme-warm-editorial) === */
+    --we-sand: 42 22% 91%;          /* #EDE9E0 */
+    --we-sand-deep: 38 18% 84%;     /* slightly deeper sand for muted */
+    --we-paper: 0 0% 100%;
+    --we-obsidian: 60 4% 6%;        /* #0E0F0E */
+    --we-obsidian-soft: 60 4% 14%;
+    --we-sprig: 96 50% 75%;         /* #B8E29E */
+    --we-sprig-deep: 96 35% 55%;
+    --we-ember: 12 83% 54%;         /* #E94F2A */
+    --we-ember-soft: 12 90% 65%;
+    --we-ink-muted: 60 4% 35%;
+    --we-rule: 42 12% 78%;
+  }
+
+  /* === Warm Editorial Theme — Light-first, scoped === */
+  .theme-warm-editorial {
+    --background: var(--we-sand);
+    --foreground: var(--we-obsidian);
+
+    --card: var(--we-paper);
+    --card-foreground: var(--we-obsidian);
+
+    --popover: var(--we-paper);
+    --popover-foreground: var(--we-obsidian);
+
+    --primary: var(--we-obsidian);
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: var(--we-sand-deep);
+    --secondary-foreground: var(--we-obsidian);
+
+    --muted: var(--we-sand-deep);
+    --muted-foreground: var(--we-ink-muted);
+
+    --accent: var(--we-sprig);
+    --accent-foreground: var(--we-obsidian);
+
+    --destructive: var(--we-ember);
+    --destructive-foreground: 0 0% 100%;
+
+    --border: var(--we-rule);
+    --input: var(--we-rule);
+    --ring: var(--we-obsidian);
+
+    --radius: 1rem;            /* 16px base */
+    --radius-sm: 0.75rem;      /* 12px */
+    --radius-md: 1rem;         /* 16px */
+    --radius-lg: 1.25rem;      /* 20px */
+    --radius-xl: 1.75rem;      /* 28px */
+
+    color-scheme: light;
+  }
   }
 
   .dark {
