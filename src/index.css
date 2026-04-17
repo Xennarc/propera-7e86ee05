@@ -165,25 +165,25 @@
     --transition-normal: 200ms ease-out;
     --transition-smooth: 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
-    /* === Sidebar - Deep Midnight === */
-    --sidebar-background: var(--midnight-950);
-    --sidebar-foreground: 213 56% 97%;
-    --sidebar-primary: var(--lime-400);
-    --sidebar-primary-foreground: var(--midnight-950);
-    --sidebar-accent: var(--midnight-800);
-    --sidebar-accent-foreground: 213 56% 97%;
-    --sidebar-border: var(--midnight-700);
-    --sidebar-ring: var(--lime-400);
+    /* === Sidebar — Paper + Obsidian + Sprig active === */
+    --sidebar-background: var(--we-paper);
+    --sidebar-foreground: var(--we-obsidian);
+    --sidebar-primary: var(--we-obsidian);
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: var(--we-sprig);
+    --sidebar-accent-foreground: var(--we-obsidian);
+    --sidebar-border: var(--we-rule);
+    --sidebar-ring: var(--we-obsidian);
 
-    /* === Status Colors === */
-    --success: 160 70% 35%;
+    /* === Status Colors — Warm Editorial === */
+    --success: var(--we-sprig-deep);
     --success-foreground: 0 0% 100%;
-    --warning: var(--sunset-600);
+    --warning: 32 90% 50%;          /* warm amber */
     --warning-foreground: 45 100% 10%;
-    --info: var(--blurple-500);
+    --info: var(--we-obsidian);
     --info-foreground: 0 0% 100%;
 
-    /* === Category Colors (Light Mode) === */
+    /* === Category Colors === */
     --category-dive: var(--lagoon-600);
     --category-watersport: var(--teal-600);
     --category-excursion: var(--sunset-600);
@@ -196,20 +196,20 @@
     --category-transfer: 220 20% 45%;
     --category-other: 220 20% 45%;
 
-    /* === Chart Palette === */
-    --chart-1: var(--lime-500);
-    --chart-2: var(--blurple-500);
-    --chart-3: var(--lagoon-600);
-    --chart-4: var(--coral-600);
-    --chart-5: var(--orchid-600);
-    --chart-6: var(--sunset-600);
+    /* === Chart Palette — Warm Editorial === */
+    --chart-1: var(--we-sprig-deep);
+    --chart-2: var(--we-ember);
+    --chart-3: var(--we-obsidian);
+    --chart-4: 38 50% 60%;          /* warm sand-deep */
+    --chart-5: 28 70% 55%;          /* warm terracotta */
+    --chart-6: 200 25% 45%;         /* muted slate */
 
-    /* === Premium Gradients === */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--lime-500)) 0%, hsl(var(--lime-400)) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(var(--blurple-500)) 0%, hsl(var(--blurple-400)) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(220 20% 98%) 0%, hsl(220 15% 96%) 100%);
-    --gradient-midnight: linear-gradient(180deg, hsl(var(--midnight-950)) 0%, hsl(var(--midnight-900)) 100%);
-    --gradient-lime-glow: linear-gradient(135deg, hsl(var(--lime-400)) 0%, hsl(var(--lime-300)) 100%);
+    /* === Premium Gradients — Warm Editorial === */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--we-obsidian)) 0%, hsl(var(--we-obsidian-soft)) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--we-sprig)) 0%, hsl(var(--we-sprig-deep)) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(var(--we-sand)) 0%, hsl(var(--we-sand-deep)) 100%);
+    --gradient-midnight: linear-gradient(180deg, hsl(var(--we-obsidian)) 0%, hsl(var(--we-obsidian-soft)) 100%);
+    --gradient-lime-glow: linear-gradient(135deg, hsl(var(--we-sprig)) 0%, hsl(var(--we-sprig-deep)) 100%);
 
     /* Legacy gradients for compatibility */
     --gradient-coral: linear-gradient(135deg, hsl(var(--coral-600)) 0%, hsl(var(--coral-500)) 100%);
@@ -217,19 +217,20 @@
     --gradient-sunset: linear-gradient(135deg, hsl(var(--sunset-600)) 0%, hsl(var(--sunset-500)) 100%);
     --gradient-orchid: linear-gradient(135deg, hsl(var(--orchid-600)) 0%, hsl(var(--orchid-500)) 100%);
 
-    /* === Warm Editorial palette tokens (raw scales, scoped via .theme-warm-editorial) === */
-    --we-sand: 42 22% 91%;          /* #EDE9E0 */
-    --we-sand-deep: 38 18% 84%;     /* slightly deeper sand for muted */
-    --we-paper: 0 0% 100%;
-    --we-obsidian: 60 4% 6%;        /* #0E0F0E */
-    --we-obsidian-soft: 60 4% 14%;
-    --we-sprig: 96 50% 75%;         /* #B8E29E */
-    --we-sprig-deep: 96 35% 55%;
-    --we-ember: 12 83% 54%;         /* #E94F2A */
-    --we-ember-soft: 12 90% 65%;
-    --we-ink-muted: 60 4% 35%;
-    --we-rule: 42 12% 78%;
+    color-scheme: light;
   }
+
+  /* === Warm Editorial scoped class — kept as alias to :root for backward compat === */
+  .theme-warm-editorial {
+    color-scheme: light;
+  }
+
+  /* === .dark — aliased to light tokens (dark mode disabled app-wide) === */
+  .dark {
+    /* Inherits from :root; no overrides. Class kept to avoid regressions. */
+    color-scheme: light;
+  }
+
 
   /* === Warm Editorial Theme — Light-first, scoped === */
   .theme-warm-editorial {
