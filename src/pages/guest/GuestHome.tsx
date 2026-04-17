@@ -485,13 +485,13 @@ export default function GuestHome() {
         
         {todaySchedule.length === 0 ? (
           showNudge ? (
-            <Card className="guest-card border-primary/10 bg-gradient-to-br from-primary/[0.03] via-transparent to-transparent">
+            <Card className="guest-card">
               <CardContent className="p-5 sm:p-6">
-                <h3 className="text-lg font-bold mb-1">{t('home.noPlansYet')}</h3>
+                <h3 className="font-serif text-2xl mb-1">{t('home.noPlansYet')}</h3>
                 <p className="text-sm text-muted-foreground mb-4">Discover experiences curated for your stay</p>
                 <div className="flex gap-2 sm:gap-3">
                   <Link to={GUEST_ROUTES.ACTIVITIES} className="flex-1">
-                    <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold tap-target shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+                    <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold tap-target transition-all duration-200 hover:-translate-y-0.5">
                       {t('home.exploreActivities')}
                     </Button>
                   </Link>
