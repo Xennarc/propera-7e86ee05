@@ -380,7 +380,7 @@ function TransportPageContent() {
             </div>
           ) : (
             /* Desktop 3-Column Dispatch Console */
-            <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanelGroup orientation="horizontal" className="h-full">
               {/* Left: Request Queue */}
               <ResizablePanel defaultSize={35} minSize={25} className="min-h-0">
                 <div className="h-full flex flex-col overflow-hidden">

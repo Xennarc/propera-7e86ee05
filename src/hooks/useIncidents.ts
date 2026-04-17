@@ -158,7 +158,7 @@ export function useUpdateIncidentStatus() {
       
       const { data, error } = await supabase
         .from('incidents')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', incidentId)
         .select()
         .single();

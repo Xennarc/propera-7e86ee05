@@ -160,7 +160,7 @@ export function useGuestMutations() {
 
       const { data: guest, error } = await supabase
         .from('guests')
-        .update(updateData)
+        .update(updateData as never)
         .eq('id', guestId)
         .select('*')
         .single();
