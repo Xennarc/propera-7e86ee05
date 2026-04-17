@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-glow-lime active:scale-[0.98]",
+        default: "rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-glow-sprig active:scale-[0.98]",
         destructive: "rounded-xl bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 hover:shadow-md active:scale-[0.98]",
         outline: "rounded-xl border border-input bg-background hover:bg-muted hover:border-border/80 active:scale-[0.98]",
         secondary: "rounded-xl bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-[0.98]",
@@ -17,7 +17,7 @@ const buttonVariants = cva(
         link: "text-blurple underline-offset-4 hover:underline hover:text-blurple-400",
         success: "rounded-xl bg-success text-success-foreground shadow-sm hover:bg-success/90 hover:shadow-md active:scale-[0.98]",
         subtle: "rounded-xl bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
-        premium: "rounded-full bg-primary text-primary-foreground font-semibold shadow-glow-lime hover:shadow-glow-lime-lg hover:-translate-y-0.5 active:scale-[0.98]",
+        premium: "rounded-full bg-primary text-primary-foreground font-semibold shadow-glow-sprig hover:shadow-glow-sprig-lg hover:-translate-y-0.5 active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",
