@@ -2215,7 +2215,7 @@
 
   /* Stay badge — Obsidian pill (Warm Editorial) */
   .guest-stay-badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.08em];
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 md:px-4 md:py-2 text-[11px] md:text-xs font-medium uppercase tracking-[0.08em];
     background: hsl(var(--foreground));
     color: hsl(var(--background));
     box-shadow: 0 4px 14px -4px hsl(var(--foreground) / 0.4);
