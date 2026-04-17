@@ -194,11 +194,10 @@ export default function BookDemoPage() {
                       onClick={handleEnterStaff}
                       disabled={isEntering}
                       className="rounded-full font-semibold px-6 sm:px-8 h-12 border-border/50 hover:border-primary/30 w-full sm:w-auto"
-                      onClick={() => setShowLiveQualifier(true)}
-                      data-trigger-qualifier
+                      data-trigger-staff
                     >
-                      Book a Live Walkthrough
-                      <Calendar className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      {isEntering ? <LoadingSpinner size="sm" className="mr-2" /> : <Calendar className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />}
+                      Enter as Staff
                     </Button>
                   </div>
 
@@ -303,9 +302,10 @@ export default function BookDemoPage() {
                   <Button 
                     size="lg" 
                     className="w-full bg-primary text-primary-foreground rounded-full font-semibold glow-lime"
-                    onClick={() => setShowDemoWizard(true)}
+                    onClick={handleEnterGuest}
+                    disabled={isEntering}
                   >
-                    Create My Demo Workspace
+                    Enter the Demo
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <p className="text-xs text-center text-muted-foreground/70">
@@ -495,9 +495,10 @@ export default function BookDemoPage() {
                   <Button 
                     size="xl" 
                     className="btn-cta-premium rounded-2xl font-semibold px-8"
-                    onClick={() => setShowDemoWizard(true)}
+                    onClick={handleEnterGuest}
+                    disabled={isEntering}
                   >
-                    Try Propera Now (10 min)
+                    Enter the Demo
                     <Play className="ml-2 h-5 w-5" />
                   </Button>
                   <Button 
@@ -519,11 +520,7 @@ export default function BookDemoPage() {
         </section>
       </div>
 
-      {/* Demo Wizard Modal */}
-      <DemoWizard 
-        open={showDemoWizard} 
-        onOpenChange={setShowDemoWizard} 
-      />
+      {/* Demo wizard removed in Perfect Demo Resort flow. */}
 
       {/* Live Demo Qualifier Modal */}
       <LiveDemoQualifier 
