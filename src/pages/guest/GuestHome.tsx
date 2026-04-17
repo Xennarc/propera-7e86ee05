@@ -340,12 +340,12 @@ export default function GuestHome() {
         <div className="absolute inset-0 bg-gradient-to-br from-foreground/75 via-foreground/45 to-foreground/15" />
         
         {/* Content */}
-        <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 aspect-[2.1/1] sm:aspect-[2.4/1] md:aspect-[2.8/1]">
-          <div className="space-y-1">
-            <h1 className="font-serif text-3xl sm:text-4xl text-background tracking-tight drop-shadow-sm">
+        <div className="relative z-10 h-full flex flex-col justify-between p-5 sm:p-6 md:p-8 xl:p-10 aspect-[2.1/1] sm:aspect-[2.4/1] md:aspect-[2.8/1] xl:aspect-[3.2/1]">
+          <div className="space-y-1 md:space-y-2">
+            <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl xl:text-6xl text-background tracking-tight drop-shadow-sm">
               {String(greeting.text)}, {firstName}
             </h1>
-            <p className="text-background/80 text-sm sm:text-base font-medium">
+            <p className="text-background/80 text-sm sm:text-base md:text-lg font-medium">
               {format(new Date(), 'EEEE, MMMM d')}
             </p>
           </div>
@@ -368,9 +368,9 @@ export default function GuestHome() {
       <TravelPartyCard />
 
       {/* Stat pills — quiet KPIs */}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2.5 md:gap-4 xl:gap-5">
         <div className="guest-stat-pill">
-          <span className="stat-value">{currentDay}<span className="text-muted-foreground/60 text-base">/{totalDays}</span></span>
+          <span className="stat-value">{currentDay}<span className="text-muted-foreground/60 text-base md:text-lg xl:text-xl">/{totalDays}</span></span>
           <span className="stat-label">Day of stay</span>
         </div>
         <div className="guest-stat-pill">

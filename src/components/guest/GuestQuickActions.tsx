@@ -84,11 +84,11 @@ export function GuestQuickActions() {
         {quickActions.map((action, index) => {
           const Icon = action.icon;
           const content = (
-            <div className="guest-quick-action h-full min-h-[88px] sm:min-h-[100px]">
-              <ObsidianIconTile size={40}>
-                <Icon className="h-5 w-5" />
+            <div className="guest-quick-action h-full min-h-[88px] sm:min-h-[100px] md:min-h-[120px] xl:min-h-[140px]">
+              <ObsidianIconTile size={40} className="md:!h-12 md:!w-12 xl:!h-14 xl:!w-14">
+                <Icon className="h-5 w-5 md:h-6 md:w-6 xl:h-7 xl:w-7" />
               </ObsidianIconTile>
-              <span className="text-[11px] sm:text-xs font-semibold text-foreground whitespace-nowrap text-center">
+              <span className="text-[11px] sm:text-xs md:text-sm xl:text-base font-semibold text-foreground whitespace-nowrap text-center">
                 {action.label}
               </span>
             </div>
