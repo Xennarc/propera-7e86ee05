@@ -1979,6 +1979,62 @@ export type Database = {
           },
         ]
       }
+      demo_assignment_counter: {
+        Row: {
+          id: number
+          next_slot: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          next_slot?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          next_slot?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demo_credentials: {
+        Row: {
+          created_at: string
+          email: string
+          guest_id: string | null
+          password: string
+          slot: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          guest_id?: string | null
+          password: string
+          slot: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          guest_id?: string | null
+          password?: string
+          slot?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_credentials_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demo_leads: {
         Row: {
           created_at: string
@@ -8423,6 +8479,7 @@ export type Database = {
       }
       current_guest_id: { Args: never; Returns: string }
       current_guest_resort_id: { Args: never; Returns: string }
+      demo_get_next_slot: { Args: never; Returns: number }
       driver_can_access_trip: { Args: { p_trip_id: string }; Returns: boolean }
       driver_complete_trip_atomic: { Args: { _trip_id: string }; Returns: Json }
       driver_set_status_atomic: {

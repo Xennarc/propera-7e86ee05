@@ -24,10 +24,9 @@ import {
   Shield,
   Waves
 } from 'lucide-react';
-import { DemoWizard } from '@/components/demo/DemoWizard';
 import { LiveDemoQualifier } from '@/components/demo/LiveDemoQualifier';
-import { ResumeDemoBanner } from '@/components/demo/ResumeDemoBanner';
-import { useDemoWorkspace } from '@/hooks/useDemoWorkspace';
+import { useDemoEnter } from '@/hooks/useDemoEnter';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
 import { MarketingLayout } from '@/components/layout/MarketingLayout';
 
@@ -132,27 +131,12 @@ const BOOK_DEMO_SCHEMA = {
 };
 
 export default function BookDemoPage() {
-  const [showDemoWizard, setShowDemoWizard] = useState(false);
   const [showLiveQualifier, setShowLiveQualifier] = useState(false);
   const [selectedPath, setSelectedPath] = useState<'instant' | 'walkthrough'>('instant');
-  const [resumeMode, setResumeMode] = useState(false);
-  
-  const { hasExistingWorkspace, savedEmail, workspace, clearWorkspace, isLoading } = useDemoWorkspace();
+  const { enter, isEntering } = useDemoEnter();
 
-  const handleResume = () => {
-    setResumeMode(true);
-    setShowDemoWizard(true);
-  };
-
-  const handleStartFresh = () => {
-    clearWorkspace();
-    setResumeMode(false);
-  };
-
-  const handleOpenWizard = () => {
-    setResumeMode(false);
-    setShowDemoWizard(true);
-  };
+  const handleEnterGuest = () => { void enter('guest'); };
+  const handleEnterStaff = () => { void enter('staff'); };
 
   return (
     <MarketingLayout currentPage="demo">
@@ -165,18 +149,7 @@ export default function BookDemoPage() {
       />
 
       <div className="pt-24 relative z-10">
-        {/* Resume Demo Banner */}
-        {hasExistingWorkspace && (
-          <div className="container mx-auto px-4 mb-6">
-            <ResumeDemoBanner
-              resortName={workspace?.resort_name}
-              email={savedEmail || undefined}
-              onResume={handleResume}
-              onStartFresh={handleStartFresh}
-              isLoading={isLoading}
-            />
-          </div>
-        )}
+        {/* Resume banner removed in Perfect Demo Resort flow. */}
 
         {/* Hero Section */}
         <section className="py-10 md:py-16 lg:py-24 xl:py-32">
@@ -208,21 +181,23 @@ export default function BookDemoPage() {
                     <Button 
                       size="lg" 
                       className="bg-primary text-primary-foreground rounded-full font-semibold px-6 sm:px-8 h-12 glow-lime hover:-translate-y-0.5 transition-all w-full sm:w-auto"
-                      onClick={handleOpenWizard}
+                      onClick={handleEnterGuest}
+                      disabled={isEntering}
                       data-trigger-demo
                     >
-                      Try Propera Now (10 min)
-                      <Play className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      {isEntering ? <LoadingSpinner size="sm" className="mr-2" /> : <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />}
+                      Enter as Guest
                     </Button>
                     <Button 
                       size="lg" 
                       variant="outline"
+                      onClick={handleEnterStaff}
+                      disabled={isEntering}
                       className="rounded-full font-semibold px-6 sm:px-8 h-12 border-border/50 hover:border-primary/30 w-full sm:w-auto"
-                      onClick={() => setShowLiveQualifier(true)}
-                      data-trigger-qualifier
+                      data-trigger-staff
                     >
-                      Book a Live Walkthrough
-                      <Calendar className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      {isEntering ? <LoadingSpinner size="sm" className="mr-2" /> : <Calendar className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />}
+                      Enter as Staff
                     </Button>
                   </div>
 
@@ -327,9 +302,10 @@ export default function BookDemoPage() {
                   <Button 
                     size="lg" 
                     className="w-full bg-primary text-primary-foreground rounded-full font-semibold glow-lime"
-                    onClick={() => setShowDemoWizard(true)}
+                    onClick={handleEnterGuest}
+                    disabled={isEntering}
                   >
-                    Create My Demo Workspace
+                    Enter the Demo
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <p className="text-xs text-center text-muted-foreground/70">
@@ -519,9 +495,10 @@ export default function BookDemoPage() {
                   <Button 
                     size="xl" 
                     className="btn-cta-premium rounded-2xl font-semibold px-8"
-                    onClick={() => setShowDemoWizard(true)}
+                    onClick={handleEnterGuest}
+                    disabled={isEntering}
                   >
-                    Try Propera Now (10 min)
+                    Enter the Demo
                     <Play className="ml-2 h-5 w-5" />
                   </Button>
                   <Button 
@@ -543,11 +520,7 @@ export default function BookDemoPage() {
         </section>
       </div>
 
-      {/* Demo Wizard Modal */}
-      <DemoWizard 
-        open={showDemoWizard} 
-        onOpenChange={setShowDemoWizard} 
-      />
+      {/* Demo wizard removed in Perfect Demo Resort flow. */}
 
       {/* Live Demo Qualifier Modal */}
       <LiveDemoQualifier 
