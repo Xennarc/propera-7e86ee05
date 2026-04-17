@@ -1867,6 +1867,17 @@
       0 1px 2px 0 hsl(var(--foreground) / 0.04),
       0 8px 24px -12px hsl(var(--foreground) / 0.08);
   }
+  @media (min-width: 768px) {
+    .guest-card { border-radius: 32px; }
+  }
+  @media (min-width: 1280px) {
+    .guest-card {
+      border-radius: 36px;
+      box-shadow:
+        0 1px 2px 0 hsl(var(--foreground) / 0.04),
+        0 14px 36px -16px hsl(var(--foreground) / 0.1);
+    }
+  }
 
   .guest-card:hover {
     box-shadow:
@@ -1901,16 +1912,16 @@
 
   /* Guest stat pill — dashboard KPI */
   .guest-stat-pill {
-    @apply flex flex-col items-start justify-center rounded-[24px] bg-card px-4 py-3 transition-all duration-150;
+    @apply flex flex-col items-start justify-center rounded-[24px] bg-card px-4 py-3 md:px-5 md:py-4 xl:px-6 xl:py-5 transition-all duration-150;
     border: 1px solid transparent;
     box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.04), 0 6px 18px -10px hsl(var(--foreground) / 0.08);
   }
   .guest-stat-pill .stat-value {
-    @apply font-serif text-2xl leading-none text-foreground;
+    @apply font-serif text-2xl md:text-3xl xl:text-4xl leading-none text-foreground;
     font-feature-settings: "lnum" 1;
   }
   .guest-stat-pill .stat-label {
-    @apply mt-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
+    @apply mt-1.5 md:mt-2 text-[10px] md:text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground;
   }
   
   .guest-card-interactive:active {
@@ -1979,12 +1990,15 @@
   
   /* === Quick Action — Warm Editorial Paper pill === */
   .guest-quick-action {
-    @apply flex flex-col items-center justify-center gap-2.5 p-3.5 bg-card transition-all duration-200;
+    @apply flex flex-col items-center justify-center gap-2.5 md:gap-3 p-3.5 md:p-5 xl:p-6 bg-card transition-all duration-200;
     border: 1px solid transparent;
     border-radius: 24px;
     box-shadow:
       0 1px 2px 0 hsl(var(--foreground) / 0.04),
       0 6px 18px -10px hsl(var(--foreground) / 0.08);
+  }
+  @media (min-width: 768px) {
+    .guest-quick-action { border-radius: 28px; }
   }
 
   .guest-quick-action:hover {
