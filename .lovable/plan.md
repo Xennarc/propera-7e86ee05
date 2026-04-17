@@ -1,33 +1,34 @@
 
+## Update All Dependencies to Latest Versions
 
-## Root Cause
+### Scope
+Bulk-update every entry in `package.json` (dependencies + devDependencies) to its latest published version, then verify the build still compiles.
 
-GitHub Actions Security Checks fail at the **`npm ci`** step in both jobs (~11–14s — exactly the time `npm ci` takes to resolve and abort).
+### Approach
+1. Run `npx npm-check-updates -u` to rewrite `package.json` with latest semver tags for all packages.
+2. Run `npm install --legacy-peer-deps` to refresh `package-lock.json` (needed because React 19 + `next-themes` still has a peer-dep mismatch — same flag already used in CI).
+3. Run `npx tsc --noEmit` and `npm run build` to confirm nothing breaks at the type or bundler level.
+4. If a major bump introduces a breaking change that fails the build, pin that single package back to its previous major and report it.
 
-Reproduced locally:
-```
-npm error ERESOLVE could not resolve
-npm error peer react@"^16.8 || ^17 || ^18" from next-themes@0.3.0
-npm error Conflicting peer dependency: react@18.3.1
-npm error   (root project uses react@^19.2.3)
-```
+### Risks (worth flagging upfront)
+Major-version jumps across ~80 packages will likely surface breakages. Highest-risk candidates:
+- **Tailwind 3 → 4** — config format changed; very likely to break styling.
+- **React Router 6 → 7** — route API changes.
+- **Vite 5 → 7**, **Vitest 1 → 3** — config + plugin compat.
+- **Zod 3 → 4**, **React Query 5.x** internal changes.
+- **Radix UI** primitives — minor API drift.
+- **`react-day-picker`**, **`cmdk`**, **`sonner`** — frequent breaking releases.
 
-The project upgraded to **React 19**, but `next-themes@0.3.0` only declares peers up to React 18. `npm ci` is strict about peer conflicts and exits non-zero, killing both CI jobs before tests/lint ever run. Locally everything works because `node_modules` is already populated, hiding the conflict.
+I will fix straightforward type errors inline. For larger framework migrations (e.g. Tailwind 4), I'll pin back to the latest non-breaking major and call it out in the final summary rather than silently rewriting your config.
 
-## Fix
+### Files touched
+- `package.json` — version bumps
+- `package-lock.json` — regenerated
+- Minimal source edits only if a type/import break is trivially fixable
 
-Add `--legacy-peer-deps` to both `npm ci` calls in `.github/workflows/security-checks.yml`. This matches how the existing install was produced (the lockfile already contains the resolved tree) and is the standard fix for React 19 peer-dep lag in older libs like `next-themes`.
+### Out of scope
+- Tailwind v4 migration (config rewrite)
+- React Router v7 migration
+- Any framework-level refactor
 
-### Change (1 file)
-
-`.github/workflows/security-checks.yml`
-- Line 25: `npm ci` → `npm ci --legacy-peer-deps`
-- Line 51: `npm ci` → `npm ci --legacy-peer-deps`
-
-### Why not other approaches
-- **Upgrading `next-themes`** — broader change, risks theme regressions; not requested.
-- **Adding `.npmrc` with `legacy-peer-deps=true`** — affects all dev installs project-wide; more invasive than needed.
-- **`npm install --force`** — discouraged; bypasses lockfile integrity.
-
-The workflow flag is the smallest, safest fix that gets CI green again.
-
+If any of those are desired, ask separately and I'll plan them individually.
