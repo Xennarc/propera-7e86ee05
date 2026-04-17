@@ -149,18 +149,7 @@ export default function BookDemoPage() {
       />
 
       <div className="pt-24 relative z-10">
-        {/* Resume Demo Banner */}
-        {hasExistingWorkspace && (
-          <div className="container mx-auto px-4 mb-6">
-            <ResumeDemoBanner
-              resortName={workspace?.resort_name}
-              email={savedEmail || undefined}
-              onResume={handleResume}
-              onStartFresh={handleStartFresh}
-              isLoading={isLoading}
-            />
-          </div>
-        )}
+        {/* Resume banner removed in Perfect Demo Resort flow. */}
 
         {/* Hero Section */}
         <section className="py-10 md:py-16 lg:py-24 xl:py-32">
@@ -192,15 +181,18 @@ export default function BookDemoPage() {
                     <Button 
                       size="lg" 
                       className="bg-primary text-primary-foreground rounded-full font-semibold px-6 sm:px-8 h-12 glow-lime hover:-translate-y-0.5 transition-all w-full sm:w-auto"
-                      onClick={handleOpenWizard}
+                      onClick={handleEnterGuest}
+                      disabled={isEntering}
                       data-trigger-demo
                     >
-                      Try Propera Now (10 min)
-                      <Play className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      {isEntering ? <LoadingSpinner size="sm" className="mr-2" /> : <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />}
+                      Enter as Guest
                     </Button>
                     <Button 
                       size="lg" 
                       variant="outline"
+                      onClick={handleEnterStaff}
+                      disabled={isEntering}
                       className="rounded-full font-semibold px-6 sm:px-8 h-12 border-border/50 hover:border-primary/30 w-full sm:w-auto"
                       onClick={() => setShowLiveQualifier(true)}
                       data-trigger-qualifier
