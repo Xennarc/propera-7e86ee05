@@ -1,36 +1,47 @@
 
-## Pull v3 fonts (verified) — colors untouched
+## Auto-reseed Propera Demo Resort daily
 
-### v3's exact font setup (verified)
-- `tailwind.config.ts` fontFamily: `sans: ['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']`, `serif: ['Playfair Display', 'Georgia', 'serif']` — no `display`, no `geist`
-- `index.html` preload: `Playfair Display + DM Sans + Plus Jakarta Sans + Sora` — no Instrument Serif, no Geist
-- Body critical CSS lead: `'Plus Jakarta Sans', 'Sora', …`
-- Global body in `index.css` line 296: `'Plus Jakarta Sans', 'Sora', system-ui, …`
+### Approach
+Refresh **transactional data only** (guests, sessions, slots, bookings, reservations, feedback) every 24h. Catalog (activities, restaurants, rooms, branding, flags, settings) stays untouched. All dates rebased relative to "today" so the demo always looks current.
 
-### Changes (fonts only — no color/theme touches)
+### Verification needed before edits
+- Read `supabase/functions/demo-reset/index.ts` to see current wipe/seed logic and whether it already targets the shared `DEMO` resort.
+- Read `supabase/functions/provision-demo/index.ts` `reseed` branch to reuse its seed logic.
+- Confirm the seed in `src/lib/demo-seed.ts` can be invoked from an edge function (or port the date-rebasing logic into the function — edge functions can't import client-side code, so logic will be inlined).
 
-**1. `tailwind.config.ts` — fontFamily block**
-- Replace current `sans` (`['Geist', 'DM Sans', 'Plus Jakarta Sans', 'Sora', …]`) with v3's exact: `['DM Sans', 'Plus Jakarta Sans', 'Sora', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']`
-- Replace `serif` with v3's: `['Playfair Display', 'Georgia', 'serif']`
-- Remove `display` and `geist` aliases (v3 has neither)
+### Changes
 
-**2. `index.html`**
-- Replace the two font links (`<link rel="preload">` and `<noscript>`) with v3's URL — drops `Instrument+Serif` and `Geist` families:
-  ```
-  https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@300;400;500;600;700;800&display=swap
-  ```
-- Critical-CSS `body { font-family }` already matches v3 (`Plus Jakarta Sans, Sora, …`) — no change.
+**1. `supabase/functions/demo-reset/index.ts` — rewrite as catalog-preserving daily refresh**
+- Resolve shared resort: `SELECT id FROM resorts WHERE code = 'DEMO'`. Abort if not found.
+- **Wipe (FK-safe order, scoped to demo resort_id only):**
+  `activity_bookings` → `restaurant_reservations` → `stay_feedback` → `service_requests` → `room_service_orders` (if exists) → `activity_sessions` → `restaurant_time_slots` → `guests`
+- **Re-seed transactional data** with dates anchored to `now()`:
+  - 8 guests with check-in offsets `[-3, -2, -1, 0, 0, +1, -1, +2]` from today (mirrors `DEMO_GUESTS` in `src/lib/demo-seed.ts`)
+  - Activity sessions for next 10 days across existing catalog activities
+  - Restaurant slots for next 10 days across existing restaurants
+  - Sample bookings (CONFIRMED/PENDING/COMPLETED/CANCELLED mix) and reservations
+  - 2 stay-feedback entries for past guests
+- Keep catalog rows (`activities`, `restaurants`, `rooms`, `resort_settings`, `branding`, feature flags, staff users) **completely untouched**.
+- Return JSON summary `{ wiped: {...}, seeded: {...} }` for logs.
 
-**3. Memory update**
-- Update `mem://style/warm-editorial-theme` typography line: "Body: DM Sans (primary) → Plus Jakarta Sans → Sora. Display/serif: Playfair Display. Instrument Serif and Geist removed (matches Remix propera v3)."
+**2. `supabase/config.toml` — change schedule to daily**
+- `[functions.demo-reset]`: `schedule = "0 4 * * *"` (was `"0 6 */4 * *"`). 04:00 UTC, off-peak, no collision with `retention-scheduler` at 03:00 or `process-outbox` (every minute).
+
+**3. Memory**
+- New: `mem://features/demo/auto-reseed-policy` — "Shared `DEMO` resort: `demo-reset` edge function runs daily at 04:00 UTC. Wipes transactional data only (guests, sessions, slots, bookings, reservations, feedback). Catalog (activities, restaurants, rooms, branding, settings, flags, staff) preserved. All dates rebased to current day so demo always looks live."
+- Update `mem://index.md` Memories list with the new entry.
 
 ### Out of scope
-- All color tokens (`:root`, `.dark`, sand/sprig/ember palette) — untouched
-- ThemeProvider light-only forcing — untouched
-- Any component visual styling beyond inherited font
+- UI button for manual reseed (cron-only per your instruction)
+- Catalog regeneration
+- Touching any non-DEMO resort
+- Provisioning new demo workspaces (handled by `provision-demo`, unchanged)
 
 ### Risk
-Low. Pure font stack swap. Pricing hero and any other surfaces using `font-display`/Instrument Serif will fall back to `font-serif` (Playfair) automatically since `font-display` alias is removed — visually a different display face but coherent. If you want me to keep `font-display` as an alias for Playfair to avoid touching consumer components, I can — say the word.
+Low. Wipe is scoped strictly to `resort_id = <DEMO>`. Catalog preserved means staff seeded against the demo resort keep working seamlessly across reseeds. First run after deploy will execute at the next 04:00 UTC.
 
 ### Files touched
-`tailwind.config.ts`, `index.html`, `mem://style/warm-editorial-theme`
+- `supabase/functions/demo-reset/index.ts` (rewrite)
+- `supabase/config.toml` (schedule line only)
+- `mem://features/demo/auto-reseed-policy` (new)
+- `mem://index.md` (append memory entry)
