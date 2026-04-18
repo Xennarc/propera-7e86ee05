@@ -5,13 +5,44 @@
  * Used to filter out past sessions in the guest portal.
  */
 
-import { toZonedTime } from 'date-fns-tz';
+/**
+ * Get the current "wall clock" time in the given IANA timezone as numeric parts.
+ * Uses Intl.DateTimeFormat to avoid double-shift bugs from date-fns-tz getters.
+ */
+function nowPartsInTimezone(timezone: string): {
+  year: number;
+  month: number; // 1-12
+  day: number;
+  hour: number;
+  minute: number;
+} {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  let hour = get('hour');
+  if (hour === 24) hour = 0; // some engines emit 24 for midnight
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour,
+    minute: get('minute'),
+  };
+}
 
 /**
  * Check if a session has already started based on resort timezone.
- * 
- * @param sessionDate - The session date (YYYY-MM-DD)
- * @param sessionStartTime - The session start time (HH:mm:ss or HH:mm)
+ *
+ * @param sessionDate - The session date (YYYY-MM-DD) — interpreted in resort tz
+ * @param sessionStartTime - The session start time (HH:mm:ss or HH:mm) — in resort tz
  * @param resortTimezone - The resort's IANA timezone (e.g., 'Indian/Maldives')
  * @returns true if the session has already started
  */
@@ -21,54 +52,24 @@ export function isSessionPast(
   resortTimezone: string = 'UTC'
 ): boolean {
   try {
-    // Combine date and time into a local datetime string
-    const localDateTimeStr = `${sessionDate}T${sessionStartTime}`;
-    
-    // Parse as a Date in the browser's local timezone first
-    // Then we need to compare against "now" in the resort timezone
-    const sessionLocalDate = new Date(localDateTimeStr);
-    
-    // Get current time in resort timezone
-    const nowInResort = toZonedTime(new Date(), resortTimezone);
-    
-    // The session date+time is already in resort local time, so we compare directly
-    // We need to interpret the session datetime as being in the resort timezone
-    // Since we can't directly parse with timezone, we compare the components
-    const [year, month, day] = sessionDate.split('-').map(Number);
-    const timeParts = sessionStartTime.split(':').map(Number);
-    const [hours, minutes] = timeParts;
-    
-    // Create date object for session in resort timezone context
-    // We're comparing local representations
-    const sessionYear = year;
-    const sessionMonth = month - 1; // JS months are 0-indexed
-    const sessionDay = day;
-    
-    // Compare year, month, day, hour, minute
-    const nowYear = nowInResort.getFullYear();
-    const nowMonth = nowInResort.getMonth();
-    const nowDay = nowInResort.getDate();
-    const nowHours = nowInResort.getHours();
-    const nowMinutes = nowInResort.getMinutes();
-    
-    // First compare date
-    if (sessionYear < nowYear) return true;
-    if (sessionYear > nowYear) return false;
-    
-    if (sessionMonth < nowMonth) return true;
-    if (sessionMonth > nowMonth) return false;
-    
-    if (sessionDay < nowDay) return true;
-    if (sessionDay > nowDay) return false;
-    
-    // Same day - compare time
-    const sessionTotalMinutes = hours * 60 + minutes;
-    const nowTotalMinutes = nowHours * 60 + nowMinutes;
-    
-    return sessionTotalMinutes <= nowTotalMinutes;
+    const [sy, sm, sd] = sessionDate.split('-').map(Number);
+    const [sh, smin] = sessionStartTime.split(':').map(Number);
+    if (!sy || !sm || !sd || Number.isNaN(sh) || Number.isNaN(smin)) return false;
+
+    const now = nowPartsInTimezone(resortTimezone);
+
+    // Compare as numeric tuples (year, month, day, hour, minute)
+    const sessionTuple = [sy, sm, sd, sh, smin];
+    const nowTuple = [now.year, now.month, now.day, now.hour, now.minute];
+
+    for (let i = 0; i < sessionTuple.length; i++) {
+      if (sessionTuple[i] < nowTuple[i]) return true;
+      if (sessionTuple[i] > nowTuple[i]) return false;
+    }
+    // Exactly equal — treat as just started (past)
+    return true;
   } catch (error) {
     console.error('Error checking if session is past:', error);
-    // If we can't parse, assume session is not past (safer for user experience)
     return false;
   }
 }

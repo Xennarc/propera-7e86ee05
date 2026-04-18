@@ -315,15 +315,17 @@ function GuestLayoutInner({
               <ThemeToggle className="text-muted-foreground hover:text-foreground h-9 w-9 sm:h-10 sm:w-10 tap-target" aria-label={t('a11y.toggleTheme')} />
               <GuestNotificationBell />
               <DemoExitButton />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={logout}
-                className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
-                aria-label={t('nav.logout')}
-              >
-                <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-              </Button>
+              {getStoredDemoSlot() == null && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={logout}
+                  className="text-muted-foreground hover:text-foreground rounded-xl h-9 w-9 sm:h-10 sm:w-10 tap-target"
+                  aria-label={t('nav.logout')}
+                >
+                  <IconLogout className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
+                </Button>
+              )}
             </div>
           </div>
         </header>
