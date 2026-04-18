@@ -226,6 +226,9 @@ export default function BookDemoPage() {
           </div>
         </section>
 
+        {/* Optional lead capture — non-blocking */}
+        <DemoLeadCaptureCard />
+
         {/* Two Paths Section */}
         <section className="py-12 md:py-16 lg:py-20 relative">
           <div className="container mx-auto px-4">
