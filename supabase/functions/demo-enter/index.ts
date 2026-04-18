@@ -182,7 +182,7 @@ async function regenerateTodaySessions(
         start_time: `${pad2(start.h)}:${pad2(start.m)}:00`,
         end_time: `${pad2(end.h)}:${pad2(end.m)}:00`,
         capacity: cap,
-        status: "scheduled",
+        status: "SCHEDULED",
       });
     }
   }
