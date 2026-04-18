@@ -29,8 +29,10 @@ import { useDemoEnter } from '@/hooks/useDemoEnter';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { cn } from '@/lib/utils';
 import { MarketingLayout } from '@/components/layout/MarketingLayout';
+import { DemoLeadCaptureCard } from '@/components/demo/DemoLeadCaptureCard';
 
 const TRUST_CHIPS = [
+  'No signup required',
   'White-label guest portal',
   'Live availability',
   'Multi-department scheduling',
@@ -71,38 +73,42 @@ const DEMO_FEATURES = [
 ];
 
 const STEPS = [
-  { 
-    number: '1', 
-    title: 'Create your demo workspace', 
-    description: 'We set up a sample resort with real workflows.',
+  {
+    number: '1',
+    title: "Click Enter — you're in",
+    description: 'No signup, no email. We auto-log you into a live demo resort.',
     icon: <Rocket className="h-5 w-5" />
   },
-  { 
-    number: '2', 
-    title: 'Follow the guided checklist', 
-    description: 'Reach the "first guest booking" moment fast.',
+  {
+    number: '2',
+    title: 'Explore as a guest or as staff',
+    description: 'Browse, book, and manage from both sides. Real workflows, sample data.',
     icon: <CheckCircle2 className="h-5 w-5" />
   },
-  { 
-    number: '3', 
-    title: 'Go live when ready', 
-    description: 'Upgrade, brand it, invite staff, and launch.',
+  {
+    number: '3',
+    title: 'Book a call when ready',
+    description: 'Talk to us about rolling out Propera at your resort — on your timeline.',
     icon: <Sparkles className="h-5 w-5" />
   },
 ];
 
 const FAQS = [
   {
-    question: 'Do I need to talk to someone to try it?',
-    answer: 'No. The instant demo is designed to stand on its own. If you want a walkthrough, you can book one.',
+    question: 'Do I need to sign up or share my email?',
+    answer: "No. The instant demo opens immediately — no signup, no email, no password. If you'd like a follow-up, you can optionally drop your email in the form on this page.",
   },
   {
     question: "What's included in the instant demo?",
-    answer: 'A demo resort workspace with sample activities, sessions, dining slots, guests, and example bookings — plus a guided checklist so you can test the full flow.',
+    answer: 'A shared demo resort with sample activities, sessions, dining slots, guests, and example bookings. You enter as one of three rotating personas, so you can also try it in two browser tabs as different guests.',
+  },
+  {
+    question: 'Will my actions affect other people trying the demo?',
+    answer: 'No. Each visitor gets their own isolated slot — your bookings, exits, and resets are private to you. The catalog (activities, restaurants) is shared and read-only.',
   },
   {
     question: 'Can I use my own branding?',
-    answer: 'Yes. You can add your logo and brand color in the demo to see how it feels guest-side.',
+    answer: 'Not in the shared demo. Once you go live with your own workspace, you can add your logo and brand color and see it reflected on the guest side.',
   },
   {
     question: 'Does the guest portal work on phones?',
@@ -114,7 +120,7 @@ const FAQS = [
   },
   {
     question: 'What happens after the demo?',
-    answer: "If you're ready, you can upgrade and convert the same workspace into a live resort setup — no need to start over.",
+    answer: "When you're ready, book a walkthrough or drop your email here. We'll provision a real workspace for your resort — branded, clean, and yours.",
   },
   {
     question: 'Is this built for Maldives-style island resorts?',
@@ -174,7 +180,7 @@ export default function BookDemoPage() {
                   </h1>
                   
                   <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
-                    Propera is a modern guest booking and operations hub for island resorts — activities, spa, excursions, and dining — with real-time availability and a clean guest portal.
+                    Click and you're in. No signup, no email, no password — explore the full guest portal and staff console using a live demo resort with realistic data.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-4 sm:mb-6">
@@ -202,7 +208,7 @@ export default function BookDemoPage() {
                   </div>
 
                   <p className="text-xs sm:text-sm text-muted-foreground/80 mb-6 sm:mb-8 md:mb-10">
-                    No pressure. No long forms. Your demo workspace is created instantly.
+                    Instant access. No forms. Exit anytime — your slot resets automatically.
                   </p>
 
                   {/* Trust chips */}
@@ -309,7 +315,7 @@ export default function BookDemoPage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                   <p className="text-xs text-center text-muted-foreground/70">
-                    Takes ~60 seconds to start. Uses your email only to create access.
+                    Instant. No signup, no email, no password.
                   </p>
                 </CardContent>
               </Card>
