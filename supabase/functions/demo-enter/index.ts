@@ -317,6 +317,11 @@ Deno.serve(async (req) => {
     // 4b. Refresh today's sessions so they're always upcoming for this visitor.
     await regenerateTodaySessions(admin, DEMO_RESORT_ID, resort?.timezone ?? "UTC");
 
+    // 4c. Mint the per-visitor frozen virtual clock (time-capsule anchor).
+    // We freeze at the real current instant — the client persists this and
+    // every "now" decision reads from it for the rest of the session.
+    const virtualNow = new Date().toISOString();
+
     if (portal === "guest") {
       // Build a guest session payload (client writes to localStorage).
       const { data: guest } = await admin
@@ -334,6 +339,7 @@ Deno.serve(async (req) => {
         portal: "guest",
         slot,
         resortCode: resort?.code ?? "DEMO",
+        virtualNow,
         guestSession: {
           guestId: guest.id,
           fullName: guest.full_name,
@@ -368,6 +374,7 @@ Deno.serve(async (req) => {
       portal: "staff",
       slot,
       resortCode: resort?.code ?? "DEMO",
+      virtualNow,
       auth: {
         email: cred.email,
         password,
