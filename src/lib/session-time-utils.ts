@@ -3,7 +3,12 @@
  * 
  * Utilities for comparing session times against resort timezone.
  * Used to filter out past sessions in the guest portal.
+ *
+ * NOTE: All "now" reads route through `getVirtualNow()` so the demo
+ * sandbox's frozen clock is honored.
  */
+
+import { getVirtualNow } from './virtual-clock';
 
 /**
  * Get the current "wall clock" time in the given IANA timezone as numeric parts.
@@ -25,7 +30,7 @@ function nowPartsInTimezone(timezone: string): {
     minute: '2-digit',
     hour12: false,
   });
-  const parts = fmt.formatToParts(new Date());
+  const parts = fmt.formatToParts(getVirtualNow());
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   let hour = get('hour');
   if (hour === 24) hour = 0; // some engines emit 24 for midnight

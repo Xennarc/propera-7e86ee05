@@ -62,6 +62,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Demo sandbox: never push for the shared demo resort.
+    if (resort_id === "7819d1dc-485a-4309-a403-67c16c468f4b") {
+      return new Response(
+        JSON.stringify({ success: true, skipped: "demo", sent: 0 }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:notifications@propera.app";

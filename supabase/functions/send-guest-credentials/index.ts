@@ -75,6 +75,14 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Demo sandbox: never send credentials for the shared demo resort.
+    if (resortId === "7819d1dc-485a-4309-a403-67c16c468f4b") {
+      return new Response(
+        JSON.stringify({ success: true, skipped: "demo" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const firstName = guestName.split(' ')[0];
     const formattedDate = new Date(checkInDate).toLocaleDateString('en-US', {
       weekday: 'long',

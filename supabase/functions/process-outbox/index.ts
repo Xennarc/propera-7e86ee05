@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const BATCH_SIZE = 10;
 const MAX_ATTEMPTS = 5;
+const DEMO_RESORT_ID = "7819d1dc-485a-4309-a403-67c16c468f4b";
 
 interface OutboxEvent {
   id: string;
@@ -517,6 +518,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Process each event
     for (const event of events) {
+      // Sandbox boundary: never dispatch demo-resort side effects.
+      if (event.resort_id === DEMO_RESORT_ID) {
+        await supabase.rpc("mark_outbox_done", { p_event_id: event.id });
+        results.push({ eventId: event.id, success: true });
+        continue;
+      }
+
       const result = await processEvent(supabase, resend, event);
 
       if (result.success) {

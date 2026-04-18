@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { GUEST_SESSION_KEY } from '@/contexts/GuestAuthContext';
+import { setVirtualNow, clearVirtualNow } from '@/lib/virtual-clock';
 import { toast } from 'sonner';
 
 const DEMO_SLOT_KEY = 'propera_demo_slot';
@@ -36,6 +37,11 @@ export function useDemoEnter() {
         // Track which slot we own so exit can target it.
         if (typeof data.slot === 'number') {
           localStorage.setItem(DEMO_SLOT_KEY, String(data.slot));
+        }
+
+        // Freeze the per-visitor virtual clock for the time-capsule effect.
+        if (data.virtualNow) {
+          setVirtualNow(data.virtualNow);
         }
 
         if (portal === 'guest' && data.guestSession) {
@@ -85,4 +91,5 @@ export function getStoredDemoSlot(): number | null {
 
 export function clearStoredDemoSlot() {
   localStorage.removeItem(DEMO_SLOT_KEY);
+  clearVirtualNow();
 }

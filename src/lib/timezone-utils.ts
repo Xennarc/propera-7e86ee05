@@ -7,6 +7,7 @@
 
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { format, parseISO, isValid } from 'date-fns';
+import { getVirtualNow } from './virtual-clock';
 
 /**
  * Format a UTC timestamp for display in a specific timezone
@@ -61,10 +62,11 @@ export function resortTimeToUtc(
 }
 
 /**
- * Get current time in a specific timezone
+ * Get current time in a specific timezone.
+ * Honors the demo sandbox's frozen clock when active.
  */
 export function nowInTimezone(timezone: string): Date {
-  return toZonedTime(new Date(), timezone);
+  return toZonedTime(getVirtualNow(), timezone);
 }
 
 /**
