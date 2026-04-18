@@ -2041,6 +2041,10 @@ export type Database = {
           email: string
           id: string
           last_seen_at: string
+          name: string | null
+          resort_name: string | null
+          role: string | null
+          source: string | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
@@ -2050,6 +2054,10 @@ export type Database = {
           email: string
           id?: string
           last_seen_at?: string
+          name?: string | null
+          resort_name?: string | null
+          role?: string | null
+          source?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -2059,6 +2067,10 @@ export type Database = {
           email?: string
           id?: string
           last_seen_at?: string
+          name?: string | null
+          resort_name?: string | null
+          role?: string | null
+          source?: string | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
