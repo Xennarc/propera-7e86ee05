@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bell, X } from 'lucide-react';
 import { useGuestPushNotifications } from '@/hooks/useGuestPushNotifications';
+import { useIsDemoSession } from '@/hooks/useIsDemoSession';
 import { toast } from 'sonner';
 
 const DISMISSED_KEY = 'propera_push_dismissed';
@@ -16,11 +17,13 @@ interface GuestPushOptInProps {
 export function GuestPushOptIn({ guestId, resortId, hasBookings }: GuestPushOptInProps) {
   const { isSupported, isFlagEnabled, permission, isSubscribed, requestPermission } =
     useGuestPushNotifications(guestId, resortId);
+  const isDemo = useIsDemoSession();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem(DISMISSED_KEY) === '1');
   const [loading, setLoading] = useState(false);
 
-  // Don't show if: flag off, unsupported, already subscribed, already asked, dismissed, no bookings
+  // Don't show if: demo sandbox, flag off, unsupported, already subscribed, already asked, dismissed, no bookings
   if (
+    isDemo ||
     !isFlagEnabled ||
     !isSupported ||
     isSubscribed ||
