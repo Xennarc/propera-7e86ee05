@@ -314,6 +314,9 @@ Deno.serve(async (req) => {
       .eq("id", DEMO_RESORT_ID)
       .single();
 
+    // 4b. Refresh today's sessions so they're always upcoming for this visitor.
+    await regenerateTodaySessions(admin, DEMO_RESORT_ID, resort?.timezone ?? "UTC");
+
     if (portal === "guest") {
       // Build a guest session payload (client writes to localStorage).
       const { data: guest } = await admin
