@@ -9073,6 +9073,7 @@ export type Database = {
         Args: { p_resort_id: string }
         Returns: undefined
       }
+      is_demo_resort: { Args: { p_resort_id: string }; Returns: boolean }
       is_demo_write_blocked: { Args: never; Returns: boolean }
       is_dept_manager_or_admin: {
         Args: { _resort_id: string; _user_id: string }
