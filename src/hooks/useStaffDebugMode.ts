@@ -23,7 +23,6 @@ export function useStaffDebugMode(): StaffDebugMode {
 
   const debugLog = (message: string, data?: Record<string, unknown>) => {
     if (isDebugMode) {
-      console.log(`[Staff Debug] ${message}`, data ?? '');
     }
   };
 
