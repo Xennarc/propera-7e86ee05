@@ -489,7 +489,6 @@ export function __devTestEffectiveFlags(): void {
     enable_transport_routes: true,
   };
   
-  console.log('Test 1: Module OFF, subfeatures ON');
   console.log('  enable_transport:', isEnabledEffective('enable_transport', testCase1), '(expected: false)');
   console.log('  enable_transport_guest_booking:', isEnabledEffective('enable_transport_guest_booking', testCase1), '(expected: false ← parent OFF)');
   console.log('  enable_transport_routes:', isEnabledEffective('enable_transport_routes', testCase1), '(expected: false ← parent OFF)');
