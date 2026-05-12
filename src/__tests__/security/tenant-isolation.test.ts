@@ -197,7 +197,7 @@ describe.skipIf(!hasServiceKey)('Tenant Isolation Security Tests', () => {
         .insert({
           resort_id: resortB.id, // Attempting cross-tenant insert
           full_name: `${TEST_PREFIX}Malicious Insert`,
-          room_number: 'HACK',
+          room_number: 'T999',
           check_in_date: new Date().toISOString().split('T')[0],
           check_out_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         });
@@ -211,7 +211,7 @@ describe.skipIf(!hasServiceKey)('Tenant Isolation Security Tests', () => {
         .insert({
           resort_id: resortA.id,
           full_name: `${TEST_PREFIX}Valid Insert`,
-          room_number: 'VALID',
+          room_number: 'T101',
           check_in_date: new Date().toISOString().split('T')[0],
           check_out_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         })
