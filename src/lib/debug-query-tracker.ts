@@ -14,7 +14,7 @@ export interface TrackedQuery {
 }
 
 // In-memory storage
-let pendingQueries: Map<string, TrackedQuery> = new Map();
+const pendingQueries: Map<string, TrackedQuery> = new Map();
 let recentQueries: TrackedQuery[] = [];
 let unsubscribe: (() => void) | null = null;
 
