@@ -227,7 +227,7 @@ export function ResortQuickDiagnostic({
           </Button>
           <Button 
             variant="outline"
-            onClick={() => window.open(`/guest/login?resort=${resort.code}`, '_blank')}
+            onClick={() => window.open(`/guest/login?resort=${encodeURIComponent(resort.code)}`, '_blank', 'noopener,noreferrer')}
           >
             <ExternalLink className="h-4 w-4 mr-2" />
             Guest Portal

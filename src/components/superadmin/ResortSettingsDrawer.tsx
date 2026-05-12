@@ -324,7 +324,7 @@ export function ResortSettingsDrawer({ resort, open, onOpenChange, onRefresh }: 
   };
 
   const handleOpenGuestPortal = () => {
-    window.open(`/guest/login?resort=${resort.code}`, '_blank');
+    window.open(`/guest/login?resort=${encodeURIComponent(resort.code)}`, '_blank', 'noopener,noreferrer');
   };
 
   // Validation for delete action

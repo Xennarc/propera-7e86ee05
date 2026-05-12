@@ -226,7 +226,7 @@ export function ResortDrawer({ resort, open, onOpenChange, writeMode = false }: 
   };
 
   const handleOpenGuestPortal = () => {
-    window.open(`/guest/login?resort=${resort.code}`, '_blank');
+    window.open(`/guest/login?resort=${encodeURIComponent(resort.code)}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleSettingToggle = (key: ResortSettingKey, label: string) => {
