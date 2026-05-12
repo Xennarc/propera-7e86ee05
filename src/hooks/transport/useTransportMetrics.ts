@@ -75,48 +75,84 @@ export function useTransportMetrics(
       };
     }
 
-    const completed = requests.filter(r => r.status === 'completed');
-    const cancelled = requests.filter(r => r.status === 'cancelled');
-    const noShow = requests.filter(r => r.status === 'no_show');
+    let completedRequests = 0;
+    let cancelledRequests = 0;
+    let noShowRequests = 0;
+    let totalPassengers = 0;
 
-    // Calculate wait times from created_at to updated_at for completed requests
-    const waitTimes = completed.map(r => 
-      differenceInMinutes(new Date(r.updated_at), new Date(r.created_at))
-    ).filter(t => t >= 0 && t < 120); // Filter outliers
+    let totalWaitTime = 0;
+    let validWaitTimesCount = 0;
+    let minWaitTimeMinutes = Infinity;
+    let maxWaitTimeMinutes = -Infinity;
 
-    const avgWait = waitTimes.length > 0 
-      ? waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length 
+    const requestsByHour = Array(24).fill(0);
+    const requestsByDay = Array(7).fill(0);
+
+    for (let i = 0; i < requests.length; i++) {
+      const r = requests[i];
+      totalPassengers += r.party_size;
+
+      const createdDate = new Date(r.created_at);
+      const hour = getHours(createdDate);
+      const day = getDay(createdDate);
+
+      requestsByHour[hour]++;
+      requestsByDay[day]++;
+
+      if (r.status === 'completed') {
+        completedRequests++;
+        const waitTime = differenceInMinutes(new Date(r.updated_at), createdDate);
+        if (waitTime >= 0 && waitTime < 120) {
+          totalWaitTime += waitTime;
+          validWaitTimesCount++;
+          if (waitTime < minWaitTimeMinutes) minWaitTimeMinutes = waitTime;
+          if (waitTime > maxWaitTimeMinutes) maxWaitTimeMinutes = waitTime;
+        }
+      } else if (r.status === 'cancelled') {
+        cancelledRequests++;
+      } else if (r.status === 'no_show') {
+        noShowRequests++;
+      }
+    }
+
+    const avgWaitTimeMinutes = validWaitTimesCount > 0
+      ? Math.round(totalWaitTime / validWaitTimesCount)
       : 0;
 
-    // Distribution by hour
-    const requestsByHour = Array(24).fill(0);
-    requests.forEach(r => {
-      const hour = getHours(new Date(r.created_at));
-      requestsByHour[hour]++;
-    });
-    const peakHour = requestsByHour.indexOf(Math.max(...requestsByHour));
+    if (validWaitTimesCount === 0) {
+      minWaitTimeMinutes = 0;
+      maxWaitTimeMinutes = 0;
+    }
 
-    // Distribution by day
-    const requestsByDay = Array(7).fill(0);
-    requests.forEach(r => {
-      const day = getDay(new Date(r.created_at));
-      requestsByDay[day]++;
-    });
-    const peakDay = requestsByDay.indexOf(Math.max(...requestsByDay));
+    let peakHour = 0;
+    let maxRequestsByHour = -1;
+    for (let i = 0; i < 24; i++) {
+        if (requestsByHour[i] > maxRequestsByHour) {
+            maxRequestsByHour = requestsByHour[i];
+            peakHour = i;
+        }
+    }
 
-    const totalPassengers = requests.reduce((sum, r) => sum + r.party_size, 0);
+    let peakDay = 0;
+    let maxRequestsByDay = -1;
+    for (let i = 0; i < 7; i++) {
+        if (requestsByDay[i] > maxRequestsByDay) {
+            maxRequestsByDay = requestsByDay[i];
+            peakDay = i;
+        }
+    }
 
     return {
       totalRequests: requests.length,
-      completedRequests: completed.length,
-      cancelledRequests: cancelled.length,
-      noShowRequests: noShow.length,
-      completionRate: (completed.length / requests.length) * 100,
-      cancellationRate: (cancelled.length / requests.length) * 100,
-      noShowRate: (noShow.length / requests.length) * 100,
-      avgWaitTimeMinutes: Math.round(avgWait),
-      minWaitTimeMinutes: waitTimes.length > 0 ? Math.min(...waitTimes) : 0,
-      maxWaitTimeMinutes: waitTimes.length > 0 ? Math.max(...waitTimes) : 0,
+      completedRequests,
+      cancelledRequests,
+      noShowRequests,
+      completionRate: (completedRequests / requests.length) * 100,
+      cancellationRate: (cancelledRequests / requests.length) * 100,
+      noShowRate: (noShowRequests / requests.length) * 100,
+      avgWaitTimeMinutes,
+      minWaitTimeMinutes,
+      maxWaitTimeMinutes,
       requestsByHour,
       peakHour,
       requestsByDay,
