@@ -54,10 +54,8 @@ export function useGuestDebugMode(resortId?: string): GuestDebugMode {
     const showDebugPanel = isDebugParam; // Only show panel with explicit param
     const logDebug = isDebugMode;
     
-    const debugLog = (message: string, data?: Record<string, unknown>) => {
-      if (logDebug) {
-        console.log(`[MyBookings Debug] ${message}`, data ?? '');
-      }
+    const debugLog = (_message: string, _data?: Record<string, unknown>) => {
+      if (logDebug) return;
     };
     
     return {
