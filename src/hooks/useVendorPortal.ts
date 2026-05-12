@@ -98,7 +98,6 @@ export function useVendorPortal() {
 
       // In production, send email here
       // For now, log to console (would use Resend in production)
-      console.log(`[DEV] Vendor login code for ${email}: ${code}`);
 
       return { vendorName: vendor.name };
     },
