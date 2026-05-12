@@ -124,9 +124,12 @@ function AIInsightsPanelContent({ reportType, reportData, resortName, dateRange 
                 fullContent += content;
                 setInsights(fullContent);
               }
-            } catch {
-              textBuffer = line + '\n' + textBuffer;
-              break;
+            } catch (e) {
+              if (e instanceof SyntaxError) {
+                textBuffer = line + '\n' + textBuffer;
+                break;
+              }
+              throw e;
             }
           }
         }
@@ -147,7 +150,11 @@ function AIInsightsPanelContent({ reportType, reportData, resortName, dateRange 
                 fullContent += content;
                 setInsights(fullContent);
               }
-            } catch { /* ignore */ }
+            } catch (e) {
+              if (!(e instanceof SyntaxError)) {
+                throw e;
+              }
+            }
           }
         }
       } else {
