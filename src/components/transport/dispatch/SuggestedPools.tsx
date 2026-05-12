@@ -39,7 +39,9 @@ function generatePoolSuggestions(requests: TransportQueueRequest[]): PoolSuggest
   // Only consider queued requests (not already assigned)
   const poolable = requests.filter(r => 
     r.status === 'requested' || r.status === 'queued'
-  );
+  ).sort((a, b) => {
+    return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+  });
   
   // Group by pickup zone or stop
   const byPickup = new Map<string, TransportQueueRequest[]>();
@@ -66,9 +68,7 @@ function generatePoolSuggestions(requests: TransportQueueRequest[]): PoolSuggest
       if (dirGroup.length < 2) continue;
       
       // Check time window (within 15 minutes of each other)
-      const sorted = [...dirGroup].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
+      const sorted = dirGroup;
       
       const timeSpan = differenceInMinutes(
         new Date(sorted[sorted.length - 1].created_at),
