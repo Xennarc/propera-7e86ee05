@@ -167,7 +167,7 @@ export default function ResortStaffPage() {
           filter: `resort_id=eq.${currentResort.id}`,
         },
         (payload) => {
-          console.log('Invitation change detected:', payload);
+
           
           // Refetch all invitation data
           fetchInvitations();
