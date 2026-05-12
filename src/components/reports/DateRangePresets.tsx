@@ -65,6 +65,10 @@ const PRESETS: { key: PresetKey; label: string; getRange: () => { start: Date; e
   },
 ];
 
+// Cache for formatted preset date ranges to avoid unnecessary date allocations and formatting on every render
+let currentDayString = '';
+let cachedFormattedPresets: { start: string; end: string; label: string }[] = [];
+
 export function DateRangePresets({ startDate, endDate, onStartDateChange, onEndDateChange }: DateRangePresetsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<PresetKey | null>(null);
@@ -93,13 +97,22 @@ export function DateRangePresets({ startDate, endDate, onStartDateChange, onEndD
       return preset?.label || 'Custom';
     }
     
+    const todayString = new Date().toDateString();
+    if (todayString !== currentDayString) {
+      cachedFormattedPresets = PRESETS.map(preset => {
+        const range = preset.getRange();
+        return {
+          start: format(range.start, 'yyyy-MM-dd'),
+          end: format(range.end, 'yyyy-MM-dd'),
+          label: preset.label
+        };
+      });
+      currentDayString = todayString;
+    }
+
     // Check if current dates match any preset
-    for (const preset of PRESETS) {
-      const range = preset.getRange();
-      if (
-        format(range.start, 'yyyy-MM-dd') === startDate &&
-        format(range.end, 'yyyy-MM-dd') === endDate
-      ) {
+    for (const preset of cachedFormattedPresets) {
+      if (preset.start === startDate && preset.end === endDate) {
         return preset.label;
       }
     }
