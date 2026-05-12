@@ -120,28 +120,35 @@ export function useTierStats() {
       };
 
       let expiringSoon = 0;
-      const now = new Date();
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      let demoCount = 0;
+      const now = Date.now();
+      const thirtyDaysFromNow = now + 30 * 24 * 60 * 60 * 1000;
 
-      for (const resort of allResorts || []) {
+      const total = allResorts ? allResorts.length : 0;
+      for (let i = 0; i < total; i++) {
+        const resort = allResorts![i];
         const tier = resort.subscription_tier || 'ESSENTIAL';
         if (distribution[tier] !== undefined) {
           distribution[tier]++;
         }
 
         if (resort.subscription_expires_at) {
-          const expiresAt = new Date(resort.subscription_expires_at);
+          const expiresAt = Date.parse(resort.subscription_expires_at);
           if (expiresAt <= thirtyDaysFromNow && expiresAt > now) {
             expiringSoon++;
           }
+        }
+
+        if (resort.is_demo) {
+          demoCount++;
         }
       }
 
       return {
         distribution,
-        total: allResorts?.length || 0,
+        total,
         expiringSoon,
-        demoCount: allResorts?.filter((r) => r.is_demo).length || 0,
+        demoCount,
       };
     },
     staleTime: 60 * 1000,
