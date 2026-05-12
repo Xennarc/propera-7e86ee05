@@ -67,7 +67,7 @@ export function GuestCreatedModal({
 
   const openGuestLogin = () => {
     if (resortCode) {
-      window.open(`/resort/${resortCode}/guest/login?roomNumber=${guest.room_number}&lastName=${encodeURIComponent(lastName)}`, '_blank');
+      window.open(`/resort/${encodeURIComponent(resortCode)}/guest/login?roomNumber=${encodeURIComponent(guest.room_number || '')}&lastName=${encodeURIComponent(lastName)}`, '_blank', 'noopener,noreferrer');
     }
   };
 
