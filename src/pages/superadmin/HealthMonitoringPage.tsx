@@ -95,21 +95,64 @@ export default function HealthMonitoringPage() {
 
       const results: ResortDiagnostic[] = [];
 
-      for (const resort of targetResorts) {
+      // Use Promise.all to fetch all diagnostic data concurrently instead of sequentially
+      // This solves the N+1 queries waiting sequentially and avoids max-rows limit truncation
+      const allDiagnosticsPromises = targetResorts.map(async (resort) => {
         const issues: ResortDiagnostic['issues'] = [];
 
         // Check for activities without sessions
-        const { count: activityCount } = await supabase
+        const activityPromise = supabase
           .from('activities')
           .select('*', { count: 'exact', head: true })
           .eq('resort_id', resort.id)
           .eq('is_active', true);
 
-        const { count: sessionCount } = await supabase
+        const sessionPromise = supabase
           .from('activity_sessions')
           .select('*', { count: 'exact', head: true })
           .eq('resort_id', resort.id)
           .gte('date', today);
+
+        // Check for restaurants without slots
+        const restaurantPromise = supabase
+          .from('restaurants')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', resort.id)
+          .eq('is_active', true);
+
+        const slotPromise = supabase
+          .from('restaurant_time_slots')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', resort.id)
+          .gte('date', today);
+
+        // Check for guests without prearrival profiles
+        const upcomingGuestsPromise = supabase
+          .from('guests')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', resort.id)
+          .gt('check_in_date', today);
+
+        const prearrivalPromise = supabase
+          .from('prearrival_profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('resort_id', resort.id);
+
+        const [
+          { count: activityCount },
+          { count: sessionCount },
+          { count: restaurantCount },
+          { count: slotCount },
+          { count: upcomingGuests },
+          { count: prearrivalCount }
+        ] = await Promise.all([
+          activityPromise,
+          sessionPromise,
+          restaurantPromise,
+          slotPromise,
+          upcomingGuestsPromise,
+          prearrivalPromise
+        ]);
 
         if (activityCount && activityCount > 0 && (!sessionCount || sessionCount === 0)) {
           issues.push({
@@ -119,19 +162,6 @@ export default function HealthMonitoringPage() {
           });
         }
 
-        // Check for restaurants without slots
-        const { count: restaurantCount } = await supabase
-          .from('restaurants')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id)
-          .eq('is_active', true);
-
-        const { count: slotCount } = await supabase
-          .from('restaurant_time_slots')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id)
-          .gte('date', today);
-
         if (restaurantCount && restaurantCount > 0 && (!slotCount || slotCount === 0)) {
           issues.push({
             type: 'warning',
@@ -139,18 +169,6 @@ export default function HealthMonitoringPage() {
             details: `${restaurantCount} active restaurants but 0 slots available`,
           });
         }
-
-        // Check for guests without prearrival profiles
-        const { count: upcomingGuests } = await supabase
-          .from('guests')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id)
-          .gt('check_in_date', today);
-
-        const { count: prearrivalCount } = await supabase
-          .from('prearrival_profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id);
 
         if (upcomingGuests && upcomingGuests > 10 && (!prearrivalCount || prearrivalCount < upcomingGuests * 0.5)) {
           issues.push({
@@ -161,11 +179,20 @@ export default function HealthMonitoringPage() {
         }
 
         if (issues.length > 0 || selectedResort !== 'all') {
-          results.push({
+          return {
             resortId: resort.id,
             resortName: resort.name,
             issues,
-          });
+          };
+        }
+
+        return null;
+      });
+
+      const processedResults = await Promise.all(allDiagnosticsPromises);
+      for (const res of processedResults) {
+        if (res !== null) {
+          results.push(res);
         }
       }
 
