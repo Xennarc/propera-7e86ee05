@@ -108,16 +108,6 @@ export function useRequestsDashboard({ filters = {}, enabled = true }: UseReques
         throw error;
       }
 
-      // Debug logging for troubleshooting
-      if (typeof window !== 'undefined' && window.location.search.includes('debug=1')) {
-        console.log('[RequestsDashboard] Query result:', {
-          resortId,
-          resultCount: data?.length ?? 0,
-          sessionValid: !!sessionData?.session,
-          userId: sessionData?.session?.user?.id,
-        });
-      }
-
       lastSyncedRef.current = new Date();
 
       // Map to our interface with SLA calculations
