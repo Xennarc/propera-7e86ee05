@@ -43,7 +43,7 @@ function DeptManageAccessContent() {
 
       // Fetch profiles for these users
       const userIds = (data ?? []).map(m => m.user_id);
-      let profiles: Record<string, { full_name: string | null; username: string | null }> = {};
+      const profiles: Record<string, { full_name: string | null; username: string | null }> = {};
       
       if (userIds.length > 0) {
         const { data: profileData } = await supabase

@@ -68,7 +68,7 @@ export function useStaffGuestStay(guestId: string, resortId: string): StaffGuest
       }
 
       // Find the best stay: in_house > pre_arrival > most recent
-      let activeStay = stays?.find(s => s.status === 'in_house') 
+      const activeStay = stays?.find(s => s.status === 'in_house')
         || stays?.find(s => s.status === 'pre_arrival')
         || stays?.[0];
 

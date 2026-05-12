@@ -716,7 +716,7 @@ async function rotateCredentials(
     .eq("portal_enabled", true)
     .single();
 
-  let guestInfo = {
+  const guestInfo = {
     guestId: "",
     guestName: "Demo Guest",
     roomNumber: "101",
@@ -2256,7 +2256,7 @@ serve(async (req) => {
         .eq("portal_enabled", true)
         .single();
 
-      let guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
+      const guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
 
       if (demoGuest) {
         const newPin = generatePin();
@@ -2563,7 +2563,7 @@ serve(async (req) => {
             .eq("portal_enabled", true)
             .single();
 
-          let guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
+          const guestInfo = { guestId: "", guestName: "Demo Guest", roomNumber: "101", lastName: "Guest", pin: "0000" };
 
           if (demoGuest) {
             const newPin = generatePin();
