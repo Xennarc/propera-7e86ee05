@@ -259,40 +259,46 @@ export default function SuperAdminDashboard() {
       const alerts: { type: 'warning' | 'info'; message: string; count: number }[] = [];
       const activeResorts = resorts.filter(r => r.status === 'ACTIVE');
 
+      if (activeResorts.length === 0) {
+        return alerts;
+      }
+
+      const activeResortIds = activeResorts.map(r => r.id);
+
       // Check resorts without time slots
-      for (const resort of activeResorts) {
-        const { count: slotCount } = await supabase
-          .from('restaurant_time_slots')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id)
-          .gte('date', today);
-        
-        if (slotCount === 0) {
-          const existing = alerts.find(a => a.message.includes('no upcoming time slots'));
-          if (existing) {
-            existing.count++;
-          } else {
-            alerts.push({ type: 'warning', message: 'resorts have no upcoming time slots configured', count: 1 });
-          }
-        }
+      const { data: slots } = await supabase
+        .from('restaurant_time_slots')
+        .select('resort_id')
+        .in('resort_id', activeResortIds)
+        .gte('date', today);
+
+      const resortsWithSlots = new Set((slots || []).map(s => s.resort_id));
+      const missingSlotsCount = activeResorts.length - resortsWithSlots.size;
+
+      if (missingSlotsCount > 0) {
+        alerts.push({
+          type: 'warning',
+          message: 'resorts have no upcoming time slots configured',
+          count: missingSlotsCount
+        });
       }
 
       // Check resorts without activity sessions
-      for (const resort of activeResorts) {
-        const { count: sessionCount } = await supabase
-          .from('activity_sessions')
-          .select('*', { count: 'exact', head: true })
-          .eq('resort_id', resort.id)
-          .gte('date', today);
-        
-        if (sessionCount === 0) {
-          const existing = alerts.find(a => a.message.includes('no upcoming activity sessions'));
-          if (existing) {
-            existing.count++;
-          } else {
-            alerts.push({ type: 'warning', message: 'resorts have no upcoming activity sessions', count: 1 });
-          }
-        }
+      const { data: sessions } = await supabase
+        .from('activity_sessions')
+        .select('resort_id')
+        .in('resort_id', activeResortIds)
+        .gte('date', today);
+
+      const resortsWithSessions = new Set((sessions || []).map(s => s.resort_id));
+      const missingSessionsCount = activeResorts.length - resortsWithSessions.size;
+
+      if (missingSessionsCount > 0) {
+        alerts.push({
+          type: 'warning',
+          message: 'resorts have no upcoming activity sessions',
+          count: missingSessionsCount
+        });
       }
 
       return alerts;
